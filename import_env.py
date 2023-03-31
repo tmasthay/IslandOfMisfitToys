@@ -8,15 +8,18 @@ def sco(s,split=True):
     else:
         return res
     
-def get_subfolders(path, depth=1):
-    return sco('find %s -type d -depth %d | grep -v "_.*"'%(path, depth))
+def get_subfolders(path, omissions=[], depth=1):
+    omissions = [path + '/%s'%e for e in omissions]
+    u = sco('find %s -type d -depth %d | grep -v "[_.].*"'%(path, depth))
+    if( len(omissions) > 0 ):
+        u = [e for e in u if e not in omissions]
+    return u
 
 def get_submodules(path):
     return sco('find %s -type f -name "*.py" -depth 1 | grep -v "_.*"'%(path))
 
-
 if( __name__ == "__main__" ):
-    u = get_subfolders(os.getcwd())
+    u = get_subfolders(os.getcwd(), omissions=['examples'])
     v = get_submodules(os.getcwd())
 
     print(u)
