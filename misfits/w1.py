@@ -1,33 +1,31 @@
 import numpy as np
-
+from numpy import linalg as LA
 #def func1():
 #    print('func1')
 
 
-function W1_metric(f, g, t, Nt, dt)
+def W1_metric(f, g, t, Nt, dt)
 # normalization
-    f = f ./ (norm(f,1)*dt);
-    g = g ./ (norm(g,1)*dt);
+    f = f / (LA.norm(f,1)*dt)
+    g = g / (LA.norm(g,1)*dt)
 # numerical integration
-    F = zeros(Nt);
-    G = zeros(Nt);
-    for i = 1:Nt
-        F[i] = sum(f[1:i])
-        G[i] = sum(g[1:i])
-    end
-    F = F .* dt;
-    G = G .* dt;
+    F = np.zeros(Nt)
+    G = np.zeros(Nt)
+    F[0] = f[0]
+    G[0] = g[0]
+    for i in range(1, Nt):
+        F[i] = F[i-1] + f[i]
+        G[i] = G[i-1] + g[i]
+    F = F * dt
+    G = G * dt
 # inverse of G 
-    G_inv = zeros(Nt);
-    for i = 1:Nt
+    G_inv = np.zeros(Nt)
+    for i in range(0, Nt):
         y = F[i]
-        ind_g = findall(x -> x >= y, G)
-        if length(ind_g) == 0
-            G_inv[i] = t[end];
+        ind_g = np.where( y >= G)
+        if size(ind_g) == 0
+            G_inv[i] = t[end]
         else
-            G_inv[i] = t[ind_g[1]];
-        end
-    end
-    w1 = sum((t-G_inv) .* f * dt)
+            G_inv[i] = t[ind_g[0]]
+    w1 = sum(abs(t-G_inv) * f * dt)
     return w1
-end
