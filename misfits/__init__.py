@@ -10,6 +10,7 @@ __all__ = [
     "huber",
     "sobolev",
     "w2",
-    "sinkorn_ot"
+    "sinkorn_ot",
+    "helpers"
 ]
 from . import *
