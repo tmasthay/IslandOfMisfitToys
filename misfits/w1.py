@@ -4,7 +4,7 @@ from numpy import linalg as LA
 #    print('func1')
 
 
-def W1_metric(f, g, t, Nt, dt)
+def W1_metric(f, g, t, Nt, dt):
 # normalization
     f = f / (LA.norm(f,1)*dt)
     g = g / (LA.norm(g,1)*dt)
@@ -23,9 +23,9 @@ def W1_metric(f, g, t, Nt, dt)
     for i in range(0, Nt):
         y = F[i]
         ind_g = np.where( y >= G)
-        if size(ind_g) == 0
+        if size(ind_g) == 0:
             G_inv[i] = t[end]
-        else
+        else:
             G_inv[i] = t[ind_g[0]]
     w1 = sum(abs(t-G_inv) * f * dt)
     return w1

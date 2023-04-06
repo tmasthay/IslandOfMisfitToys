@@ -1,4 +1,4 @@
-# smart_quantile_cython.pyx
+# smart_quantile.pyx
 # cython: boundscheck=False
 # cython: cdivision=False
 # cython: wraparound=False
