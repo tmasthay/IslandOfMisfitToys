@@ -7,7 +7,6 @@ __all__ = [
     "radon_ot",
     "sambridge_ot",
     "l1_l2_hybrid",
-    "__init__",
     "huber",
     "sobolev",
     "w2",
