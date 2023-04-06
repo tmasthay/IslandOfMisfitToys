@@ -3,7 +3,7 @@ import os
 
 omissions = ['examples', 'Experiments', 'build']
 
-run_make_files(omissions)
+# run_make_files(omissions)
 
 init_modules(
     os.getcwd(), 
