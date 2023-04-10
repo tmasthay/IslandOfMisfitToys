@@ -3,13 +3,23 @@ import numpy as np
 #    print('func1')
 
 
-def W1_metric(f, g, Nt): 
-#CDF
-    F = np.zeros(Nt)
-    G = np.zeros(Nt)
-    for i in range(0, Nt):
-        F[i] = np.sum(f[0:i])
-        G[i] = np.sum(g[0:i])
+def W1_metric(f, g, dt): 
+	"""
+	Python code to compute the Wasserstein-1 distance between two one-dimensional probability distributions using the cumulative distribution functions.
+	Parameters
+    	----------
+	f: function
+        g: function
+           f and g are the probability distributions to compare
+	dt: int
+	   time interval 
+    	Returns
+    	-------
+    	float
+        w1 norm of f.
+	"""
+    F = np.cumsum(f)
+    G = np.cumsum(g)
 # inverse
-    w1 = np.sum(np.abs(F-G))
+    w1 = np.sum(np.abs(F-G)*dt)
     return w1
