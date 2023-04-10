@@ -24,7 +24,7 @@ def sobolev_norm(f, s=0, **kw):
     Returns
     -------
     float
-        $\|f\|_{H^{s}}$
+        H^s norm of f.
     """
     if( 'sample' in kw.keys() ):
         ot = kw['sample'][0]
