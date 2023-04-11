@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 def huber_norm(f, g, delta):
     """
@@ -21,6 +22,7 @@ def huber_norm(f, g, delta):
     diff = np.abs(f - g)
 
     # Apply the Huber loss function to each difference value
+    # TODO: performance can be improved wiht np.where
     h = np.zeros(f.shape)
     idx = (diff <= delta)
     h[idx] = 0.5 * diff[idx]**2
@@ -29,4 +31,3 @@ def huber_norm(f, g, delta):
 
     # Average over all elements in the images
     return np.sum(h) / np.size(f)
-
