@@ -7,7 +7,12 @@ def generate_automodule_rst_files(dir_path, exclude_dirs):
     Recursively searches for Python modules and generates automodule .rst files for them.
     """
     for root, dirs, files in os.walk(dir_path, topdown=True):
-        dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith(".")]
+        if( root.startswith('__') ): continue
+        dirs[:] = [
+            d for d in dirs \
+                if d not in exclude_dirs \
+                    and not d.startswith(".")
+        ]
         for file in files:
             if file.endswith((".py", ".pyx")):
                 mod_path = os.path.relpath(os.path.join(root, file), dir_path)
@@ -38,7 +43,7 @@ def update_toc_tree(dir_path):
     new_toc = []
     for root, dirs, files in os.walk(os.path.join(dir_path, "docs", "source")):
         rel_path = os.path.relpath(root, os.path.join(dir_path, "docs", "source"))
-        if rel_path.startswith("."):
+        if( rel_path.startswith(".") and rel_path != "." ):
             continue
         for file in files:
             if file.endswith(".rst") and file != "index.rst":
