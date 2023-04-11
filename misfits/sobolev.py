@@ -3,28 +3,18 @@ import numpy as np
 def sobolev_norm(f, s=0, **kw):
     """
     Compute the Sobolev norm of the difference between two 1D functions f(x) and g(x)
-    over the domain specified by the array `domain`, up to order k.
-    
-    Parameters
-    ----------
-    f : function
-        any function in $H^{s}$.
-    s : int
-        Sobolev space smoothness parameter.
-        Defaults to 0.
-    kw : kw arguments
-        ot : float
-            "origin in time", i.e., "$t_0$".
-        dt : float
-            time sampling interval
-        nt : int
-            number of time samples
-        'sample' : 3-tuple
-            (ot, dt, nt) alternative input format
-    Returns
-    -------
-    float
-        H^s norm of f.
+    over the domain specified by the array domain, up to order k.
+
+    Args:
+        **f** (function): Any function in H^s. \n
+        **s** (int, optional): Sobolev space smoothness parameter. Default: 0.\n
+        **kw**: Keyword arguments. Currently all required. \n
+            **ot** (float): origin in time, i.e., t_0.\n
+            **dt** (float): Time sampling interval.\n
+            **nt** (int): Number of time samples.\n
+
+    Returns:
+        **float**: :math:`H^s` norm of **f**.
     """
     if( 'sample' in kw.keys() ):
         ot = kw['sample'][0]
