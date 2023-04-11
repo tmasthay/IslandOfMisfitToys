@@ -1,7 +1,6 @@
 import numpy as np
 
-def sobolev_norm(f, g, dh, k=2):
-
+def sobolev_norm(f, s=0, **kw):
     """
     Compute the Sobolev norm of the difference between two 1D functions f(x) and g(x)
     over the domain specified by the array `domain`, up to order k.
@@ -9,34 +8,39 @@ def sobolev_norm(f, g, dh, k=2):
     Parameters
     ----------
     f : function
-        A function that takes a single argument x and returns the value of f(x).
-    g : function
-        A function that takes a single argument x and returns the value of g(x).
-    dh : int,
-        The distance between two data points in function.
-    k : int, optional
-        The order of the Sobolev norm. Defaults to 2.
-        
+        any function in $H^{s}$.
+    s : int
+        Sobolev space smoothness parameter.
+        Defaults to 0.
+    kw : kw arguments
+        ot : float
+            "origin in time", i.e., "$t_0$".
+        dt : float
+            time sampling interval
+        nt : int
+            number of time samples
+        'sample' : 3-tuple
+            (ot, dt, nt) alternative input format
     Returns
     -------
     float
-        The Sobolev norm of the difference between the two functions f(x) and g(x) up to order k.
+        H^s norm of f.
     """
-    f_values = np.array(f)
-    g_values = np.array(g)
-    
-    # Compute the derivative of f(x) and g(x) up to order k using finite differences
-    Df_values = [f_values]
-    Dg_values = [g_values]
-    for i in range(k):
-        Df_values.append(np.gradient(Df_values[-1], dh))
-        Dg_values.append(np.gradient(Dg_values[-1], dh))
-    
-    # Compute the Sobolev norm using the formula
-    # ||f-g||_k^2 = ||f-g||_2^2 + sum_{i=1}^k ||D^if - D^ig||_2^2
-    norm2 = np.sum((f_values - g_values)**2)
-    normk2 = 0
-    for i in range(1, k+1):
-        normk2 += np.sum((Df_values[i] - Dg_values[i])**2)
-    
-    return np.sqrt(norm2 + normk2)
+    if( 'sample' in kw.keys() ):
+        ot = kw['sample'][0]
+        dt = kw['sample'][1]
+        nt = kw['sample'][2]
+    else:
+        ot = kw['ot']
+        dt = kw['dt']
+        nt = kw['nt']
+    xi = np.fft.fftfreq(nt, d=dt)
+    f_hat = np.exp(-2j * np.pi * ot * xi) * np.fft.fft(f) * dt
+
+    xi = np.fft.fftshift(xi)
+    f_hat = np.fft.fftshift(f_hat)
+    g = (1 + np.abs(xi)**2)**s * np.abs(f_hat)**2
+    dxi = xi[1] - xi[0]
+    res = np.trapz(g, dx=dxi)
+    return res, xi, g
+
