@@ -59,7 +59,7 @@ def delete_rst_files(dir_path, protect_files):
     """
     for root, dirs, files in os.walk(os.path.join(dir_path, "docs", "source")):
         rel_path = os.path.relpath(root, os.path.join(dir_path, "docs", "source"))
-        if rel_path.startswith("."):
+        if( rel_path != '.' and rel_path.startswith(".") ):
             continue
         for file in files:
             if file.endswith(".rst") and file not in protect_files:
@@ -88,12 +88,20 @@ def main():
     args = parser.parse_args()
 
     if args.reset:
-        protect_files = ["index.rst", "index.html"] + args.reset_protect
+        protect_files = args.reset_protect + \
+            [   
+                "index.rst", 
+                "index.html",
+                "genindex.html",
+                "search.html"
+            ]
         delete_rst_files(args.directory, protect_files)
         delete_html_files(args.directory, protect_files)
+        update_toc_tree(args.directory)
         print("All .rst and .html files (except for protected files) have been deleted.")
-
-    generate_automodule_rst_files(args.directory, args.exclude)
+    else:
+        exclude = ["__pycache__"] + args.exclude
+        generate_automodule_rst_files(args.directory, exclude)
 
     if args.run:
         os.chdir(os.path.join(args.directory, "docs"))
