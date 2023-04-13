@@ -11,7 +11,6 @@ __all__ = [
     "sobolev",
     "w2",
     "sinkorn_ot",
-    "unit_tests",
     "helpers"
 ]
 from . import *
