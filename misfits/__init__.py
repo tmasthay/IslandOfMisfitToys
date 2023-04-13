@@ -13,3 +13,4 @@ __all__ = [
     "sinkorn_ot",
     "helpers"
 ]
+from . import *

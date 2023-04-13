@@ -8,7 +8,8 @@ omissions = ['examples', 'Experiments', 'docs']
 init_modules(
     os.getcwd(), 
     root=True, 
-    omissions=omissions
+    omissions=omissions,
+    unload=True
 )
 
 
