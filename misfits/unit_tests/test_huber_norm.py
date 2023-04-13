@@ -3,7 +3,7 @@ import pytest
 import os
 import numpy as np
 
-sys.path.append(os.path.abspath(".."))
+sys.path.append('/'.join(os.getcwd().split('/')[:-1]))
 from huber import huber_norm
 
 def __get_test(f,g,delta,tau=1e-8):
