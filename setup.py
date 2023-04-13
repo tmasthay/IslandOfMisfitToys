@@ -8,7 +8,6 @@ class build_ext(_build_ext):
         _build_ext.finalize_options(self)
         # Prevent numpy from being imported before it's installed.
         __builtins__.__NUMPY_SETUP__ = False
-        import numpy
         self.include_dirs.append(np.get_include())
 
 extensions = [
@@ -22,8 +21,8 @@ extensions = [
 setup(
     name='IslandOfMisfitToys',
     version='0.1.0',
-    description='A Python package for ...',  # Provide a short description here
-    author='Your Name',
+    description='A suite of misfit functions to test FWI',  # Provide a short description here
+    author='Tyler Masthay and Yiran Shen',
     author_email='tyler@ices.utexas.edu',
     url='https://github.com/tmasthay/IslandOfMisfitToys',
     packages=find_packages(),
