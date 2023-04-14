@@ -7,6 +7,7 @@
 
 import numpy as np
 cimport numpy as cnp
+from scipy.integrate import cumulative_trapezoid
 
 def get_flat_subintervals(cnp.ndarray[float, ndim=1] x, double tol=0.0):
     cdef int i, start, prev, runner, curr
@@ -85,5 +86,19 @@ def smart_quantile(
             q[i] = x[i_x]
 
     return q
+
+def smart_quantile_peval(
+        g,
+        x,
+        tol=0.0, 
+        restrict=None,
+        explicit_restrict=None
+    ):
+    dx = x[1] - x[0]
+    x = np.array(x, dtype=np.float32)
+    G = np.array(cumulative_trapezoid(g, dx=dx, initial=0.0), dtype=np.float32)
+    def helper(p, tau=tol):
+        return smart_quantile(x, g, G, p, tol)
+    return helper
 
 
