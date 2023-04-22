@@ -20,7 +20,7 @@ git clone https://github.com/tmasthay/IslandOfMisfitToys.git
 cd IslandOfMisfitToys
 ```
 
-Misfit Functions (currently supported)
+## Misfit Functions (currently supported)
 
 (1) One-dimensional $W_1$ and $W_2$ (trace-by-trace) 
   - [Yang et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Application+of+optimal+transport+and+the+quadratic+Wasserstein+metric+to+full-waveform+inversion&btnG=)
@@ -35,7 +35,7 @@ Misfit Functions (currently supported)
 
   - [Zhu et al. 2021](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Implicit+regularization+effects+of+the+Sobolev+norms+in+image+processing&btnG=)
 
-Misfit Functions (roadmap for future)
+## Misfit Functions (roadmap for future)
 
 (1) Fisher-Rao metric
 
