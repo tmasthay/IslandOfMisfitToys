@@ -2,7 +2,10 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! This repository contains implementations of various misfit functions found in seismic literature. Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
+Welcome to the **Island of Misfit Toys**! 
+
+This repository contains implementations of various misfit functions found in seismic literature. 
+Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
 
 ## Table of Contents
 
