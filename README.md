@@ -29,11 +29,11 @@ Misfit Functions (currently supported)
   - [Guitton and Symes 2003](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Guitton%2C+A.%2C+and+W.+W.+Symes%2C+2003%2C+Robust+inversion+of+seismic+data+using+the+Huber+norm%3A+Geophysics&btnG=)
 
 (3) $L^1$-$L^2$ hybrid
-  - [link](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Hybrid+l1%E2%88%95l2+minimization+with+applications+to+tomography&btnG=)
+  - [Bube and Langan](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Hybrid+l1%E2%88%95l2+minimization+with+applications+to+tomography&btnG=)
 
 (4) Normalized and unnormalized Sobolev norms
 
-  - [link](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Implicit+regularization+effects+of+the+Sobolev+norms+in+image+processing&btnG=)
+  - [Zhu et al. 2021](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Implicit+regularization+effects+of+the+Sobolev+norms+in+image+processing&btnG=)
 
 Misfit Functions (roadmap for future)
 
