@@ -7,6 +7,10 @@ Welcome to the **Island of Misfit Toys**!
 This repository contains implementations of various misfit functions found in seismic literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
 
+If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu.
+
+If you have any trouble with our code or find bugs, **please** let us know as well by filling out an issue!
+
 ## Table of Contents
 
 - [Introduction](#introduction)
