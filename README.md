@@ -26,8 +26,7 @@ Misfit Functions (currently supported)
   - [Yang et. al 2018](https://library.seg.org/doi/full/10.1190/geo2016-0663.1?casa_token=8cuW_llvIBkAAAAA%3AIws-nMZII9-i3Fv3f1AMpI3z4_8FyqsCvgYtsaDU__fu7UGhEtnDv9Fr6TA5P_jjRCfhuLu7BG4)
 
 (3) Huber
-
-    Paper: P. J. Huber, "Robust estimation of a location parameter," Ann. Math. Statist., vol. 35, no. 1, pp. 73-101, 1964.
+  - [Guitton and Symes 2003](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Guitton%2C+A.%2C+and+W.+W.+Symes%2C+2003%2C+Robust+inversion+of+seismic+data+using+the+Huber+norm%3A+Geophysics&btnG=)
 
 (4) $L^1$-$L^2$ hybrid
 
