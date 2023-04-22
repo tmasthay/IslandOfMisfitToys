@@ -23,10 +23,7 @@ cd IslandOfMisfitToys
 Misfit Functions (currently supported)
 
 (1) One-dimensional $W_1$ and $W_2$ (trace-by-trace) 
-
-**References**:
-
-  (a) [Yang et. al, Application of optimal transport and the quadratic Wasserstein metric to full-waveform inversion](https://library.seg.org/doi/full/10.1190/geo2016-0663.1?casa_token=8cuW_llvIBkAAAAA%3AIws-nMZII9-i3Fv3f1AMpI3z4_8FyqsCvgYtsaDU__fu7UGhEtnDv9Fr6TA5P_jjRCfhuLu7BG4)
+  - [Yang et. al 2018](https://library.seg.org/doi/full/10.1190/geo2016-0663.1?casa_token=8cuW_llvIBkAAAAA%3AIws-nMZII9-i3Fv3f1AMpI3z4_8FyqsCvgYtsaDU__fu7UGhEtnDv9Fr6TA5P_jjRCfhuLu7BG4)
 
 (3) Huber
 
