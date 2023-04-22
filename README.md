@@ -9,7 +9,7 @@ Our goal is to create a comprehensive collection of these functions to aid resea
 
 If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu.
 
-If you have any trouble with our code or find bugs, **please** let us know as well by filling out an issue!
+If you have any trouble with our code or find bugs, please let us know by filling out an issue!
 
 ## Table of Contents
 
