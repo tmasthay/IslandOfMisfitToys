@@ -13,7 +13,6 @@ If you have any trouble with our code or find bugs, please let us know by fillin
 
 ## Table of Contents
 
-- [Introduction](#introduction)
 - [Getting Started](#getting-started)
 - [Misfit Functions (currently supported)](#misfit-functions)
 - [Misfit Functions (roadmap for future)](#roadmap)
