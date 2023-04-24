@@ -16,7 +16,7 @@ If you have any trouble with our code or find bugs, please let us know by fillin
 - [Introduction](#introduction)
 - [Getting Started](#getting-started)
 - [Misfit Functions (currently supported)](#misfit-functions)
-- [Misfit Functions (roadmap for future)](#contribution-guidelines)
+- [Misfit Functions (roadmap for future)](#roadmap)
 
 ## Getting Started
 
