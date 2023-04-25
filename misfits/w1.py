@@ -18,10 +18,10 @@ def w1(f, g, dt):
     	float
         w1 norm of f.
 	"""
-    F = np.cumsum(f)
-    F /= F[-1]
-    G = np.cumsum(g)
-    G /= G[-1]
+	F = np.cumsum(f)
+	F /= F[-1]
+	G = np.cumsum(g)
+	G /= G[-1]
 # inverse
-    w1 = dt * np.sum(np.abs(F-G))
-    return w1
+	w1 = dt * np.sum(np.abs(F-G))
+	return w1
