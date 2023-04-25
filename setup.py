@@ -26,6 +26,7 @@ setup(
     author_email='tyler@ices.utexas.edu',
     url='https://github.com/tmasthay/IslandOfMisfitToys',
     packages=find_packages(),
+    package_data={'misfits': ['helpers/quantile/*.pyx', 'helpers/quantile/*.py']},
     ext_modules=cythonize(extensions),
     cmdclass={'build_ext': build_ext},
     install_requires=[
