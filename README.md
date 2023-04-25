@@ -2,21 +2,20 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! 
+Welcome to the **Island of Misfit Toys**! See [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)) if you are confused by the logo.
 
 This repository contains implementations of various misfit functions found in seismic literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
 
 If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu.
 
-If you have any trouble with our code or find bugs, **please** let us know as well by filling out an issue!
+If you have any trouble with our code or find bugs, please let us know by filling out an issue!
 
 ## Table of Contents
 
-- [Introduction](#introduction)
 - [Getting Started](#getting-started)
 - [Misfit Functions (currently supported)](#misfit-functions)
-- [Misfit Functions (roadmap for future)](#contribution-guidelines)
+- [Misfit Functions (roadmap for future)](#roadmap)
 
 ## Getting Started
 
