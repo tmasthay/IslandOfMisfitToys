@@ -2,7 +2,8 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! 
+Welcome to the **Island of Misfit Toys**!  
+See [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special) if you are confused by the logo.
 
 This repository contains implementations of various misfit functions found in seismic literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
