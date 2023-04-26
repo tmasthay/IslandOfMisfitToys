@@ -11,7 +11,7 @@ input(os.getcwd())
 init_modules(
     os.getcwd(), 
     root=True, 
-    omissions=omissions,
+    inclusions=include_paths,
     unload=True
 )
 
