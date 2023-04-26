@@ -2,9 +2,11 @@
 from import_env import *
 import os
 
-omissions = ['examples', 'Experiments', 'docs', 'unit_tests']
+include_paths = ['misfits', 'forward']
 
 #run_make_files(omissions)
+
+input(os.getcwd())
 
 init_modules(
     os.getcwd(), 
