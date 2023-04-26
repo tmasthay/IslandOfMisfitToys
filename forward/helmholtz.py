@@ -2,6 +2,8 @@ from dolfin import *
 import sys, os
 from hippylib import *
 
+sys.path.append('../..')
+
 class PML:
     def __init__(self, mesh, box, box_pml, A):
 
