@@ -1,6 +1,9 @@
 #from Experiments.helpers.import_env import *
-from import_env import *
 import os
+import sys
+
+sys.path.append('%s/helpers'%os.getcwd())
+from import_env import *
 
 include_paths = ['misfits', 'forward']
 
