@@ -1,16 +1,16 @@
 __all__ = [
-    "rom",
-    "graph_ot",
+    "l1_l2_hybrid",
+    "sambridge_ot",
+    "sobolev",
+    "huber",
     "cross_correlation",
-    "w1",
+    "graph_ot",
+    "sinkorn_ot",
     "fisher",
     "radon_ot",
-    "sambridge_ot",
-    "l1_l2_hybrid",
-    "huber",
-    "sobolev",
     "w2",
-    "sinkorn_ot",
+    "w1",
+    "rom",
     "helpers"
 ]
 from . import *
