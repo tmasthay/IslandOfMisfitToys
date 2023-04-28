@@ -1,0 +1,2 @@
+def rom():
+    print('rom')
