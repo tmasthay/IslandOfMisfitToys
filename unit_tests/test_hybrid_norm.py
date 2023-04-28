@@ -25,7 +25,7 @@ def test_hybrid_norm_zero():
         tau=1e-8
     )
 
-def test_huber_norm_large_difference():
+def test_hybrid_norm_large_difference():
     __perform_test(
         f=np.array([1,2,3]),
         g=np.array([100,200,300]),
@@ -34,7 +34,7 @@ def test_huber_norm_large_difference():
         tau=1e-8
     )
 
-def test_huber_norm_small_difference():
+def test_hybrid_norm_small_difference():
     __perform_test(
         f=np.array([1,2,3]),
         g=np.array([2,3,4]),
