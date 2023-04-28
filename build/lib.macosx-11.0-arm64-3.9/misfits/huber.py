@@ -12,7 +12,7 @@ def huber_norm(f, g, delta):
 #     f, g: function
 #           f and g are the probability distributions to compare
 #     delta: float
-# 	  tunning parameter 
+# 	        tunning parameter
 #     Returns
 #     -------
 #     float
