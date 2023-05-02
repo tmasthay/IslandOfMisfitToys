@@ -8,6 +8,7 @@ from import_env import *
 include_paths = ['misfits', 'forward']
 
 #run_make_files(omissions)
+print('Clearly a change here')
 
 init_modules(
     os.getcwd(), 
