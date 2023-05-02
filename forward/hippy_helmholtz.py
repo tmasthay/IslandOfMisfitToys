@@ -16,7 +16,6 @@
 
 import dolfin as dl
 import sys, os
-sys.path.append( os.environ.get('HIPPYLIB_PATH'))
 from hippylib import *
 
 class PML:
