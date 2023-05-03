@@ -1,4 +1,4 @@
 __all__ = [
     "quantile"
 ]
-from . import *
+from .quantile import *
