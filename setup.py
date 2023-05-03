@@ -3,6 +3,8 @@ from setuptools.command.build_ext import build_ext as _build_ext
 from Cython.Build import cythonize
 import numpy as np
 
+#print('Pypi CI test')
+
 class build_ext(_build_ext):
     def finalize_options(self):
         _build_ext.finalize_options(self)
