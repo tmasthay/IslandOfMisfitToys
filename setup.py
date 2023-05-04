@@ -64,6 +64,7 @@ setup(
     ],
     python_requires='>=3.9',
     include_package_data=True,
-    zip_safe=False
+    zip_safe=False,
+    options={'bdist_wheel': {'universal': True}}
 )
 
