@@ -46,6 +46,8 @@ def smart_quantile(
     cdef int sidx, N, P, i, i_x
     cdef double delta, alpha
 
+    input(flat_int)
+    
     N = len(x)
     P = len(p)
     cdef cnp.ndarray[double, ndim=1] q = np.empty(P)
