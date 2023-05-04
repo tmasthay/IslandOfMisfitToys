@@ -58,6 +58,7 @@ jobs:
       run: |
         python setup.py sdist 
         python setup.py bdist_wheel --plat-name macosx-11.0-arm64
+        mkdir wheelhouse
         mv dist/*.whl wheelhouse/
 
     - name: Upload macOS arm64 wheel artifact
