@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-def Hybrid_norm(f,g, delta):
+def hybrid_norm(f,g, delta):
     """
     Computer the hibrid l1/l2 norm J = sum f(r) where f(r) = sqrt(1 + (r/delta)^2) - 1 f and g are two seismic images, delta is a positive tuning parameter and r is defined as r = f - g
     Parameters
