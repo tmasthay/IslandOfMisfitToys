@@ -15,13 +15,6 @@ def check_and_install_dependencies(dependencies):
 names = ['cython', 'numpy']
 check_and_install_dependencies(names)
 
-for name in names:
-    os.system('pip show %s > tmp_%s_check.txt'%(name.replace('c','C'),name))
-    not_found = 'WARNING: Package(s) not found: %s'%name.replace('c','C')
-    with open('tmp_%s_check.txt'%name,'r') as f1:
-        if( not_found  in f1.read() ):
-            os.system('pip install %s'%name.replace('c','C'))
-
 from Cython.Build import cythonize
 import numpy as np
 
@@ -61,6 +54,16 @@ setup(
         # Add other dependencies here
     ],
     long_description=open('README.md','r').read(),
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering'
+    ],
+    python_requires='>=3.9',
+    include_package_data=True,
+    zip_safe=False
 )
 
