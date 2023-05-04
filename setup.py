@@ -60,5 +60,7 @@ setup(
         'pytest'
         # Add other dependencies here
     ],
+    long_description=open('README.md','r').read(),
+    long_description_content_type='text/markdown'
 )
 
