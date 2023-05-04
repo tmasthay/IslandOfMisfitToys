@@ -6,8 +6,10 @@ on:
       - main
 
 jobs:
-  build-and-publish:
+  build-manylinux:
     runs-on: ubuntu-latest
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
@@ -26,7 +28,70 @@ jobs:
       run: |
         python setup.py sdist 
         python setup.py bdist_wheel
-        auditwheel repair dist/*.whl
+        auditwheel repair dist/*.whl --wheel-dir wheelhouse/
+
+    - name: Upload manylinux wheel artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: manylinux-wheel
+        path: wheelhouse/*.whl
+
+  build-macos-arm64:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        architecture: ['arm64']
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+        architecture: ${{ matrix.architecture }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+
+    - name: Build package
+      run: |
+        python setup.py sdist 
+        python setup.py bdist_wheel
+        mv dist/*.whl wheelhouse/
+
+    - name: Upload macOS arm64 wheel artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: macosx-arm64-wheel
+        path: wheelhouse/*.whl
+
+  publish:
+    needs: [build-manylinux, build-macos-arm64]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download wheel artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: manylinux-wheel
+        path: wheelhouse/
+    - name: Download wheel artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: macosx-arm64-wheel
+        path: wheelhouse/
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install twine
+      run: |
+        python -m pip install --upgrade pip
+        pip install twine
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
