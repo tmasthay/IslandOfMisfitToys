@@ -4,7 +4,8 @@ import os
 import numpy as np
 
 sys.path.append('/'.join(os.getcwd().split('/')[:-1]))
-from misfits.l1_l2_hybrid import Hybrid_norm
+from misfits.l1_l2_hybrid import hybrid_norm
+# from misfits import hybrid_norm
 
 def __get_test(f,g,delta,tau=1e-8):
     xprmnt = hybrid_norm(f,g,delta)
