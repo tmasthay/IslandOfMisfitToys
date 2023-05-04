@@ -23,7 +23,10 @@ jobs:
         pip install setuptools wheel twine auditwheel
 
     - name: Build package
-      run: python setup.py sdist bdist_wheel
+      run: |
+        python setup.py sdist 
+        python setup.py bdist_wheel
+        auditwheel repair dist/*.whl
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
