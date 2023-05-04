@@ -9,7 +9,6 @@ IslandOfMisfitToys.egg-info/top_level.txt
 docs/__init__.py
 docs/source/__init__.py
 docs/source/conf.py
-forward/__init__.py
 forward/hippy_helmholtz.py
 helpers/__init__.py
 helpers/setup.py
