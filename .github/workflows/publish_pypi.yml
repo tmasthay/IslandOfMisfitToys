@@ -36,9 +36,9 @@ jobs:
 
   build-macos-arm64:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        architecture: ['arm64']
+    # strategy:
+    #   matrix:
+    #     architecture: ['arm64']
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
@@ -57,7 +57,7 @@ jobs:
     - name: Build package
       run: |
         python setup.py sdist 
-        python setup.py bdist_wheel
+        python setup.py bdist_wheel --plat-name macosx-11.0-arm64
         mv dist/*.whl wheelhouse/
 
     - name: Upload macOS arm64 wheel artifact
