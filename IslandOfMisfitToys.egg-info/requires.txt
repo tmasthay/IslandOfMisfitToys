@@ -1,2 +1,4 @@
 Cython>=0.29
 numpy>=1.19
+scipy
+pytest

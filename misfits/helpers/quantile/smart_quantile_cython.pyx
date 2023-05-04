@@ -27,7 +27,6 @@ def get_flat_subintervals(cnp.ndarray[float, ndim=1] x, double tol=0.0):
                     flat_int.append((start+1, prev-1))
                 start = curr
             prev = curr
-
         if len(flat_int) > 0:
             return flat_int
         else:
