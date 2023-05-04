@@ -8,8 +8,6 @@ on:
 jobs:
   build-manylinux:
     runs-on: ubuntu-latest
-    container:
-      image: quay.io/pypa/manylinux2014_x86_64
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
