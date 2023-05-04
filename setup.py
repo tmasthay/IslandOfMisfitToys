@@ -1,5 +1,27 @@
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+import os
+
+import os
+
+def check_and_install_dependencies(dependencies):
+    for dependency in dependencies:
+        try:
+            __import__(dependency)
+        except ImportError:
+            print(f"{dependency} not found. Installing...")
+            os.system(f"pip install {dependency}")
+
+names = ['cython', 'numpy']
+check_and_install_dependencies(names)
+
+for name in names:
+    os.system('pip show %s > tmp_%s_check.txt'%(name.replace('c','C'),name))
+    not_found = 'WARNING: Package(s) not found: %s'%name.replace('c','C')
+    with open('tmp_%s_check.txt'%name,'r') as f1:
+        if( not_found  in f1.read() ):
+            os.system('pip install %s'%name.replace('c','C'))
+
 from Cython.Build import cythonize
 import numpy as np
 
@@ -34,6 +56,8 @@ setup(
     install_requires=[
         'Cython>=0.29',  # Update the version as needed
         'numpy>=1.19',   # Update the version as needed
+        'scipy',
+        'pytest'
         # Add other dependencies here
     ],
 )
