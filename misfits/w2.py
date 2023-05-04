@@ -4,7 +4,7 @@ from scipy.integrate import cumulative_trapezoid
 
 def w2_peval(f,dt,tol=0.0):
     nt = len(f)
-    t = np.array(np.linspace(0.0, (nt-1)*dt, nt), dtype=dtype)
+    t = np.array(np.linspace(0.0, (nt-1)*dt, nt), dtype=np.float32)
     Q = ppf(t, f, tol)
     def aux(g):
         G = np.array(
