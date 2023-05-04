@@ -1,4 +1,4 @@
 __all__ = [
     "smart_quantile_cython"
 ]
-from . import *
+from .smart_quantile_cython import *

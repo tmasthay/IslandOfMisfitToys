@@ -1,7 +1,24 @@
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+import os
+
+import os
+
+def check_and_install_dependencies(dependencies):
+    for dependency in dependencies:
+        try:
+            __import__(dependency)
+        except ImportError:
+            print(f"{dependency} not found. Installing...")
+            os.system(f"pip install {dependency}")
+
+names = ['cython', 'numpy']
+check_and_install_dependencies(names)
+
 from Cython.Build import cythonize
 import numpy as np
+
+#print('Pypi CI test')
 
 class build_ext(_build_ext):
     def finalize_options(self):
@@ -32,7 +49,22 @@ setup(
     install_requires=[
         'Cython>=0.29',  # Update the version as needed
         'numpy>=1.19',   # Update the version as needed
+        'scipy',
+        'pytest'
         # Add other dependencies here
     ],
+    long_description=open('README.md','r').read(),
+    long_description_content_type='text/markdown',
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering'
+    ],
+    python_requires='>=3.9',
+    include_package_data=True,
+    zip_safe=False,
+    options={'bdist_wheel': {'universal': True}}
 )
 
