@@ -7,6 +7,7 @@ from deepwave_helpers import get_file
 from torch.cuda.nvtx import range_push, range_pop
 import sys
 from tqdm import trange
+import matplotlib.gridspec as gridspec
 
 def preprocess_data(**kw):
     device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
@@ -19,7 +20,7 @@ def preprocess_data(**kw):
         'dx': 4.0,
         'file_name': 'marmousi_vp.bin',
         'v_init_lambda': lambda x : \
-            torch.tensor(1/gaussian_filter(1/x.numpy(), 40)).to(device),
+            torch.tensor(1/gaussian_filter(1/x.numpy(), 40)),
         'n_shots_full': 115,
         'n_sources_per_shot': 1,
         'd_source': 20,
@@ -41,7 +42,7 @@ def preprocess_data(**kw):
             'n_epochs': 100,
             'shots_per_batch': 1,
             'prop_profiled': 0.0,
-            'stats': dict(),
+            'stats': {'loss'},
             'print_freq': 1
         },
         'plotting': {
@@ -67,7 +68,7 @@ def preprocess_data(**kw):
     d.update({'v_true_downsampled': d['v_true'][:d['ny'], :d['nx']]})
 
     # Smooth to use as starting model
-    d.update({'v_init': d['v_init_lambda'](d['v_true_downsampled'])})
+    d.update({'v_init': d['v_init_lambda'](d['v_true_downsampled']).to(device)})
     d.update({'v': d['v_init'].clone()})
     d['v'].requires_grad_()
 
@@ -135,7 +136,7 @@ def preprocess_data(**kw):
 
 def build_stats(loss, fields):
     d = dict()
-    if( 'loss' in fields ): d.update({'loss': loss.item()})
+    if( 'loss' in fields ): d.update({'loss': '%.8e'%loss})
     return d
     
 def deploy_training(**d):
@@ -199,17 +200,27 @@ def postprocess(**d):
     p = d['plotting']
     vmin = d['v_true'].min()
     vmax = d['v_true'].max()
-    _, ax = plt.subplots(3, figsize=p['figsize'], sharex=True, sharey=True)
-    ax[0].imshow(d['v_init'].cpu().T, aspect='auto', cmap=p['cmap'],
-                vmin=vmin, vmax=vmax)
-    ax[0].set_title("Initial")
-    ax[1].imshow(d['v'].detach().cpu().T, aspect='auto', cmap=p['cmap'],
-                vmin=vmin, vmax=vmax)
-    ax[1].set_title("Out")
-    ax[2].imshow(d['v_true'].cpu().T, aspect='auto', cmap=p['cmap'],
-                vmin=vmin, vmax=vmax)
-    ax[2].set_title("True")
+    
+    # define the figure layout
+    fig, axs = plt.subplots(3, 2, figsize=p['figsize'], 
+                            gridspec_kw={'width_ratios': [1, 0.05]})
+    fig.subplots_adjust(wspace=0.05, hspace=0.2)  # set the spacing between axes. 
+
+    # plot data
+    im0 = axs[0, 0].imshow(d['v_init'].cpu().T, aspect='auto', cmap=p['cmap'], vmin=vmin, vmax=vmax)
+    axs[0, 0].set_title("Initial")
+    fig.colorbar(im0, cax=axs[0, 1])
+
+    im1 = axs[1, 0].imshow(d['v'].detach().cpu().T, aspect='auto', cmap=p['cmap'], vmin=vmin, vmax=vmax)
+    axs[1, 0].set_title("Out")
+    fig.colorbar(im1, cax=axs[1, 1])
+
+    u = d['v_true'][:d['ny'], :d['nx']]
+    im2 = axs[2, 0].imshow(u.cpu().T, aspect='auto', cmap=p['cmap'], vmin=vmin, vmax=vmax)
+    axs[2, 0].set_title("True")
+    fig.colorbar(im2, cax=axs[2, 1])
+
     plt.tight_layout()
     plt.savefig(p['output_files'][0])
 
-    d['v'].detach().cpu().numpy().tofile(p['output_binary'])
+
