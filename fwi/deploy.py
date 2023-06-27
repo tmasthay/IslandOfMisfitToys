@@ -39,6 +39,7 @@ def preprocess_data(**kw):
         'type': torch.float,
         'training': {
             'n_epochs': 100,
+            'shots_per_batch': 1,
             'prop_profiled': 0.0,
             'stats': dict(),
             'print_freq': 1
@@ -139,6 +140,7 @@ def build_stats(loss, fields):
     
 def deploy_training(**d):
     n_epochs = d['training']['n_epochs']
+    shots_per_batch = d['training']['shots_per_batch']
     prof = n_epochs - int(d['training']['prop_profiled'] * n_epochs)
     stats = d['training']['stats']
     print_freq = d['training']['print_freq']
@@ -151,22 +153,30 @@ def deploy_training(**d):
         if(epoch >= prof): range_push('Closure')
 
         def closure():
+            epoch_loss = 0.0
             d['optimiser'].zero_grad()
-            out = scalar(d['v'], 
-                d['dx'], 
-                d['dt'],
-                source_amplitudes=d['source_amplitudes'],
-                source_locations=d['source_locations'],
-                receiver_locations=d['receiver_locations'],
-                pml_freq=d['freq']
-            )
-            loss = 1e10 * d['loss_fn'](out[-1], d['observed_data'])
-            loss.backward()
-            torch.nn.utils.clip_grad_value_(
-                d['v'],
-                torch.quantile(d['v'].grad.detach().abs(), 0.98)
-            )
-            return loss
+            batch_start = 0
+            batch_end = shots_per_batch
+            while( batch_start < batch_end ):
+                s = slice(batch_start, batch_end)
+                out = scalar(d['v'], 
+                    d['dx'], 
+                    d['dt'],
+                    source_amplitudes=d['source_amplitudes'][s],
+                    source_locations=d['source_locations'][s],
+                    receiver_locations=d['receiver_locations'][s],
+                    pml_freq=d['freq']
+                )
+                loss = 1e10 * d['loss_fn'](out[-1], d['observed_data'][s])
+                epoch_loss += loss.item()
+                loss.backward()
+                torch.nn.utils.clip_grad_value_(
+                    d['v'],
+                    torch.quantile(d['v'].grad.detach().abs(), 0.98)
+                )
+                batch_start = batch_end
+                batch_end = min(batch_end + shots_per_batch, d['n_shots'])
+            return epoch_loss
         
         if(epoch >= prof): range_pop()
         if(epoch >= prof): range_push('backprop')
