@@ -8,7 +8,7 @@ d = run_and_time('Start preprocess',
     preprocess_data, 
     ny=2301,
     nx=751,
-    n_shots=10,
+    n_shots=20,
     training={'n_epochs': 10, 'shots_per_batch': 2}
 )
 d = run_and_time('Start training', 'End training', deploy_training, **d)
