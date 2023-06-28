@@ -64,8 +64,21 @@ def preprocess_data(**kw):
         ) \
         .reshape(d['ny_full'], d['nx_full'])})
     
+    #define subsampling slices for physical domain
+    y_slice = slice(d['y_start'], d['y_start'] + d['ny'])
+    x_slices = slice(d['x_start'], d['x_start'] + d['nx'])
+
+    #define subsampling slices for (source, receiver) domain
+    shot_slice = slice(d['shot_start'], 
+        d['shot_start'] + d['n_shots']
+    )
+    rec_slice = slice(d['rec_start'],
+        d['rec_start'] + d['n_receivers_per_shot']
+    )
+    time_slice = slice(0, d['nt'])
+
     # Select portion of model for inversion
-    d.update({'v_true_downsampled': d['v_true'][:d['ny'], :d['nx']]})
+    d.update({'v_true_downsampled': d['v_true'][y_slice, x_slice]})
 
     # Smooth to use as starting model
     d.update({'v_init': d['v_init_lambda'](d['v_true_downsampled']).to(device)})
@@ -85,9 +98,11 @@ def preprocess_data(**kw):
             )
         }
     )
-    d['observed_data'] = d['observed_data'][:d['n_shots'], \
-            :d['n_receivers_per_shot'], 
-            :d['nt']
+
+
+    d['observed_data'] = d['observed_data'][shot_slice, 
+            rec_slice, 
+            time_slice
         ] \
         .to(device)
 
