@@ -2,6 +2,8 @@ import os
 from subprocess import check_output as co
 import sys
 from time import time
+import matplotlib.pyplot as plt
+from imageio import imread, mimsave
 
 def sco(s, split=True):
     u = co(s, shell=True).decode('utf-8')
@@ -31,4 +33,19 @@ def run_and_time(start_msg, end_msg, f, *args, **kwargs):
     print('%s ::: %.4f\n%s'%(end_msg, time() - start_time, stars), 
         file=sys.stderr)
     return u
+
+def make_gif(x, folder, the_map='cividis'):
+    os.system('mkdir -p %s'%folder)
+    for i in range(len(x)):
+        plt.imshow(x[i], cmap=the_map)
+        plt.title('Epoch %d'%i)
+        plt.savefig('%s/%d.jpg'%(folder, i))
+        plt.close()
+    filenames = ['%s/%d.jpg'%(folder, i) for i in range(len(x))]
+    images = [imread(e) for e in filenames]
+    mimsave('%s/movie.gif'%folder, images, duration=0.1, loop=0)
+    for e in filenames:
+        print(e)
+        os.system('rm %s'%e)
+
     

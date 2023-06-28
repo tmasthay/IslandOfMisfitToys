@@ -3,7 +3,7 @@ from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
-from deepwave_helpers import get_file
+from deepwave_helpers import get_file, make_gif
 from torch.cuda.nvtx import range_push, range_pop
 import sys
 from tqdm import trange
@@ -18,6 +18,10 @@ def preprocess_data(**kw):
         'ny': 600,
         'nx': 250,
         'dx': 4.0,
+        'x_start': 0,
+        'y_start': 0,
+        'shot_start': 0,
+        'rec_start': 0,
         'file_name': 'marmousi_vp.bin',
         'v_init_lambda': lambda x : \
             torch.tensor(1/gaussian_filter(1/x.numpy(), 40)),
@@ -58,15 +62,18 @@ def preprocess_data(**kw):
     d['training'] = {**defaults['training'], **kw.get('training', {})}
     d['plotting'] = {**defaults['plotting'], **kw.get('plotting', {})}
 
-    d.update({'v_true': \
-        torch.from_file(get_file(d['file_name']), 
-            size=d['ny_full']*d['nx_full']
-        ) \
-        .reshape(d['ny_full'], d['nx_full'])})
+    if( type(d['file_name']) == str ):
+        d.update({'v_true': \
+            torch.from_file(get_file(d['file_name']), 
+                size=d['ny_full']*d['nx_full']
+            ) \
+            .reshape(d['ny_full'], d['nx_full'])})
+    else:
+        d.update({'v_true': d['file_name']})
     
     #define subsampling slices for physical domain
     y_slice = slice(d['y_start'], d['y_start'] + d['ny'])
-    x_slices = slice(d['x_start'], d['x_start'] + d['nx'])
+    x_slice = slice(d['x_start'], d['x_start'] + d['nx'])
 
     #define subsampling slices for (source, receiver) domain
     shot_slice = slice(d['shot_start'], 
@@ -85,19 +92,22 @@ def preprocess_data(**kw):
     d.update({'v': d['v_init'].clone()})
     d['v'].requires_grad_()
 
-    d.update({'observed_data': \
-            torch.from_file(get_file(d['obs_binary']),
-                size=(d['n_shots_full'] \
-                    * d['n_receivers_per_shot_full'] \
-                    * d['nt_full']
+    if( type(d['obs_binary']) == str ):
+        d.update({'observed_data': \
+                torch.from_file(get_file(d['obs_binary']),
+                    size=(d['n_shots_full'] \
+                        * d['n_receivers_per_shot_full'] \
+                        * d['nt_full']
+                    )
+                ) \
+                .reshape(d['n_shots_full'], 
+                    d['n_receivers_per_shot_full'], 
+                    d['nt_full']
                 )
-            ) \
-            .reshape(d['n_shots_full'], 
-                d['n_receivers_per_shot_full'], 
-                d['nt_full']
-            )
-        }
-    )
+            }
+        )
+    else:
+        d.update({'observed_data': d['obs_binary']})
 
 
     d['observed_data'] = d['observed_data'][shot_slice, 
@@ -155,6 +165,8 @@ def build_stats(loss, fields):
     return d
     
 def deploy_training(**d):
+    param_history = [d['v'].cpu().detach().numpy()]
+    loss_history = []
     n_epochs = d['training']['n_epochs']
     shots_per_batch = d['training']['shots_per_batch']
     prof = n_epochs - int(d['training']['prop_profiled'] * n_epochs)
@@ -199,6 +211,9 @@ def deploy_training(**d):
 
         loss = d['optimiser'].step(closure)
 
+        param_history.append(d['v'].cpu().detach().numpy())
+        loss_history.append(loss)
+
         # if( epoch % print_freq == 0 ):
         #     pbar.set_postfix(**build_stats(loss, stats))
         #     pbar.update(1)
@@ -209,6 +224,8 @@ def deploy_training(**d):
 
     if( prof < n_epochs ):
         torch.cuda.cudart().cudaProfilerStop()
+
+    d.update({'param_history': param_history, 'loss_history': loss_history})
     return d
 
 def postprocess(**d):
@@ -238,4 +255,6 @@ def postprocess(**d):
     plt.tight_layout()
     plt.savefig(p['output_files'][0])
 
+    plt.close()
+    make_gif(d['param_history'], 'velocities', p['cmap'])
 
