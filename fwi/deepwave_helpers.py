@@ -38,6 +38,7 @@ def make_gif(x, folder, the_map='cividis'):
     os.system('mkdir -p %s'%folder)
     for i in range(len(x)):
         plt.imshow(x[i], cmap=the_map)
+        plt.colorbar()
         plt.title('Epoch %d'%i)
         plt.savefig('%s/%d.jpg'%(folder, i))
         plt.close()
