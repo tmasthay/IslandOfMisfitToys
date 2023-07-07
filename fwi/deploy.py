@@ -45,7 +45,7 @@ def preprocess_data(**kw):
         'optimiser_lambda': lambda x : \
             torch.optim.SGD([x], lr=0.1, momentum=0.9),
         'training': {
-            'n_epochs': 100,
+            'n_epochs': 250,
             'shots_per_batch': 1,
             'prop_profiled': 0.0,
             'stats': {'loss'},
@@ -56,7 +56,7 @@ def preprocess_data(**kw):
             'output_files': ['example_simple_fwi.jpg'],
             'figsize': (10.5, 10.5),
             'aspect': 'auto',
-            'cmap': 'cividis'
+            'cmap': 'gray'
         }
     }
     defaults.update({'peak_time': 1.5 / defaults['freq']})
