@@ -4,6 +4,7 @@ import sys
 from time import time
 import matplotlib.pyplot as plt
 from imageio import imread, mimsave
+import numpy as np
 
 def sco(s, split=True):
     u = co(s, shell=True).decode('utf-8')
@@ -37,7 +38,7 @@ def run_and_time(start_msg, end_msg, f, *args, **kwargs):
 def make_gif(x, folder, the_map='cividis'):
     os.system('mkdir -p %s'%folder)
     for i in range(len(x)):
-        plt.imshow(x[i], cmap=the_map)
+        plt.imshow(np.transpose(x[i]), cmap=the_map, aspect='auto')
         plt.colorbar()
         plt.title('Epoch %d'%i)
         plt.savefig('%s/%d.jpg'%(folder, i))

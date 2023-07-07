@@ -42,6 +42,8 @@ def preprocess_data(**kw):
         'n_receivers_per_shot': 100,
         'nt': 300,
         'type': torch.float,
+        'optimiser_lambda': lambda x : \
+            torch.optim.SGD([x], lr=0.1, momentum=0.9),
         'training': {
             'n_epochs': 100,
             'shots_per_batch': 1,
@@ -154,7 +156,8 @@ def preprocess_data(**kw):
     )
 
     # Setup optimiser to perform inversion
-    d.update({'optimiser': torch.optim.SGD([d['v']], lr=0.1, momentum=0.9)})
+    # d.update({'optimiser': torch.optim.SGD([d['v']], lr=0.1, momentum=0.9)})
+    d.update({'optimiser': d['optimiser_lambda'](d['v'])})
     d.update({'loss_fn': torch.nn.MSELoss()})
     d['v_true_downsampled'] = d['v_true_downsampled'].to(device)
     return d

@@ -2,10 +2,21 @@ from deepwave_helpers import get_file, run_and_time
 from custom_losses import *
 import numpy as np
 
-def marmousi_section():
-    return {}
+def marmousi_section(**kw):
+    return kw
 
-def openfwi_layer_a():
+def marmousi_full(**kw):
+    d = {
+        'ny': 2301,
+        'nx': 751,
+        'n_shots': 115,
+        'n_receivers_per_shot': 384,
+        'nt': 750
+    }
+    d = {**kw, **d}
+    return d
+
+def openfwi_layer_a(**kw):
     model = torch.from_numpy(np.load(get_file('model1.npy')))
     data = torch.from_numpy(np.load(get_file('data1.npy')))
     data = data.transpose(2,3)
@@ -22,7 +33,7 @@ def openfwi_layer_a():
         'n_receivers_per_shot': 70,
         'd_receiver': 0.01,
         'd_source': 0.175,
-        'loss_fn': torch.nn.MSELoss(),
+        'loss_fn': kw.get('loss_fn', torch.nn.MSELoss()),
         'v_init_lambda': lambda x : x,
         'training': {},
         'plotting': {}
@@ -35,7 +46,7 @@ def openfwi_layer_a():
             'n_receivers_per_shot_full': e['n_receivers_per_shot'],
         }
     )
-    e['training'].update({'n_epochs': 5, 'shots_per_batch': e['n_shots']})
+    e['training'].update({'n_epochs': 200, 'shots_per_batch': e['n_shots']})
     e['plotting'].update({ 
         'output_files': ['%s.jpg'%(str(e['loss_fn']).replace('()', ''))]
         }
