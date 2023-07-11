@@ -30,7 +30,7 @@ class W1(torch.nn.Module):
     
 class W2(torch.nn.Module):
     def __init__(self):
-        super(W1, self).__init__()
+        super(W2, self).__init__()
 
     def forward(self, y_pred, y_true):
         # Square the values
@@ -56,17 +56,18 @@ class W2(torch.nn.Module):
         return loss
 
 class Huber(torch.nn.Module):
-    def __init__(self):
-        super(W1, self).__init__()
+    def __init__(self, delta):
+        super(Huber, self).__init__()
+        self.delta = delta
 
-    def forward(self, y_pred, y_true, delta):
+    def forward(self, y_pred, y_true):
         # Calculate the absolute difference between the two seismic images
         diff = torch.abs(y_pred - y_true)
 
         # Apply the Huber loss function to each difference value
         square_h = 0.5 * (y_pred - y_true)**2
-        linear_h = delta * torch.abs(y_pred - y_true) - 0.5 * delta**2
-        h = torch.where(diff <= delta, square_h, linear_h )
+        linear_h = self.delta * torch.abs(y_pred - y_true) - 0.5 * self.delta**2
+        h = torch.where(diff <= self.delta, square_h, linear_h )
 
          # Average over all elements in the images
         loss = torch.sum(h) / torch.numel(y_pred)
@@ -74,15 +75,16 @@ class Huber(torch.nn.Module):
         return loss
 
 class Hybrid_norm(torch.nn.Module):
-    def __init__(self):
-        super(W1, self).__init__()
+    def __init__(self, delta):
+        super(Hybrid_norm, self).__init__()
+        self.delta = delta
 
-    def forward(self, y_pred, y_true, delta):  
+    def forward(self, y_pred, y_true):  
         # Calculate the difference between the two seismic images
         r = y_pred - y_true
     
         # Apply the norm f(r) = sqrt(1 + (r/delta)^2) - 1
-        h = torch.sqrt(1 + (r/delta)**2) - 1
+        h = torch.sqrt(1 + (r/self.delta)**2) - 1
         loss = torch.sum(h)
 
         return loss
