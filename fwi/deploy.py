@@ -42,6 +42,7 @@ def preprocess_data(**kw):
         'n_receivers_per_shot': 100,
         'nt': 300,
         'type': torch.float,
+        'loss_fn': torch.nn.MSELoss(),
         'optimiser_lambda': lambda x : \
             torch.optim.SGD([x], lr=0.1, momentum=0.9),
         'loss_fn': torch.nn.MSELoss(),

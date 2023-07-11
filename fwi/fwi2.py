@@ -12,7 +12,7 @@ import torch
 #         torch.optim.SGD([x], lr=0.1, momentum=0.9)
 #     )
 # )
-e = marmousi_section(loss_fn=torch.nn.MSELoss())
+e = marmousi_section()
 
 warnings.filterwarnings("ignore")
 d = run_and_time('Start preprocess', 'End preprocess', preprocess_data, **e)
