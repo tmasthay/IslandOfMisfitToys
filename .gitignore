@@ -1,0 +1,4 @@
+*.jpg
+!IslandOfMisfitToys.jpg
+__pycache__
+*.bin
