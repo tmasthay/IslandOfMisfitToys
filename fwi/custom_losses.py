@@ -56,7 +56,7 @@ class W2(torch.nn.Module):
         return loss
 
 class Huber(torch.nn.Module):
-    def __init__(self, delta):
+    def __init__(self, delta=0.5):
         super(Huber, self).__init__()
         self.delta = delta
 
@@ -75,7 +75,7 @@ class Huber(torch.nn.Module):
         return loss
 
 class Hybrid_norm(torch.nn.Module):
-    def __init__(self, delta):
+    def __init__(self, delta=10.0):
         super(Hybrid_norm, self).__init__()
         self.delta = delta
 

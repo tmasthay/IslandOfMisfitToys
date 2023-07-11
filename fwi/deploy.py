@@ -46,7 +46,7 @@ def preprocess_data(**kw):
             torch.optim.SGD([x], lr=0.1, momentum=0.9),
         'loss_fn': torch.nn.MSELoss(),
         'training': {
-            'n_epochs': 250,
+            'n_epochs': 2,
             'shots_per_batch': 1,
             'prop_profiled': 0.0,
             'stats': {'loss'},
