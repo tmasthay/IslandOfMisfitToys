@@ -11,7 +11,7 @@ from input_dictionaries import *
 #         torch.optim.SGD([x], lr=0.1, momentum=0.9)
 #     )
 # )
-e = marmousi_section()
+e = marmousi_section(loss_fn=W1())
 
 warnings.filterwarnings("ignore")
 d = run_and_time('Start preprocess', 'End preprocess', preprocess_data, **e)
