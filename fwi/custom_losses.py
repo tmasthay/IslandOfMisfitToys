@@ -111,9 +111,13 @@ class GSOT(torch.nn.Module):
                 row_ind, col_ind = linear_sum_assignment(c)
                 y_sigma = y_true[s, r, col_ind]
                 loss = (
-                    loss + (
-                        self.eta * torch.tensor(row_ind-col_ind)**2 +
-                        (y_pred[s, r]-y_sigma)**2
+                    loss + \
+                    (
+                        self.eta * torch.tensor(
+                            (row_ind-col_ind)**2,
+                            device=y_pred.device
+                        ) \
+                        + (y_pred[s, r]-y_sigma)**2
                     ).sum()
                 )
         return loss

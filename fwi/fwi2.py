@@ -12,7 +12,8 @@ import torch
 #         torch.optim.SGD([x], lr=0.1, momentum=0.9)
 #     )
 # )
-e = marmousi_section()
+e = marmousi_section(loss_fn=GSOT(), n_receivers_per_shot=1, nt=10,
+    training={'n_epochs': 250})
 
 warnings.filterwarnings("ignore")
 d = run_and_time('Start preprocess', 'End preprocess', preprocess_data, **e)
