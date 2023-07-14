@@ -1,6 +1,8 @@
 __all__ = [
-    "misfits",
-    "forward"
+    "forward",
+    "fwi",
+    "misfits"
 ]
-from .misfits import *
 from .forward import *
+from .fwi import *
+from .misfits import *
