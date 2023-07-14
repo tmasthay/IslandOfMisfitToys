@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+from scipy.optimize import linear_sum_assignment
 import torch.nn.functional as F
 
 class W1(torch.nn.Module):
@@ -87,4 +89,31 @@ class Hybrid_norm(torch.nn.Module):
         h = torch.sqrt(1 + (r/self.delta)**2) - 1
         loss = torch.sum(h)
 
+        return loss
+
+class GSOT(torch.nn.Module):
+    def __init__(self, eta=0.003):
+        super(GSOT, self).__init__()
+        self.eta = eta
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor):
+        loss = torch.tensor(0, dtype=torch.float)
+        for s in range(y_true.shape[0]):
+            for r in range(y_true.shape[1]):
+                nt = y_true.shape[-1]
+                c = np.zeros([nt, nt])
+                for i in range(nt):
+                    for j in range(nt):
+                        c[i, j] = (
+                            self.eta * (i-j)**2 +
+                            (y_pred.detach()[s, r, i]-y_true[s, r, j])**2
+                        )
+                row_ind, col_ind = linear_sum_assignment(c)
+                y_sigma = y_true[s, r, col_ind]
+                loss = (
+                    loss + (
+                        self.eta * torch.tensor(row_ind-col_ind)**2 +
+                        (y_pred[s, r]-y_sigma)**2
+                    ).sum()
+                )
         return loss
