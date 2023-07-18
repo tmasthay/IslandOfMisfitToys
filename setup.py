@@ -12,7 +12,7 @@ def check_and_install_dependencies(dependencies):
             print(f"{dependency} not found. Installing...")
             os.system(f"pip install {dependency}")
 
-names = ['cython', 'numpy']
+names = ['cython', 'numpy', 'deepwave']
 check_and_install_dependencies(names)
 
 from Cython.Build import cythonize
@@ -51,7 +51,6 @@ setup(
         'numpy>=1.19',   # Update the version as needed
         'scipy',
         'pytest'
-        # Add other dependencies here
     ],
     long_description=open('README.md','r').read(),
     long_description_content_type='text/markdown',
