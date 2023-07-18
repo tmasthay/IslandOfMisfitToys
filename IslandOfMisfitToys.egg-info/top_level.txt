@@ -1,5 +1,5 @@
+acoustic_fwi
 docs
 forward
-fwi
 helpers
 misfits

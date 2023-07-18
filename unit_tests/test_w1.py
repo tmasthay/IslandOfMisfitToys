@@ -1,6 +1,6 @@
 import pytest
 import torch
-from fwi import W1  # adjust this import as necessary
+from acoustic_fwi import W1  # adjust this import as necessary
 from unit_test_helpers import *
 
 # Fixtures for the test functions
@@ -14,7 +14,7 @@ def renorm_func(request):
 @pytest.fixture
 def model(renorm_func):
     return W1(renorm_func)
-
+    
 # Test for prep_data function
 @pytest.mark.parametrize(
     'y_true, expected',

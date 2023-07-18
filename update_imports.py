@@ -5,7 +5,7 @@ import sys
 sys.path.append('%s/helpers/helpers'%os.getcwd())
 from import_env import *
 
-include_paths = ['misfits', 'forward', 'fwi']
+include_paths = ['misfits', 'forward', 'acoustic_fwi']
 
 #run_make_files(omissions)
 
