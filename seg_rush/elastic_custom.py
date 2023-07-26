@@ -5,6 +5,7 @@ from deepwave import elastic
 from custom_losses import *
 from deepwave_helpers import *
 import numpy as np
+import argparse
 
 global device
 device = torch.device('cuda' if torch.cuda.is_available()
@@ -16,19 +17,19 @@ def get_data(**kw):
 
     #initialize defaults
     d = {
-        'nx': 500,
-        'ny': 500,
+        'nx': 250,
+        'ny': 250,
         'dx': 4.0,
         'dy': 4.0,
         'n_shots': 1,
-        'first_source': 0,
+        'first_source': 1,
         'source_depth': 2,
         'd_source': 1,
         'first_receiver': 0,
         'receiver_depth': 2,
         'd_receiver': 1,
         'freq': 1.0,
-        'nt': 800,
+        'nt': 1600,
         'dt': 0.001
     }
 
@@ -58,14 +59,14 @@ def get_data(**kw):
 #    d['grid_y'] = d['grid_y'].to(device)
 #    d['grid_x'] = d['grid_x'].to(device)
     d['grid_y'], d['grid_x'] = torch.meshgrid(
-        2 + torch.arange(d['ny']-3),
-        2 + torch.arange(d['nx']-3)
+        d['first_source'] + torch.arange(d['ny']-d['first_source']-1),
+        d['first_receiver'] + torch.arange(d['nx']-d['first_receiver']-1)
     )
     d['grid_y'] = d['grid_y'].to(device)
     d['grid_x'] = d['grid_x'].to(device)
 
     #set source location
-    d['src_loc'] = torch.stack((d['grid_x'], d['grid_y']), dim=2)
+    d['src_loc'] = torch.stack((d['grid_y'], d['grid_x']), dim=2)
     d['rec_loc'] = d['src_loc'][d['receiver_depth']].unsqueeze(0).to(device)
     d['src_loc'] = d['src_loc'].view(1,-1,d['src_loc'].shape[-1]).to(device)
    
@@ -104,18 +105,21 @@ def get_data(**kw):
     del d['rho']
     torch.cuda.empty_cache()
 
+    def amp_helper(s, **kw):
+        src_amps = d[s](d['dy']*d['grid_y'],d['dx']*d['grid_x'], **kw) \
+            .reshape(-1)
+        result = (src_amps.view(d['n_shots'],*src_amps.shape,1) \
+            * d['wavelet'].view(d['n_shots'],1,-1)
+        ) \
+        .to(device)
+        input('grid_y=%s, grid_x=%s'%(d['grid_y'].shape, d['grid_x'].shape))
+        input(f'src_amps={src_amps.shape},res={result.shape}')
+        return result
+
     def forward():
-        def helper(**kw):
-            def amp_helper(s):
-                src_amps = d[s](d['dy']*d['grid_y'],d['dx']*d['grid_x'], **kw) \
-                    .reshape(-1)
-                return (src_amps.view(d['n_shots'],*src_amps.shape,1) \
-                    * d['wavelet'].view(d['n_shots'],1,-1)
-                ) \
-                .to(device)
-                
-            src_amps_y = amp_helper('force_y')
-            src_amps_x = amp_helper('force_x')  
+        def helper(**kw):        
+            src_amps_y = amp_helper('force_y', **kw)
+            src_amps_x = amp_helper('force_x', **kw)
                 
             return elastic(*d['lamb_mu_buoy'],
                 d['dx'],
@@ -129,7 +133,8 @@ def get_data(**kw):
                 pml_freq=d['freq']
             )[-2]
         return helper
-    
+
+    d['amp_helper'] = amp_helper 
     d['forward'] = forward() 
     u = {**d, **kw}
     return u
@@ -140,27 +145,52 @@ def forward_samples(sy, sx, d, **kw):
         'sigx': 0.1
     }
     curr_kw = {**defaults, **kw}
-    
+   
+    l = d['n_receivers_per_shot']
     res = torch.empty(len(sy), 
         len(sx), 
         d['n_shots'],
-        d['n_receivers_per_shot'],
+        l,
+        d['nt']
+    )
+    source_funcs = torch.empty(len(sy),
+        len(sx),
+        d['n_shots'],
+        l,
+        l,
         d['nt']
     )
     for (i,yy) in enumerate(sy):
         for (j,xx) in enumerate(sx):
-            d['forward'](muy=yy, mux=xx, **curr_kw)
-            print('Finished!')
-            exit(-1)
-     
+            res[i,j,0,:,:] = d['forward'](muy=yy, mux=xx, **curr_kw) \
+                [:d['n_shots']][0,:l,:]
+#            source_funcs[i,j,0,:,:,:] = d['amp_helper']('force_y', 
+#                muy=yy, 
+#                mux=xx, 
+#                **curr_kw
+#            ) \
+#            .reshape(l,l,d['nt'])
+            tmp1 = d['amp_helper']('force_y',
+                muy=yy,
+                mux=xx,
+                **curr_kw
+            )
+            input(tmp1.shape)
+            print(f'{i},{j}')
+    torch.save(res, 'forward.pt')
+    torch.save(source_funcs, 'sources.pt')
+    return res     
 
 def go():
     #declare globals
     global device
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-nsy', type=int, default=10)
+    parser.add_argument('-nsx', type=int, default=10)
+    args = parser.parse_args()
+ 
     d = get_data()
-    num_samples_y = 50
-    num_samples_x = 50
 
     y_min = d['grid_y'][d['first_source']][0] + 1
     y_max = d['grid_y'][-1][0] - 1
@@ -168,8 +198,8 @@ def go():
     x_min = d['grid_x'][0][0] + 1
     x_max = d['grid_x'][0][-1] - 1
 
-    sy = torch.linspace(y_min, y_max, num_samples_y).to(device)
-    sx = torch.linspace(x_min, x_max, num_samples_x).to(device)
+    sy = torch.linspace(y_min, y_max, args.nsy).to(device)
+    sx = torch.linspace(x_min, x_max, args.nsx).to(device)
 
     forward_samples(sy,sx,d)
 

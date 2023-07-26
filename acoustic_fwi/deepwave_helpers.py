@@ -5,6 +5,7 @@ from time import time
 import matplotlib.pyplot as plt
 from imageio import imread, mimsave
 import numpy as np
+import torch
 
 def sco(s, split=True):
     u = co(s, shell=True).decode('utf-8')
@@ -49,5 +50,23 @@ def make_gif(x, folder, the_map='cividis'):
     for e in filenames:
         print(e)
         os.system('rm %s'%e)
+
+def report_gpu_memory_allocation(msg, mode=2):
+    memory_gb = torch.cuda.memory_allocated() / (1024 ** 3)
+    print(f"GPU Memory {msg}: {memory_gb:.2f} GB")
+
+def gpu_mem_helper():
+    with open(os.path.expanduser('~/.bash_functions'), 'r') as f:
+        lines = f.readlines()
+
+    start_line = next(i for i, line in enumerate(lines) if line.strip() == 'gpu_mem() {')
+    end_line = next(i for i, line in enumerate(lines) if i > start_line and line.strip() == '}')
+
+    s = ''.join(lines[start_line+1:end_line])
+    def helper(msg=''):
+        print('%s...%s'%(msg, ':::'.join(sco(s))))
+    return helper
+
+
 
     

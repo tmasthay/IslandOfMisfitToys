@@ -3,14 +3,17 @@ from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
-from .deepwave_helpers import get_file, make_gif
+from .deepwave_helpers import get_file, make_gif, gpu_mem_helper
 from torch.cuda.nvtx import range_push, range_pop
 import sys
 from tqdm import trange
 import matplotlib.gridspec as gridspec
+import torchsummary
 
 def preprocess_data(**kw):
     device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
+    gpu_mem = gpu_mem_helper()
+    gpu_mem('Before preprocessing')
     defaults = {
         'device': device,
         'ny_full': 2301,
@@ -161,6 +164,7 @@ def preprocess_data(**kw):
     # d.update({'optimiser': torch.optim.SGD([d['v']], lr=0.1, momentum=0.9)})
     d.update({'optimiser': d['optimiser_lambda'](d['v'])})
     d['v_true_downsampled'] = d['v_true_downsampled'].to(device)
+    gpu_mem('After preprocessing')
     return d
 
 def build_stats(loss, fields):
@@ -177,6 +181,8 @@ def deploy_training(**d):
     stats = d['training']['stats']
     print_freq = d['training']['print_freq']
 
+    gpu_mem = gpu_mem_helper()
+
     pbar = trange(n_epochs // print_freq, desc='Training', unit='epoch')
 
     for epoch in pbar:
@@ -185,12 +191,14 @@ def deploy_training(**d):
         if(epoch >= prof): range_push('Closure')
 
         def closure():
+            gpu_mem('Closure 0-Entrance')
             epoch_loss = 0.0
             d['optimiser'].zero_grad()
             batch_start = 0
             batch_end = shots_per_batch
             while( batch_start < batch_end ):
                 s = slice(batch_start, batch_end)
+                gpu_mem('Closure 1-PreForward')
                 out = scalar(d['v'], 
                     d['dx'], 
                     d['dt'],
@@ -199,15 +207,19 @@ def deploy_training(**d):
                     receiver_locations=d['receiver_locations'][s],
                     pml_freq=d['freq']
                 )
+                gpu_mem('Closure 2-PostForward')
                 loss = 1e10 * d['loss_fn'](out[-1], d['observed_data'][s])
                 epoch_loss += loss.item()
+                gpu_mem('Closure 3-PreBackward')
                 loss.backward()
+                gpu_mem('Closure 4-PostBackward')
                 torch.nn.utils.clip_grad_value_(
                     d['v'],
                     torch.quantile(d['v'].grad.detach().abs(), 0.98)
                 )
                 batch_start = batch_end
                 batch_end = min(batch_end + shots_per_batch, d['n_shots'])
+                gpu_mem('Closure 5-Exit')
             return epoch_loss
         
         if(epoch >= prof): range_pop()
