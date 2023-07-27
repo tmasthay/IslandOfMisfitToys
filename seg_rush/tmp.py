@@ -1,6 +1,7 @@
 import torch
 from elastic_custom import *
 import matplotlib.pyplot as plt
+import deepwave
 
 def case1():
     n = 2000
@@ -28,19 +29,34 @@ def case1():
         plt.clf()
 
 def case2():
+    device = torch.device('cuda:1')
     n = 2000
     num_prob = 1000
-    nex = 2
-    x = torch.linspace(-10,10,n)
-    f = torch.exp(-x**2).repeat(nex, 1)
-    g = torch.exp(-x**2).repeat(nex,1)
+    nex = 1
+    x = torch.linspace(0.0, 1.0,n)
+    dx = x[1] - x[0]
+    u = deepwave.wavelets.ricker(10.0, n, dx, 0.03).to(device)
+    v = deepwave.wavelets.ricker(10.0, n, dx, 0.02).to(device)
+    plt.plot(x, u.cpu(), label='u')
+    plt.plot(x,v.cpu(), label='v')
+    plt.savefig('ref.jpg')
+    plt.clf()
+    f = u.repeat(nex, 1)
+    g = v.repeat(nex,1)
     def renorm(h):
        assert( len(h.shape) == 2 )
-       u = h**2
-       return u / torch.sum(u, dim=1).unsqueeze(1) 
+       u = torch.abs(h)
+       c = dx * torch.trapz(u, dim=1).unsqueeze(1)
+       return u / c 
     w2g = w2_peval(g, x=x, renorm=renorm, num_prob=num_prob)
     res = w2g(f)
     print(res)
+
+def case3():
+    x = torch.linspace(-10, 10, 100).reshape(1,100)
+    u = frac_ss(x,x)
+    y = frac_idx(x, u)
+    print(torch.norm((x-y)))
 
 if( __name__ == "__main__" ):
     case2()

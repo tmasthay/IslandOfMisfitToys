@@ -1,5 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import deepwave
 from deepwave import elastic
 from custom_losses import *
@@ -14,7 +15,7 @@ global device
 global cmap
 device = torch.device('cuda:1')
 
-plt.rcParams['text.usetex'] = True
+plt.rc('text', usetex=False)
 
 def vertical_stratify(ny, nx, layers, values):
     global device
@@ -239,18 +240,24 @@ def forward_samples(sy, sx, d, **kw):
 
 def landscape(res, loss, name, **kw):
     global cmap
+    defaults = {'shuffle': 1}
+    kw = {**defaults, **kw}
     ref_idx = kw.get('ref_idx', [res.shape[0] // 2, res.shape[1] // 2])
     u = res[ref_idx[0], ref_idx[1], 0, :, :] 
     losses = torch.empty(res.shape[0], res.shape[1])
     for i in range(res.shape[0]):
         for j in range(res.shape[1]):
             losses[i,j] = loss(u, res[i,j,0,:,:])
-    plt.imshow(losses, cmap=cmap)
-    plt.colorbar()
-    plt.savefig(name)
+    if( kw['shuffle'] == 1 ): 
+        plt.imshow(losses, cmap=cmap)
+        plt.colorbar()
+        plt.savefig(name)
+    return losses
 
 def landscape_peval(res, loss_builder, name, **kw):
     global cmap
+    defaults = {'shuffle': 1}
+    kw = {**defaults, **kw}
     ref_idx = kw.get('ref_idx', [res.shape[0] // 2, res.shape[1] // 2])
     u = res[ref_idx[0], ref_idx[1], 0, :, :]
     losses = torch.empty(res.shape[0], res.shape[1])
@@ -258,22 +265,38 @@ def landscape_peval(res, loss_builder, name, **kw):
     for i in range(res.shape[0]):
         for j in range(res.shape[1]):
              losses[i,j] = loss_peval(res[i,j,0,:,:])
-    plt.imshow(losses, cmap=cmap)
-    plt.colorbar()
-    plt.savefig(name) 
+    if( kw['shuffle'] == 1 ):
+        plt.imshow(losses, cmap=cmap)
+        plt.colorbar()
+        plt.savefig(name)
+    return losses
 
 def slice2(u, idx):
+    if( idx.min() < 0 ):
+        print(idx.shape)
+        print(u.shape)
+        assert idx.min() >= 0, f'idx.min() == {idx.min()} < 0'
+    elif( idx.max() >= u.shape[1] ):
+        print(idx.shape)
+        print(u.shape)
+        assert idx.max() < u.shape[0], f'idx.max() == {idx.max()} >= {u.shape[0]}'
     return u[torch.arange(u.shape[0]).unsqueeze(1), idx]
 
-def frac_ss(x, y, tau=1e-16):
-    idx = torch.clamp(torch.searchsorted(x,y), max=x.shape[-1]-1)
-    idx_left = torch.clamp(idx-1, min=0)
+def frac_ss(x, y, tau=1e-33, left_right=False):
+    if( left_right ):
+        idx = torch.clamp(torch.searchsorted(x,y,right=True), 
+            max=x.shape[-1]-1
+        )
+        idx_left = torch.clamp(torch.searchsorted(x,y), min=0)
+    else: 
+        idx = torch.clamp(torch.searchsorted(x,y), max=x.shape[-1]-1)
+        idx_left = torch.clamp(idx-1, min=0)
     val_right = slice2(x, idx)
     val_left = slice2(x, idx_left)
-    dval = torch.max(tau * torch.ones(y.shape).to(val_right.device),
-        val_right - val_left
-    )
+    dval = val_right - val_left
+    dval = torch.where(dval != 0, dval, torch.ones_like(dval))
     alpha = (val_right - y) / dval
+    assert alpha.max() <= 1.0, f'alpha_max={alpha.max()}'
     return alpha * idx_left + (1.0 - alpha) * idx
 
 def frac_idx(x, idx):
@@ -292,16 +315,17 @@ def my_quantile(cdf, x, p, tau=1e-16):
     idx_left = torch.clamp(idx-1, min=0)
     cdf_right = slice2(cdf, idx)
     cdf_left = slice2(cdf, idx_left)
-    dcdf = torch.max(tau * torch.ones(p.shape).to(cdf_right.device),
-        cdf_right - cdf_left
-    )
+
+    dcdf = cdf_right - cdf_left
+    dcdf = torch.where(dcdf != 0, dcdf, torch.ones_like(dcdf))
     alpha = (cdf_right - p) / dcdf
     x_left = slice2(x, idx_left)
     x_right = slice2(x, idx)
     return alpha * x_left + (1.0 - alpha) * x_right
 
-def my_quantile2(cdf, x, p, tau=1e-16):
+def my_quantile2(cdf, x, p, tau=1e-33):
     idx = frac_ss(cdf, p, tau)
+    input(f'min,max={idx.min()},{idx.max()}')
     return frac_idx(x, idx)
    
 def w2_peval(g, **kw): 
@@ -317,22 +341,31 @@ def w2_peval(g, **kw):
     p = torch.linspace(0.0, 1.0, num_prob).repeat(g.shape[0],1).to(device)
     G = torch.cumsum(g, dim=1)
     G = G / G[:,-1].unsqueeze(1)
-    Q = my_quantile2(G, x, p)
-    for (i,qq) in enumerate(Q):
-         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(11,8))
-         ax[0].plot(x[i].cpu(), g[i].cpu(), label=f'$g_{i}(x)$')
-         ax[0].plot(x[i].cpu(), G[i].cpu(), label=f'$G_{i}(x)$')
-         ax[1].plot(p[i].cpu(), qq, label=f'$Q(p)$')
-         ax[0].legend()
-         ax[1].legend()
-         plt.savefig(f'q{i}.jpg')
-         plt.clf()
+    #Q = my_quantile2(G, x, p)
+    num_plots = 0
     def helper(f):
         f = renorm(f).to(device)
         F = torch.cumsum(f, dim=1)
         F = F / F[:,-1].unsqueeze(1)
-        transport = frac_idx(x, frac_ss(Q, F)) - x
-        return torch.sum(transport**2 * f) * dx
+        Q = my_quantile2(G, x, F)
+        integrand = (Q-x)**2 * f
+#        for i in range(Q.shape[0]):
+#            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(11,8))
+#            ax[0,0].plot(x[i].cpu(), f[i].cpu(), label=f'pdf{i}')
+#            ax[0,1].plot(x[i].cpu(), F[i].cpu(), label=f'cdf{i}')
+#            ax[0,0].plot(x[i].cpu(), g[i].cpu(), label=f'pdf_ref{i}')
+#            ax[0,1].plot(x[i].cpu(), G[i].cpu(), label=f'cdf_ref{i}')
+#            ax[1,0].plot(x[i].cpu(), Q[i].cpu(), label=f'transport{i}')
+#            ax[1,0].plot(x[i].cpu(), x[i].cpu(), label=f'identity{i}')
+#            ax[1,1].plot(x[i].cpu(), (Q[i].cpu()-x[i].cpu())**2, label=f'iso{i}')
+#            ax[1,1].plot(x[i].cpu(), integrand[i].cpu(), label=f'integrand{i}')
+#            ax[0,0].legend()
+#            ax[0,1].legend()
+#            ax[1,0].legend()
+#            ax[1,1].legend()
+#            plt.savefig(f'transport{i}.jpg')
+#            plt.clf()
+        return torch.sum(torch.trapz(integrand, x[0], dim=1))
     return helper
 
 def go():
@@ -349,6 +382,7 @@ def go():
     parser.add_argument('--cmap', type=str, default='seismic')
     parser.add_argument('--forward', type=str, default='forward.pt')
     parser.add_argument('--full', type=str, default='full')
+    parser.add_argument('--shuffle', type=int, default=1)
     args = parser.parse_args()
     device = torch.device(f'cuda:{args.gpu}')
     cmap = args.cmap
@@ -368,25 +402,50 @@ def go():
     if( not args.norun ):
         forward_samples(sy,sx,d)
     
-    res = torch.load('forward.pt').to(device)
-    if( args.misfit.lower() == 'l2' ):
-        def loss(x,y):
-            dom = max([float(torch.norm(x)**2), float(torch.norm(y)**2)])
-            return torch.norm(x-y)**2 / dom
-        landscape(res, loss, 'L2.jpg')
-    elif( args.misfit.lower() == 'w2' ):
-        t = torch.linspace(0.0, (d['nt']-1)*d['dt'], d['nt'])
-        def renorm(f):
-            assert( len(f.shape) == 2 )
-            u = f**2
-            return u / torch.sum(u,dim=1).unsqueeze(1)
-        landscape_peval(res, 
-            w2_peval, 
-            'W2.jpg', 
-            x=t.to(device),
-            renorm=renorm, 
-            num_prob=100
-        )
+    res_cpu = torch.load(args.forward).to('cpu')
+    losses = torch.empty(res_cpu.shape[:2])
+    start_idx = 0
+    final_idx = res_cpu.shape[0] // args.shuffle
+
+    gpu_report = gpu_mem_helper()
+    while( start_idx < res_cpu.shape[0] ):
+        s = slice(start_idx, final_idx)
+        gpu_report()
+        res = res_cpu[s].to(device)
+        if( args.misfit.lower() == 'l2' ):
+            def loss(x,y):
+                return torch.norm(x-y)**2 
+            curr = landscape(res, loss, 'L2.jpg', shuffle=args.shuffle)
+            losses[s] = curr.cpu()
+            print('Finished current shuffle')
+            gpu_report()
+            res_cpu[s].to('cpu')
+            res = res.to('cpu')
+            gpu_report()
+        elif( args.misfit.lower() == 'w2' ):
+            t = torch.linspace(0.0, (d['nt']-1)*d['dt'], d['nt'])
+            def renorm(f):
+                assert( len(f.shape) == 2 )
+                u = f**2
+                return u / torch.sum(u,dim=1).unsqueeze(1)
+            curr = landscape_peval(res, 
+                w2_peval, 
+                'W2.jpg', 
+                x=t.to(device),
+                renorm=renorm, 
+                num_prob=100,
+                shuffle=args.shuffle
+            )
+            losses[s] = curr.cpu()
+        start_idx = final_idx
+        final_idx = final_idx + res_cpu.shape[0] // args.shuffle
+        final_idx = max(res_cpu.shape[0], final_idx)
+        if( start_idx == res_cpu.shape[0] ):
+            plt.imshow(losses, cmap=cmap)
+            plt.colorbar()
+            plt.xlabel(r'Horizontal distance (m)')
+            plt.ylabel(r'Depth (m)')
+            plt.savefig('%s.jpg'%(args.misfit.lower()))
 
 if( __name__ == "__main__" ):
     go()
