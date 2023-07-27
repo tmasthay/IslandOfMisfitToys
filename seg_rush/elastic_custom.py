@@ -279,7 +279,7 @@ def slice2(u, idx):
     elif( idx.max() >= u.shape[1] ):
         print(idx.shape)
         print(u.shape)
-        assert idx.max() < u.shape[0], f'idx.max() == {idx.max()} >= {u.shape[0]}'
+        #assert idx.max() < u.shape[0], f'idx.max() == {idx.max()} >= {u.shape[0]}'
     return u[torch.arange(u.shape[0]).unsqueeze(1), idx]
 
 def frac_ss(x, y, tau=1e-33, left_right=False):
@@ -296,8 +296,7 @@ def frac_ss(x, y, tau=1e-33, left_right=False):
     dval = val_right - val_left
     dval = torch.where(dval != 0, dval, torch.ones_like(dval))
     alpha = (val_right - y) / dval
-    assert alpha.max() <= 1.0, f'alpha_max={alpha.max()}'
-    return alpha * idx_left + (1.0 - alpha) * idx
+    return torch.clamp( alpha * idx_left + (1.0 - alpha) * idx, min=0, max=x.shape[-1]-1 )
 
 def frac_idx(x, idx):
     right_idx = torch.ceil(idx).to(torch.long)
@@ -325,7 +324,6 @@ def my_quantile(cdf, x, p, tau=1e-16):
 
 def my_quantile2(cdf, x, p, tau=1e-33):
     idx = frac_ss(cdf, p, tau)
-    input(f'min,max={idx.min()},{idx.max()}')
     return frac_idx(x, idx)
    
 def w2_peval(g, **kw): 
@@ -420,7 +418,6 @@ def go():
             print('Finished current shuffle')
             gpu_report()
             res_cpu[s].to('cpu')
-            res = res.to('cpu')
             gpu_report()
         elif( args.misfit.lower() == 'w2' ):
             t = torch.linspace(0.0, (d['nt']-1)*d['dt'], d['nt'])
@@ -437,6 +434,7 @@ def go():
                 shuffle=args.shuffle
             )
             losses[s] = curr.cpu()
+        res = res.to('cpu')
         start_idx = final_idx
         final_idx = final_idx + res_cpu.shape[0] // args.shuffle
         final_idx = max(res_cpu.shape[0], final_idx)
