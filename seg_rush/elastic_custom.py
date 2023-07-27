@@ -30,7 +30,8 @@ def get_data(**kw):
         'd_receiver': 1,
         'freq': 1.0,
         'nt': 1600,
-        'dt': 0.001
+        'dt': 0.001,
+        'ofs': 1
     }
 
     #set material parameters
@@ -59,8 +60,8 @@ def get_data(**kw):
 #    d['grid_y'] = d['grid_y'].to(device)
 #    d['grid_x'] = d['grid_x'].to(device)
     d['grid_y'], d['grid_x'] = torch.meshgrid(
-        d['first_source'] + torch.arange(d['ny']-d['first_source']-1),
-        d['first_receiver'] + torch.arange(d['nx']-d['first_receiver']-1)
+        d['ofs'] + torch.arange(d['ny']-d['ofs']-1),
+        d['ofs'] + torch.arange(d['nx']-d['ofs']-1)
     )
     d['grid_y'] = d['grid_y'].to(device)
     d['grid_x'] = d['grid_x'].to(device)
@@ -78,6 +79,7 @@ def get_data(**kw):
         local_sigy = kwargs.get('sigy', d['dy'])
         exponent1 = -((x-local_mux)**2 /  (2*local_sigx**2))
         exponent2 = -((y-local_muy)**2 / (2*local_sigy**2))
+        print(f'amp,muy,mux,sigy,sigx={local_amp},{local_muy},{local_mux},{local_sigy},{local_sigx}')
         return local_amp * torch.exp(exponent1 + exponent2)
 
     def my_force_x(y,x, **kwargs):
@@ -112,8 +114,6 @@ def get_data(**kw):
             * d['wavelet'].view(d['n_shots'],1,-1)
         ) \
         .to(device)
-        input('grid_y=%s, grid_x=%s'%(d['grid_y'].shape, d['grid_x'].shape))
-        input(f'src_amps={src_amps.shape},res={result.shape}')
         return result
 
     def forward():
@@ -125,11 +125,8 @@ def get_data(**kw):
                 d['dx'],
                 d['dt'],
                 source_amplitudes_y=src_amps_y,
-                source_amplitudes_x=src_amps_x,
                 source_locations_y=d['src_loc'],
-                source_locations_x=d['src_loc'],
                 receiver_locations_y=d['src_loc'],
-                receiver_locations_x=d['src_loc'],
                 pml_freq=d['freq']
             )[-2]
         return helper
@@ -139,48 +136,66 @@ def get_data(**kw):
     u = {**d, **kw}
     return u
 
+def gifify(u, step_size, name, remove_jpg=True):
+    for k in range(0,u.shape[-1],step_size):
+        plt.imshow(u[:,:,k], cmap='seismic', aspect='auto')
+        plt.title(f'Step {k}')
+        plt.colorbar()
+        plt.savefig(f'tmp{k}.jpg')
+        plt.clf()
+    print(f'Generating {name}.gif')
+    os.system(f'convert -delay 20 -loop 0 $(ls -tr tmp*.jpg) {name}.gif')
+    if( remove_jpg ):
+        print('Removing tmp*.jpg')
+        os.system('rm tmp*.jpg')
+
 def forward_samples(sy, sx, d, **kw):
     defaults = {
-        'sigy': 0.1,
-        'sigx': 0.1
+        'sigy': d['dy'],
+        'sigx': d['dx'],
     }
     curr_kw = {**defaults, **kw}
    
-    l = d['n_receivers_per_shot']
+    l = d['ny'] - 2*d['ofs'] 
+    m = d['nx'] - 2*d['ofs'] 
     res = torch.empty(len(sy), 
         len(sx), 
         d['n_shots'],
         l,
         d['nt']
     )
-    source_funcs = torch.empty(len(sy),
-        len(sx),
-        d['n_shots'],
-        l,
-        l,
-        d['nt']
-    )
     for (i,yy) in enumerate(sy):
         for (j,xx) in enumerate(sx):
-            res[i,j,0,:,:] = d['forward'](muy=yy, mux=xx, **curr_kw) \
-                [:d['n_shots']][0,:l,:]
-#            source_funcs[i,j,0,:,:,:] = d['amp_helper']('force_y', 
-#                muy=yy, 
-#                mux=xx, 
-#                **curr_kw
-#            ) \
-#            .reshape(l,l,d['nt'])
+            full_data = d['forward'](muy=yy, mux=xx, **curr_kw)
+            res[i,j,0,:,:] = full_data[:d['n_shots']][0,:l,:]
             tmp1 = d['amp_helper']('force_y',
                 muy=yy,
                 mux=xx,
                 **curr_kw
             )
-            input(tmp1.shape)
             print(f'{i},{j}')
+    make_receiver_plot = False
+    if( d['n_shots'] == 1 and make_receiver_plot ):
+        res_reshaped = res.reshape(len(sy)*len(sx), l, d['nt'])
+        res_reshaped = res_reshaped.permute(1,2,0).cpu()
+        input(res_reshaped.shape)
+        print('Making gif of receiver data')
+        gifify(res_reshaped, 1, 'receiver', True)
+    print('Saving data')
     torch.save(res, 'forward.pt')
-    torch.save(source_funcs, 'sources.pt')
-    return res     
+    return res
 
+def landscape(res, loss, name, **kw):
+    ref_idx = kw.get('ref_idx', res.shape[:2] // 2)
+    u = res[ref_idx[0], ref_idx[1], 0, :, :] 
+    losses = torch.empty(ns, ns)
+    for i in range(ns):
+        for j in range(ns):
+            losses[i,j] = loss(u, v[i,j,0,:,:])
+    plt.imshow(losses)
+    plt.colorbar()
+    plt.savefig(name)
+    
 def go():
     #declare globals
     global device
@@ -188,20 +203,25 @@ def go():
     parser = argparse.ArgumentParser()
     parser.add_argument('-nsy', type=int, default=10)
     parser.add_argument('-nsx', type=int, default=10)
+    parser.add_argument('-rerun', type=bool, default=True)
     args = parser.parse_args()
  
     d = get_data()
 
-    y_min = d['grid_y'][d['first_source']][0] + 1
-    y_max = d['grid_y'][-1][0] - 1
+    y_min = d['grid_y'][d['first_source']][0] * d['dy']
+    y_max = d['grid_y'][-1][0] * d['dy']
    
-    x_min = d['grid_x'][0][0] + 1
-    x_max = d['grid_x'][0][-1] - 1
+    x_min = d['grid_x'][0][0] * d['dx']
+    x_max = d['grid_x'][0][-1] * d['dx']
 
     sy = torch.linspace(y_min, y_max, args.nsy).to(device)
     sx = torch.linspace(x_min, x_max, args.nsx).to(device)
 
-    forward_samples(sy,sx,d)
+    if( args.rerun ):
+        forward_samples(sy,sx,d)
+    
+    res = torch.load('forward.pt')
+    landscape(res, lambda x,y: torch.norm(x-y)**2, 'L2.jpg')
 
 if( __name__ == "__main__" ):
     go()
