@@ -39,12 +39,30 @@ def plot_material_params(vp, vs, rho):
     us = vs.cpu().detach()
     urho = rho.cpu().detach()
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10,7))
-    axs[0].imshow(up, cmap=cmap)
-    axs[1].imshow(us, cmap=cmap)
-    axs[2].imshow(urho, cmap=cmap)
 
-    plt.savefig('params.jpg')
+    alpha = 0.3
+    im0 = axs[0].imshow(up, cmap=cmap)
+    axs[0].set_title(r'$V_p$')
+    fig.colorbar(im0, ax=axs[0],shrink=alpha)
+
+    im1 = axs[1].imshow(us, cmap=cmap)
+    axs[1].set_title(r'$V_s$')
+    fig.colorbar(im1, ax=axs[1], shrink=alpha)
+
+    im2 = axs[2].imshow(urho, cmap=cmap)
+    axs[2].set_title(r'$\rho$')
+    fig.colorbar(im2, ax=axs[2], shrink=alpha)
+
+    for i in range(3):
+        axs[i].set_xlabel('Horizontal location (km)')
+        axs[i].set_ylabel('Depth (km)')
+
+    plt.subplots_adjust(wspace=0.5, hspace=0.5)
+
+    plt.savefig('params.pdf')
     plt.clf()
+    print('Plotted dawg')
+    exit(-1)
          
 def get_data(**kw):
     #import global vars
@@ -78,8 +96,8 @@ def get_data(**kw):
 #    d['rho'] = rho_background * torch.ones(d['ny'], d['nx'], device=device)  
 
     ufs = lambda v : uniform_vertical_stratify(d['ny'], d['nx'], v)
-    d['vp'] = ufs([1500.0, 1700.0, 1900.0, 2100.0, 3000.0, 2000.0, 1800.0, 1100.0])
-    d['vs'] = ufs([1100.0, 1300.0, 1500.0, 1900.0, 2800.0, 1800.0, 1100.0, 900.0])
+    d['vp'] = ufs([1500.0, 1700.0, 3000.0, 1000.0, 600.0, 3000.0])
+    d['vs'] = ufs([1100.0, 1300.0, 1500.0, 800.0, 500.0, 2700.0])
     d['rho'] = ufs([2200.0])
 
     plot_material_params(d['vp'], d['vs'], d['rho'])
@@ -227,7 +245,7 @@ def forward_samples(sy, sx, d, **kw):
                 gifify(tmp, 100, curr_kw['full'], True, norm_image)
             res[i,j,0,:,:] = full_data[:d['n_shots']][0,:l,:]
             print(f'{i},{j}')
-    make_receiver_plot = True
+    make_receiver_plot = False
     if( d['n_shots'] == 1 and make_receiver_plot ):
         if( len(sy) * len(sx) < 200 ):
             res_reshaped = res.reshape(len(sy)*len(sx), l, d['nt'])
@@ -240,18 +258,29 @@ def forward_samples(sy, sx, d, **kw):
 
 def landscape(res, loss, name, **kw):
     global cmap
-    defaults = {'shuffle': 1}
+    defaults = {'shuffle': 1, 'title': ''}
     kw = {**defaults, **kw}
     ref_idx = kw.get('ref_idx', [res.shape[0] // 2, res.shape[1] // 2])
-    u = res[ref_idx[0], ref_idx[1], 0, :, :] 
+    if( 'ref' in kw.keys() ):
+        u = kw['ref']
+    else:
+        u = res[ref_idx[0], ref_idx[1], 0, :, :] 
     losses = torch.empty(res.shape[0], res.shape[1])
     for i in range(res.shape[0]):
         for j in range(res.shape[1]):
-            losses[i,j] = loss(u, res[i,j,0,:,:])
+            curr = res[i,j,0,:,:]
+            if( kw['snr'] > 0.0 ):
+                sigma = torch.sqrt((curr**2).mean()) / kw['snr']
+                curr += torch.randn_like(curr) * sigma
+            losses[i,j] = loss(u, curr)
     if( kw['shuffle'] == 1 ): 
         plt.imshow(losses, cmap=cmap)
         plt.colorbar()
+        plt.title(kw['title'])
+        plt.xlabel('Source horizontal location (km)')
+        plt.ylabel('Source depth (km)')
         plt.savefig(name)
+        plt.clf()
     return losses
 
 def landscape_peval(res, loss_builder, name, **kw):
@@ -259,7 +288,10 @@ def landscape_peval(res, loss_builder, name, **kw):
     defaults = {'shuffle': 1}
     kw = {**defaults, **kw}
     ref_idx = kw.get('ref_idx', [res.shape[0] // 2, res.shape[1] // 2])
-    u = res[ref_idx[0], ref_idx[1], 0, :, :]
+    if( 'ref' in kw.keys() ):
+        u = kw['ref']
+    else:
+        u = res[ref_idx[0], ref_idx[1], 0, :, :]
     losses = torch.empty(res.shape[0], res.shape[1])
     loss_peval = loss_builder(u, **kw)
     for i in range(res.shape[0]):
@@ -268,7 +300,11 @@ def landscape_peval(res, loss_builder, name, **kw):
     if( kw['shuffle'] == 1 ):
         plt.imshow(losses, cmap=cmap)
         plt.colorbar()
+        plt.title(kw['title'])
+        plt.xlabel('Source horizontal location (km)')
+        plt.ylabel('Source depth (km)')
         plt.savefig(name)
+        plt.clf()
     return losses
 
 def slice2(u, idx):
@@ -381,6 +417,7 @@ def go():
     parser.add_argument('--forward', type=str, default='forward.pt')
     parser.add_argument('--full', type=str, default='full')
     parser.add_argument('--shuffle', type=int, default=1)
+    parser.add_argument('--snr', type=float, default=0.0)
     args = parser.parse_args()
     device = torch.device(f'cuda:{args.gpu}')
     cmap = args.cmap
@@ -401,11 +438,19 @@ def go():
         forward_samples(sy,sx,d)
     
     res_cpu = torch.load(args.forward).to('cpu')
-    losses = torch.empty(res_cpu.shape[:2])
+    ref_u = res_cpu[res_cpu.shape[0] // 2, res_cpu.shape[1] // 2,0,:,:].to(device)
+    losses = torch.empty(res_cpu.shape[0], res_cpu.shape[1])
     start_idx = 0
     final_idx = res_cpu.shape[0] // args.shuffle
 
+    if( args.misfit.lower() == 'l2' ):
+        plot_title = r'$L^2$ Source Location Optimization Landscape'
+    elif( args.misfit.lower() == 'w2' ):
+        plot_title = r'$W_2$ Source Location Optimization Landscape'
+    if( args.snr > 0.0 ):
+        plot_title = r'%s, $\sigma=%.2f$'%(plot_title, args.snr)
     gpu_report = gpu_mem_helper()
+    idx = 0
     while( start_idx < res_cpu.shape[0] ):
         s = slice(start_idx, final_idx)
         gpu_report()
@@ -413,11 +458,11 @@ def go():
         if( args.misfit.lower() == 'l2' ):
             def loss(x,y):
                 return torch.norm(x-y)**2 
-            curr = landscape(res, loss, 'L2.jpg', shuffle=args.shuffle)
+            curr = landscape(res, loss, 'L2.jpg', shuffle=args.shuffle,
+                title=plot_title, snr=args.snr, forward=args.forward, ref=ref_u)
+            idx += 1
             losses[s] = curr.cpu()
             print('Finished current shuffle')
-            gpu_report()
-            res_cpu[s].to('cpu')
             gpu_report()
         elif( args.misfit.lower() == 'w2' ):
             t = torch.linspace(0.0, (d['nt']-1)*d['dt'], d['nt'])
@@ -431,19 +476,25 @@ def go():
                 x=t.to(device),
                 renorm=renorm, 
                 num_prob=100,
-                shuffle=args.shuffle
+                shuffle=args.shuffle,
+                title=plot_title,
+                snr=args.snr,
+                forward=args.forward,
+                ref=ref_u
             )
             losses[s] = curr.cpu()
-        res = res.to('cpu')
+        torch.cuda.empty_cache()
         start_idx = final_idx
         final_idx = final_idx + res_cpu.shape[0] // args.shuffle
-        final_idx = max(res_cpu.shape[0], final_idx)
+        final_idx = min(res_cpu.shape[0], final_idx)
         if( start_idx == res_cpu.shape[0] ):
             plt.imshow(losses, cmap=cmap)
             plt.colorbar()
-            plt.xlabel(r'Horizontal distance (m)')
-            plt.ylabel(r'Depth (m)')
+            plt.xlabel(r'Source horizontal location (km)')
+            plt.ylabel(r'Source depth (km)')
+            plt.title(plot_title)
             plt.savefig('%s.jpg'%(args.misfit.lower()))
 
 if( __name__ == "__main__" ):
     go()
+    print('FINISHED SUCCESSFULLY')
