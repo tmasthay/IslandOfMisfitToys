@@ -13,56 +13,9 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 global device
 global cmap
-device = torch.device('cuda:1')
+device = torch.device('cuda:0')
 
 plt.rc('text', usetex=False)
-
-def vertical_stratify(ny, nx, layers, values):
-    global device
-    assert( len(layers) == len(values) - 1 )
-    assert( len(values) >= 1 )
-    u = values[0] * torch.ones(ny,nx, device=device)
-    if( len(layers) > 0 ):
-        for l in range(len(layers)-1):
-            u[layers[l]:layers[l+1], :] = values[l+1]
-        u[layers[-1]:] = values[-1]
-    return u
-
-def uniform_vertical_stratify(ny, nx, values):
-    layers = [i*ny // len(values) for i in range(1,len(values))]
-    return vertical_stratify(ny, nx, layers, values)
-
-def plot_material_params(vp, vs, rho):
-    global cmap
-
-    up = vp.cpu().detach()
-    us = vs.cpu().detach()
-    urho = rho.cpu().detach()
-    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10,7))
-
-    alpha = 0.3
-    im0 = axs[0].imshow(up, cmap=cmap)
-    axs[0].set_title(r'$V_p$')
-    fig.colorbar(im0, ax=axs[0],shrink=alpha)
-
-    im1 = axs[1].imshow(us, cmap=cmap)
-    axs[1].set_title(r'$V_s$')
-    fig.colorbar(im1, ax=axs[1], shrink=alpha)
-
-    im2 = axs[2].imshow(urho, cmap=cmap)
-    axs[2].set_title(r'$\rho$')
-    fig.colorbar(im2, ax=axs[2], shrink=alpha)
-
-    for i in range(3):
-        axs[i].set_xlabel('Horizontal location (km)')
-        axs[i].set_ylabel('Depth (km)')
-
-    plt.subplots_adjust(wspace=0.5, hspace=0.5)
-
-    plt.savefig('params.pdf')
-    plt.clf()
-    print('Plotted dawg')
-    exit(-1)
          
 def get_data(**kw):
     #import global vars
@@ -85,15 +38,7 @@ def get_data(**kw):
         'nt': 1600,
         'dt': 0.001,
         'ofs': 1
-    }
-
-    #set material parameters
-#    vp_background = 1500.0
-#    vs_background = 1100.0
-#    rho_background = 2200.0
-#    d['vp'] = vp_background * torch.ones(d['ny'], d['nx'], device=device)
-#    d['vs'] = vs_background * torch.ones(d['ny'], d['nx'], device=device)
-#    d['rho'] = rho_background * torch.ones(d['ny'], d['nx'], device=device)  
+    }  
 
     ufs = lambda v : uniform_vertical_stratify(d['ny'], d['nx'], v)
     d['vp'] = ufs([1500.0, 1700.0, 3000.0, 1000.0, 600.0, 3000.0])
@@ -115,13 +60,6 @@ def get_data(**kw):
     ) \
     .to(device)
  
-     
-    #set source info
-#    d['grid_y'], d['grid_x'] = torch.meshgrid(torch.arange(d['ny']-1),
-#        torch.arange(d['nx']-1)
-#    )
-#    d['grid_y'] = d['grid_y'].to(device)
-#    d['grid_x'] = d['grid_x'].to(device)
     d['grid_y'], d['grid_x'] = torch.meshgrid(
         d['ofs'] + torch.arange(d['ny']-d['ofs']-1),
         d['ofs'] + torch.arange(d['nx']-d['ofs']-1)

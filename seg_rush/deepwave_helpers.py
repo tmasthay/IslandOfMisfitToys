@@ -113,6 +113,48 @@ def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
     v = tmp.clone().requires_grad_()
     return v
 
+def vertical_stratify(ny, nx, layers, values, device):
+    assert( len(layers) == len(values) - 1 )
+    assert( len(values) >= 1 )
+    u = values[0] * torch.ones(ny,nx, device=device)
+    if( len(layers) > 0 ):
+        for l in range(len(layers)-1):
+            u[layers[l]:layers[l+1], :] = values[l+1]
+        u[layers[-1]:] = values[-1]
+    return u
+
+def uniform_vertical_stratify(ny, nx, values):
+    layers = [i*ny // len(values) for i in range(1,len(values))]
+    return vertical_stratify(ny, nx, layers, values)
+
+def plot_material_params(vp, vs, rho, cmap):
+    up = vp.cpu().detach()
+    us = vs.cpu().detach()
+    urho = rho.cpu().detach()
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10,7))
+
+    alpha = 0.3
+    im0 = axs[0].imshow(up, cmap=cmap)
+    axs[0].set_title(r'$V_p$')
+    fig.colorbar(im0, ax=axs[0],shrink=alpha)
+
+    im1 = axs[1].imshow(us, cmap=cmap)
+    axs[1].set_title(r'$V_s$')
+    fig.colorbar(im1, ax=axs[1], shrink=alpha)
+
+    im2 = axs[2].imshow(urho, cmap=cmap)
+    axs[2].set_title(r'$\rho$')
+    fig.colorbar(im2, ax=axs[2], shrink=alpha)
+
+    for i in range(3):
+        axs[i].set_xlabel('Horizontal location (km)')
+        axs[i].set_ylabel('Depth (km)')
+
+    plt.subplots_adjust(wspace=0.5, hspace=0.5)
+
+    plt.savefig('params.pdf')
+    plt.clf()
+
 
 
 
