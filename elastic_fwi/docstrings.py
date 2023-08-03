@@ -50,7 +50,12 @@ def ant_to_str(name,
         + list(ant.__metadata)
     return proc(name, lst, indent, indent_level, chars_per_line)
 
-def get_class_info(cls):
+def get_class_info(cls, 
+    indent='    ', 
+    indent_level=1, 
+    chars_per_line=80,
+    proc=None
+):
     class_info = {
         "name": cls.__name__,
         "docstring": inspect.getdoc(cls),
