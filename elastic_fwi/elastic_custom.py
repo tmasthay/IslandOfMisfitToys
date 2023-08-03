@@ -150,7 +150,7 @@ class DataGenerator(Data, ABC):
         new_keys = set(kw.keys()).difference(set(super().__slots__))
         for k in new_keys:
             self.custom[k] = kw[k]
-            
+
     @abstractmethod
     def force(y,x,comp,**kw):
         pass
@@ -158,7 +158,6 @@ class DataGenerator(Data, ABC):
     @abstractmethod
     def forward(**kw):
         pass
-    
 
 
 def get_data(**kw):

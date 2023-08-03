@@ -19,6 +19,103 @@ device = torch.device('cuda:0')
 plt.rc('text', usetex=False)
 
 class Data:
+    # """
+    # This class represents a seismic data object.
+
+    # Attributes
+    # ----------
+    # devices : list
+    #     List of devices for computation (CPUs, GPUs).
+
+    # nx : int
+    #     Number of horizontal dofs. 
+    #     1 <= nx
+
+    # ny : int
+    #     Number of vertical dofs. 
+    #     1 <= ny
+
+    # nt : int
+    #     Number of time steps. 
+    #     1 <= nt
+
+    # dx : float
+    #     Grid size in the horizontal direction.
+    #     dx > 0.0
+
+    # dy : float
+    #     Grid size in the vertical direction.
+    #     dy > 0.0
+
+    # dt : float
+    #     Time step. 
+    #     dt > 0.0
+
+    # vp : torch.Tensor
+    #     P-wave velocity. 
+    #     vp >= 0.0
+
+    # vs : torch.Tensor
+    #     S-wave velocity. 
+    #     0 <= vs <= vp
+
+    # rho : torch.Tensor
+    #     Density.
+    #     rho >= 0.0
+
+    # n_shots : int
+    #     Number of shots. 
+    #     1 <= n_shots
+
+    # fst_src : int
+    #     First source index (x-direction).
+    #     1 <= fst_src <= nx - 1
+
+    # src_depth : int
+    #     Source depth index (y-direction).
+    #     1 <= src_depth <= ny - 1
+
+    # d_src : int
+    #     Index delta of sources (x-direction).
+    #     1 <= d_src <= nx - 2
+
+    # n_src_per_shot : int
+    #     Number of sources per shot.
+    #     n_src_per_shot >= 1
+
+    # src_loc : torch.Tensor
+    #     Source locations.
+
+    # fst_rec : int
+    #     First receiver index (x-direction).
+    #     1 <= fst_rec <= nx - 1
+
+    # rec_depth : int
+    #     Receiver depth index (y-direction).
+    #     1 <= rec_depth <= ny - 1
+
+    # d_rec : int
+    #     Index delta of receivers (x-direction).
+    #     1 <= d_rec <= nx - 2
+
+    # n_rec_per_shot : int
+    #     Number of receivers per shot.
+    #     n_rec_per_shot >= 1
+
+    # rec_loc : torch.Tensor
+    #     Receiver locations.
+
+    # freq : float
+    #     Characteristic Ricker frequency. 
+    #     freq > 0.0
+
+    # wavelet : torch.Tensor
+    #     Characteristic source time signature.
+
+    # ofs : int
+    #     Padding for source location landscape. 
+    #     1 <= ofs <= min(nx - 1, ny - 1)
+    # """
     __slots__ = [
         'devices',
 
@@ -140,11 +237,32 @@ class Data:
                 warn(f'Attribute {k} does not exist...skipping ')
 
 class DataGenerator(Data, ABC):
+
+    # """
+    # This class is an abstract base class for generating seismic data. 
+    # It inherits from the Data class and extends it by adding a custom parameter 
+    #     for user flexibility. 
+
+    # Attributes
+    # ----------
+    # custom : dict
+    #     Custom parameters for user flexibility.
+
+    # Methods
+    # -------
+    # force(y, x, comp, **kw)
+    #     Abstract method for force calculation.
+
+    # forward(**kw)
+    #     Abstract method for forward modeling.
+    # """
     __slots__ = [
         'custom'
     ]
     custom: Ant[dict, 'Custom parameters for user flexibility']
     def __init__(self, **kw):
+        """_summary_
+        """
         super().__init__(**kw)
         self.custom = dict()
         new_keys = set(kw.keys()).difference(set(super().__slots__))
