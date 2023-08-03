@@ -155,6 +155,10 @@ def plot_material_params(vp, vs, rho, cmap):
     plt.savefig('params.pdf')
     plt.clf()
 
+def read_tensor(s, device):
+    if( type(s) == str ): return torch.load(s, device=device)
+    else: return s.to(device)
+
 
 
 
