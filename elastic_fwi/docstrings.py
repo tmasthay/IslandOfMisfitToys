@@ -29,6 +29,8 @@ def base_format(name, lst, indent='    ', indent_level=1, cpl=80):
         s += '\n' + prettify(lst[1], indent, indent_level+1, cpl)
     left, right = ineql(lst[2]), ineql(lst[3])
     if( len(left + right) > 0 ): 
+        if( '<' not in left and len(left) > 0 ): left = left + ' <=  '
+        if( '<' not in right and len(right) > 0 ): right = ' <= ' + right
         s += '\n' + prettify(f'{left}{name}{right}',
             indent,
             indent_level+1,
@@ -39,6 +41,7 @@ def base_format(name, lst, indent='    ', indent_level=1, cpl=80):
     return s
 
 def ant_to_str(name, 
+    ant,
     indent='    ',
     indent_level=1,
     chars_per_line=80,
@@ -47,7 +50,7 @@ def ant_to_str(name,
     if( not proc ): proc = base_format
 
     lst =  [re.sub(r"class|<|>|'", '', str(ant.__origin__))] \
-        + list(ant.__metadata)
+        + list(ant.__metadata__)
     return proc(name, lst, indent, indent_level, chars_per_line)
 
 def get_class_info(cls, 
@@ -62,6 +65,7 @@ def get_class_info(cls,
         "attributes": [],
         "methods": {},
         "base classes": [base.__name__ for base in cls.__bases__],
+        "slots": cls.__slots__
     }
     
     class_annotations = getattr(cls, '__annotations__', {})
@@ -75,18 +79,25 @@ def get_class_info(cls,
         else:
             if name.startswith('__'): continue
             if name in class_annotations.keys():
-                class_info["attributes"].append((name, class_annotations[name]))
+                class_info["attributes"].append(
+                    (
+                        name, 
+                        ant_to_str(name,
+                            class_annotations[name],
+                            indent,
+                            indent_level,
+                            chars_per_line,
+                            proc
+                        )
+                    )
+                )
             else:
                 class_info["attributes"].append((name, "Not annotated"))
 
     return class_info
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="python file to inspect")
-    args = parser.parse_args()
-
-    spec = importlib.util.spec_from_file_location("module.name", args.file)
+def generate_dict(**kw):
+    spec = importlib.util.spec_from_file_location("module.name", kw['file'])
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
@@ -95,9 +106,25 @@ def main():
     data = {}
     for name, cls in class_members:
         if cls.__module__ == mod.__name__:
-            data[name] = get_class_info(cls)
+            data[name] = get_class_info(cls,
+                indent=kw['indent'],
+                indent_level=1,
+                chars_per_line=kw['cpl'],
+                proc=None
+            )
+    
+    return data
 
-    print(data)
+def generate_docstring(**kw):
+    d = generate_dict(**kw)
+    print(d['Data']['slots'])
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="python file to inspect")
+    parser.add_argument('--spaces', type=int, default=4, help="Indent spaces")
+    parser.add_argument('--cpl', type=int, default=80, help='Chars per line')
+    args = parser.parse_args()
+
+    generate_docstring(file=args.file, 
+        indent=args.spaces*' ', cpl=args.cpl)

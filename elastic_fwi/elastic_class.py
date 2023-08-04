@@ -153,7 +153,7 @@ class Data:
 
     vp: Ant[torch.Tensor, 'P-wave velocity', '0.0']
     vs: Ant[torch.Tensor, 'S-wave velocity', '0.0', 'vp']
-    rho: Ant[torch.Tensor, 'Density', '0.0@s']
+    rho: Ant[torch.Tensor, 'Density', '0.0<']
 
     n_shots: Ant[int, 'Number of shots']
 
@@ -172,11 +172,11 @@ class Data:
     nx: Ant[int, 'Number of horizontal dofs', '1']
     ny: Ant[int, 'Number of vertical dofs', '1']
     nt: Ant[int, 'Number of time steps', '1']
-    dx: Ant[float, 'Grid size horizontal', '0.0s']
-    dy: Ant[float, 'Grid size vertical', '0.0s']
-    dt: Ant[float, 'Time step', '0.0#s']
+    dx: Ant[float, 'Grid size horizontal', '0.0<']
+    dy: Ant[float, 'Grid size vertical', '0.0<']
+    dt: Ant[float, 'Time step', '0.0<']
 
-    freq: Ant[float, 'Characteristic Ricker frequency', '0.0#s']
+    freq: Ant[float, 'Characteristic Ricker frequency', '0.0<']
     wavelet: Ant[torch.Tensor, 'Characteristic source time signature']
 
     ofs: Ant[int, 'Padding for src_loc landscape', '1', 'min(nx-1,ny-1)']
