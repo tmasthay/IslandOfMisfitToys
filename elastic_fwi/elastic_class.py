@@ -179,3 +179,9 @@ class DataGenerator(Data, ABC):
     @abstractmethod
     def forward(**kw):
         pass
+
+def non_class_method(x: Ant[float, 'yoyoyo'],  y: Ant[float, 'nonono']):
+    return x + y
+
+def second_non_class_method(x, y):
+    return x * y

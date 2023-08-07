@@ -14,6 +14,8 @@ def prettify(**kw):
     chars_per_line = kw.get('chars_per_line', 80)
 
     if( s == '' ): return ''
+    if( s == 'None' ): return 'None'
+
     base_indent = indent_level * indent
     indent_chars = len(base_indent)
     block_len = chars_per_line - indent_chars
@@ -215,25 +217,41 @@ def generate_dict(**kw):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
-    class_members = inspect.getmembers(mod, inspect.isclass)
+    class_members = inspect.getmembers(mod, 
+        lambda x : inspect.isclass(x) and x.__module__ == mod.__name__)
+    nonclass_functions = inspect.getmembers(mod, 
+        lambda x : inspect.isfunction(x) and x.__module__ == mod.__name__
+    )
 
     data = {}
+    func_data = {}
     for name, cls in class_members:
-        if cls.__module__ == mod.__name__:
-            data[name] = get_class_info(cls,
-                indent=kw['indent'],
-                indent_level=1,
-                chars_per_line=kw['cpl'],
-                proc=None
-            )
+        data[name] = get_class_info(cls,
+            indent=kw['indent'],
+            indent_level=1,
+            chars_per_line=kw['cpl'],
+            proc=None
+        )
+        
+    input(nonclass_functions)
+    for name, func in nonclass_functions:
+        sig = inspect.signature(func)
+        params = sig.parameters
+        func_data[name] = {'params': {},
+            'return_annotation': proc_ant(sig, True)
+        }
+        for param_name, param in params.items():
+            func_data[name]['params'][param_name] = proc_ant(param, False)
     
-    return data
+    return data, func_data
 
 def generate_docstring(**kw):
-    d = generate_dict(**kw)
+    d, standalone_data = generate_dict(**kw)
     classes = dict()
+    func = dict()
+    idt_level = kw.get('indent_level', 1)
     for k, v in d.items():
-        classes[k] = ('' if not v['docstring'] else v['docstring']) + '\n'
+        classes[k] = ('' if not v['docstring'] else v['docstring'] + '\n')
         classes[k] += header(head='Attributes',
             indent=kw.get('indent', 4*' '),
             indent_level=kw.get('indent_level', 1),
@@ -252,7 +270,16 @@ def generate_docstring(**kw):
         ) 
         for k_hat, v_hat in v['methods'].items():
             classes[k] += func_docstring({'name': k_hat, **v_hat}, **kw)
-    return classes
+    for k, v in standalone_data.items():
+        func[k] = ('' if not 'docstring' in v.keys()
+             else v['docstring'] + '\n'
+        )
+        func[k] += func_docstring({'name': k, **v}, 
+            **{**kw, 'indent_level': idt_level}
+        )
+        input(f'{k}\n    {v}\n{func[k]}')
+
+    return classes, func
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -261,8 +288,11 @@ if __name__ == "__main__":
     parser.add_argument('--cpl', type=int, default=80, help='Chars per line')
     args = parser.parse_args()
 
-    d = generate_docstring(file=args.file, 
+    d, func = generate_docstring(file=args.file, 
         indent=args.spaces*' ', cpl=args.cpl)
     
     for k,v in d.items():
+        print(v)
+
+    for k,v in func.items():
         print(v)
