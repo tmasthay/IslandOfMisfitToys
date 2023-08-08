@@ -140,25 +140,40 @@ def generate_docstring_for_class(cls, **kw):
     else:
         docstring_parts.append(f'{slot_idt}{indent}NO SLOTS')
 
-    return "\n".join(docstring_parts)
+    return ["\n".join(docstring_parts), og, line_no, stable]
 
+def insert_docstring(**kw):
+    meta = kw['meta']
+    runner = kw['runner']
+
+    if( len(meta) == 0 ): return runner
+    else:
+        s, dec, code_start, stable = meta.pop(0)
+        dummy = [
+            e for i,e in enumerate(runner) \
+                    if i not in range(dec+1,code_start)
+        ]
+        dummy.insert(dec+1,'''"""\n***\n%s\n***\n%s\n"""\n'''%(stable, s))
+        delta = code_start - dec
+        for (i,e) in enumerate(meta):
+            if( e[1] > code_start ): meta[i][1] -= delta
+            if( e[2] > code_start ): meta[i][2] -= delta
+        return insert_docstring(meta=meta, runner=dummy)
+    
 def process_module(module_name):
     module = importlib.import_module(module_name)
+    src, top_line = inspect.getsourcelines(module)
 
+    meta = []
     for name, obj in inspect.getmembers(module):
         if inspect.isclass(obj) and obj.__module__ == module.__name__:
-            generated_docstring = generate_docstring_for_class(obj)
-            obj.__doc__ = generated_docstring
+            meta.append(generate_docstring_for_class(obj))
+    documented = ''.join(insert_docstring(meta=meta, runner=src))
 
-    return module
+    return documented
 
 # Assuming the module name is 'my_module'
 processed_module = process_module('elastic_class')
 
-# Print the modified classes' docstrings
-for name, obj in inspect.getmembers(processed_module):
-    if inspect.isclass(obj):
-        print(f"Docstring for class {name}:")
-        print(obj.__doc__)
-        print("="*80)
+print(processed_module)
 
