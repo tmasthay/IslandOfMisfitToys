@@ -141,24 +141,26 @@ class Data:
 
 class DataGenerator(Data, ABC):
 
-    # """
-    # This class is an abstract base class for generating seismic data. 
-    # It inherits from the Data class and extends it by adding a custom parameter 
-    #     for user flexibility. 
+    """
+    ***
+    This class is an abstract base class for generating seismic data. 
+    It inherits from the Data class and extends it by adding a custom parameter 
+        for user flexibility. 
+    ***
 
-    # Attributes
-    # ----------
-    # custom : dict
-    #     Custom parameters for user flexibility.
+    Attributes
+    ----------
+    custom : dict
+        Custom parameters for user flexibility.
 
-    # Methods
-    # -------
-    # force(y, x, comp, **kw)
-    #     Abstract method for force calculation.
+    Methods
+    -------
+    force(y, x, comp, **kw)
+        Abstract method for force calculation.
 
-    # forward(**kw)
-    #     Abstract method for forward modeling.
-    # """
+    forward(**kw)
+        Abstract method for forward modeling.
+    """
     __slots__ = [
         'custom'
     ]
@@ -183,5 +185,8 @@ class DataGenerator(Data, ABC):
 def non_class_method(x: Ant[float, 'yoyoyo'],  y: Ant[float, 'nonono']):
     return x + y
 
-def second_non_class_method(x, y):
+def second_non_class_method(x, y) -> Ant[float, 'MyReturnLabel']:
+    """
+    Dummy docstring
+    """
     return x * y
