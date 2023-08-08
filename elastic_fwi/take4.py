@@ -9,9 +9,17 @@ def align(**kw):
     #optional kw args
     idt = kw.get('indent', 4*' ')
     idt_lvl = kw.get('indent_level', 1)
+    cpl = kw.get('chars_per_line', 80)
 
     base_idt = idt_lvl * idt
-    return f'{base_idt}{s}'
+    lng_idt = base_idt + idt
+    N = cpl - len(base_idt)
+    n = cpl - (len(idt) + len(base_idt))
+    s = s.replace('\n',' ').strip().replace('  ', '')
+    l = [f'{base_idt}{s[:N]}']
+    for i in range((len(s) // n) + 1):
+        l.append('%s%s'%(lng_idt, s[(N+i*n):(N+(i+1)*n)]))
+    return '\n'.join(l)
 
 def proc_inequal(**kw):
     #required kw args
@@ -104,10 +112,15 @@ def generate_docstring_for_class(cls, **kw):
         slots = []
     
     insertion_line, og, line_no, stable = get_insertion_line(cls)
-    input(f'{cls.__name__},{insertion_line},{og},{line_no},"{stable}"')
     docstring_parts = [f'{base_indent}{cls.__name__}']
     if( stable ):
-        docstring_parts.append(f'{base_indent}{stable}')
+        docstring_parts.append(
+            align(
+                s=stable,
+                indent=indent,
+                indent_level=indent_level+1
+            )
+        )
 
     slot_idt = base_indent + indent
     docstring_parts.append(f'{slot_idt}Attributes')
@@ -127,7 +140,6 @@ def generate_docstring_for_class(cls, **kw):
     else:
         docstring_parts.append(f'{slot_idt}{indent}NO SLOTS')
 
-    input(docstring_parts)
     return "\n".join(docstring_parts)
 
 def process_module(module_name):
