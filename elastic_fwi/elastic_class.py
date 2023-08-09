@@ -19,6 +19,11 @@ device = torch.device('cuda:0')
 plt.rc('text', usetex=False)
 
 class Data:
+    """
+    ***
+    Class for parsing data input for FWI.
+    ***
+    """
     __slots__ = [
         'devices',
 
@@ -142,6 +147,7 @@ class Data:
 class DataGenerator(Data, ABC):
 
     """
+    DataGenerator
     ***
     This class is an abstract base class for generating seismic data. 
     It inherits from the Data class and extends it by adding a custom parameter 

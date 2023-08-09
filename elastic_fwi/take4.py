@@ -71,34 +71,33 @@ def ant_to_str(a, **kw):
 
 def get_insertion_line(cls):
     lines, line_no = inspect.getsourcelines(cls)
+    line_no -= 1
     in_docstring = False
-    just_exited_docstring = False
     entered_scope = False
     in_stable = False
     stable_docstring = ''
+    trip_quote_count = 0
 
     for (idx,l) in enumerate(lines):
-        if( not in_docstring and just_exited_docstring ): 
-            just_exited_docstring = False
-        if( not entered_scope and ':' in l ): 
-            entered_scope = True
+        if( not entered_scope ):
+            if( ':' in l ): entered_scope = True 
             continue
         sl = l.strip()
         if( (not sl) or (sl.startswith('#')) ): continue
         if( sl.startswith("'''") or sl.startswith('"""') ):
             in_docstring = not in_docstring
-            if( not in_docstring ): just_exited_docstring = True
+            trip_quote_count += 1
             continue
         if( in_docstring ):
             if( sl.startswith('***') ):
                 in_stable = not in_stable
             if( in_stable ):
-                stable_docstring += sl.replace('***','') + '\n'
+                stable_docstring += sl.replace('***','').strip() + '\n'
             continue
-        if( not just_exited_docstring ):
-            if( in_stable ): 
-                raise ValueError('Exited before closing stable docstring')
-            return l, line_no, line_no + idx, stable_docstring
+        if( in_stable and trip_quote_count >= 2 ): 
+            raise ValueError('Exited before closing stable docstring')
+        return l, line_no, line_no + idx, stable_docstring
+    raise ValueError(f'No valid code within class: {cls.__name__}')
     
 def generate_docstring_for_class(cls, **kw):
     indent = kw.get('indent', 4*' ')
@@ -114,13 +113,10 @@ def generate_docstring_for_class(cls, **kw):
     insertion_line, og, line_no, stable = get_insertion_line(cls)
     docstring_parts = [f'{base_indent}{cls.__name__}']
     if( stable ):
-        docstring_parts.append(
-            align(
-                s=stable,
-                indent=indent,
-                indent_level=indent_level+1
-            )
-        )
+        lcl_kw = {'indent': indent, 'indent_level': indent_level+1}
+        docstring_parts.append(align(s='***', **lcl_kw))
+        docstring_parts.append(align(s=stable, **lcl_kw))
+        docstring_parts.append(align(s='***', **lcl_kw))
 
     slot_idt = base_indent + indent
     docstring_parts.append(f'{slot_idt}Attributes')
@@ -134,7 +130,7 @@ def generate_docstring_for_class(cls, **kw):
                 ant_to_str(
                     ant, 
                     name=slot, 
-                    indent_level=indent_level+3
+                    indent_level=indent_level+2
                 )
             )
     else:
@@ -145,20 +141,18 @@ def generate_docstring_for_class(cls, **kw):
 def insert_docstring(**kw):
     meta = kw['meta']
     runner = kw['runner']
-
+    idt = kw.get('indent', 4*' ')
+    idt_level = kw.get('indent_level', 1)
+    base_idt = idt_level * idt
     if( len(meta) == 0 ): return runner
     else:
         s, dec, code_start, stable = meta.pop(0)
-        dummy = [
-            e for i,e in enumerate(runner) \
-                    if i not in range(dec+1,code_start)
-        ]
-        dummy.insert(dec+1,'''"""\n***\n%s\n***\n%s\n"""\n'''%(stable, s))
-        delta = code_start - dec
-        for (i,e) in enumerate(meta):
-            if( e[1] > code_start ): meta[i][1] -= delta
-            if( e[2] > code_start ): meta[i][2] -= delta
-        return insert_docstring(meta=meta, runner=dummy)
+        quote = f'{base_idt}\"\"\"'
+        runner[dec] = f'''{runner[dec]}{quote}\n{s}\n{quote}\n'''
+        for i in range(dec+1, code_start):
+            runner[i] = ''
+        tmp = '\n'.join(runner[(dec-1):(code_start+1)])
+        return insert_docstring(meta=meta, runner=runner)
     
 def process_module(module_name):
     module = importlib.import_module(module_name)
