@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from imageio import imread, mimsave
 import numpy as np
 import torch
+from typing import Annotated as Ant, Any
+from abc import ABCMeta
 
 def sco(s, split=True):
     u = co(s, shell=True).decode('utf-8')
@@ -159,6 +161,31 @@ def read_tensor(s, device):
     if( type(s) == str ): return torch.load(s, device=device)
     else: return s.to(device)
 
+
+
+class SlotMeta(type):
+    def __new__(cls, name, bases, class_dict):
+        # Extract the variable names from the annotations
+        annotated_keys = list(class_dict['__annotations__'].keys())
+        
+        # Find attributes that are not methods, not in special names and not already annotated
+        non_annotated_attrs = [key for key, value in class_dict.items() 
+                               if not (callable(value) or key.startswith('__') or key in annotated_keys)]
+        
+        # Add the default annotations for non-annotated attributes
+        for key in non_annotated_attrs:
+            class_dict['__annotations__'][key] = Ant[Any, 'NOT ANNOTATED']
+            
+            # Optional: Remove the attributes as they'll be defined by __slots__ 
+            class_dict.pop(key, None)
+
+        # Create the __slots__ attribute from updated annotations
+        class_dict['__slots__'] = list(class_dict['__annotations__'].keys())
+                
+        return super().__new__(cls, name, bases, class_dict)
+    
+class CombinedMeta(SlotMeta, ABCMeta):
+    pass
 
 
 

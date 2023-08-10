@@ -18,45 +18,12 @@ device = torch.device('cuda:0')
 
 plt.rc('text', usetex=False)
 
-class Data:
+class Data(metaclass=SlotMeta):
     """
     ***
     Class for parsing data input for FWI.
     ***
     """
-    __slots__ = [
-        'devices',
-
-        'nx', 
-        'ny',
-        'nt', 
-        'dx', 
-        'dy',
-        'dt',
-
-        'vp', 
-        'vs', 
-        'rho', 
-         
-        'n_shots', 
-
-        'fst_src', 
-        'src_depth', 
-        'd_src',
-        'src_loc', 
-        'n_src_per_shot',
-
-        'fst_rec', 
-        'rec_depth', 
-        'd_rec',
-        'n_rec_per_shot', 
-        'rec_loc', 
-
-        'freq',  
-        'wavelet',
-        
-        'ofs', 
-    ]
     devices: Ant[list, 'List of devices']
 
     vp: Ant[torch.Tensor, 'P-wave velocity', '0.0']
@@ -144,7 +111,7 @@ class Data:
             else:
                 warn(f'Attribute {k} does not exist...skipping ')
 
-class DataGenerator(Data, ABC):
+class DataGenerator(Data, metaclass=CombinedMeta):
 
     """
     DataGenerator
