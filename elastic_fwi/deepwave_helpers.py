@@ -161,8 +161,6 @@ def read_tensor(s, device):
     if( type(s) == str ): return torch.load(s, device=device)
     else: return s.to(device)
 
-
-
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
