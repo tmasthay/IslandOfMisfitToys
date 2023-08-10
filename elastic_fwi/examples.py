@@ -41,12 +41,22 @@ def marmousi():
         def force(self, y, x, comp, *, my_other_kwarg=1):
             pass
 
-        def forward(self, *, my_kwarg=1):
+        def forward(self):
             lamb_mu_buoy = deepwave.common.vpvsrho_to_lambmubuoyancy(
                 self.vp,
                 self.vs,
                 self.rho
             )
+            src_amp_y = torch.ones(self.n_shots, self.n_src_per_shot, self.nt)
+            return elastic(
+                *lamb_mu_buoy,
+                self.dx,
+                self.dt,
+                source_amplitudes_y=src_amp_y,
+                source_locations_y=self.src_loc,
+                receiver_locations_y=self.rec_loc,
+                pml_freq=self.freq
+            )[-2]
             pass
 
     return Marmousi(vp=vp,
