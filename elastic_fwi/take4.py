@@ -151,9 +151,38 @@ def insert_docstring(**kw):
         runner[dec] = f'''{runner[dec]}{quote}\n{s}\n{quote}\n'''
         for i in range(dec+1, code_start):
             runner[i] = ''
-        tmp = '\n'.join(runner[(dec-1):(code_start+1)])
         return insert_docstring(meta=meta, runner=runner)
+
+def generate_docstring_for_function(fnc, **kw):
+    assert inspect.isfunction(fnc), f'{str(fnc)} is not a function'
+
+    indent = kw.get('indent', 4*' ')
+    indent_level = kw.get('indent_level', 1)
+    stable = kw.get('stable_docstring', '')
+    base_indent = indent_level * indent
     
+    sig = inspect.signature(fnc)
+    params = sig.parameters.items()
+    rtr = sig.return_annotation
+
+    insertion_line, og, line_no, stable = get_insertion_line(fnc)
+    docstring_parts = [f'{base_indent}{fnc.__name__}']
+    if( stable ):
+        lcl_kw = {'indent': indent, 'indent_level': indent_level+1}
+        docstring_parts.append(align(s='***', **lcl_kw))
+        docstring_parts.append(align(s=stable, **lcl_kw))
+        docstring_parts.append(align(s='***', **lcl_kw))
+
+    slot_idt = base_indent + indent
+    docstring_parts.append(f'{slot_idt}Attributes')
+    docstring_parts.append(
+        ant_to_str(
+            ant, 
+            name=slot, 
+            indent_level=indent_level+2
+        )
+    )  
+
 def process_module(module_name):
     module = importlib.import_module(module_name)
     src, top_line = inspect.getsourcelines(module)
@@ -162,6 +191,11 @@ def process_module(module_name):
     for name, obj in inspect.getmembers(module):
         if inspect.isclass(obj) and obj.__module__ == module.__name__:
             meta.append(generate_docstring_for_class(obj))
+            for mem_name, mem_obj in inspect.getmembers(obj):
+                if inspect.isfunction(mem_obj):
+                    meta.append(generate_docstring_for_function(obj))
+        elif inspect.isfunction(obj) and obj.__module__ == module.__name__:
+            meta.append(generate_docstring_for_function(obj))
     documented = ''.join(insert_docstring(meta=meta, runner=src))
 
     return documented

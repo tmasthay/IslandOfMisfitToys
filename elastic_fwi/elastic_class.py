@@ -135,7 +135,7 @@ class Data:
         )
     
         #get offset info for optimization landscape plots
-        self.ofs = kw.get('ofs', 1)\
+        self.ofs = kw.get('ofs', 1)
 
     def update(self, **kw):
         for k,v in kw.items():
@@ -181,18 +181,9 @@ class DataGenerator(Data, ABC):
             self.custom[k] = kw[k]
             
     @abstractmethod
-    def force(y,x,comp,**kw):
+    def force(self, y,x,comp,**kw):
         pass
 
     @abstractmethod
-    def forward(**kw):
+    def forward(self, **kw):
         pass
-
-def non_class_method(x: Ant[float, 'yoyoyo'],  y: Ant[float, 'nonono']):
-    return x + y
-
-def second_non_class_method(x, y) -> Ant[float, 'MyReturnLabel']:
-    """
-    Dummy docstring
-    """
-    return x * y
