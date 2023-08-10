@@ -47,6 +47,7 @@ def marmousi():
                 self.vs,
                 self.rho
             )
+            input(self.src_loc)
             src_amp_y = torch.ones(self.n_shots, self.n_src_per_shot, self.nt)
             return elastic(
                 *lamb_mu_buoy,
@@ -86,3 +87,4 @@ def marmousi():
 if( __name__ == '__main__' ):
     data = marmousi()
     print(data) 
+    data.forward()

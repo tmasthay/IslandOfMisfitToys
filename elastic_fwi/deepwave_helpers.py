@@ -125,9 +125,9 @@ def vertical_stratify(ny, nx, layers, values, device):
         u[layers[-1]:] = values[-1]
     return u
 
-def uniform_vertical_stratify(ny, nx, values):
+def uniform_vertical_stratify(ny, nx, values, device):
     layers = [i*ny // len(values) for i in range(1,len(values))]
-    return vertical_stratify(ny, nx, layers, values)
+    return vertical_stratify(ny, nx, layers, values, device)
 
 def plot_material_params(vp, vs, rho, cmap):
     up = vp.cpu().detach()

@@ -183,12 +183,12 @@ def get_data(**kw):
         'ofs': 1
     }  
 
-    ufs = lambda v : uniform_vertical_stratify(d['ny'], d['nx'], v)
+    ufs = lambda v : uniform_vertical_stratify(d['ny'], d['nx'], v, device)
     d['vp'] = ufs([1500.0, 1700.0, 3000.0, 1000.0, 600.0, 3000.0])
     d['vs'] = ufs([1100.0, 1300.0, 1500.0, 800.0, 500.0, 2700.0])
     d['rho'] = ufs([2200.0])
 
-    plot_material_params(d['vp'], d['vs'], d['rho'])
+    # plot_material_params(d['vp'], d['vs'], d['rho'])
 
     #set per shot numbers
     d['n_sources_per_shot'] = (d['nx']-1)*(d['ny']-1)
