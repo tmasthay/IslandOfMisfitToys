@@ -10,13 +10,9 @@ def segy_to_tensor(file_path, device, transpose):
     # Convert traces to tensors
     traces = [torch.tensor(trace.data, device=device) for trace in segy_data.traces]
     
-    # Stack the individual traces to form a single tensor
-    if( transpose ):
-        stacked_tensor = torch.stack(torch.transpose(traces, 0, 1))
-    else:
-        stacked_tensor = torch.stack(traces)
+    stacked_tensor = torch.stack(traces)
     
-    return stacked_tensor
+    return stacked_tensor if not transpose else torch.transpose(stacked_tensor, 0, 1)
 
 def main():
     # Argument parsing
@@ -43,7 +39,7 @@ def main():
     for file in os.listdir(args.folder):
         if file.endswith(args.suffix):
             file_path = os.path.join(args.folder, file)
-            tensor = segy_to_tensor(file_path, device)
+            tensor = segy_to_tensor(file_path, device, args.transpose)
             
             # Save the tensor
             output_tensor_path = os.path.join(output_folder, f"{os.path.splitext(file)[0]}.pt")
