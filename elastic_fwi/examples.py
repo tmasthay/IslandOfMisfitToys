@@ -126,6 +126,10 @@ def marmousi_dense_center_src():
     vs = m_per_km * load_field('vs')
     rho = m_per_km * load_field('density')
 
+    vp = 5000.0 * torch.ones_like(vp)
+    vs = 3000.0 * torch.ones_like(vs)
+    rho = (rho.max() + rho.min()) / 2.0 * torch.ones_like(rho)
+
     im1 = plt.imshow(vp.cpu(), cmap='jet', aspect='auto')
     config_plot(r'$V_p$')
     plt.savefig('vp.jpg')
@@ -141,9 +145,7 @@ def marmousi_dense_center_src():
     plt.savefig('rho.jpg')
     plt.clf()
 
-    print('Terminating early for debugging purposes')
-
-    nt = 1000
+    nt = 100
     dt = 0.001
     dx = 1.25 #meters
     dy = 1.25 #meters
@@ -207,7 +209,7 @@ def marmousi_dense_center_src():
     ).reshape(1,samples_x*samples_y,2)
 
     freq = 10.0 #Hz
-    peak_time = 0.1 #seconds
+    peak_time = 1.5 / freq #seconds
     wavelet = deepwave.wavelets.ricker(freq, nt, dt, peak_time)
 
     class Marmousi(DataGenerator):
@@ -221,36 +223,35 @@ def marmousi_dense_center_src():
             pass
 
         def forward(self):
-            lamb_mu_buoy = deepwave.common.vpvsrho_to_lambmubuoyancy(
+            lamb, mu, buoy = deepwave.common.vpvsrho_to_lambmubuoyancy(
                 self.vp,
                 self.vs,
                 self.rho
             )
-            plt.imshow(lamb_mu_buoy[0].cpu(), cmap='jet', aspect='auto')
+            plt.imshow(lamb.cpu(), cmap='jet', aspect='auto')
             config_plot(r'$\lambda$')
             plt.savefig('lambda.jpg')
             plt.clf()
  
-            plt.imshow(lamb_mu_buoy[1].cpu(), cmap='jet', aspect='auto')
+            plt.imshow(mu.cpu(), cmap='jet', aspect='auto')
             config_plot(r'$\mu$')
             plt.savefig('mu.jpg')
             plt.clf()
 
-            plt.imshow(lamb_mu_buoy[2].cpu(), cmap='jet', aspect='auto')
+            plt.imshow(buoy.cpu(), cmap='jet', aspect='auto')
             config_plot(r'Buoyancy')
             plt.savefig('buoy.jpg')
             plt.clf()
 
- 
-            for (i,e) in enumerate(lamb_mu_buoy):
-                print(f'{i}-->min={e.min()}, max={e.max()}')
             src_amp_y = 1e20 * wavelet \
                 .unsqueeze(0) \
                 .unsqueeze(0) \
                 .expand(n_shots, n_src_per_shot, -1) \
                 .to(device)
             return elastic(
-                *lamb_mu_buoy,
+                lamb,
+                mu,
+                buoy,
                 self.dx,
                 self.dt,
                 source_amplitudes_y=src_amp_y,
