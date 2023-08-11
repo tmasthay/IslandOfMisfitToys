@@ -13,7 +13,7 @@ def marmousi():
         return torch.load(
             os.path.join(
                 '/'.join(os.getcwd().split('/')[:-1]),
-                'data/marmousi/torch_conversions/%s_marmousi-ii.pt'%name
+                'data/marmousi/torch_conversions/%s_marmousi2-ii.pt'%name
             )
         )
     vp = load_field('vp')
