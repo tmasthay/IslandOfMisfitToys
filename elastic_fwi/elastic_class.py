@@ -146,6 +146,9 @@ class DataGenerator(Data, metaclass=CombinedMeta):
         new_keys = set(kw.keys()).difference(set(super().__slots__))
         for k in new_keys:
             self.custom[k] = kw[k]
+
+    def get(self, key):
+        return self.custom[key]
             
     @abstractmethod
     def force(self, y,x,comp,**kw):
