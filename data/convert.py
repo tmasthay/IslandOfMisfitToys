@@ -3,7 +3,7 @@ import argparse
 import torch
 from obspy.io.segy.segy import _read_segy
 
-def segy_to_tensor(file_path, device):
+def segy_to_tensor(file_path, device, transpose):
     # Read the SEGY file using obspy
     segy_data = _read_segy(file_path, headonly=True)
     
@@ -11,7 +11,10 @@ def segy_to_tensor(file_path, device):
     traces = [torch.tensor(trace.data, device=device) for trace in segy_data.traces]
     
     # Stack the individual traces to form a single tensor
-    stacked_tensor = torch.stack(traces)
+    if( transpose ):
+        stacked_tensor = torch.stack(torch.transpose(traces, 0, 1))
+    else:
+        stacked_tensor = torch.stack(traces)
     
     return stacked_tensor
 
@@ -21,6 +24,7 @@ def main():
     parser.add_argument("--folder", type=str, required=True, help="Folder to search for all SEGY files.")
     parser.add_argument("--suffix", type=str, default="segy", help="Extension to search for (e.g., segy or sgy).")
     parser.add_argument("--device", type=str, default="cpu", help="Device to store the tensor (e.g., cpu, cuda:0).")
+    parser.add_argument('--transpose', action='store_true', help='Transpose the data?')
     
     args = parser.parse_args()
     
