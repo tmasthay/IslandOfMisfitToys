@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from typing import Annotated as Ant, Any
 from abc import ABCMeta
+import itertools
 
 def sco(s, split=True):
     u = co(s, shell=True).decode('utf-8')
@@ -160,6 +161,22 @@ def plot_material_params(vp, vs, rho, cmap):
 def read_tensor(s, device):
     if( type(s) == str ): return torch.load(s, device=device)
     else: return s.to(device)
+
+def uni_src_rec(
+    *,
+    n_shots: Ant[int, 'Number of shots', '1<='],
+    src_per_shot: Ant[int, 'Sources per shot', '1<='],
+    idx_vert: Ant[list, 'Vertical locations covered'],
+    idx_horz: Ant[list, 'Horizontal locations covered']
+):
+    idx = torch.Tensor(
+        [
+            list(e) for e in itertools.product(idx_vert, idx_horz)
+        ]
+    )
+    return idx.unsqueeze(0).unsqueeze(0).expand(n_shots, src_per_shot, -1, -1)
+
+    
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):

@@ -44,6 +44,8 @@ class Data(metaclass=SlotMeta):
     n_rec_per_shot: Ant[int, 'Num receivers per shot', '1']
     rec_loc: Ant[torch.Tensor, 'Receiver locations']
 
+    src_amplitudes: Ant[torch.Tensor, 'Source amplitudes']
+
     nx: Ant[int, 'Number of horizontal dofs', '1']
     ny: Ant[int, 'Number of vertical dofs', '1']
     nt: Ant[int, 'Number of time steps', '1']
@@ -151,7 +153,7 @@ class DataGenerator(Data, metaclass=CombinedMeta):
         return self.custom[key]
             
     @abstractmethod
-    def force(self, y,x,comp,**kw):
+    def force(self,p,comp,**kw):
         pass
 
     @abstractmethod

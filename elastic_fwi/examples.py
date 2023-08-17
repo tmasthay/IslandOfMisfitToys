@@ -281,6 +281,123 @@ def marmousi_dense_center_src():
         downsample_y=downsample_y
     )
 
+def acoustic_homogeneous():
+    c = 1500.0
+    ny = 250
+    nx = 250
+    vp  = c * torch.ones((nx,ny))
+    vs = None
+    rho = None
+
+    nt = 1000
+    dt = 0.001
+    dx = 1.0 #km
+    dy = 1.0 #km
+
+    ofs = 2
+    ny_art = vp.shape[0] - ofs
+    nx_art = vp.shape[1] - ofs
+
+    # n_shots = ny_art
+    n_shots = 20
+
+    d_src = 1
+    n_src_per_shot = 1
+    src_depth = vp.shape[0] // 2
+    fst_src = vp.shape[1] // 2
+    src_loc = uni_src_rec(
+        n_shots=n_shots,
+        src_per_shot=n_src_per_shot,
+        idx_vert=[src_depth],
+        idx_horz=[fst_src]
+    )
+    
+    d_rec = 1
+    n_rec_per_shot = 100
+    rec_loc = uni_src_rec(
+        n_shots=n_shots,
+        src_per_shot=n_src_per_shot,
+        idx_vert=range(ofs, vp.shape[1]-ofs, d_rec),
+        idx_horz=range(ofs, vp.shape[0]-ofs, d_rec)
+    )
+
+    freq = 10.0 #Hz
+    peak_time = 0.1 #seconds
+    wavelet = deepwave.wavelets.ricker(freq, nt, dt, peak_time)
+
+    class Marmousi(DataGenerator):
+        def __init__(self, **kw):
+            super().__init__(**kw)
+            self.src_amplitudes = torch.Tensor(
+                list(
+                    map(
+                        lambda e : self.force(e[0], e[1]), 
+                        rec_loc[0,0,:,:]
+                    )
+                )
+            ).to(self.devices[0])
+
+        def get(self, key):
+            return self.custom[key]
+        
+        def force(
+            self, 
+            p: Ant[torch.Tensor, 'Evaluation points'], 
+            comp: Ant[str, 'Elastic component']='y', 
+            *, 
+            amp: Ant[float, 'Source amplitude']=1.0, 
+            mu: Ant[list, 'Center of Gaussian']=[0.0,0.0], 
+            sig: Ant[list, 'Stddev of Gaussian']=[1.0, 1.0]
+        ):
+            G = torch.exp( 
+                -(p[:,0] - mu[:,0]) ** 2 / sig[0]**2 \
+                -(p[:,1] - mu[1]) ** 2 / sig[1]**2
+            )
+            return G.unsqueeze(-1) * self.wavelet.unsqueeze(0)
+
+        def forward(self):
+            return deepwave.scalar(
+                self.vp,
+                self.dx,
+                self.dt,
+                source_amplitudes=self.src_amplitudes,
+                source_locations=self.src_loc,
+                receiver_locations=self.rec_loc,
+                pml_freq=self.freq
+            )
+        
+        def update_depth(self, depth):
+            self.rec_loc[:,:,0] = depth
+
+    return Marmousi(vp=vp,
+        vs=vs,
+        rho=rho,
+        n_shots=n_shots,
+        fst_src=fst_src,
+        n_src_per_shot=n_src_per_shot,
+        src_depth=src_depth,
+        d_src=d_src,
+        src_loc=src_loc,
+        fst_rec=ofs,
+        n_rec_per_shot=n_rec_per_shot,
+        rec_depth=ofs,
+        d_rec=d_rec,
+        rec_loc=rec_loc,
+        nt=nt,
+        dt=dt,
+        dx=dx,
+        dy=dy,
+        freq=freq,
+        peak_time=peak_time,
+        wavelet=wavelet,
+        ofs=ofs,
+        samples_y=samples_y,
+        samples_x=samples_x,
+        downsample_x=downsample_x,
+        downsample_y=downsample_y
+    )
+
+
 if( __name__ == '__main__' ):
     data = marmousi_dense_center_src()
     if( not os.path.exists('u.pt') ):
