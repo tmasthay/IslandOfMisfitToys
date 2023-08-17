@@ -5,20 +5,21 @@ import torch
 import os
 import deepwave
 
-setup_gg_plot(clr_out=rand_color(), clr_in=rand_color())
-config_plot = set_color_plot_global(use_legend=False)
+setup_gg_plot(clr_out='black', clr_in='black')
+config_plot = set_color_plot_global(use_legend=False, use_colorbar=True, use_grid=False)
 
 def marmousi():
     def load_field(name):
         return torch.load(
             os.path.join(
                 '/'.join(os.getcwd().split('/')[:-1]),
-                'data/marmousi/torch_conversions/%s_marmousi-ii.pt'%name
+                'data/marmousi2/torch_conversions/%s_marmousi-ii.pt'%name
             )
         )
-    vp = load_field('vp')
-    vs = load_field('vs')
-    rho = load_field('density')
+    m_per_km = 1000.0
+    vp = m_per_km * load_field('vp')
+    vs = m_per_km * load_field('vs')
+    rho = m_per_km * load_field('density')
 
     nt = 1000
     dt = 0.001
@@ -117,40 +118,34 @@ def marmousi_dense_center_src():
         return torch.load(
             os.path.join(
                 '/'.join(os.getcwd().split('/')[:-1]),
-                'data/marmousi/torch_conversions/%s_marmousi-ii.pt'%name
+                'data/marmousi2/torch_conversions/%s_marmousi-ii.pt'%name
             )
         )
-    vp = load_field('vp')
-    vs = load_field('vs')
-    rho = load_field('density')
+    m_per_km = 1000.0
+    vp = m_per_km * load_field('vp')
+    vs = m_per_km * load_field('vs')
+    rho = m_per_km * load_field('density')
+
+    vp = 5000.0 * torch.ones_like(vp)
+    vs = 3000.0 * torch.ones_like(vs)
+    rho = (rho.max() + rho.min()) / 2.0 * torch.ones_like(rho)
 
     im1 = plt.imshow(vp.cpu(), cmap='jet', aspect='auto')
     config_plot(r'$V_p$')
-    cbar1 = plt.colorbar(im1)
-    cbar1.ax.tick_params(color='white')
-    cbar1.ax.yaxis.set_tick_params(color='red')  
-    plt.savefig('vp.png')
+    plt.savefig('vp.jpg')
     plt.clf()
 
     im2 = plt.imshow(vs.cpu(), cmap='jet', aspect='auto')
     config_plot(r'$V_s$')
-    cbar2 = plt.colorbar(im2)
-    cbar2.ax.tick_params(color='white')
-    cbar2.ax.yaxis.set_tick_params(color='red')
-    plt.savefig('vs.png')
+    plt.savefig('vs.jpg')
     plt.clf()
 
     im3 = plt.imshow(rho.cpu(), cmap='jet', aspect='auto')
     config_plot(r'$\rho$')
-    cbar3 = plt.colorbar(im3)
-    cbar3.ax.tick_params(color='white')
-    cbar3.ax.yaxis.set_tick_params(color='red')
-    plt.savefig('rho.png')
+    plt.savefig('rho.jpg')
     plt.clf()
 
-    print('Terminating early for debugging purposes')
-
-    nt = 1000
+    nt = 100
     dt = 0.001
     dx = 1.25 #meters
     dy = 1.25 #meters
@@ -214,7 +209,7 @@ def marmousi_dense_center_src():
     ).reshape(1,samples_x*samples_y,2)
 
     freq = 10.0 #Hz
-    peak_time = 0.1 #seconds
+    peak_time = 1.5 / freq #seconds
     wavelet = deepwave.wavelets.ricker(freq, nt, dt, peak_time)
 
     class Marmousi(DataGenerator):
@@ -228,20 +223,35 @@ def marmousi_dense_center_src():
             pass
 
         def forward(self):
-            lamb_mu_buoy = deepwave.common.vpvsrho_to_lambmubuoyancy(
+            lamb, mu, buoy = deepwave.common.vpvsrho_to_lambmubuoyancy(
                 self.vp,
                 self.vs,
                 self.rho
             )
-            for (i,e) in enumerate(lamb_mu_buoy):
-                print(f'{i}-->min={e.min()}, max={e.max()}')
+            plt.imshow(lamb.cpu(), cmap='jet', aspect='auto')
+            config_plot(r'$\lambda$')
+            plt.savefig('lambda.jpg')
+            plt.clf()
+ 
+            plt.imshow(mu.cpu(), cmap='jet', aspect='auto')
+            config_plot(r'$\mu$')
+            plt.savefig('mu.jpg')
+            plt.clf()
+
+            plt.imshow(buoy.cpu(), cmap='jet', aspect='auto')
+            config_plot(r'Buoyancy')
+            plt.savefig('buoy.jpg')
+            plt.clf()
+
             src_amp_y = 1e20 * wavelet \
                 .unsqueeze(0) \
                 .unsqueeze(0) \
                 .expand(n_shots, n_src_per_shot, -1) \
                 .to(device)
             return elastic(
-                *lamb_mu_buoy,
+                lamb,
+                mu,
+                buoy,
                 self.dx,
                 self.dt,
                 source_amplitudes_y=src_amp_y,
@@ -399,30 +409,19 @@ def acoustic_homogeneous():
 
 
 if( __name__ == '__main__' ):
+    print('building')
     data = marmousi_dense_center_src()
     if( not os.path.exists('u.pt') ):
-        print('building')
-        # print('running')
-        # delta = 1000
-        # n_samples = (data.ny-data.ofs) // delta
-        # input(n_samples)
-        # input(data.n_shots)
-        # input(data.n_rec_per_shot)
-        # input(data.nt)
-
-        # v = torch.empty(n_samples, data.n_shots, data.n_rec_per_shot, data.nt)
-        # for i in range(n_samples):
-        #     print(f'running {i}')
-        #     data.update_depth(i + data.rec_depth * delta)
-        #     v[i] = data.forward()
-        #     plt.imshow(v[i,0], cmap='jet', aspect='auto')
-        #     plt.savefig('u_%d.png'%(i*delta))
-        # torch.save(v.cpu(), 'v.pt')
         print('running')
         u = data.forward()
-        print(u.shape)
+        print('saving')
         torch.save(u.cpu(), 'u.pt')
     else:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--sub', type=int, default=1)
+
+        args = parser.parse_args()
+
         u = torch.load('u.pt')
         extent = [0, data.ny*data.dy, data.nx*data.dx, 0]
         for i in range(u.shape[0]):
@@ -432,7 +431,7 @@ if( __name__ == '__main__' ):
                 data.nt
             )
             print(f'shot={i}')
-            for j in range(data.nt):
+            for j in range(0, data.nt, args.sub):
                 print(f'    time={j*data.dt}')
                 plt.imshow(
                     curr[:,:,j], 
@@ -440,8 +439,8 @@ if( __name__ == '__main__' ):
                     aspect='auto', 
                     extent=extent
                 )
-                plt.title(f'time={j*data.dt}')
-                plt.savefig('u_%d_%d.png'%(i,j))
+                config_plot(f'time={j*data.dt}')
+                plt.savefig('u_%d_%d.jpg'%(i,j))
                 plt.clf()
 
-        os.system('convert -delay 10 -loop 0 $(ls -tr u_*.png) u.gif')
+            os.system('convert -delay 10 -loop 0 $(ls -tr u_%d_*.jpg) u.gif'%i)
