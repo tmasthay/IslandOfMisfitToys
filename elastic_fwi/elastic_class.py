@@ -114,7 +114,6 @@ class Data(metaclass=SlotMeta):
                 warn(f'Attribute {k} does not exist...skipping ')
 
 class DataGenerator(Data, metaclass=CombinedMeta):
-
     """
     DataGenerator
     ***

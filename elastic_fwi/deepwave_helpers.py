@@ -181,11 +181,23 @@ def uni_src_rec(
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
-        annotated_keys = list(class_dict['__annotations__'].keys())
+        try:
+            annotated_keys = list(
+                class_dict['__annotations__'].keys()
+            )
+        except KeyError:
+            annotated_keys = []
         
         # Find attributes that are not methods, not in special names and not already annotated
-        non_annotated_attrs = [key for key, value in class_dict.items() 
-                               if not (callable(value) or key.startswith('__') or key in annotated_keys)]
+        non_annotated_attrs = [
+            key for key, value in class_dict.items() \
+                if \
+                    not (
+                        callable(value) \
+                        or key.startswith('__') \
+                        or key in annotated_keys
+                    )
+        ]
         
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
@@ -194,8 +206,13 @@ class SlotMeta(type):
             # Optional: Remove the attributes as they'll be defined by __slots__ 
             class_dict.pop(key, None)
 
-        # Create the __slots__ attribute from updated annotations
-        class_dict['__slots__'] = list(class_dict['__annotations__'].keys())
+        # Create the __slots__ attribute from updated annotationsi
+        try:
+            class_dict['__slots__'] = list(
+                class_dict['__annotations__'].keys()
+            )
+        except KeyError:
+            class_dict['__slots__'] = []
                 
         return super().__new__(cls, name, bases, class_dict)
     

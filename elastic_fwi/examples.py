@@ -1,4 +1,4 @@
-from elastic_custom import *
+from elastic_class import *
 import matplotlib.pyplot as plt
 from helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_global
 import torch
@@ -358,8 +358,8 @@ def acoustic_homogeneous():
             amp: Ant[float, 'Source amplitude']=1.0, 
             mu: Ant[list, 'Center of Gaussian']=[0.0,0.0], 
             sig: Ant[list, 'Stddev of Gaussian']=[1.0, 1.0]
-        ):
-            G = torch.exp( 
+        ): 
+            G = amp * torch.exp( 
                 -(p[:,0] - mu[:,0]) ** 2 / sig[0]**2 \
                 -(p[:,1] - mu[1]) ** 2 / sig[1]**2
             )
@@ -375,9 +375,6 @@ def acoustic_homogeneous():
                 receiver_locations=self.rec_loc,
                 pml_freq=self.freq
             )
-        
-        def update_depth(self, depth):
-            self.rec_loc[:,:,0] = depth
 
     return Marmousi(vp=vp,
         vs=vs,
@@ -400,17 +397,13 @@ def acoustic_homogeneous():
         freq=freq,
         peak_time=peak_time,
         wavelet=wavelet,
-        ofs=ofs,
-        samples_y=samples_y,
-        samples_x=samples_x,
-        downsample_x=downsample_x,
-        downsample_y=downsample_y
+        ofs=ofs
     )
 
 
 if( __name__ == '__main__' ):
     print('building')
-    data = marmousi_dense_center_src()
+    data = acoustic_homogeneous()
     if( not os.path.exists('u.pt') ):
         print('running')
         u = data.forward()
