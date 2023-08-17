@@ -12,10 +12,6 @@ from warnings import warn
 from typing import Annotated as Ant
 from abc import ABC, abstractmethod
 
-global device
-global cmap
-device = torch.device('cuda:0')
-
 plt.rc('text', usetex=False)
 
 class Data(metaclass=SlotMeta):
@@ -69,10 +65,16 @@ class Data(metaclass=SlotMeta):
             f'Expected 2 dimensions but got {len(self.vp.shape)} in the ' \
             f'shape of {self.vp.shape}'
 
-        assert self.vp.shape == self.vs.shape \
-            and self.vs.shape == self.rho.shape, \
-            'vp,vs,rho dimension mismatch, ' \
-                f'{self.vp.shape},{self.vs.shape},{self.rho.shape}'
+        assert (
+            self.vs == None 
+            or
+            (
+                self.vp.shape == self.vs.shape 
+                and self.vs.shape == self.rho.shape
+            )
+        ), \
+        'vp,vs,rho dimension mismatch, ' \
+            f'{self.vp.shape},{self.vs.shape},{self.rho.shape}'
 
         #get shot info
         self.n_shots = kw['n_shots']

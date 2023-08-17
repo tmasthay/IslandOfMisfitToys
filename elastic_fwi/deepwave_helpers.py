@@ -159,13 +159,14 @@ def plot_material_params(vp, vs, rho, cmap):
     plt.clf()
 
 def read_tensor(s, device):
-    if( type(s) == str ): return torch.load(s, device=device)
+    if( s == None ): return None
+    elif( type(s) == str ): return torch.load(s, device=device)
     else: return s.to(device)
 
 def uni_src_rec(
     *,
     n_shots: Ant[int, 'Number of shots', '1<='],
-    src_per_shot: Ant[int, 'Sources per shot', '1<='],
+    per_shot: Ant[int, 'Sources per shot', '1<='],
     idx_vert: Ant[list, 'Vertical locations covered'],
     idx_horz: Ant[list, 'Horizontal locations covered']
 ):
@@ -174,9 +175,7 @@ def uni_src_rec(
             list(e) for e in itertools.product(idx_vert, idx_horz)
         ]
     )
-    return idx.unsqueeze(0).unsqueeze(0).expand(n_shots, src_per_shot, -1, -1)
-
-    
+    return idx.unsqueeze(0).unsqueeze(0).expand(n_shots, per_shot, -1, -1)
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
@@ -190,13 +189,12 @@ class SlotMeta(type):
         
         # Find attributes that are not methods, not in special names and not already annotated
         non_annotated_attrs = [
-            key for key, value in class_dict.items() \
-                if \
-                    not (
-                        callable(value) \
-                        or key.startswith('__') \
-                        or key in annotated_keys
-                    )
+            key for key, value in class_dict.items() 
+                if not (
+                    callable(value) 
+                    or key.startswith('__') 
+                    or key in annotated_keys
+                )
         ]
         
         # Add the default annotations for non-annotated attributes
