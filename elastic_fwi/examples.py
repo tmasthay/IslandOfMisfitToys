@@ -360,7 +360,7 @@ def acoustic_homogeneous():
             sig: Ant[list, 'Stddev of Gaussian']=[1.0, 1.0]
         ): 
             G = amp * torch.exp( 
-                -(p[:,0] - mu[0]) ** 2 / sig[0]**2 \
+                -(p[:,0] - mu[0]) ** 2 / sig[0]**2 
                 -(p[:,1] - mu[1]) ** 2 / sig[1]**2
             )
             return G.unsqueeze(-1) * self.wavelet.unsqueeze(0)
@@ -417,7 +417,6 @@ if( __name__ == '__main__' ):
         u = torch.load('u.pt')
         extent = [0, data.ny*data.dy, data.nx*data.dx, 0]
         for i in range(u.shape[0]):
-            input(u[i].shape)
             curr = u[i].reshape(
                 data.get('samples_x'), 
                 data.get('samples_y'), 
