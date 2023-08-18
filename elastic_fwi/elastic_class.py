@@ -55,8 +55,7 @@ class Data(metaclass=SlotMeta):
     ofs: Ant[int, 'Padding for src_loc landscape', '1', 'min(nx-1,ny-1)']
 
     def __init__(self, **kw):
-        self.devices = [torch.device('cuda:%d'%i) \
-            for i in range(torch.cuda.device_count())] + [torch.device('cpu')]
+        self.devices = get_all_devices()
         self.vp = read_tensor(kw['vp'], self.devices[0])
         self.vs = read_tensor(kw['vs'], self.devices[0])
         self.rho = read_tensor(kw['rho'], self.devices[0])
@@ -103,7 +102,7 @@ class Data(metaclass=SlotMeta):
             kw['nt'], 
             kw['dt'],
             kw['peak_time']
-        )
+        ).to(self.devices[0])
     
         #get offset info for optimization landscape plots
         self.ofs = kw.get('ofs', 1)

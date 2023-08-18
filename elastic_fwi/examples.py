@@ -292,6 +292,7 @@ def marmousi_dense_center_src():
     )
 
 def acoustic_homogeneous():
+    devices = get_all_devices()
     c = 1500.0
     ny = 250
     nx = 250
@@ -317,29 +318,26 @@ def acoustic_homogeneous():
     fst_src = vp.shape[1] // 2
     src_loc = uni_src_rec(
         n_shots=n_shots,
-        per_shot=n_src_per_shot,
         idx_vert=[src_depth],
         idx_horz=[fst_src]
-    )
+    ).to(devices[0])
     
     d_rec = 1
     n_rec_per_shot = 100
     rec_loc = uni_src_rec(
         n_shots=n_shots,
-        per_shot=n_src_per_shot,
         idx_vert=range(ofs, vp.shape[1]-ofs, d_rec),
         idx_horz=range(ofs, vp.shape[0]-ofs, d_rec)
-    )
+    ).to(devices[0])
 
     freq = 10.0 #Hz
     peak_time = 0.1 #seconds
-    wavelet = deepwave.wavelets.ricker(freq, nt, dt, peak_time)
 
     class Marmousi(DataGenerator):
         def __init__(self, **kw):
             super().__init__(**kw)
             self.src_amplitudes = self.force(
-                self.src_loc[0,0,:,:]
+                self.src_loc[0,:,:]
             ) \
             .unsqueeze(0) \
             .to(self.devices[0])
@@ -398,7 +396,6 @@ def acoustic_homogeneous():
         dy=dy,
         freq=freq,
         peak_time=peak_time,
-        wavelet=wavelet,
         ofs=ofs
     )
 

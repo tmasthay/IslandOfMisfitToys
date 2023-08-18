@@ -166,7 +166,6 @@ def read_tensor(s, device):
 def uni_src_rec(
     *,
     n_shots: Ant[int, 'Number of shots', '1<='],
-    per_shot: Ant[int, 'Sources per shot', '1<='],
     idx_vert: Ant[list, 'Vertical locations covered'],
     idx_horz: Ant[list, 'Horizontal locations covered']
 ):
@@ -175,7 +174,13 @@ def uni_src_rec(
             list(e) for e in itertools.product(idx_vert, idx_horz)
         ]
     )
-    return idx.unsqueeze(0).unsqueeze(0).expand(n_shots, per_shot, -1, -1)
+    return idx.unsqueeze(0).expand(n_shots, -1, -1)
+
+def get_all_devices():
+    gpus = [
+        torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())
+    ]
+    return gpus + [torch.device('cpu')]
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
