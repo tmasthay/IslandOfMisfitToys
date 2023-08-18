@@ -331,13 +331,19 @@ def acoustic_homogeneous():
     ).to(devices[0])
 
     freq = 10.0 #Hz
-    peak_time = 0.1 #seconds
+    peak_time = 0.5 #seconds
+
+    sig = [0.1, 0.1]
+    amp = 1e3
 
     class Marmousi(DataGenerator):
         def __init__(self, **kw):
             super().__init__(**kw)
             self.src_amplitudes = self.force(
-                self.src_loc[0,:,:]
+                self.src_loc[0,:,:],
+                amp=kw['amp'],
+                mu=kw['mu'],
+                sig=kw['sig']
             ) \
             .unsqueeze(0) \
             .to(self.devices[0])
@@ -360,8 +366,8 @@ def acoustic_homogeneous():
             sig: Ant[list, 'Stddev of Gaussian']=[1.0, 1.0]
         ): 
             G = amp * torch.exp( 
-                -(p[:,0] - mu[0]) ** 2 / sig[0]**2 
-                -(p[:,1] - mu[1]) ** 2 / sig[1]**2
+                -(p[:,0] * self.dy - mu[0]) ** 2 / sig[0]**2 
+                -(p[:,1] * self.dx - mu[1]) ** 2 / sig[1]**2
             )
             return G.unsqueeze(-1) * self.wavelet.unsqueeze(0)
 
@@ -396,7 +402,10 @@ def acoustic_homogeneous():
         dy=dy,
         freq=freq,
         peak_time=peak_time,
-        ofs=ofs
+        ofs=ofs,
+        amp=amp,
+        mu=[src_depth*dy, fst_src*dx],
+        sig=sig
     )
 
 
@@ -411,11 +420,22 @@ if( __name__ == '__main__' ):
     else:
         parser = argparse.ArgumentParser()
         parser.add_argument('--sub', type=int, default=1)
+        parser.add_argument('--dynamic', action='store_true')
+        parser.add_argument('--cmap', type=str, default='seismic')
 
         args = parser.parse_args()
 
         u = torch.load('u.pt')
-        extent = [0, data.ny*data.dy, data.nx*data.dx, 0]
+        kw = {
+            'cmap': args.cmap,
+            'aspect': 'auto',
+            'extent': [0, data.ny*data.dy, data.nx*data.dx, 0],
+            'vmin': u.min(),
+            'vmax': u.max()
+        }
+        if( args.dynamic ):
+            kw.pop('vmin'), kw.pop('vmax')
+
         for i in range(u.shape[0]):
             curr = u[i].reshape(
                 data.get('samples_x'), 
@@ -425,14 +445,10 @@ if( __name__ == '__main__' ):
             print(f'shot={i}')
             for j in range(0, data.nt, args.sub):
                 print(f'    time={j*data.dt}')
-                plt.imshow(
-                    curr[:,:,j], 
-                    cmap='jet', 
-                    aspect='auto', 
-                    extent=extent
-                )
+                plt.imshow(curr[:,:,j], **kw)
                 config_plot(f'time={j*data.dt}')
                 plt.savefig('u_%d_%d.jpg'%(i,j))
                 plt.clf()
 
             os.system('convert -delay 10 -loop 0 $(ls -tr u_%d_*.jpg) u.gif'%i)
+            os.system('rm *.jpg')
