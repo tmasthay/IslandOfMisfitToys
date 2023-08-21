@@ -1,5 +1,6 @@
 import os
 from subprocess import check_output as co
+from subprocess import CalledProcessError
 import sys
 from time import time
 import matplotlib.pyplot as plt
@@ -11,9 +12,12 @@ from abc import ABCMeta
 import itertools
 
 def sco(s, split=True):
-    u = co(s, shell=True).decode('utf-8')
-    if( split ): return u.split('\n')[:-1]
-    else: return u
+    try:
+        u = co(s, shell=True).decode('utf-8')
+        if( split ): return u.split('\n')[:-1]
+        else: return u
+    except CalledProcessError:
+        return None
 
 def get_file(s, path=''):
     full_path = list(set(path.split(':')) \
@@ -169,10 +173,11 @@ def uni_src_rec(
     idx_vert: Ant[list, 'Vertical locations covered'],
     idx_horz: Ant[list, 'Horizontal locations covered']
 ):
-    idx = torch.Tensor(
+    idx = torch.tensor(
         [
             list(e) for e in itertools.product(idx_vert, idx_horz)
-        ]
+        ],
+        dtype=int
     )
     return idx.unsqueeze(0).expand(n_shots, -1, -1)
 
@@ -181,6 +186,34 @@ def get_all_devices():
         torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())
     ]
     return gpus + [torch.device('cpu')]
+
+def open_ide(*args, ide_precedence=True, no_ide=[], default='/usr/bin/open'):
+    cmd = default
+    def scan_no_ide():
+        nonlocal cmd
+        for open_cmd in no_ide:
+            check1 = sco('which %s'%open_cmd)
+            check2 = sco('type %s'%open_cmd)
+            if( bool(check1 or check2) ):
+                cmd = open_cmd
+                break
+    if( not ide_precedence ): scan_no_ide()
+    if( cmd == default ):
+        python_parent_pid = os.getppid()
+        shell_parent = sco(
+            f'ps -p $(ps -o ppid= -p {python_parent_pid}) -o comm='
+        )[0] \
+        .strip()
+        cmd = default
+        for a in args:
+            ide, open_cmd = a[0].lower(), a[1]
+            if( shell_parent == ide ):
+                cmd = open_cmd
+                break
+    if( ide_precedence and cmd == default ): scan_no_ide()
+    def helper(file_name):
+        os.system(f'{cmd} {file_name}')
+    return helper
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):

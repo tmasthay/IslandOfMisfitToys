@@ -6,7 +6,11 @@ import os
 import deepwave
 
 setup_gg_plot(clr_out='black', clr_in='black')
-config_plot = set_color_plot_global(use_legend=False, use_colorbar=True, use_grid=False)
+config_plot = set_color_plot_global(
+    use_legend=False, 
+    use_colorbar=True, 
+    use_grid=False
+)
 
 def marmousi():
     def load_field(name):
@@ -324,10 +328,14 @@ def acoustic_homogeneous():
     
     d_rec = 1
     n_rec_per_shot = 100
+    idx_vert = range(ofs, vp.shape[1]-ofs, d_rec)
+    idx_horz = range(ofs, vp.shape[0]-ofs, d_rec)
+    samples_y = len(idx_vert)
+    samples_x = len
     rec_loc = uni_src_rec(
         n_shots=n_shots,
-        idx_vert=range(ofs, vp.shape[1]-ofs, d_rec),
-        idx_horz=range(ofs, vp.shape[0]-ofs, d_rec)
+        idx_vert=idx_vert,
+        idx_horz=idx_horz
     ).to(devices[0])
 
     freq = 10.0 #Hz
@@ -347,11 +355,6 @@ def acoustic_homogeneous():
             ) \
             .unsqueeze(0) \
             .to(self.devices[0])
-            
-            self.custom['samples_y'] = self.vp.shape[0] - 2 * self.ofs
-            self.custom['samples_x'] = self.vp.shape[1] - 2 * self.ofs
-            self.custom['downsample_y'] = 1
-            self.custom['downsample_x'] = 1
 
         def get(self, key):
             return self.custom[key]
@@ -405,7 +408,9 @@ def acoustic_homogeneous():
         ofs=ofs,
         amp=amp,
         mu=[src_depth*dy, fst_src*dx],
-        sig=sig
+        sig=sig,
+        samples_y=samples_y,
+        samples_x=samples_x
     )
 
 def marmousi_real():
@@ -419,6 +424,7 @@ def marmousi_real():
         )
     m_per_km = 1000.0
     vp = m_per_km * load_field('vp')
+    vp = 6000.0 * torch.ones_like(vp)
     # vs = m_per_km * load_field('vs')
     # rho = m_per_km * load_field('density')
     vs = None
@@ -427,7 +433,7 @@ def marmousi_real():
     ny = vp.shape[0]
     nx = vp.shape[1]
 
-    nt = 1000
+    nt = 2000
     dt = 0.001
     dx = 1.25 #km
     dy = 1.25 #km
@@ -450,11 +456,16 @@ def marmousi_real():
     ).to(devices[0])
     
     d_rec = 1
-    n_rec_per_shot = 100
+    # idx_vert = range(ofs, vp.shape[0]-ofs, d_rec)
+    idx_vert = [ofs]
+    idx_horz = range(ofs, vp.shape[1]-ofs, d_rec)
+    samples_y = len(idx_vert)
+    samples_x = len(idx_horz)
+    n_rec_per_shot = samples_y * samples_x
     rec_loc = uni_src_rec(
         n_shots=n_shots,
-        idx_vert=range(ofs, vp.shape[1]-ofs, d_rec),
-        idx_horz=range(ofs, vp.shape[0]-ofs, d_rec)
+        idx_vert=idx_vert,
+        idx_horz=idx_horz
     ).to(devices[0])
 
     freq = 10.0 #Hz
@@ -474,11 +485,6 @@ def marmousi_real():
             ) \
             .unsqueeze(0) \
             .to(self.devices[0])
-            
-            self.custom['samples_y'] = self.vp.shape[0] - 2 * self.ofs
-            self.custom['samples_x'] = self.vp.shape[1] - 2 * self.ofs
-            self.custom['downsample_y'] = 1
-            self.custom['downsample_x'] = 1
 
         def get(self, key):
             return self.custom[key]
@@ -532,37 +538,67 @@ def marmousi_real():
         ofs=ofs,
         amp=amp,
         mu=[src_depth*dy, fst_src*dx],
-        sig=sig
+        sig=sig,
+        samples_y=samples_y,
+        samples_x=samples_x
     )
 
 
 if( __name__ == '__main__' ):
-    print('building')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--sub', type=int, default=1)
+    parser.add_argument('--dynamic', action='store_true')
+    parser.add_argument('--cmap', type=str, default='seismic')
+    parser.add_argument('--mode', type=str, default='time_offset')
+    parser.add_argument('--recompute', action='store_true')
+
+    args = parser.parse_args()
+
+    print('BUILDING MARMOUSI OBJECT...', end='')
     data = marmousi_real()
-    if( not os.path.exists('u.pt') ):
-        print('running')
+    print('BUILT')
+    u = None
+    if( not os.path.exists('u.pt') or args.recompute ):
+        print(
+            'COMPUTING wavefield...CTRL+C NOW TO ABORT...', 
+            end='', 
+            file=sys.stderr
+        )
         u = data.forward()
-        print('saving')
-        torch.save(u.cpu(), 'u.pt')
-    else:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--sub', type=int, default=1)
-        parser.add_argument('--dynamic', action='store_true')
-        parser.add_argument('--cmap', type=str, default='seismic')
-
-        args = parser.parse_args()
-
+        print('COMPUTED', file=sys.stderr)
+        print('SAVING...', end='')
+        torch.save(u, 'u.pt')
+        print('SAVED')
+        
+    if( type(u) == None ):
+        print('LOADING...', end='')
         u = torch.load('u.pt')
-        kw = {
-            'cmap': args.cmap,
-            'aspect': 'auto',
-            'extent': [0, data.ny*data.dy, data.nx*data.dx, 0],
-            'vmin': u.min(),
-            'vmax': u.max()
-        }
-        if( args.dynamic ):
-            kw.pop('vmin'), kw.pop('vmax')
+        print('LOADED pytorch binary')
 
+    print('TRANSFERRING...', end='')
+    u = u.cpu()
+    print('TRANSFERRED pytorch binary to CPU')
+
+    kw = {
+        'cmap': args.cmap,
+        'aspect': 'auto',
+        'extent': [0, data.ny*data.dy, data.nx*data.dx, 0],
+        'vmin': u.min(),
+        'vmax': u.max()
+    }
+    if( args.dynamic ):
+        kw.pop('vmin'), kw.pop('vmax')
+
+    print('PLOTTING...', end='')
+    open_plot = open_ide(
+        ('code', 'code'),    # Visual Studio Code
+        ('atom', 'atom'),    # Atom
+        ide_precedence=True,
+        no_ide=['display', 'feh', 'eog', 'xdg-open'],
+        default='/usr/bin/open'
+    )
+
+    if( args.mode == 'full' ):
         for i in range(u.shape[0]):
             curr = u[i].reshape(
                 data.get('samples_x'), 
@@ -577,5 +613,21 @@ if( __name__ == '__main__' ):
                 plt.savefig('u_%d_%d.jpg'%(i,j))
                 plt.clf()
 
-            os.system('convert -delay 10 -loop 0 $(ls -tr u_%d_*.jpg) u.gif'%i)
-            os.system('rm *.jpg')
+        os.system('convert -delay 10 -loop 0 $(ls -tr u_%d_*.jpg) u.gif'%i)
+        os.system('rm *.jpg')
+        open_plot('u.gif')
+    elif( args.mode == 'time_offset' ):
+        plt.imshow(u[0], cmap=args.cmap, aspect='auto')
+        config_plot('Time offset')
+        plt.savefig("u_time_offset.jpg")
+        plt.clf()
+        open_plot('u_time_offset.jpg')
+    elif( args.mode == 'traces' or args.mode == 'trace' ):
+        plt.imshow(u[0], cmap=args.cmap, aspect='auto')
+        config_plot('Time offset')
+        plt.savefig("u_trace.jpg")
+        plt.clf()
+        open_plot('u_trace.jpg')
+    else:
+        print(f'Mode "{args.mode}" not supported')
+    print('DONE')
