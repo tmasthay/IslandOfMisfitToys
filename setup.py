@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
+import os
 
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+    
 setup(
     name='IslandOfMisfitToys',
     version='0.2.1',
@@ -8,16 +12,7 @@ setup(
     author_email='tyler@ices.utexas.edu',
     url='https://github.com/tmasthay/IslandOfMisfitToys',
     packages=find_packages(),
-    install_requires=[
-        'deepwave>=0.0.19',
-        'numpy>=1.19',   # Update the version as needed
-        'scipy',
-        'pytest',
-        'masthay_helpers>=0.2.8',
-        'imageio',
-        'tqdm',
-        'torchsummary'
-    ],
+    install_requires=requirements,
     long_description=open('README.md','r').read(),
     long_description_content_type='text/markdown',
     classifiers=[

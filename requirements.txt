@@ -1,0 +1,8 @@
+deepwave>=0.0.19
+numpy>=1.19   
+scipy
+pytest
+masthay_helpers>=0.2.8
+imageio
+tqdm
+torchsummary
