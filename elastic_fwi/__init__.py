@@ -1,6 +1,5 @@
 __all__ = [
     "examples",
-    "elastic_class_driver",
     "deepwave_helpers",
     "custom_losses",
     "elastic_custom",
@@ -9,7 +8,6 @@ __all__ = [
     "elastic_class"
 ]
 from .examples import *
-from .elastic_class_driver import *
 from .deepwave_helpers import *
 from .custom_losses import *
 from .elastic_custom import *
