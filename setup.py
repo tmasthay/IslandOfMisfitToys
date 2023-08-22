@@ -13,7 +13,10 @@ setup(
         'numpy>=1.19',   # Update the version as needed
         'scipy',
         'pytest',
-        'masthay_helpers>=0.2.8'
+        'masthay_helpers>=0.2.8',
+        'imageio',
+        'tqdm',
+        'torchsummary'
     ],
     long_description=open('README.md','r').read(),
     long_description_content_type='text/markdown',

@@ -1,10 +1,11 @@
-from elastic_class import *
 import matplotlib.pyplot as plt
-from helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_global
+from masthay_helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_global
 import torch
 import os
 import deepwave
-from seismic_data import marmousi_real
+
+from .elastic_class import *
+from .seismic_data import marmousi_real
 
 setup_gg_plot(clr_out='black', clr_in='black')
 config_plot = set_color_plot_global(
@@ -207,4 +208,3 @@ if( __name__ == '__main__' ):
         step=100,
         **plot_kw
     )
-%

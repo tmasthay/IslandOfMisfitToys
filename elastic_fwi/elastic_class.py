@@ -3,14 +3,15 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import deepwave
 from deepwave import elastic
-from custom_losses import *
-from deepwave_helpers import *
 import numpy as np
 import argparse
 from random import randint
 from warnings import warn
 from typing import Annotated as Ant
 from abc import ABC, abstractmethod
+
+from .custom_losses import *
+from .deepwave_helpers import *
 
 plt.rc('text', usetex=False)
 
