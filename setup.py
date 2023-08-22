@@ -37,7 +37,7 @@ extensions = [
 
 setup(
     name='IslandOfMisfitToys',
-    version='0.1.0',
+    version='0.2.0',
     description='A suite of misfit functions to test FWI',  # Provide a short description here
     author='Tyler Masthay and Yiran Shen',
     author_email='tyler@ices.utexas.edu',
