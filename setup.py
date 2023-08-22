@@ -3,10 +3,10 @@ import os
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
-    
+
 setup(
     name='IslandOfMisfitToys',
-    version='0.2.1',
+    version='0.2.2',
     description='A suite of misfit functions to test FWI',  # Provide a short description here
     author='Tyler Masthay and Yiran Shen',
     author_email='tyler@ices.utexas.edu',
