@@ -1,11 +1,9 @@
 #from Experiments.helpers.import_env import *
 import os
 import sys
-
-sys.path.append('%s/helpers/helpers'%os.getcwd())
 from import_env import *
 
-include_paths = ['misfits', 'forward', 'acoustic_fwi']
+include_paths = ['misfits', 'acoustic_fwi']
 
 #run_make_files(omissions)
 
