@@ -56,8 +56,6 @@ def get_plot_config(u, args):
         'cmap': args.cmap,
         'aspect': 'auto'
     }
-    if( args.dynamic ):
-        kw.pop('vmin'), kw.pop('vmax')
 
     config_plot = set_color_plot_global(
         use_legend=False, 
