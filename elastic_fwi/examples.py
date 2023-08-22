@@ -65,7 +65,11 @@ def get_plot_config(u, args):
     config_plot = set_color_plot_global(
         use_legend=False, 
         use_colorbar=True, 
-        use_grid=False
+        use_grid=False,
+        colorbar_kw={
+            'label': 'Displacement',
+            'labelcolor': 'white'
+        }
     )
     print('PLOTTING...', end='')
     open_plot = open_ide(
