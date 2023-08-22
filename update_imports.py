@@ -3,7 +3,7 @@ import os
 import sys
 from masthay_helpers.import_env import *
 
-include_paths = ['elastic_fwi', 'acoustic_fwi']
+include_paths = ['misfit_toys']
 
 #run_make_files(omissions)
 
