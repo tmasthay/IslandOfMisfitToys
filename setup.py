@@ -12,7 +12,8 @@ setup(
         'deepwave>=0.0.19',
         'numpy>=1.19',   # Update the version as needed
         'scipy',
-        'pytest'
+        'pytest',
+        'masthay_helpers>=0.2.8'
     ],
     long_description=open('README.md','r').read(),
     long_description_content_type='text/markdown',

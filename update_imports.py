@@ -1,9 +1,9 @@
 #from Experiments.helpers.import_env import *
 import os
 import sys
-from import_env import *
+from masthay_helpers.import_env import *
 
-include_paths = ['misfits', 'acoustic_fwi']
+include_paths = ['elastic_fwi', 'acoustic_fwi']
 
 #run_make_files(omissions)
 

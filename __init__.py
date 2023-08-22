@@ -1,8 +1,6 @@
 __all__ = [
-    "acoustic_fwi",
-    "forward",
-    "misfits"
+    "elastic_fwi",
+    "acoustic_fwi"
 ]
+from .elastic_fwi import *
 from .acoustic_fwi import *
-from .forward import *
-from .misfits import *
