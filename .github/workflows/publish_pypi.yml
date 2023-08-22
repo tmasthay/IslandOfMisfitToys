@@ -27,13 +27,14 @@ jobs:
       run: |
         python setup.py sdist 
         python setup.py bdist_wheel
-        auditwheel repair dist/*.whl --wheel-dir wheelhouse/
+      # auditwheel repair dist/*.whl --wheel-dir wheelhouse/
 
     - name: Upload manylinux wheel artifact
       uses: actions/upload-artifact@v2
       with:
         name: manylinux-wheel
-        path: wheelhouse/*.whl
+        # path: wheelhouse/*.whl
+        path: dist/*.whl
 
   build-macos-arm64:
     runs-on: macos-latest
