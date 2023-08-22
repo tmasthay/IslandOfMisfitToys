@@ -1,5 +1,0 @@
-acoustic_fwi
-docs
-forward
-helpers
-misfits
