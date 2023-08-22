@@ -54,10 +54,7 @@ def get_data(data_call, args, **kw):
 def get_plot_config(u, args):
     kw = {
         'cmap': args.cmap,
-        'aspect': 'auto',
-        'extent': [0, data.ny*data.dy, data.nx*data.dx, 0],
-        'vmin': u.min(),
-        'vmax': u.max()
+        'aspect': 'auto'
     }
     if( args.dynamic ):
         kw.pop('vmin'), kw.pop('vmax')
@@ -89,15 +86,22 @@ def plot_2d(
     name, 
     config_plot, 
     open_plot, 
-    xlabel='',
-    ylabel='',
+    exclude_keys=[],
+    appendage={},
+    commands=[
+        lambda: plt.xlabel('Horizontal location (m)'),
+        lambda: plt.ylabel('Depth (m)')
+    ],
     **kw
 ):
     name = name.replace('.jpg', '')
     plt.imshow(vals, **kw)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    config_plot(title)
+    config_plot(
+        title,
+        exclude_keys=exclude_keys,
+        appendage=appendage,
+        commands=commands
+    )
     plt.savefig('%s.jpg'%name)
     plt.clf()
     open_plot('%s.jpg'%name)
@@ -111,20 +115,29 @@ def plot_1d_sequence(
     open_plot, 
     dt,
     dx,
-    xlabel='',
-    ylabel='',
     step=1,
+    exclude_keys=['use_colorbar', 'colorbar_kw', 'cmap'],
+    appendage={},
+    commands=[
+        lambda: plt.xlabel('Time (s)'),
+        lambda: plt.ylabel('Displacement Amplitude (m)')
+    ],
     **kw,
 ):
+    kwargs = {**{k: kw[k] for k in kw.keys()}, **appendage}
+    commands.append(lambda: plt.ylim(vals.min(), vals.max()))
     name = name.replace('.jpg', '')
     t = [i * dt for i in range(0, len(vals[0]))]
     nx = vals.shape[0]
     for i in range(0, nx, step):
         print('Plotting %d of %d'%(i // step, nx // step))
-        plt.plot(t, vals[i,:], **kw)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        config_plot('%s x=%d'%(title, i*dx))
+        plt.plot(t, vals[i,:], **kwargs)
+        config_plot(
+            '%s x=%d'%(title, i*dx),
+            exclude_keys=exclude_keys,
+            appendage=appendage,
+            commands=commands
+        ) 
         plt.savefig('%s_%d.jpg'%(name, i))
         plt.clf()
     os.system(f'convert -delay 10 $(ls -tr {name}_*.jpg) {name}.gif')
@@ -147,32 +160,38 @@ def plot_results(
 
     helper(
         func=plot_2d,
-        vals=displacement[0],
+        vals=torch.transpose(displacement[0], 0, 1).cpu(),
         title='Time offset',
         name='u_time_offset',
-        xlabel='Horizontal location (km)',
-        ylabel='Depth (km)',
-        **kw
+        commands=[
+            lambda: plt.xlabel('Horizontal location (m)'),
+            lambda: plt.ylabel('Time (s)')
+        ],
+        **{
+            **kw,
+            'extent': [0, data.nx*data.dx, data.nt*data.dt, 0.0],
+            'vmin': displacement.min(),
+            'vmax': displacement.max()
+        }
     )
     helper(
         func=plot_2d,
         vals=data.vp.cpu(),
         title=r'$V_p$',
         name='vp',
-        xlabel='Horizontal location (km)',
-        ylabel='Depth (km)',
-        **kw
+        **{
+            **kw,
+            'extent': [0, data.nx*data.dx, data.ny*data.dy, 0.0],
+        }
     )
     plot_1d_sequence(
         vals=displacement[0],
         title='Trace',
         name='u_trace',
-        xlabel='Time (s)',
-        ylabel='Amplitude',
         dt=dt,
         dx=dx,
         open_plot=open_plot,
-        config_plot=(lambda x: plt.title(x)),
+        config_plot=config_plot,
         step=step
     )
 
