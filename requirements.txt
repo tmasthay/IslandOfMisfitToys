@@ -6,3 +6,4 @@ masthay_helpers>=0.2.8
 imageio
 tqdm
 torchsummary
+obspy

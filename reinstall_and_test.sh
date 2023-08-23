@@ -4,6 +4,7 @@ pip install .
 
 CURR=$(pwd)
 cd
-python -c "import acoustic_fwi"
-python -c "import elastic_fwi"
+python -c "import misfit_toys"
+python -c "import misfit_toys.acoustic_fwi"
+python -c "import misfit_toys.elastic_fwi"
 cd $CURR 
