@@ -111,7 +111,9 @@ def any_to_torch(
         raise ValueError(f'Unknown file type: {file_path}')
      
 def fetch_data(d, *, unzip=True):
+    convert_search = dict()
     for folder, info in d.items():
+        convert_search[folder] = []
         # Create directory if it doesn't exist
         os.makedirs(folder, exist_ok=True)
         
@@ -125,28 +127,28 @@ def fetch_data(d, *, unzip=True):
                 with open(file_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-            if( unzip and meta['filename'].endswith('.gz') ):
-                os.system(f'gunzip {file_path}')
+                if( unzip and meta['filename'].endswith('.gz') ):
+                    os.system(f'gunzip {file_path}')
+                    d[folder][file]['filename'] = \
+                        d[folder][file]['filename'].replace('.gz', '')
             else:
                 print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
-            
+    return d
+
 def convert_data(d, *, device='cpu'):
-    for folder, info in d.items():
-        for filename in info.keys():
-            if( filename == 'meta' ): continue
-            file_path = os.path.join(folder, filename)
-            torch_array = segy_to_torch(
-                file_path, 
-                device=device, 
-                transpose=True,
-                **info['meta'].get(filename, {})
+    for folder, files in d.items():
+        for field, meta in files.items():
+            any_to_torch(
+                file_path=meta['filename'],
+                **meta
             )
-            torch_val = filename.replace('.segy', '.pt').replace('.sgy', '.pt')
-            torch_folder = os.path.join(folder, 'torch_conversions')
-            os.makedirs(torch_folder, exist_ok=True)
-            torch_val = os.path.join(torch_folder, torch_val)
-            torch.save(torch_array, torch_val)
-            print(f'done! Saved to {torch_val}')
+            os.system('mv %s %s.pt'%(meta['filename'].split('.')[0], field))
+        os.system('rm %s/*.%s'%(
+                folder,
+                f' {folder}/*.'.join(['bin', 'sgy', 'segy', 'gz'])
+            )
+        )
+
 def main():
     parser = argparse.ArgumentParser(description='Download and convert data')
 
@@ -192,32 +194,6 @@ def main():
 
     fetch_data(datasets)
     convert_data(datasets)
-
-    
-        
-    # # Create an argument parser
-    # parser = argparse.ArgumentParser(description='Convert a SEGY file to a numpy array.')
-
-    # # Add an argument for the file path
-    # parser.add_argument('--folder', help='The path of the SEGY file to convert.')
-    # parser.add_argument('--suffix', type=str, default='segy')
-    # parser.add_argument('--device', type=str, default='cpu')
-    # parser.add_argument('--transpose', action='store_true')
-
-    # # Parse the arguments
-    # args = parser.parse_args()
-
-    # files = sco('find %s -name "*.%s"'%(args.folder, args.suffix))
-    # device = torch.device(args.device)
-    # print('Found files\n%s'%('\n'.join(files)))
-    # for e in files:
-    #     print(f'Converting {e}...', end='', file=sys.stderr)
-    #     # Call the function with the file path from the arguments
-    #     torch_array = segy_to_torch(e, device=device, transpose=args.transpose)
-    #     torch_val = e.split('/')[-1].replace('.%s'%args.suffix, '.pt')
-    #     torch_val = os.path.join(args.folder, 'torch_conversions', torch_val)
-    #     torch.save(torch_array, torch_val)
-    #     print(f'done! Saved to {torch_val}')
 
 if __name__ == '__main__':
     main()
