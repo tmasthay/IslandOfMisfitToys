@@ -22,13 +22,15 @@ def expand_metadata(meta):
     d = dict()
     for folder,folder_meta in meta.items():
         d[folder] = dict()
-        base = {k:v for k,v in folder_meta.items() if type(v) == str}
+        base = {k:v for k,v in folder_meta.items() if type(v) != dict}
         files = {k:v for k,v in folder_meta.items() if type(v) == dict}
         for filename, file_meta in files.items():
             d[folder][filename] = {**base, **file_meta}
+            if( not d[folder][filename]['url'].endswith('/') ):
+                d[folder][filename]['url'] += '/'
             if 'filename' not in d[folder][filename].keys():
                 d[folder][filename]['filename'] = \
-                    filename + d[folder][filename]['ext']
+                    filename + '.' + d[folder][filename]['ext']
     return d
 
 def segy_to_torch(
@@ -78,7 +80,8 @@ def bin_to_torch(
     transpose=False, 
     out=sys.stdout,
     ny,
-    nx
+    nx,
+    **kw
 ):
     u = torch.from_file(file_path, size=ny*nx)
     torch.save(u.reshape(ny,nx).to(device), file_path.replace('.bin', '.pt'))
@@ -119,30 +122,27 @@ def fetch_data(d, *, unzip=True):
         
         for file, meta in info.items():
             url = meta['url'] + meta['filename']
-
-            response = requests.get(url, stream=True)
-            
-            if response.status_code == 200:
-                file_path = os.path.join(folder, meta['filename']) 
-                with open(file_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                if( unzip and meta['filename'].endswith('.gz') ):
-                    os.system(f'gunzip {file_path}')
-                    d[folder][file]['filename'] = \
-                        d[folder][file]['filename'].replace('.gz', '')
-            else:
-                print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
+            file_path = f'{folder}/{meta["filename"]}'
+            print(f'ATTEMPT: {url} -> {file_path}') 
+            os.system(f'curl {url} --output {file_path}') 
+            if( unzip and meta['filename'].endswith('.gz') ):
+                os.system(f'gunzip {file_path}')
+                d[folder][file]['filename'] = \
+                    d[folder][file]['filename'].replace('.gz', '')
     return d
 
 def convert_data(d, *, device='cpu'):
     for folder, files in d.items():
         for field, meta in files.items():
             any_to_torch(
-                file_path=meta['filename'],
+                file_path=(
+                    os.path.join(folder, meta['filename'])
+                ),
                 **meta
             )
-            os.system('mv %s %s.pt'%(meta['filename'].split('.')[0], field))
+            os.system(f'mv {os.path.join(folder, meta["filename"])} ' + 
+                f'{field}.pt'
+            )
         os.system('rm %s/*.%s'%(
                 folder,
                 f' {folder}/*.'.join(['bin', 'sgy', 'segy', 'gz'])
@@ -154,7 +154,8 @@ def main():
 
     datasets = {
         'marmousi': {
-            'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/GEOMODELS/',
+            'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
+                'GEOMODELS/Marmousi',
             'ext': 'bin',
             'ny': 2301,
             'nx': 751,
@@ -187,6 +188,7 @@ def main():
         help='Dataset choices: [%s, all]'%(', '.join(datasets.keys()))
     )
     args = parser.parse_args()
+   
     if( 'all' not in args.datasets 
        and set(args.datasets) != set(datasets.keys()) 
     ):
