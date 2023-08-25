@@ -141,7 +141,7 @@ def convert_data(d, *, device='cpu'):
                 **meta
             )
             os.system(f'mv {os.path.join(folder, meta["filename"])} ' + 
-                f'{field}.pt'
+                f'{os.path.join(folder, f"{field}.pt")}'
             )
         os.system('rm %s/*.%s'%(
                 folder,
