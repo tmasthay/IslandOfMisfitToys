@@ -44,11 +44,16 @@ def retrieve_dataset(
     if( path == '' or path[0] != '/' ):
         path = os.join.path(os.getcwd(), path)
     
-    if( not os.path.exists(path) ):
-        pass
-        
-
-    
+    full_path = os.path.join(path, folder)
+    if( os.path.exists(full_path) ):
+        try:
+            return torch.load(os.path.join(full_path, f'{field}.pt'))
+        except FileNotFoundError:
+            print(
+                f'File {field}.pt not found in {full_path}' +
+                f'\n    Delete {folder} in {path} and try again'
+            )
+            raise
 
 def run_and_time(start_msg, end_msg, f, *args, **kwargs):
     stars = 80*'*' + '\n'
