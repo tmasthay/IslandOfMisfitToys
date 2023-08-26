@@ -1,4 +1,4 @@
-from ..deepwave_helpers import get_file, run_and_time
+from ..misfit_toys_helpers import get_file, run_and_time
 from .custom_losses import *
 import numpy as np
 

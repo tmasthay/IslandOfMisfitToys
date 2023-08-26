@@ -1,4 +1,4 @@
-from ..deepwave_helpers import get_file, run_and_time
+from ..misfit_toys_helpers import get_file, run_and_time
 from .deploy import *
 from .input_dictionaries import *
 from .custom_losses import *

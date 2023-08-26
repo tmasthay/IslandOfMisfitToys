@@ -3,7 +3,7 @@ from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
-from ..deepwave_helpers import get_file, make_gif, gpu_mem_helper
+from ..misfit_toys_helpers import get_file, make_gif, gpu_mem_helper
 from torch.cuda.nvtx import range_push, range_pop
 import sys
 from tqdm import trange
