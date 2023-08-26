@@ -117,18 +117,21 @@ def any_to_torch(
             **kw
         )
     else:
-        raise ValueError(f'Unknown file type: {file_path}')
+        raise ValueError(f'Unknown file type: {input_path}')
      
-def fetch_data(d, *, unzip=True):
+def fetch_data(d, *, path, unzip=True):
     convert_search = dict()
     for folder, info in d.items():
         convert_search[folder] = []
-        # Create directory if it doesn't exist
-        os.makedirs(folder, exist_ok=True)
+
+        # make folder if it doesn't exist
+        curr_path = os.path.join(path, folder)
+        os.makedirs(curr_path, exist_ok=True)
         
         for file, meta in info.items():
-            url = meta['url'] + meta['filename']
-            file_path = f'{folder}/{meta["filename"]}'
+            url = os.path.join(meta['url'], meta['filename'])
+            # file_path = f'{folder}/{meta["filename"]}'
+            file_path = os.path.join(curr_path, meta['filename'])
             print(f'ATTEMPT: {url} -> {file_path}') 
             os.system(f'curl {url} --output {file_path}') 
             if( unzip and meta['filename'].endswith('.gz') ):
@@ -137,24 +140,25 @@ def fetch_data(d, *, unzip=True):
                     d[folder][file]['filename'].replace('.gz', '')
     return d
 
-def convert_data(d, *, device='cpu'):
+def convert_data(d, *, path):
     for folder, files in d.items():
         for field, meta in files.items():
+            curr = os.path.join(path, folder)
             any_to_torch(
                 input_path=(
-                    os.path.join(folder, meta['filename'])
+                    os.path.join(curr, meta['filename'])
                 ),
-                output_path=f'{folder}/{field}.pt',
+                output_path=os.path.join(curr, f'{field}.pt'),
                 **meta
             )
         os.system('rm %s/*.%s'%(
-                folder,
-                f' {folder}/*.'.join(['bin', 'sgy', 'segy', 'gz'])
+                curr,
+                f' {curr}/*.'.join(['bin', 'sgy', 'segy', 'gz'])
             )
         )
 
-def check_data_installation():
-    pytorch_files = sco('find . -name "*.pt"')
+def check_data_installation(path):
+    pytorch_files = sco(f'find {path} -name "*.pt"')
     res = {'success': [], 'failure': []}
     if( pytorch_files is None or len(pytorch_files) == 0 ):
         print('NO PYTORCH FILES FOUND')
@@ -170,9 +174,12 @@ def check_data_installation():
             res['failure'].append(file)
     return res
 
-def main():
-    parser = argparse.ArgumentParser(description='Download and convert data')
-
+def fetch_and_convert_data(
+    *,
+    subset='all',
+    path=os.getcwd(),
+    check=True
+):
     datasets = {
         'marmousi': {
             'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
@@ -200,31 +207,23 @@ def main():
         }
     }
     datasets = expand_metadata(datasets)
-    parser.add_argument(
-        '--datasets',
-        type=str, 
-        nargs='+', 
-        choices=(list(datasets.keys()) + ['all']),
-        default=list(datasets.keys()),
-        help='Dataset choices: [%s, all]'%(', '.join(datasets.keys()))
-    )
-    parser.add_argument(
-        '--nocheck',
-        action='store_true',
-        help='Do not check if data was installed correctly'
-    )
-    args = parser.parse_args()
    
-    if( 'all' not in args.datasets 
-       and set(args.datasets) != set(datasets.keys()) 
+    if( type(subset) == str ):
+        subset = [e.strip() for e in subset.split(' ')]
+
+    if( path == '' or '/' != path[0] ):
+        path = os.path.join(os.getcwd(), path)
+
+    if( 'all' not in subset 
+       and set(subset) != set(datasets.keys()) 
     ):
-        datasets = {k:v for k,v in datasets.items() if k in args.datasets} 
+        datasets = {k:v for k,v in datasets.items() if k in subset} 
 
-    fetch_data(datasets)
-    convert_data(datasets)
+    fetch_data(datasets, path=path)
+    convert_data(datasets, path=path)
 
-    if( not args.nocheck ):
-        res = check_data_installation()
+    if( check ):
+        res = check_data_installation(path)
         if( res is None ):
             print('NO PYTORCH FILES FOUND')
         else:
@@ -238,5 +237,5 @@ def main():
             print('\n'.join(res['failure']))
 
 if __name__ == '__main__':
-    main()
+    fetch_data(subset='all', path=os.getcwd(), check=True)
 
