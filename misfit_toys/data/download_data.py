@@ -153,6 +153,23 @@ def convert_data(d, *, device='cpu'):
             )
         )
 
+def check_data_installation():
+    pytorch_files = sco('find . -name "*.pt"')
+    res = {'success': [], 'failure': []}
+    if( pytorch_files is None or len(pytorch_files) == 0 ):
+        print('NO PYTORCH FILES FOUND')
+        return None
+    
+    for file in pytorch_files:
+        try:
+            u = torch.load(file)
+            print(f'SUCCESS "{file}" shape={u.shape}')
+            res['success'].append(file)
+        except:
+            print(f'FAILURE "{file}"')
+            res['failure'].append(file)
+    return res
+
 def main():
     parser = argparse.ArgumentParser(description='Download and convert data')
 
@@ -191,6 +208,11 @@ def main():
         default=list(datasets.keys()),
         help='Dataset choices: [%s, all]'%(', '.join(datasets.keys()))
     )
+    parser.add_argument(
+        '--nocheck',
+        action='store_true',
+        help='Do not check if data was installed correctly'
+    )
     args = parser.parse_args()
    
     if( 'all' not in args.datasets 
@@ -200,6 +222,20 @@ def main():
 
     fetch_data(datasets)
     convert_data(datasets)
+
+    if( not args.nocheck ):
+        res = check_data_installation()
+        if( res is None ):
+            print('NO PYTORCH FILES FOUND')
+        else:
+            total = len(res['success']) + len(res['failure'])
+            success_head = 'SUCCESS: %d / %d'%(len(res['success']), total)
+            print(f'\n{success_head}\n' + '*'*len(success_head))
+            print('\n'.join(res['success']))
+
+            failure_head = 'FAILURE: %d / %d'%(len(res['failure']), total)     
+            print(f'\n{failure_head}\n' + '*'*len(failure_head))
+            print('\n'.join(res['failure']))
 
 if __name__ == '__main__':
     main()
