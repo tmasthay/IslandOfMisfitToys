@@ -9,14 +9,7 @@ import sys
 import requests
 from subprocess import CalledProcessError
 import torch
-
-def sco(s, split=True):
-    try:
-        u = co(s, shell=True).decode('utf-8')
-        if( split ): return u.split('\n')[:-1]
-        else: return u
-    except CalledProcessError:
-        return None
+from ..base_helpers import sco
 
 def expand_metadata(meta):
     d = dict()
@@ -173,69 +166,3 @@ def check_data_installation(path):
             print(f'FAILURE "{file}"')
             res['failure'].append(file)
     return res
-
-def fetch_and_convert_data(
-    *,
-    subset='all',
-    path=os.getcwd(),
-    check=True
-):
-    datasets = {
-        'marmousi': {
-            'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
-                'GEOMODELS/Marmousi',
-            'ext': 'bin',
-            'ny': 2301,
-            'nx': 751,
-            'vp': {},
-            'rho': {}
-        },
-        'marmousi2': {
-            'url': 'http://www.agl.uh.edu/downloads/',
-            'ext': 'segy',
-            'vp': {'filename': 'vp_marmousi-ii.segy.gz'},
-            'vs': {'filename': 'vs_marmousi-ii.segy.gz'},
-            'rho': {'filename': 'density_marmousi-ii.segy.gz'}
-        },
-        'DAS': {
-            'url': 'https://ddfe.curtin.edu.au/7h0e-d392/',
-            'ext': 'sgy',
-            'das_curtin': {'filename': '2020_GeoLab_WVSP_DAS_wgm.sgy'},
-            'geophone_curtin': {
-                'filename': '2020_GeoLab_WVSP_geophone_wgm.sgy'
-            },
-        }
-    }
-    datasets = expand_metadata(datasets)
-   
-    if( type(subset) == str ):
-        subset = [e.strip() for e in subset.split(' ')]
-
-    if( path == '' or '/' != path[0] ):
-        path = os.path.join(os.getcwd(), path)
-
-    if( 'all' not in subset 
-       and set(subset) != set(datasets.keys()) 
-    ):
-        datasets = {k:v for k,v in datasets.items() if k in subset} 
-
-    fetch_data(datasets, path=path)
-    convert_data(datasets, path=path)
-
-    if( check ):
-        res = check_data_installation(path)
-        if( res is None ):
-            print('NO PYTORCH FILES FOUND')
-        else:
-            total = len(res['success']) + len(res['failure'])
-            success_head = 'SUCCESS: %d / %d'%(len(res['success']), total)
-            print(f'\n{success_head}\n' + '*'*len(success_head))
-            print('\n'.join(res['success']))
-
-            failure_head = 'FAILURE: %d / %d'%(len(res['failure']), total)     
-            print(f'\n{failure_head}\n' + '*'*len(failure_head))
-            print('\n'.join(res['failure']))
-
-if __name__ == '__main__':
-    fetch_data(subset='all', path=os.getcwd(), check=True)
-
