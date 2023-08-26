@@ -34,51 +34,20 @@ def get_file(s, path=''):
         )
     )
 
-def fetch_file(*, field, folder=None, repo='IslandOfMisfitToys'):
-    filename = f'{field}.pt'
-    if( folder is None ):
-        folder = filename.split("/")[0]
-    if( repo == 'devel' or repo == 'source' ):
-        return get_file(filename)
+def retrieve_dataset(
+    *, 
+    field, 
+    folder, 
+    path=os.getcwd()
+):
+    if( path is None ): path = ''
+    if( path == '' or path[0] != '/' ):
+        path = os.join.path(os.getcwd(), path)
     
-    cmd = f'pip show {repo}'
-    cmd += f' | grep "Location: "'
-    cmd += f" | awk '{{print $2}}'"
-    site_package_path = sco(cmd)
-    if( site_package_path is None ):
-        raise FileNotFoundError(
-            f'Could not find package "{repo}"' \
-            + f'...ran command\n    "{cmd}"'
-        )
-    subpath_cmd = f'find {site_package_path[0]} -type d -name "{repo}*"'
-    path = sco(subpath_cmd)
-    if( path is None ):
-        raise FileNotFoundError(
-            f'Could not find package "{repo}"' \
-            + f'...ran command\n    "{subpath_cmd}"'
-        )
-    elif( len(path) > 1 ):
-        msg = '\n'.join([
-            f'Found multiple packages "{repo}"',
-            f'...ran command',
-            f'    "{subpath_cmd}"',
-            f'\nPossible paths for "{repo}":',
-            '    ' + '\n    '.join(path)
-        ])
-        raise RuntimeError(msg)
-    path = path[0]
-    site_package_path = site_package_path[0]
-    args = f'--datasets {folder}'
-    rel_proj_path = 'misfit_toys/data'
-    py_file = f'{path}/{rel_proj_path}/download_data.py'
-    py_cmd = f'python {py_file} {args}'
-    run = sco(py_cmd)
-    if( run is None ):
-        raise RuntimeError(f'Could not fetch "{field}" from "{folder}"' \
-            + f'...ran command\n    "{py_cmd}"'
-        )
-    data = torch.load(f'{site_package_path}/{folder}/{filename}')
-    return data
+    if( not os.path.exists(path) ):
+        
+
+    
 
 def run_and_time(start_msg, end_msg, f, *args, **kwargs):
     stars = 80*'*' + '\n'
