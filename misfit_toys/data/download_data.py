@@ -40,6 +40,7 @@ def segy_to_torch(
     device='cpu', 
     transpose=False, 
     out=sys.stdout,
+    print_freq=100,
     **kw
 ):
     print('READING in SEGY file "%s"'%input_path, file=out)
@@ -49,30 +50,29 @@ def segy_to_torch(
 
     print('DONE reading SEGY file "%s"'%input_path, file=out)
 
-    # Create a list to hold the data
-    data_list = []
 
-    N = len(stream.traces)
+    num_traces,trace_length = len(stream.traces), len(stream.traces[0].data)
+    data_array = np.empty((num_traces, trace_length))
 
     t = time.time()
     # Loop through each trace in the stream
     for (i,trace) in enumerate(stream.traces):
         if( i == 0 ): print('READING first trace', file=out)
         # Add the trace's data to the list
-        data_list.append(trace.data)
+        data_array[i] = trace.data
 
-        elapsed = time.time() - t
-        avg = elapsed / (i+1)
-        rem = (N-(i+1)) * avg
-        print(
-            'Elapsed (s): %f, Remaining estimate (s): %f'%(elapsed, rem), 
-            file=out
-        )
+        if( i % print_freq == 0 and i > 0 ):
+            elapsed = time.time() - t
+            avg = elapsed / i
+            rem = (num_traces-i) * avg
+            print(
+                'Elapsed (s): %f, Remaining estimate (s): %f'%(elapsed, rem), 
+                file=out
+            )
 
     print('Converting list to pytorch tensor (may take a while)')
-    data_list = np.array(data_list)
-    conv = torch.Tensor(data_list).to(device) if not transpose else \
-        torch.Tensor(data_list).transpose(0,1).to(device)
+    conv = torch.Tensor(data_array).to(device) if not transpose else \
+        torch.Tensor(data_array).transpose(0,1).to(device)
     torch.save(conv, output_path)
 
 def bin_to_torch(
