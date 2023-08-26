@@ -34,19 +34,20 @@ def expand_metadata(meta):
     return d
 
 def segy_to_torch(
-    file_path, 
-    *, 
+    *,
+    input_path, 
+    output_path,
     device='cpu', 
     transpose=False, 
     out=sys.stdout,
     **kw
 ):
-    print('READING in SEGY file "%s"'%file_path, file=out)
+    print('READING in SEGY file "%s"'%input_path, file=out)
 
     # Read the SEGY file
-    stream = _read_segy(file_path)
+    stream = _read_segy(input_path)
 
-    print('DONE reading SEGY file "%s"'%file_path, file=out)
+    print('DONE reading SEGY file "%s"'%input_path, file=out)
 
     # Create a list to hold the data
     data_list = []
@@ -68,14 +69,16 @@ def segy_to_torch(
             file=out
         )
 
-    print('Converting list to pytorch tensor (last step)')
-    # Convert the list to a numpy array and return it
-    return torch.Tensor(data_list).to(device) if not transpose else \
+    print('Converting list to pytorch tensor (may take a while)')
+    data_list = np.array(data_list)
+    conv = torch.Tensor(data_list).to(device) if not transpose else \
         torch.Tensor(data_list).transpose(0,1).to(device)
+    torch.save(conv, output_path)
 
 def bin_to_torch(
-    file_path, 
-    *, 
+    *,
+    input_path,
+    output_path, 
     device='cpu', 
     transpose=False, 
     out=sys.stdout,
@@ -83,28 +86,31 @@ def bin_to_torch(
     nx,
     **kw
 ):
-    u = torch.from_file(file_path, size=ny*nx)
-    torch.save(u.reshape(ny,nx).to(device), file_path.replace('.bin', '.pt'))
+    u = torch.from_file(input_path, size=ny*nx)
+    torch.save(u.reshape(ny,nx).to(device), output_path)
 
 def any_to_torch(
-    file_path,
     *,
+    input_path,
+    output_path,
     device='cpu',
     transpose=False,
     out=sys.stdout,
     **kw
 ):
-    if( file_path.endswith('.segy') or file_path.endswith('.sgy') ):
+    if( input_path.endswith('.segy') or input_path.endswith('.sgy') ):
         segy_to_torch(
-            file_path, 
+            input_path=input_path, 
+            output_path=output_path,
             device=device, 
             transpose=transpose, 
             out=out,
             **kw
         )
-    elif( file_path.endswith('.bin') ):
+    elif( input_path.endswith('.bin') ):
         bin_to_torch(
-            file_path,
+            input_path=input_path,
+            output_path=output_path,
             device=device,
             transpose=transpose,
             out=out,
@@ -135,13 +141,11 @@ def convert_data(d, *, device='cpu'):
     for folder, files in d.items():
         for field, meta in files.items():
             any_to_torch(
-                file_path=(
+                input_path=(
                     os.path.join(folder, meta['filename'])
                 ),
+                output_path=f'{folder}/{field}.pt',
                 **meta
-            )
-            os.system(f'mv {os.path.join(folder, meta["filename"])} ' + 
-                f'{os.path.join(folder, f"{field}.pt")}'
             )
         os.system('rm %s/*.%s'%(
                 folder,
@@ -163,7 +167,7 @@ def main():
             'rho': {}
         },
         'marmousi2': {
-            'url': 'http://www.agl.uh.edu/downloads/downloads/',
+            'url': 'http://www.agl.uh.edu/downloads/',
             'ext': 'segy',
             'vp': {'filename': 'vp_marmousi-ii.segy.gz'},
             'vs': {'filename': 'vs_marmousi-ii.segy.gz'},
