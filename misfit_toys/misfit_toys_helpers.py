@@ -11,7 +11,7 @@ from typing import Annotated as Ant, Any
 from abc import ABCMeta
 import itertools
 from .base_helpers import *
-from misfit_toys_helpers_helpers.download_data import *
+from .misfit_toys_helpers_helpers.download_data import *
 
 def get_file(s, path=''):
     full_path = list(set(path.split(':')) \
@@ -27,27 +27,6 @@ def get_file(s, path=''):
             s, stars, '\n'.join(full_path), stars
         )
     )
-
-def retrieve_dataset(
-    *, 
-    field, 
-    folder, 
-    path=os.getcwd()
-):
-    if( path is None ): path = ''
-    if( path == '' or path[0] != '/' ):
-        path = os.join.path(os.getcwd(), path)
-    
-    full_path = os.path.join(path, folder)
-    if( os.path.exists(full_path) ):
-        try:
-            return torch.load(os.path.join(full_path, f'{field}.pt'))
-        except FileNotFoundError:
-            print(
-                f'File {field}.pt not found in {full_path}' +
-                f'\n    Delete {folder} in {path} and try again'
-            )
-            raise
 
 def run_and_time(start_msg, end_msg, f, *args, **kwargs):
     stars = 80*'*' + '\n'
@@ -291,6 +270,31 @@ def fetch_and_convert_data(
             failure_head = 'FAILURE: %d / %d'%(len(res['failure']), total)     
             print(f'\n{failure_head}\n' + '*'*len(failure_head))
             print('\n'.join(res['failure']))
+
+def retrieve_dataset(
+    *, 
+    field, 
+    folder, 
+    path=os.getcwd(),
+    check=False
+):
+    if( path is None ): path = ''
+    if( path == '' or path[0] != '/' ):
+        path = os.path.join(os.getcwd(), path)
+    
+    full_path = os.path.join(path, folder)
+    if( os.path.exists(full_path) ):
+        try:
+            return torch.load(os.path.join(full_path, f'{field}.pt'))
+        except FileNotFoundError:
+            print(
+                f'File {field}.pt not found in {full_path}' +
+                f'\n    Delete {folder} in {path} and try again'
+            )
+            raise
+    
+    fetch_and_convert_data(subset=folder, path=path, check=check)
+    return torch.load(os.path.join(full_path, f'{field}.pt'))
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
