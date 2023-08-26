@@ -69,7 +69,8 @@ def fetch_file(*, field, folder=None, repo='IslandOfMisfitToys'):
     path = path[0]
     site_package_path = site_package_path[0]
     args = f'--datasets {folder}'
-    py_file = f'{path}/data/download_data.py'
+    rel_proj_path = 'misfit_toys/data'
+    py_file = f'{path}/{rel_proj_path}/download_data.py'
     py_cmd = f'python {py_file} {args}'
     run = sco(py_cmd)
     if( run is None ):

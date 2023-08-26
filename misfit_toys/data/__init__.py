@@ -1,4 +1,10 @@
 __all__ = [
-    "convert"
+    "download_data",
+    "marmousi",
+    "DAS",
+    "marmousi2"
 ]
-from .convert import *
+from .download_data import *
+from .marmousi import *
+from .DAS import *
+from .marmousi2 import *
