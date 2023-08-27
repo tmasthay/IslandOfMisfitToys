@@ -9,7 +9,6 @@ from random import randint
 from warnings import warn
 from typing import Annotated as Ant
 from abc import ABC, abstractmethod
-
 from .custom_losses import *
 from ..misfit_toys_helpers import *
 
@@ -57,6 +56,8 @@ class Data(metaclass=SlotMeta):
 
     def __init__(self, **kw):
         self.devices = get_all_devices()
+
+        #TODO: refine for GPU management
         self.vp = read_tensor(kw['vp'], self.devices[0])
         self.vs = read_tensor(kw['vs'], self.devices[0])
         self.rho = read_tensor(kw['rho'], self.devices[0])
@@ -99,6 +100,8 @@ class Data(metaclass=SlotMeta):
 
         #get time signature info
         self.freq = kw['freq']
+
+        #TODO: refine for GPU management
         self.wavelet = deepwave.wavelets.ricker(kw['freq'], 
             kw['nt'], 
             kw['dt'],
@@ -115,38 +118,24 @@ class Data(metaclass=SlotMeta):
             else:
                 warn(f'Attribute {k} does not exist...skipping ')
 
-class DataGenerator(Data, metaclass=CombinedMeta):
+class FWI(Data, metaclass=CombinedMeta):
     """
-    DataGenerator
-    ***
-    This class is an abstract base class for generating seismic data. 
-    It inherits from the Data class and extends it by adding a custom parameter 
-        for user flexibility. 
-    ***
-
-    Attributes
-    ----------
-    custom : dict
-        Custom parameters for user flexibility.
-
-    Methods
-    -------
-    force(y, x, comp, **kw)
-        Abstract method for force calculation.
-
-    forward(**kw)
-        Abstract method for forward modeling.
+    FWI class for acoustic and elastic FWI.
     """
-    __slots__ = [
-        'custom'
-    ]
+    model: Ant[list, 'model', '', '', 'acoustic or elastic']
     custom: Ant[dict, 'Custom parameters for user flexibility']
-    def __init__(self, **kw):
-        """_summary_
-        """
+    def __init__(
+        self,
+        *,
+        model,
+        **kw
+    ):
         super().__init__(**kw)
+        self.model = model
+        self.u = None
         self.custom = dict()
-        new_keys = set(kw.keys()).difference(set(super().__slots__))
+        full_slots = super().__slots__ + self.__slots__
+        new_keys = set(kw.keys()).difference(set(full_slots))
         for k in new_keys:
             self.custom[k] = kw[k]
 
@@ -155,8 +144,36 @@ class DataGenerator(Data, metaclass=CombinedMeta):
             
     @abstractmethod
     def force(self,p,comp,**kw):
-        pass
+        """forcing function for distributed source"""
 
-    @abstractmethod
     def forward(self, **kw):
-        pass
+        """forward solver"""
+        if( self.model == 'acoustic' ):
+            self.u = deepwave.scalar(
+                self.vp,
+                self.dx,
+                self.dt,
+                source_amplitudes=self.src_amplitudes,
+                source_locations=self.src_loc,
+                receiver_locations=self.rec_loc,
+                pml_freq=self.freq,
+                **kw
+            )[-1]
+        else:
+            self.u = elastic(
+                *deepwave.common.vpvsrho_to_lambmubuoyancy(
+                    self.vp, 
+                    self.vs, 
+                    self.rho
+                ),
+                self.dx,
+                self.dt,
+                source_amplitudes_y=self.src_amplitudes,
+                source_locations_y=self.src_loc,
+                receiver_locations_y=self.rec_loc,
+                pml_freq=self.freq,
+            )[-2]
+        return self.u
+
+    def backward(self, **kw):
+        return self.u.backward()

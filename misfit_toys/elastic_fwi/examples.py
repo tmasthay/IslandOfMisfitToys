@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from masthay_helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_global
+from masthay_helpers.typlotlib import *
 import torch
 import os
 import deepwave
