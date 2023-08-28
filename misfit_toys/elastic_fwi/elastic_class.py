@@ -18,8 +18,10 @@ from ..misfit_toys_helpers import *
 plt.rc('text', usetex=False)
 
 class Survey(ABC, metaclass=CombinedMeta):
-    src_loc: Ant[torch.Tensor, 'Source locations']
-    rec_loc: Ant[torch.Tensor, 'Receiver locations']
+    src_loc_y: Ant[torch.Tensor, 'Source locations y']
+    src_loc_x: Opt[Ant[torch.Tensor, 'Source locations x']]
+    rec_loc_y: Ant[torch.Tensor, 'Receiver locations y']
+    rec_loc_x: Opt[Ant[torch.Tensor, 'Receiver locations x']]
     src_amp_y: Ant[torch.Tensor, 'Source amplitudes y']
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitudes x']]
     custom: Ant[dict, 'Custom parameters for user flexibility']
@@ -132,12 +134,12 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
 class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
     def build_amp(self, *, func, **kw):
         if( 'comp' not in kw.keys() ):
-            self.src_amp_y = func(self.src_loc, comp=0)
+            self.src_amp_y = func(pts=self.src_loc_y, comp=0, **kw)
         else:
             if( 0 in kw['comp'] ):
-                self.src_amp_y = func(self.src_loc, comp=0)
+                self.src_amp_y = func(pts=self.src_loc, comp=0, **kw)
             elif( 1 in kw['comp'] ):
-                self.src_amp_x = func(self.src_loc, comp=1)
+                self.src_amp_x = func(pts=self.src_loc, comp=1, **kw)
             else:
                 raise ValueError('Invalid kwargs to build_amp: %s'%str(kw))
         if( not hasattr(self, 'src_amp_x') ):
@@ -182,7 +184,11 @@ class Model(metaclass=SlotMeta):
     vp: Ant[torch.Tensor, 'P-wave velocity']
     vs: Ant[torch.Tensor, 'S-wave velocity']
     rho: Ant[torch.Tensor, 'Density']
-    dx: Ant[float, 'Spatial step size']
+    ny: Ant[int, 'Number of grid points y']
+    nx: Ant[int, 'Number of grid points x']
+    nt: Ant[int, 'Number of time steps']
+    dy: Ant[float, 'Spatial step size y']
+    dx: Ant[float, 'Spatial step size x']
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
     custom: Ant[dict, 'Custom parameters for user flexibility']
@@ -196,6 +202,8 @@ class Model(metaclass=SlotMeta):
         vs=None,
         rho=None,
         freq,
+        dy,
+        dx,
         dt,
         **kw
     ):
@@ -206,10 +214,10 @@ class Model(metaclass=SlotMeta):
         self.vs = vs
         self.rho = rho
         self.freq = freq
-        self.dy, self.dx, self.dt = *vp.shape, dt
-        self.nt = survey.src_amp_y.shape[-1]
+        self.dy, self.dx, self.dt = dy, dx, dt
+        self.ny, self.dy, self.nt = *vp.shape, survey.src_amp_y.shape[-1]
         self.custom = dict()
-        full_slots = super().__slots__ + self.__slots__
+        full_slots = self.survey.__slots__ + self.__slots__
         new_keys = set(kw.keys()).difference(set(full_slots))
         for k in new_keys:
             self.custom[k] = kw[k]
@@ -257,12 +265,13 @@ class Model(metaclass=SlotMeta):
 class FWIAbstract(ABC, metaclass=CombinedMeta):
     model: Ant[Model, 'Model']
     obs_data: Ant[torch.Tensor, 'Observed data']
-    loss: Ant[torch.nn.Module.loss, 'Loss function'] 
+    loss: Ant[torch.nn.Module, 'Loss function'] 
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
-    scheduler: Ant[torch.optim.lr_scheduler.ChainedScheduler, 'Learning rate']
-    n_epochs: Ant[int, 'Number of epochs', '1']
-    n_batches: Ant[int, 'Number of batches', '1']
+    scheduler: Ant[list, 'Learning rate scheduling params']
+    epochs: Ant[int, 'Number of epochs', '1']
+    batch_size: Ant[int, 'Batch size', '1']
     trainable: Ant[list, 'Trainable parameters']
+    custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(
         self,
@@ -271,34 +280,53 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         loss,
         optimizer,
         scheduler,
-        n_epochs,
-        n_batches,
-        trainable
+        epochs,
+        batch_size,
+        trainable,
+        **kw
     ):
         self.model = model
         self.loss = loss
-        self.optimizer = optimizer
-        self.scheduler = scheduler
-        self.n_epochs = n_epochs
-        self.n_batches = n_batches
-        self.trainable = trainable
-        for p in self.trainable:
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.trainable = []
+        for p in trainable:
             if( hasattr(self.model, p) ):
                 att = getattr(self.model, p)
-                setattr(att.requires_grad, True)
+                setattr(att, 'requires_grad', True)
+                self.trainable.append(att)
             else:
                 raise ValueError(f'Unknown trainable parameter {p}')
+        self.optimizer = optimizer[0](self.trainable, **optimizer[1])
+
+        schedule_list = []
+        for s in scheduler:
+            schedule_list.append(s[0](self.optimizer, **s[1]))
+        self.scheduler = torch.optim.lr_scheduler.ChainedScheduler(
+            schedule_list
+        )
+
+        for k,v in kw.items():
+            self.custom[k] = v
 
     @abstractmethod
     def take_step(self, **kw):
         pass
 
     def fwi(self, **kw):
+        make_plot = self.custom.get('make_plot', [])
+        def plot_curr(epoch):
+            for p in make_plot:
+                plt.imshow(getattr(self.model, p))
+                plt.title(f'{p} after {epoch} epochs')
+                plt.savefig(f'{p}_{epoch}.jpg')
+        plot_curr(0)
         for epoch in range(self.n_epochs):
-            self.take_step(**kw)
+            self.take_step(epoch=epoch, **kw)
+            plot_curr(epoch+1)
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
-    def take_step(self, **kw):
+    def take_step(self, *, epoch, **kw):
         self.optimizer.zero_grad()
         self.model.forward(**kw)
         loss_lcl = self.loss(self.model.u, self.obs_data)
