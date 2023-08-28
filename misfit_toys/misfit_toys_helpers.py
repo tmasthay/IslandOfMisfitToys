@@ -12,6 +12,7 @@ from abc import ABCMeta
 import itertools
 from .base_helpers import *
 from .misfit_toys_helpers_helpers.download_data import *
+from torch.optim.lr_scheduler import _LRScheduler
 
 def get_file(s, path=''):
     full_path = list(set(path.split(':')) \
@@ -335,6 +336,13 @@ class SlotMeta(type):
     
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
+
+class ConstantLR(_LRScheduler):
+    def __init__(self, optimizer, last_epoch=-1):
+        super(ConstantLR, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        return [base_lr for base_lr in self.base_lrs]
 
 
 

@@ -8,13 +8,14 @@ import argparse
 from random import randint
 from warnings import warn
 from typing import Annotated as Ant
+from typing import Callable
 from abc import ABC, abstractmethod
 from .custom_losses import *
 from ..misfit_toys_helpers import *
 
 plt.rc('text', usetex=False)
 
-class Data(metaclass=SlotMeta):
+class Survey(metaclass=SlotMeta):
     """
     ***
     Class for parsing data input for FWI.
@@ -40,7 +41,13 @@ class Data(metaclass=SlotMeta):
     n_rec_per_shot: Ant[int, 'Num receivers per shot', '1']
     rec_loc: Ant[torch.Tensor, 'Receiver locations']
 
-    src_amplitudes: Ant[torch.Tensor, 'Source amplitudes']
+    src_amplitudes: Ant[
+        torch.Tensor, 
+        'Source amplitudes', 
+        '', 
+        '',
+        'default: None'
+    ]
 
     nx: Ant[int, 'Number of horizontal dofs', '1']
     ny: Ant[int, 'Number of vertical dofs', '1']
@@ -94,6 +101,9 @@ class Data(metaclass=SlotMeta):
         self.d_rec = kw['d_rec']
         self.rec_loc = kw['rec_loc']
 
+        #get source characterization
+        self.src_amplitudes = kw.get('src_amplitudes', None)
+
         #get grid info
         self.ny, self.nx, self.nt = *self.vp.shape, kw['nt']
         self.dy, self.dx, self.dt = kw['dy'], kw['dx'], kw['dt']
@@ -118,11 +128,12 @@ class Data(metaclass=SlotMeta):
             else:
                 warn(f'Attribute {k} does not exist...skipping ')
 
-class FWI(Data, metaclass=CombinedMeta):
+class ModelDistributed(Survey, metaclass=CombinedMeta):
     """
     FWI class for acoustic and elastic FWI.
     """
     model: Ant[list, 'model', '', '', 'acoustic or elastic']
+    u: Ant[torch.Tensor, 'Wavefield solution']
     custom: Ant[dict, 'Custom parameters for user flexibility']
     def __init__(
         self,
@@ -141,10 +152,6 @@ class FWI(Data, metaclass=CombinedMeta):
 
     def get(self, key):
         return self.custom[key]
-            
-    @abstractmethod
-    def force(self,p,comp,**kw):
-        """forcing function for distributed source"""
 
     def forward(self, **kw):
         """forward solver"""
@@ -159,7 +166,7 @@ class FWI(Data, metaclass=CombinedMeta):
                 pml_freq=self.freq,
                 **kw
             )[-1]
-        else:
+        elif( self.model.lower() == 'elastic' ):
             self.u = elastic(
                 *deepwave.common.vpvsrho_to_lambmubuoyancy(
                     self.vp, 
@@ -173,7 +180,63 @@ class FWI(Data, metaclass=CombinedMeta):
                 receiver_locations_y=self.rec_loc,
                 pml_freq=self.freq,
             )[-2]
+        else:
+            raise ValueError(f'Unknown model type {self.model}')
         return self.u
+    
+    @abstractmethod
+    def update_src(self, *, p, **kw):
+        """update source term"""
 
-    def backward(self, **kw):
-        return self.u.backward()
+class ModelDirac(ModelDistributed, metaclass=SlotMeta):
+    def __init__(self, **kw):
+        assert( 'src_amplitudes' in kw.keys() )
+        super().__init__(**kw)
+
+    def update_src(self, *, p, **kw):
+        pass
+
+class FWI(metaclass=SlotMeta):
+    model: Ant[ModelDistributed, 'Abstract model', 'Must be concretized']
+    loss: Ant[torch.nn.Module, 'Loss function'] 
+    optimizer: Ant[torch.optim.Optimizer, 'Optimizer', 'Must be concretized']
+    scheduler: Ant[torch.optim.lr_scheduler, 'Learning rate scheduler']
+    n_epochs: Ant[int, 'Number of epochs', '1']
+    n_batches: Ant[int, 'Number of batches', '1']
+
+    def __init__(
+        self,
+        *,
+        model,
+        loss,
+        optimizer,
+        scheduler,
+        n_epochs,
+        n_batches
+    ):
+        self.model = model
+        self.loss = loss
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.n_epochs = n_epochs
+        self.n_batches = n_batches
+
+    def preforward(self):
+        self.optimizer.zero_grad()
+
+    def postforward(self):
+        self.optimizer.step()
+        self.scheduler.step()
+
+    def take_step(self, *, epoch, **kw):
+        self.preforward()
+        self.model.forward(**kw)
+        self.postforward()
+
+    def fwi(self, **kw):
+        for epoch in range(self.n_epochs):
+            self.take_step(epoch=epoch, **kw)
+    
+
+
+    
