@@ -10,144 +10,155 @@ from warnings import warn
 from typing import Annotated as Ant
 from typing import Callable
 from abc import ABC, abstractmethod
+from typing import Annotated as Ant
+from typing import Optional as Opt
 from .custom_losses import *
 from ..misfit_toys_helpers import *
 
 plt.rc('text', usetex=False)
 
-class Survey(metaclass=SlotMeta):
-    """
-    ***
-    Class for parsing data input for FWI.
-    ***
-    """
-    devices: Ant[list, 'List of devices']
-
-    vp: Ant[torch.Tensor, 'P-wave velocity', '0.0']
-    vs: Ant[torch.Tensor, 'S-wave velocity', '0.0', 'vp']
-    rho: Ant[torch.Tensor, 'Density', '0.0<']
-
-    n_shots: Ant[int, 'Number of shots']
-
-    fst_src: Ant[int, 'First source index (x-dir)', '1', 'nx-1']
-    src_depth: Ant[int, 'Source depth index (y-dir)', '1', 'ny-1']
-    d_src: Ant[int, 'Index delta of sources (x-dir)', '1', 'nx-2']
-    n_src_per_shot: Ant[int, 'Num sources per shot', '1']
+class Survey(ABC, metaclass=CombinedMeta):
     src_loc: Ant[torch.Tensor, 'Source locations']
-
-    fst_rec: Ant[int, 'First receiver index (x-dir)', '1', 'nx-1']
-    rec_depth: Ant[int, 'Rec. depth index (y-dir)', '1', 'ny-1']
-    d_rec: Ant[int, 'Index delta of receivers (x-dir)', '1', 'nx-2']
-    n_rec_per_shot: Ant[int, 'Num receivers per shot', '1']
     rec_loc: Ant[torch.Tensor, 'Receiver locations']
-
-    src_amplitudes: Ant[
-        torch.Tensor, 
-        'Source amplitudes', 
-        '', 
-        '',
-        'default: None'
-    ]
-
-    nx: Ant[int, 'Number of horizontal dofs', '1']
-    ny: Ant[int, 'Number of vertical dofs', '1']
-    nt: Ant[int, 'Number of time steps', '1']
-    dx: Ant[float, 'Grid size horizontal', '0.0<']
-    dy: Ant[float, 'Grid size vertical', '0.0<']
-    dt: Ant[float, 'Time step', '0.0<']
-
-    freq: Ant[float, 'Characteristic Ricker frequency', '0.0<']
-    wavelet_amp: Ant[float, 'Characteristic source amplitude', '0.0<']
-    wavelet: Ant[torch.Tensor, 'Characteristic source time signature']
-
-    ofs: Ant[int, 'Padding for src_loc landscape', '1', 'min(nx-1,ny-1)']
+    src_amp_y: Ant[torch.Tensor, 'Source amplitudes y']
+    src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitudes x']]
+    custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(self, **kw):
-        self.devices = get_all_devices()
-
-        #TODO: refine for GPU management
-        self.vp = read_tensor(kw['vp'], self.devices[0])
-        self.vs = read_tensor(kw['vs'], self.devices[0])
-        self.rho = read_tensor(kw['rho'], self.devices[0])
-
-        assert len(self.vp.shape) == 2, 'vp dimension mismatch, ' \
-            f'Expected 2 dimensions but got {len(self.vp.shape)} in the ' \
-            f'shape of {self.vp.shape}'
-
-        assert (
-            self.vs == None 
-            or
-            (
-                self.vp.shape == self.vs.shape 
-                and self.vs.shape == self.rho.shape
-            )
-        ), \
-        'vp,vs,rho dimension mismatch, ' \
-            f'{self.vp.shape},{self.vs.shape},{self.rho.shape}'
-
-        #get shot info
-        self.n_shots = kw['n_shots']
-
-        #get source info
-        self.fst_src = kw['fst_src']
-        self.n_src_per_shot = kw['n_src_per_shot']
-        self.src_depth = kw['src_depth']
-        self.d_src = kw['d_src']
-        self.src_loc = kw['src_loc']
-    
-        #get receiver info
-        self.fst_rec = kw['fst_rec']
-        self.n_rec_per_shot = kw['n_rec_per_shot']
-        self.rec_depth = kw['rec_depth']
-        self.d_rec = kw['d_rec']
-        self.rec_loc = kw['rec_loc']
-
-        #get grid info
-        self.ny, self.nx, self.nt = *self.vp.shape, kw['nt']
-        self.dy, self.dx, self.dt = kw['dy'], kw['dx'], kw['dt']
-
-        #get time signature info
-        self.freq = kw['freq']
-
-        #TODO: the wavelet should be entirely abstracted out!
-        #   it is only used for source amplitudes which are built at beg.
-        self.wavelet_amp = kw.get('wavelet_amp', 1.0)
-        self.wavelet = self.wavelet_amp * deepwave.wavelets.ricker(
-            kw['freq'], 
-            kw['nt'], 
-            kw['dt'],
-            kw['peak_time']
-        ).to(self.devices[0])
-        self.src_amplitudes = kw.get('src_amplitudes', 
-            self.wavelet \
-            .repeat(self.n_shots, self.src_per_shot, 1) \
-            .to(self.devices[0])
-        )
-
-        #get offset info for optimization landscape plots
-        self.ofs = kw.get('ofs', 1)
+        raise NotImplementedError('Survey constructor not concretized!')
 
     def update(self, **kw):
         for k,v in kw.items():
             if( k in self.__slots__ ):
                 setattr(self, k, v)
             else:
-                warn(f'Attribute {k} does not exist...skipping ')
+                raise ValueError(f'Attribute {k}, slots={self.__slots__}')
+    
+    def update_custom(self, **kw):
+        for k,v in kw.items():
+            if( k in self.__slots__ ):
+                raise ValueError(
+                    f'Attribute {k}, slots={self.__slots__}' + \
+                    '...use update instead'
+                )
+            self.custom[k] = v
 
-class ModelDistributed(Survey, metaclass=CombinedMeta):
-    """
-    FWI class for acoustic and elastic FWI.
-    """
-    model: Ant[list, 'model', '', '', 'acoustic or elastic']
-    u: Ant[torch.Tensor, 'Wavefield solution']
-    custom: Ant[dict, 'Custom parameters for user flexibility']
+    @abstractmethod
+    def build_src(self, **kw):
+        """build source locations"""
+
+    @abstractmethod
+    def build_rec(self, **kw):
+        """build receiver locations"""
+
+    @abstractmethod
+    def build_amp(self, **kw):
+        """build source amplitudes"""
+
+class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
+    def _init_uniform_(
+        self,
+        *,
+        n_shots: Ant[int, 'Number of shots'],
+        fst_src: Ant[list, 'First source location'],
+        d_src: Ant[list, 'Source spacing'],
+        num_src: Ant[list, 'Number of sources'],
+        fst_rec: Ant[list, 'First receiver location'],
+        d_rec: Ant[list, 'Receiver spacing'],
+        num_rec: Ant[list, 'Number of receivers'],
+    ):
+        helper = lambda fst, d, num: [fst + i * d for i in range(num)]
+        src_idx_y = helper(fst_src[0], d_src[0], num_src[0])
+        src_idx_x = helper(fst_src[1], d_src[1], num_src[1])
+        rec_idx_y = helper(fst_rec[0], d_rec[0], num_rec[0])
+        rec_idx_x = helper(fst_rec[1], d_rec[1], num_rec[1])
+        self.build_src(n_shots=n_shots, idx_y=src_idx_y, idx_x=src_idx_x)
+        self.build_rec(n_shots=n_shots, idx_y=rec_idx_y, idx_x=rec_idx_x)
+
+    def build_src(
+        self,
+        *,
+        n_shots: Ant[int, 'Number of shots'],
+        idx_y: Ant[list, 'Vertical indices'],
+        idx_x: Ant[list, 'Horizontal indices']
+    ):
+        self.src_loc = uni_src_rec(
+            n_shots=n_shots, 
+            idx_y=idx_y, 
+            idx_x=idx_x
+        )
+
+    def build_rec(
+        self,
+        *,
+        n_shots: Ant[int, 'Number of shots'],
+        idx_y: Ant[list, 'Vertical indices'],
+        idx_x: Ant[list, 'Horizontal indices']
+    ):
+        self.rec_loc = uni_src_rec(
+            n_shots=n_shots, 
+            idx_y=idx_y, 
+            idx_x=idx_x
+        )
+
+class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
+    def build_amp(self, *, func, **kw):
+        if( 'comp' not in kw.keys() ):
+            self.src_amp_y = func(self.src_loc, comp=0)
+        else:
+            if( 0 in kw['comp'] ):
+                self.src_amp_y = func(self.src_loc, comp=0)
+            elif( 1 in kw['comp'] ):
+                self.src_amp_x = func(self.src_loc, comp=1)
+            else:
+                raise ValueError('Invalid kwargs to build_amp: %s'%str(kw))
+
+class SurveyUniformLambda(
+    SurveyUniformAbstract,
+    SurveyFunctionAmpAbstract,
+    metaclass=SlotMeta
+):
     def __init__(
         self,
         *,
+        n_shots: Ant[int, 'Number of shots'],
+        fst_src: Ant[list, 'First source location'],
+        d_src: Ant[list, 'Source spacing'],
+        num_src: Ant[list, 'Number of sources'],
+        fst_rec: Ant[list, 'First receiver location'],
+        d_rec: Ant[list, 'Receiver spacing'],
+        num_rec: Ant[list, 'Number of receivers'],
+        amp_func
+    ):
+        super()._init_uniform_(
+            n_shots=n_shots,
+            fst_src=fst_src,
+            d_src=d_src,
+            num_src=num_src,
+            fst_rec=fst_rec,
+            d_rec=d_rec,
+            num_rec=num_rec
+        )
+        self.build_amp(func=amp_func)
+        non_essential = [('src_amp_x', None), ('custom', dict())]
+        for k,v in non_essential:
+            if( not hasattr(self, k) ):
+                setattr(self, k, v)
+        
+class ModelDistributed(metaclass=CombinedMeta):
+    survey: Ant[Survey, 'Survey object']
+    model: Ant[str, 'model', '', '', 'acoustic or elastic']
+    u: Ant[torch.Tensor, 'Wavefield solution']
+    custom: Ant[dict, 'Custom parameters for user flexibility']
+
+    def __init__(
+        self,
+        *,
+        survey,
         model,
         **kw
     ):
-        super().__init__(**kw)
+        self.survey = survey
         self.model = model
         self.u = None
         self.custom = dict()
@@ -206,7 +217,7 @@ class FWI(metaclass=SlotMeta):
     model: Ant[ModelDistributed, 'Abstract model', 'Must be concretized']
     loss: Ant[torch.nn.Module, 'Loss function'] 
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer', 'Must be concretized']
-    scheduler: Ant[torch.optim.lr_scheduler, 'Learning rate scheduler']
+    scheduler: Ant[torch.optim.lr_scheduler.ChainedScheduler, 'Learning rate']
     n_epochs: Ant[int, 'Number of epochs', '1']
     n_batches: Ant[int, 'Number of batches', '1']
 

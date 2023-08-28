@@ -127,19 +127,9 @@ def acoustic_homogeneous():
 
 def marmousi_real():
     devices = get_all_devices()
-    def load_field(name):
-        return torch.load(
-            os.path.join(
-                '/'.join(os.getcwd().split('/')[:-1]),
-                'data/marmousi2/torch_conversions/%s_marmousi-ii.pt'%name
-            )
-        )
-    m_per_km = 1000.0
-    vp = m_per_km * load_field('vp')
-    # vs = m_per_km * load_field('vs')
-    # rho = m_per_km * load_field('density')
+    vp = retrieve_dataset('vp', 'marmousi')
     vs = None
-    rho = None
+    rho = retrieve_dataset('rho', 'marmousi')
 
     ny = vp.shape[0]
     nx = vp.shape[1]
@@ -154,12 +144,12 @@ def marmousi_real():
     nx_art = vp.shape[1] - ofs
 
     # n_shots = ny_art
-    n_shots = 1
+    n_shots = 20
 
     d_src = 1
     n_src_per_shot = 1
-    src_depth = vp.shape[0] // 2
-    fst_src = vp.shape[1] // 2
+    src_depth = 2
+    fst_src = 1
     src_loc = uni_src_rec(
         n_shots=n_shots,
         idx_vert=[src_depth],

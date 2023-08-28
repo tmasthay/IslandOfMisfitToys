@@ -165,12 +165,12 @@ def read_tensor(s, device):
 def uni_src_rec(
     *,
     n_shots: Ant[int, 'Number of shots', '1<='],
-    idx_vert: Ant[list, 'Vertical locations covered'],
-    idx_horz: Ant[list, 'Horizontal locations covered']
+    idx_y: Ant[list, 'Horizontal locations covered'],
+    idx_x: Ant[list, 'Vertical locations covered']
 ):
     idx = torch.tensor(
         [
-            list(e) for e in itertools.product(idx_vert, idx_horz)
+            list(e) for e in itertools.product(idx_y, idx_x)
         ],
         dtype=int
     )
