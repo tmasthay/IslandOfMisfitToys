@@ -57,6 +57,7 @@ class Survey(metaclass=SlotMeta):
     dt: Ant[float, 'Time step', '0.0<']
 
     freq: Ant[float, 'Characteristic Ricker frequency', '0.0<']
+    wavelet_amp: Ant[float, 'Characteristic source amplitude', '0.0<']
     wavelet: Ant[torch.Tensor, 'Characteristic source time signature']
 
     ofs: Ant[int, 'Padding for src_loc landscape', '1', 'min(nx-1,ny-1)']
@@ -101,9 +102,6 @@ class Survey(metaclass=SlotMeta):
         self.d_rec = kw['d_rec']
         self.rec_loc = kw['rec_loc']
 
-        #get source characterization
-        self.src_amplitudes = kw.get('src_amplitudes', None)
-
         #get grid info
         self.ny, self.nx, self.nt = *self.vp.shape, kw['nt']
         self.dy, self.dx, self.dt = kw['dy'], kw['dx'], kw['dt']
@@ -111,13 +109,21 @@ class Survey(metaclass=SlotMeta):
         #get time signature info
         self.freq = kw['freq']
 
-        #TODO: refine for GPU management
-        self.wavelet = deepwave.wavelets.ricker(kw['freq'], 
+        #TODO: the wavelet should be entirely abstracted out!
+        #   it is only used for source amplitudes which are built at beg.
+        self.wavelet_amp = kw.get('wavelet_amp', 1.0)
+        self.wavelet = self.wavelet_amp * deepwave.wavelets.ricker(
+            kw['freq'], 
             kw['nt'], 
             kw['dt'],
             kw['peak_time']
         ).to(self.devices[0])
-    
+        self.src_amplitudes = kw.get('src_amplitudes', 
+            self.wavelet \
+            .repeat(self.n_shots, self.src_per_shot, 1) \
+            .to(self.devices[0])
+        )
+
         #get offset info for optimization landscape plots
         self.ofs = kw.get('ofs', 1)
 

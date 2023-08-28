@@ -164,7 +164,8 @@ def marmousi_real():
         n_shots=n_shots,
         idx_vert=[src_depth],
         idx_horz=[fst_src]
-    ).to(devices[0])
+    ) \
+    .to(devices[0])
     
     d_rec = 1
     # idx_vert = range(ofs, vp.shape[0]-ofs, d_rec)
@@ -177,7 +178,8 @@ def marmousi_real():
         n_shots=n_shots,
         idx_vert=idx_vert,
         idx_horz=idx_horz
-    ).to(devices[0])
+    ) \
+    .to(devices[0])
 
     freq = 10.0 #Hz
     peak_time = 0.5 #seconds
@@ -185,48 +187,8 @@ def marmousi_real():
     sig = [0.1, 0.1]
     amp = 1e3
 
-    class Marmousi(DataGenerator):
-        def __init__(self, **kw):
-            super().__init__(**kw)
-            self.src_amplitudes = self.force(
-                self.src_loc[0,:,:],
-                amp=kw['amp'],
-                mu=kw['mu'],
-                sig=kw['sig']
-            ) \
-            .unsqueeze(0) \
-            .to(self.devices[0])
-
-        def get(self, key):
-            return self.custom[key]
-        
-        def force(
-            self, 
-            p: Ant[torch.Tensor, 'Evaluation points'], 
-            comp: Ant[str, 'Elastic component']='y', 
-            *, 
-            amp: Ant[float, 'Source amplitude']=1.0, 
-            mu: Ant[list, 'Center of Gaussian']=[0.0,0.0], 
-            sig: Ant[list, 'Stddev of Gaussian']=[1.0, 1.0]
-        ): 
-            G = amp * torch.exp( 
-                -(p[:,0] * self.dy - mu[0]) ** 2 / sig[0]**2 
-                -(p[:,1] * self.dx - mu[1]) ** 2 / sig[1]**2
-            )
-            return G.unsqueeze(-1) * self.wavelet.unsqueeze(0)
-
-        def forward(self):
-            return deepwave.scalar(
-                self.vp,
-                self.dx,
-                self.dt,
-                source_amplitudes=self.src_amplitudes,
-                source_locations=self.src_loc,
-                receiver_locations=self.rec_loc,
-                pml_freq=self.freq
-            )[-1]
-
-    return Marmousi(vp=vp,
+    model = ModelDirac(
+        vp=vp,
         vs=vs,
         rho=rho,
         n_shots=n_shots,
@@ -247,10 +209,13 @@ def marmousi_real():
         freq=freq,
         peak_time=peak_time,
         ofs=ofs,
-        amp=amp,
-        mu=[src_depth*dy, fst_src*dx],
-        sig=sig,
-        samples_y=samples_y,
-        samples_x=samples_x
+        amp=amp
     )
 
+    return FWI(
+        model=model,
+        loss=torch.nn.MSELoss(),
+        optimizer=torch.optim.Adam,
+        lr=1e-2,
+        n_epochs=10,
+    )
