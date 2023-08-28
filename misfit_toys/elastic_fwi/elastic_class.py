@@ -68,38 +68,66 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
         num_rec: Ant[list, 'Number of receivers'],
     ):
         helper = lambda fst, d, num: [fst + i * d for i in range(num)]
-        src_idx_y = helper(fst_src[0], d_src[0], num_src[0])
-        src_idx_x = helper(fst_src[1], d_src[1], num_src[1])
-        rec_idx_y = helper(fst_rec[0], d_rec[0], num_rec[0])
-        rec_idx_x = helper(fst_rec[1], d_rec[1], num_rec[1])
-        self.build_src(n_shots=n_shots, idx_y=src_idx_y, idx_x=src_idx_x)
-        self.build_rec(n_shots=n_shots, idx_y=rec_idx_y, idx_x=rec_idx_x)
+        src_idx = []
+        rec_idx = []
+        assert( len(fst_src) in [1,2] )
+        for i in range(len(fst_src)):
+            assert(len(fst_src[i]) == 2)
+            tmp_src = []
+            tmp_rec = []
+            for j in range(len(fst_src[i])):
+                tmp_src.append(
+                    helper(fst_src[i][j], d_src[i][j], num_src[i][j])
+                )
+                tmp_rec.append(    
+                    helper(fst_rec[i][j], d_rec[i][j], num_rec[i][j])
+                )
+            src_idx.append(tmp_src)
+            rec_idx.append(tmp_rec)
+        self.build_src(n_shots=n_shots, idx=src_idx)
+        self.build_rec(n_shots=n_shots, idx=rec_idx)
 
     def build_src(
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        idx_y: Ant[list, 'Vertical indices'],
-        idx_x: Ant[list, 'Horizontal indices']
+        idx: Ant[list, 'Source indices']
     ):
-        self.src_loc = uni_src_rec(
-            n_shots=n_shots, 
-            idx_y=idx_y, 
-            idx_x=idx_x
+        assert( len(idx) in [1,2] )
+        assert( len(idx[0]) == 2 )
+        self.src_loc_y = uni_src_rec(
+            n_shots=n_shots,
+            idx_y=idx[0][0],
+            idx_x=idx[0][1]
         )
+        if( len(idx) == 2 ):
+            assert(len(idx[1]) == 2)
+            self.src_loc_x = uni_src_rec(
+                n_shots=n_shots,
+                idx_y=idx[1][0],
+                idx_x=idx[1][1]
+            )
 
     def build_rec(
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        idx_y: Ant[list, 'Vertical indices'],
-        idx_x: Ant[list, 'Horizontal indices']
+        idx: Ant[list, 'Source indices']
     ):
-        self.rec_loc = uni_src_rec(
-            n_shots=n_shots, 
-            idx_y=idx_y, 
-            idx_x=idx_x
+        assert( len(idx) in [1,2] )
+        assert( len(idx[0]) == 2 )
+        self.rec_loc_y = uni_src_rec(
+            n_shots=n_shots,
+            idx_y=idx[0][0],
+            idx_x=idx[0][1]
         )
+        if( len(idx) == 2 ):
+            assert(len(idx[1]) == 2)
+            self.rec_loc_x = uni_src_rec(
+                n_shots=n_shots,
+                idx_y=idx[1][0],
+                idx_x=idx[1][1]
+            )
 
 class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
     def build_amp(self, *, func, **kw):
@@ -112,6 +140,8 @@ class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
                 self.src_amp_x = func(self.src_loc, comp=1)
             else:
                 raise ValueError('Invalid kwargs to build_amp: %s'%str(kw))
+        if( not hasattr(self, 'src_amp_x') ):
+            self.src_amp_x = None
 
 class SurveyUniformLambda(
     SurveyUniformAbstract,
@@ -145,10 +175,16 @@ class SurveyUniformLambda(
             if( not hasattr(self, k) ):
                 setattr(self, k, v)
         
-class ModelDistributed(metaclass=CombinedMeta):
+class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']
     model: Ant[str, 'model', '', '', 'acoustic or elastic']
     u: Ant[torch.Tensor, 'Wavefield solution']
+    vp: Ant[torch.Tensor, 'P-wave velocity']
+    vs: Ant[torch.Tensor, 'S-wave velocity']
+    rho: Ant[torch.Tensor, 'Density']
+    dx: Ant[float, 'Spatial step size']
+    dt: Ant[float, 'Temporal step size']
+    freq: Ant[float, 'PML frequency']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(
@@ -156,11 +192,22 @@ class ModelDistributed(metaclass=CombinedMeta):
         *,
         survey,
         model,
+        vp,
+        vs=None,
+        rho=None,
+        freq,
+        dt,
         **kw
     ):
         self.survey = survey
         self.model = model
         self.u = None
+        self.vp = vp
+        self.vs = vs
+        self.rho = rho
+        self.freq = freq
+        self.dy, self.dx, self.dt = *vp.shape, dt
+        self.nt = survey.src_amp_y.shape[-1]
         self.custom = dict()
         full_slots = super().__slots__ + self.__slots__
         new_keys = set(kw.keys()).difference(set(full_slots))
@@ -177,13 +224,22 @@ class ModelDistributed(metaclass=CombinedMeta):
                 self.vp,
                 self.dx,
                 self.dt,
-                source_amplitudes=self.src_amplitudes,
+                source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc,
                 receiver_locations=self.rec_loc,
                 pml_freq=self.freq,
                 **kw
             )[-1]
         elif( self.model.lower() == 'elastic' ):
+            kw_lcl = {
+                'source_amplitudes_y': self.src_amp_y,
+                'source_locations_y': self.src_loc,
+                'receiver_locations_y': self.rec_loc,
+                'pml_freq': self.freq
+            }
+            if( hasattr(self.survey, 'src_amp_x') ):
+                kw_lcl['source_amplitudes_x'] = self.src_amp_x
+
             self.u = elastic(
                 *deepwave.common.vpvsrho_to_lambmubuoyancy(
                     self.vp, 
@@ -192,34 +248,21 @@ class ModelDistributed(metaclass=CombinedMeta):
                 ),
                 self.dx,
                 self.dt,
-                source_amplitudes_y=self.src_amplitudes,
-                source_locations_y=self.src_loc,
-                receiver_locations_y=self.rec_loc,
-                pml_freq=self.freq,
+                **kw_lcl
             )[-2]
         else:
             raise ValueError(f'Unknown model type {self.model}')
         return self.u
-    
-    @abstractmethod
-    def update_src(self, *, p, **kw):
-        """update source term"""
 
-class ModelDirac(ModelDistributed, metaclass=SlotMeta):
-    def __init__(self, **kw):
-        assert( 'src_amplitudes' in kw.keys() )
-        super().__init__(**kw)
-
-    def update_src(self, *, p, **kw):
-        pass
-
-class FWI(metaclass=SlotMeta):
-    model: Ant[ModelDistributed, 'Abstract model', 'Must be concretized']
-    loss: Ant[torch.nn.Module, 'Loss function'] 
-    optimizer: Ant[torch.optim.Optimizer, 'Optimizer', 'Must be concretized']
+class FWIAbstract(ABC, metaclass=CombinedMeta):
+    model: Ant[Model, 'Model']
+    obs_data: Ant[torch.Tensor, 'Observed data']
+    loss: Ant[torch.nn.Module.loss, 'Loss function'] 
+    optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
     scheduler: Ant[torch.optim.lr_scheduler.ChainedScheduler, 'Learning rate']
     n_epochs: Ant[int, 'Number of epochs', '1']
     n_batches: Ant[int, 'Number of batches', '1']
+    trainable: Ant[list, 'Trainable parameters']
 
     def __init__(
         self,
@@ -229,7 +272,8 @@ class FWI(metaclass=SlotMeta):
         optimizer,
         scheduler,
         n_epochs,
-        n_batches
+        n_batches,
+        trainable
     ):
         self.model = model
         self.loss = loss
@@ -237,22 +281,31 @@ class FWI(metaclass=SlotMeta):
         self.scheduler = scheduler
         self.n_epochs = n_epochs
         self.n_batches = n_batches
+        self.trainable = trainable
+        for p in self.trainable:
+            if( hasattr(self.model, p) ):
+                att = getattr(self.model, p)
+                setattr(att.requires_grad, True)
+            else:
+                raise ValueError(f'Unknown trainable parameter {p}')
 
-    def preforward(self):
-        self.optimizer.zero_grad()
-
-    def postforward(self):
-        self.optimizer.step()
-        self.scheduler.step()
-
-    def take_step(self, *, epoch, **kw):
-        self.preforward()
-        self.model.forward(**kw)
-        self.postforward()
+    @abstractmethod
+    def take_step(self, **kw):
+        pass
 
     def fwi(self, **kw):
         for epoch in range(self.n_epochs):
-            self.take_step(epoch=epoch, **kw)
+            self.take_step(**kw)
+    
+class FWI(FWIAbstract, metaclass=SlotMeta):
+    def take_step(self, **kw):
+        self.optimizer.zero_grad()
+        self.model.forward(**kw)
+        loss_lcl = self.loss(self.model.u, self.obs_data)
+        loss_lcl.backward()
+        self.optimizer.step()
+        self.scheduler.step()
+
     
 
 
