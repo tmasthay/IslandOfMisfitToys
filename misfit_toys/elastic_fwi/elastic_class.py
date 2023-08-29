@@ -15,6 +15,7 @@ from typing import Optional as Opt
 from .custom_losses import *
 from ..misfit_toys_helpers import *
 from tqdm import tqdm
+from datetime import datetime
 
 plt.rc('text', usetex=False)
 
@@ -25,7 +26,6 @@ class Survey(ABC, metaclass=CombinedMeta):
     rec_loc_x: Opt[Ant[torch.Tensor, 'Receiver locations x']]
     src_amp_y: Ant[torch.Tensor, 'Source amplitudes y']
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitudes x']]
-    gpu_loadable: Ant[list, 'GPU loadable parameters']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(self, **kw):
@@ -69,7 +69,7 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
         num_src: Ant[list, 'Number of sources'],
         fst_rec: Ant[list, 'First receiver location'],
         d_rec: Ant[list, 'Receiver spacing'],
-        num_rec: Ant[list, 'Number of receivers'],
+        num_rec: Ant[list, 'Number of receivers']
     ):
         helper = lambda fst, d, num: [fst + i * d for i in range(num)]
         src_idx = []
@@ -90,14 +90,6 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
             rec_idx.append(tmp_rec)
         self.build_src(n_shots=n_shots, idx=src_idx)
         self.build_rec(n_shots=n_shots, idx=rec_idx)
-        self.gpu_loadable = [
-            'src_loc_y', 
-            'src_loc_x', 
-            'rec_loc_y',
-            'rec_loc_x', 
-            'src_amp_y',
-            'src_amp_x'
-        ]
 
     def build_src(
         self,
@@ -143,16 +135,13 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
 
 class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
     def build_amp(self, *, func, **kw):
-        if( 'comp' not in kw.keys() ):
+        if( hasattr(self, 'src_loc_y') ):
             self.src_amp_y = func(pts=self.src_loc_y, comp=0, **kw)
         else:
-            if( 0 in kw['comp'] ):
-                self.src_amp_y = func(pts=self.src_loc, comp=0, **kw)
-            elif( 1 in kw['comp'] ):
-                self.src_amp_x = func(pts=self.src_loc, comp=1, **kw)
-            else:
-                raise ValueError('Invalid kwargs to build_amp: %s'%str(kw))
-        if( not hasattr(self, 'src_amp_x') ):
+            raise ValueError('Must build source location y first!')
+        if( hasattr(self, 'src_loc_x') ):
+            self.src_amp_x = func(pts=self.src_loc_x, comp=1, **kw)
+        else:
             self.src_amp_x = None
 
 class SurveyUniformLambda(
@@ -170,7 +159,8 @@ class SurveyUniformLambda(
         fst_rec: Ant[list, 'First receiver location'],
         d_rec: Ant[list, 'Receiver spacing'],
         num_rec: Ant[list, 'Number of receivers'],
-        amp_func
+        amp_func: Ant[Callable, 'Source amplitude function'],
+        deploy: Ant[list, 'GPU/CPU Deployment protocol']
     ):
         super()._init_uniform_(
             n_shots=n_shots,
@@ -186,6 +176,7 @@ class SurveyUniformLambda(
         for k,v in non_essential:
             if( not hasattr(self, k) ):
                 setattr(self, k, v)
+        device_deploy(self, deploy)
         
 class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']
@@ -201,21 +192,21 @@ class Model(metaclass=SlotMeta):
     dx: Ant[float, 'Spatial step size x']
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
-    gpu_loadable: Ant[list, 'GPU loadable parameters']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(
         self,
         *,
-        survey,
-        model,
-        vp,
-        vs=None,
-        rho=None,
-        freq,
-        dy,
-        dx,
-        dt,
+        survey: Ant[Survey, 'Survey object'],
+        model: Ant[str, 'model', '', '', 'acoustic or elastic'],
+        vp: Ant[torch.Tensor, 'P-wave velocity'],
+        vs: Opt[Ant[torch.Tensor, 'S-wave velocity']]=None,
+        rho: Opt[Ant[torch.Tensor, 'Density']]=None,
+        freq: Ant[float, 'PML frequency'],
+        dy: Ant[float, 'Spatial step size y'],
+        dx: Ant[float, 'Spatial step size x'],
+        dt: Ant[float, 'Temporal step size'],
+        deploy: Ant[list, 'GPU/CPU Deployment protocol'],
         **kw
     ):
         self.survey = survey
@@ -232,6 +223,7 @@ class Model(metaclass=SlotMeta):
         new_keys = set(kw.keys()).difference(set(full_slots))
         for k in new_keys:
             self.custom[k] = kw[k]
+        device_deploy(self, deploy)
 
     def get(self, key):
         return self.custom[key]
@@ -295,6 +287,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         epochs,
         batch_size,
         trainable,
+        deploy: Ant[list, 'GPU/CPU Deployment protocol'],
         **kw
     ):
         self.model = model
@@ -322,6 +315,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.custom = dict()
         for k,v in kw.items():
             self.custom[k] = v
+        device_deploy(self, deploy)
 
     @abstractmethod
     def take_step(self, **kw):
@@ -333,9 +327,14 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         print_freq = self.custom.get('print_freq', 1)
         cmap = self.custom.get('cmap', 'seismic')
         aspect = self.custom.get('aspect', 'auto')
+        plot_base_path = self.custom.get('plot_base_path', 'plots_iomt')
+
+        the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
+        the_time = '_'.join(the_time.split('_')[1:])
+        curr_run_dir = f'{plot_base_path}/{the_time}'
+        os.system(f'mkdir -p {curr_run_dir}')
         def plot_curr(epoch):
             for p,do_transpose in make_plots:
-                print(f'Plotting {p} after {epoch} epochs')
                 tmp = getattr(self.model, p)
                 if( do_transpose ):
                     tmp = tmp.T
@@ -343,14 +342,21 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                 plt.imshow(tmp1, aspect=aspect, cmap=cmap)
                 plt.colorbar()
                 plt.title(f'{p} after {epoch} epochs')
-                plt.savefig(f'{p}_{epoch}.jpg')
-                print('Figure saved to %s_%d.jpg'%(p, epoch))
+                plt.savefig(f'{curr_run_dir}/{p}_{epoch}.jpg')
+                plt.clf()
         plot_curr(0)
         for epoch in range(self.epochs):
             if( verbose and epoch % print_freq == 0 ):
                 print(f'Epoch {epoch+1}/{self.epochs}')
             self.take_step(epoch=epoch, **kw)
             plot_curr(epoch+1)
+        if( len(make_plots) > 0 ):
+            for p,_ in make_plots:
+                print(f'Making gif for {p}')
+                os.system(
+                    'convert -delay 100 $(ls -tr ' + \
+                    f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
+                )
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):

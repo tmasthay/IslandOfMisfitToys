@@ -7,6 +7,17 @@ from .elastic_class import *
 from scipy.ndimage import gaussian_filter
 
 def marmousi_acoustic():
+    devices = get_all_devices()
+    vp_true = retrieve_dataset(
+        field='vp',
+        folder='marmousi',
+        path=os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
+    )
+    vp=torch.tensor(
+        1./gaussian_filter(1./vp_true.numpy(), sigma=40.0)
+    ).to(devices[0])
+    vp.requires_grad=True
+
     uniform_survey = SurveyUniformLambda(
         n_shots=1,
         fst_src=[[1, 1]],
@@ -15,17 +26,14 @@ def marmousi_acoustic():
         fst_rec=[[1, 2]],
         d_rec=[[1, 3]],
         num_rec=[[1, 100]],
-        amp_func=lambda *,pts,comp: torch.ones(pts.shape)
+        amp_func=lambda *,pts,comp: torch.ones(pts.shape),
+        deploy=[
+            ('src_loc_y', devices[0]),
+            ('src_amp_y', devices[0]),
+            ('rec_loc_y', devices[0])
+        ]
     )
 
-    vp_true = retrieve_dataset(
-        field='vp',
-        folder='marmousi',
-        path=os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
-    )
-    vp_init=torch.tensor(1./gaussian_filter(1./vp_true.numpy(), sigma=5))
-    vp=vp_init.clone()
-    vp.requires_grad=True
     model = Model(
         survey=uniform_survey,
         model='acoustic',
@@ -36,7 +44,8 @@ def marmousi_acoustic():
         freq=1.0,
         dt=0.001,
         dy=0.004,
-        dx=0.004
+        dx=0.004,
+        deploy=[('vp', devices[0])]
     )
 
     obs_data = model.forward()
@@ -48,7 +57,7 @@ def marmousi_acoustic():
         loss=torch.nn.MSELoss(),
         optimizer=[
             torch.optim.Adam,
-            {'lr': 0.01}
+            {'lr': 0.1}
         ],
         scheduler=[
             (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.1}),
@@ -59,7 +68,8 @@ def marmousi_acoustic():
         trainable=['vp'],
         make_plots=[('vp', True)],
         print_freq=1,
-        verbose=True
+        verbose=True,
+        deploy=[]
     )
 
     return fwi_solver, model, uniform_survey

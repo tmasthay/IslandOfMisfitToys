@@ -297,6 +297,13 @@ def retrieve_dataset(
     fetch_and_convert_data(subset=folder, path=path, check=check)
     return torch.load(os.path.join(full_path, f'{field}.pt'))
 
+def device_deploy(obj, deploy):
+    for att, device in deploy:
+        curr = getattr(obj, att)
+        if( curr is None ):
+            raise ValueError(f'Attribute {att} in {obj} is None')
+        setattr(obj, att, curr.to(device))
+
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
@@ -336,13 +343,6 @@ class SlotMeta(type):
     
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
-
-class ConstantLR(_LRScheduler):
-    def __init__(self, optimizer, last_epoch=-1):
-        super(ConstantLR, self).__init__(optimizer, last_epoch)
-
-    def get_lr(self):
-        return [base_lr for base_lr in self.base_lrs]
 
 
 
