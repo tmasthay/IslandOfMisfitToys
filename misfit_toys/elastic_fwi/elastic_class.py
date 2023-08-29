@@ -232,9 +232,9 @@ class Model(metaclass=SlotMeta):
                 self.vp,
                 self.dx,
                 self.dt,
-                source_amplitudes=self.src_amp_y,
-                source_locations=self.src_loc,
-                receiver_locations=self.rec_loc,
+                source_amplitudes=self.survey.src_amp_y,
+                source_locations=self.survey.src_loc_y,
+                receiver_locations=self.survey.rec_loc_y,
                 pml_freq=self.freq,
                 **kw
             )[-1]
@@ -277,6 +277,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self,
         *,
         model,
+        obs_data,
         loss,
         optimizer,
         scheduler,
@@ -286,6 +287,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         **kw
     ):
         self.model = model
+        self.obs_data = obs_data
         self.loss = loss
         self.epochs = epochs
         self.batch_size = batch_size
@@ -306,6 +308,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             schedule_list
         )
 
+        self.custom = dict()
         for k,v in kw.items():
             self.custom[k] = v
 
@@ -321,7 +324,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                 plt.title(f'{p} after {epoch} epochs')
                 plt.savefig(f'{p}_{epoch}.jpg')
         plot_curr(0)
-        for epoch in range(self.n_epochs):
+        for epoch in range(self.epochs):
             self.take_step(epoch=epoch, **kw)
             plot_curr(epoch+1)
     
