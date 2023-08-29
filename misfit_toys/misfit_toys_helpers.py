@@ -319,6 +319,16 @@ def device_deploy(obj, deploy):
             raise ValueError(f'Attribute {att} in {obj} is None')
         setattr(obj, att, curr.to(device))
 
+def sub_dict(d, keys):
+    return {k:v for k,v in d.items() if k in keys}
+
+def set_nonslotted_params(obj, params):
+    full_slots = obj.super().__slots__ + obj.__slots__
+    keys = [k for k in params.keys() if k not in full_slots]
+    if( not hasattr(obj, 'custom') ):
+        obj.custom = {}
+    obj.custom.update(sub_dict(params, keys))
+    
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations

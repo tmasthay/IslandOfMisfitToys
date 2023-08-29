@@ -64,45 +64,22 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        fst_src: Ant[list, 'First source location'],
-        d_src: Ant[list, 'Source spacing'],
-        src_depth: Ant[float, 'Source depth'],
-        src_per_shot: Ant[list, 'Number of sources per shot'],
-        fst_rec: Ant[list, 'First receiver location'],
-        d_rec: Ant[list, 'Receiver spacing'],
-        rec_depth: Ant[float, 'Receiver depth'],
-        rec_per_shot: Ant[int, 'Receivers per shot'],
-        d_intra_shot: Ant[float, 'Intra-shot spacing']
+        src_y: Ant[dict, 'Source y info']=None,
+        src_x: Ant[dict, 'Source x info']=None,
+        rec_y: Ant[dict, 'Rec y info']=None,
+        rec_x: Ant[dict, 'Rec x info']=None
     ):
-        get_src = lambda i : \
-            self.build_src(
-                n_shots=n_shots,
-                src_per_shot=src_per_shot,
-                fst_src=fst_src[i],
-                src_depth=src_depth[i],
-                d_src=d_src[i],
-                d_intra_shot=d_intra_shot[i],
-            )
-        get_rec = lambda i : \
-            self.build_rec(
-                n_shots=n_shots,
-                n_rec_per_shot=rec_per_shot,
-                fst_rec=fst_rec[i],
-                rec_depth=rec_depth[i],
-                d_rec=d_rec[i]
-            )
-        self.src_loc_y = get_src(0)
-        self.rec_loc_y = get_rec(0)
-        if( len(fst_src) == 2 ):
-            self.src_loc_x = get_src(1)
-        else:
-            self.src_loc_x = None
+        get_field = lambda meth, d: None if d is None \
+            else meth(n_shots=n_shots, **d)
 
-        if( len(fst_rec) == 2 ):
-            self.rec_loc_x = get_rec(1)
-        else:
-            self.rec_loc_x = None
+        get_src = lambda d: get_field(self.build_src, d)
+        get_rec = lambda d: get_field(self.build_rec, d)
 
+        self.src_loc_y = get_src(src_y)
+        self.src_loc_x = get_src(src_x)
+        self.rec_loc_y = get_rec(rec_y)
+        self.rec_loc_x = get_rec(rec_x)
+ 
     def build_src(
         self,
         *,
@@ -142,11 +119,11 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
 class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
     def build_amp(self, *, func, **kw):
         if( hasattr(self, 'src_loc_y') ):
-            self.src_amp_y = func(pts=self.src_loc_y, comp=0, **kw)
+            self.src_amp_y = func(self=self, pts=self.src_loc_y, comp=0, **kw)
         else:
             raise ValueError('Must build source location y first!')
         if( hasattr(self, 'src_loc_x') ):
-            self.src_amp_x = func(pts=self.src_loc_x, comp=1, **kw)
+            self.src_amp_x = func(self=self, pts=self.src_loc_x, comp=1, **kw)
         else:
             self.src_amp_x = None
 
@@ -159,30 +136,24 @@ class SurveyUniformLambda(
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        fst_src: Ant[list, 'First source location'],
-        d_src: Ant[list, 'Source spacing'],
-        num_src: Ant[list, 'Number of sources'],
-        fst_rec: Ant[list, 'First receiver location'],
-        d_rec: Ant[list, 'Receiver spacing'],
-        num_rec: Ant[list, 'Number of receivers'],
+        src_y: Ant[dict, 'Source y info']=None,
+        src_x: Ant[dict, 'Source x info']=None,
+        rec_y: Ant[dict, 'Rec y info']=None,
+        rec_x: Ant[dict, 'Rec x info']=None,
         amp_func: Ant[Callable, 'Source amplitude function'],
-        deploy: Ant[list, 'GPU/CPU Deployment protocol']
+        deploy: Ant[list, 'GPU/CPU Deployment protocol'],
+        **kw
     ):
         super()._init_uniform_(
             n_shots=n_shots,
-            fst_src=fst_src,
-            d_src=d_src,
-            num_src=num_src,
-            fst_rec=fst_rec,
-            d_rec=d_rec,
-            num_rec=num_rec
+            src_y=src_y,
+            src_x=src_x,
+            rec_y=rec_y,
+            rec_x=rec_x
         )
         self.build_amp(func=amp_func)
-        non_essential = [('src_amp_x', None), ('custom', dict())]
-        for k,v in non_essential:
-            if( not hasattr(self, k) ):
-                setattr(self, k, v)
         device_deploy(self, deploy)
+        set_nonslotted_params(self, kw)
         
 class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']

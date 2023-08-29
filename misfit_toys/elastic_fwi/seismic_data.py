@@ -19,23 +19,37 @@ def marmousi_acoustic():
     vp.requires_grad=True
 
     uniform_survey = SurveyUniformLambda(
-        n_shots=20,
-        fst_src=[[1, 1]],
-        d_src=[[20, 2]],
-        num_src=[[20, 1]],
-        fst_rec=[[1, 2]],
-        d_rec=[[1, 3]],
-        num_rec=[[1, 100]],
-        amp_func=lambda *,pts,comp: torch.ones(pts.shape),
+        n_shots=115,
+        src_y={
+            'src_per_shot': 1,
+            'fst_src': 1,
+            'src_depth': 2,
+            'd_src': 20,
+            'd_intra_shot': 0
+        },
+        rec_y={
+            'rec_per_shot': 1,
+            'fst_rec': 1,
+            'rec_depth': 2,
+            'd_rec': 20,
+        },
+        amp_func=(
+            lambda *,self,pts,comp: \
+                deepwave.ricker.wavelet(
+                    freq=self.custom['ricker_freq'],
+                    nt=self.nt,
+                    dt=self.dt,
+                    peak_time=self.custom['peak_time']
+                ).repeat(*pts.shape, 1)
+        ),
         deploy=[
             ('src_loc_y', devices[0]),
             ('src_amp_y', devices[0]),
             ('rec_loc_y', devices[0])
-        ]
+        ],
+        ricker_freq=1.0,
+        peak_time=0.08
     )
-    for i in range(uniform_survey.src_loc_y.shape[0]):
-        print(uniform_survey.src_loc_y)
-    input('yo')
 
     model = Model(
         survey=uniform_survey,
