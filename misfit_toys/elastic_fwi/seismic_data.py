@@ -5,6 +5,7 @@ from masthay_helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_
 
 from .elastic_class import *
 from scipy.ndimage import gaussian_filter
+from .elastic_custom import *
 
 def marmousi_acoustic():
     devices = get_all_devices()
@@ -13,13 +14,18 @@ def marmousi_acoustic():
         folder='marmousi',
         path=os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
     )
-    vp=torch.tensor(
-        1./gaussian_filter(1./vp_true.numpy(), sigma=40.0)
-    ).to(devices[0])
+    ratio_y = 4
+    ratio_x = 4
+    vp_true = downsample_tensor(vp_true, axis=0, ratio=ratio_y)
+    vp_true = downsample_tensor(vp_true, axis=1, ratio=ratio_x)
+    # vp=torch.tensor(
+    #     1./gaussian_filter(1./vp_true.numpy(), sigma=40.0)
+    # ).to(devices[0])
+    vp = 3000.0 * torch.ones_like(vp_true).to(devices[0])
     vp.requires_grad=True
 
     uniform_survey = SurveyUniformLambda(
-        n_shots=115,
+        n_shots=1,
         src_y={
             'src_per_shot': 1,
             'fst_src': 1,
@@ -34,13 +40,13 @@ def marmousi_acoustic():
             'd_rec': 20,
         },
         amp_func=(
-            lambda *,self,pts,comp: \
-                deepwave.ricker.wavelet(
+            lambda *,self,pts,comp: None if pts == None else \
+                deepwave.wavelets.ricker(
                     freq=self.custom['ricker_freq'],
-                    nt=self.nt,
+                    length=self.nt,
                     dt=self.dt,
                     peak_time=self.custom['peak_time']
-                ).repeat(*pts.shape, 1)
+                ).repeat(*pts.shape[:-1], 1)
         ),
         deploy=[
             ('src_loc_y', devices[0]),
@@ -48,7 +54,9 @@ def marmousi_acoustic():
             ('rec_loc_y', devices[0])
         ],
         ricker_freq=1.0,
-        peak_time=0.08
+        peak_time=0.08,
+        nt=1000,
+        dt=0.0001
     )
 
     model = Model(
@@ -59,19 +67,19 @@ def marmousi_acoustic():
         rho=None,
         vs=None,
         freq=1.0,
-        dt=0.001,
         dy=0.004,
         dx=0.004,
         deploy=[('vp', devices[0])]
     )
 
+    print('Computing observations...')
     obs_data = model.forward()
     model.vp = vp
 
     fwi_solver = FWI(
         obs_data=obs_data,
         model=model, 
-        loss=torch.nn.MSELoss(),
+        loss=W1(lambda x: x**2 / (x**2).sum()),
         optimizer=[
             torch.optim.Adam,
             {'lr': 0.1}
@@ -86,7 +94,9 @@ def marmousi_acoustic():
         make_plots=[('vp', True)],
         print_freq=1,
         verbose=True,
-        deploy=[]
+        deploy=[],
+        clip_grad=[('vp', 0.98)],
+        loss_scaling=1e20
     )
 
     return fwi_solver, model, uniform_survey

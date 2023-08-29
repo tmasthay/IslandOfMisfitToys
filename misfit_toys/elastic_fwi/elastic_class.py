@@ -26,6 +26,8 @@ class Survey(ABC, metaclass=CombinedMeta):
     rec_loc_x: Opt[Ant[torch.Tensor, 'Receiver locations x']]
     src_amp_y: Ant[torch.Tensor, 'Source amplitudes y']
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitudes x']]
+    dt: Ant[float, 'Temporal step size']
+    nt: Ant[int, 'Number of time steps']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(self, **kw):
@@ -103,14 +105,14 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        n_rec_per_shot: Ant[int, 'Receivers per shot'],
+        rec_per_shot: Ant[int, 'Receivers per shot'],
         fst_rec: Ant[list, 'First receiver location'],
         rec_depth: Ant[float, 'Receiver depth'],
         d_rec: Ant[float, 'Receiver spacing'],
     ):
         return fixed_rec(
             n_shots=n_shots,
-            n_rec_per_shot=n_rec_per_shot,
+            rec_per_shot=rec_per_shot,
             fst_rec=fst_rec,
             rec_depth=rec_depth,
             d_rec=d_rec
@@ -142,6 +144,8 @@ class SurveyUniformLambda(
         rec_x: Ant[dict, 'Rec x info']=None,
         amp_func: Ant[Callable, 'Source amplitude function'],
         deploy: Ant[list, 'GPU/CPU Deployment protocol'],
+        nt: Ant[int, 'Number of time steps'],
+        dt: Ant[float, 'Temporal step size'],
         **kw
     ):
         super()._init_uniform_(
@@ -151,10 +155,12 @@ class SurveyUniformLambda(
             rec_y=rec_y,
             rec_x=rec_x
         )
+        self.nt = nt
+        self.dt = dt
+        set_nonslotted_params(self, kw)
         self.build_amp(func=amp_func)
         device_deploy(self, deploy)
-        set_nonslotted_params(self, kw)
-        
+
 class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']
     model: Ant[str, 'model', '', '', 'acoustic or elastic']
@@ -182,7 +188,6 @@ class Model(metaclass=SlotMeta):
         freq: Ant[float, 'PML frequency'],
         dy: Ant[float, 'Spatial step size y'],
         dx: Ant[float, 'Spatial step size x'],
-        dt: Ant[float, 'Temporal step size'],
         deploy: Ant[list, 'GPU/CPU Deployment protocol'],
         **kw
     ):
@@ -193,7 +198,7 @@ class Model(metaclass=SlotMeta):
         self.vs = vs
         self.rho = rho
         self.freq = freq
-        self.dy, self.dx, self.dt = dy, dx, dt
+        self.dy, self.dx, self.dt = dy, dx, survey.dt
         self.ny, self.dy, self.nt = *vp.shape, survey.src_amp_y.shape[-1]
         self.custom = dict()
         full_slots = self.survey.__slots__ + self.__slots__
@@ -340,7 +345,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def in_loop_post_process(self, **kw):
         plot_curr = kw['plot_curr']
         def helper(epoch):
-            plot_curr(kw['epoch']+1)
+            plot_curr(epoch+1)
         return helper
 
     def post_process(self, **kw):
@@ -361,21 +366,30 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         in_loop_post_process = self.in_loop_post_process(**precomputed_meta)
         for epoch in range(self.epochs):
             in_loop_pre_process(epoch=epoch)
-            self.take_step(epoch=epoch, **kw)
+            loss_lcl, grad_norms = self.take_step(epoch=epoch, **kw)
+            print_idt = lambda x,idt: print('%s%s'%(4*idt*' ',x))
+            print_idt(f'Loss: {loss_lcl}', 1)
+            print_idt(f'Learning rate: {self.optimizer.param_groups[0]["lr"]}', 1)
+            for (i,p) in enumerate(self.trainable):
+                print_idt(f'Grad norm {p}: {grad_norms[i]}', 1)
             in_loop_post_process(epoch=epoch)
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
         self.optimizer.zero_grad()
         self.model.forward(**kw)
-        loss_lcl = kw.get('loss_scaling', 1.0) \
+        loss_lcl = self.custom.get('loss_scaling', 1.0) \
             * self.loss(self.model.u, self.obs_data)
         loss_lcl.backward()
-        if( 'clip_grad' in kw.keys() ):
-            for att, clip_val in kw['clip_grad']:
+        if( 'clip_grad' in self.custom.keys() ):
+            for att, clip_val in self.custom['clip_grad']:
                 torch.nn.utils.clip_grad_value_(
                     getattr(self.model, att),
                     clip_val
                 )
+        grad_norms = []
+        for p in self.trainable:
+            grad_norms.append(p.grad.norm())
         self.optimizer.step()
         self.scheduler.step()
+        return loss_lcl, grad_norms

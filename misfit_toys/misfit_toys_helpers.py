@@ -176,6 +176,7 @@ def towed_src(
     for i in range(n_shots):
         for j in range(src_per_shot):
             res[i, j, 0] = fst_src + i * d_src + j * d_intra_shot
+    return res
 
 def fixed_rec(
     *,
@@ -187,8 +188,8 @@ def fixed_rec(
 ):
     res = torch.zeros(n_shots, rec_per_shot, 2)
     res[:, :, 1] = rec_depth
-    for i in range(n_shots):
-        res[:, i, 0] = (fst_rec[0] + i * d_rec).repeat(n_shots,1)
+    res[:, :, 0] = (torch.arange(rec_per_shot) * d_rec + fst_rec) \
+        .repeat(n_shots, 1)
     return res  
 
 def get_all_devices():
@@ -323,12 +324,35 @@ def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
 
 def set_nonslotted_params(obj, params):
-    full_slots = obj.super().__slots__ + obj.__slots__
-    keys = [k for k in params.keys() if k not in full_slots]
+    keys = [k for k in params.keys() if k not in obj.__slots__]
     if( not hasattr(obj, 'custom') ):
         obj.custom = {}
     obj.custom.update(sub_dict(params, keys))
+
+def downsample_tensor(tensor, axis, ratio):
+    """
+    Downsample a torch.Tensor along a given axis by a specific ratio.
     
+    Parameters:
+        tensor (torch.Tensor): The input tensor to downsample.
+        axis (int): The axis along which to downsample. Must be in range [0, tensor.dim()).
+        ratio (int): The downsampling ratio. Must be greater than 0.
+        
+    Returns:
+        torch.Tensor: The downsampled tensor.
+    """
+    
+    if ratio <= 0:
+        raise ValueError("Ratio must be greater than 0")
+        
+    if axis < 0 or axis >= tensor.dim():
+        raise ValueError(f"Axis must be in range [0, {tensor.dim()}).")
+        
+    slices = [slice(None)] * tensor.dim()
+    slices[axis] = slice(None, None, ratio)
+    
+    return tensor[tuple(slices)]
+
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
