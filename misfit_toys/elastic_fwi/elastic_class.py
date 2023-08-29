@@ -14,6 +14,7 @@ from typing import Annotated as Ant
 from typing import Optional as Opt
 from .custom_losses import *
 from ..misfit_toys_helpers import *
+from tqdm import tqdm
 
 plt.rc('text', usetex=False)
 
@@ -24,6 +25,7 @@ class Survey(ABC, metaclass=CombinedMeta):
     rec_loc_x: Opt[Ant[torch.Tensor, 'Receiver locations x']]
     src_amp_y: Ant[torch.Tensor, 'Source amplitudes y']
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitudes x']]
+    gpu_loadable: Ant[list, 'GPU loadable parameters']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(self, **kw):
@@ -88,6 +90,14 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
             rec_idx.append(tmp_rec)
         self.build_src(n_shots=n_shots, idx=src_idx)
         self.build_rec(n_shots=n_shots, idx=rec_idx)
+        self.gpu_loadable = [
+            'src_loc_y', 
+            'src_loc_x', 
+            'rec_loc_y',
+            'rec_loc_x', 
+            'src_amp_y',
+            'src_amp_x'
+        ]
 
     def build_src(
         self,
@@ -191,6 +201,7 @@ class Model(metaclass=SlotMeta):
     dx: Ant[float, 'Spatial step size x']
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
+    gpu_loadable: Ant[list, 'GPU loadable parameters']
     custom: Ant[dict, 'Custom parameters for user flexibility']
 
     def __init__(
@@ -317,14 +328,27 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         pass
 
     def fwi(self, **kw):
-        make_plot = self.custom.get('make_plot', [])
+        make_plots = self.custom.get('make_plots', [])
+        verbose = self.custom.get('verbose', False)
+        print_freq = self.custom.get('print_freq', 1)
+        cmap = self.custom.get('cmap', 'seismic')
+        aspect = self.custom.get('aspect', 'auto')
         def plot_curr(epoch):
-            for p in make_plot:
-                plt.imshow(getattr(self.model, p))
+            for p,do_transpose in make_plots:
+                print(f'Plotting {p} after {epoch} epochs')
+                tmp = getattr(self.model, p)
+                if( do_transpose ):
+                    tmp = tmp.T
+                tmp1 = tmp.detach().cpu().numpy()
+                plt.imshow(tmp1, aspect=aspect, cmap=cmap)
+                plt.colorbar()
                 plt.title(f'{p} after {epoch} epochs')
                 plt.savefig(f'{p}_{epoch}.jpg')
+                print('Figure saved to %s_%d.jpg'%(p, epoch))
         plot_curr(0)
         for epoch in range(self.epochs):
+            if( verbose and epoch % print_freq == 0 ):
+                print(f'Epoch {epoch+1}/{self.epochs}')
             self.take_step(epoch=epoch, **kw)
             plot_curr(epoch+1)
     
@@ -336,8 +360,3 @@ class FWI(FWIAbstract, metaclass=SlotMeta):
         loss_lcl.backward()
         self.optimizer.step()
         self.scheduler.step()
-
-    
-
-
-    

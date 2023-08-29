@@ -23,7 +23,7 @@ def marmousi_acoustic():
         folder='marmousi',
         path=os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
     )
-    vp_init=torch.tensor(gaussian_filter(vp_true.numpy(), sigma=5))
+    vp_init=torch.tensor(1./gaussian_filter(1./vp_true.numpy(), sigma=5))
     vp=vp_init.clone()
     vp.requires_grad=True
     model = Model(
@@ -54,10 +54,12 @@ def marmousi_acoustic():
             (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.1}),
             (torch.optim.lr_scheduler.ExponentialLR, {'gamma': 0.99})
         ],
-        epochs=1,
+        epochs=10,
         batch_size=1,
         trainable=['vp'],
-        make_plots=['vp']
+        make_plots=[('vp', True)],
+        print_freq=1,
+        verbose=True
     )
 
     return fwi_solver, model, uniform_survey

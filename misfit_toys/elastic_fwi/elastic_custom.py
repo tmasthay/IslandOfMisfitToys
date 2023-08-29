@@ -160,7 +160,6 @@ class DataGenerator(Data, ABC):
     def forward(**kw):
         pass
 
-
 def get_data(**kw):
     #import global vars
     global device
