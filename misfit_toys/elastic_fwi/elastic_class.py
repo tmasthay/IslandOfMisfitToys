@@ -328,6 +328,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         cmap = self.custom.get('cmap', 'seismic')
         aspect = self.custom.get('aspect', 'auto')
         plot_base_path = self.custom.get('plot_base_path', 'plots_iomt')
+        gif_speed = self.custom.get('gif_speed', 100)
 
         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
         the_time = '_'.join(the_time.split('_')[1:])
@@ -354,7 +355,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             for p,_ in make_plots:
                 print(f'Making gif for {p}')
                 os.system(
-                    'convert -delay 100 $(ls -tr ' + \
+                    f'convert -delay {gif_speed} $(ls -tr ' + \
                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
                 )
     
