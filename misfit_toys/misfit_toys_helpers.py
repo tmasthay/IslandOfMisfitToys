@@ -162,19 +162,34 @@ def read_tensor(s, device):
     elif( type(s) == str ): return torch.load(s, device=device)
     else: return s.to(device)
 
-def uni_src_rec(
+def towed_src(
     *,
-    n_shots: Ant[int, 'Number of shots', '1<='],
-    idx_y: Ant[list, 'Horizontal locations covered'],
-    idx_x: Ant[list, 'Vertical locations covered']
+    n_shots,
+    src_per_shot,
+    fst_src,
+    d_src,
+    src_depth,
+    d_intra_shot
 ):
-    idx = torch.tensor(
-        [
-            list(e) for e in itertools.product(idx_y, idx_x)
-        ],
-        dtype=int
-    )
-    return idx.unsqueeze(0).expand(n_shots, -1, -1)
+    res = torch.zeros(n_shots, src_per_shot, 2)
+    res[:, :, 1] = src_depth
+    for i in range(n_shots):
+        for j in range(src_per_shot):
+            res[i, j, 0] = fst_src + i * d_src + j * d_intra_shot
+
+def fixed_rec(
+    *,
+    n_shots,
+    rec_per_shot,
+    fst_rec,
+    d_rec,
+    rec_depth
+):
+    res = torch.zeros(n_shots, rec_per_shot, 2)
+    res[:, :, 1] = rec_depth
+    for i in range(n_shots):
+        res[:, i, 0] = (fst_rec[0] + i * d_rec).repeat(n_shots,1)
+    return res  
 
 def get_all_devices():
     gpus = [

@@ -66,72 +66,78 @@ class SurveyUniformAbstract(Survey, metaclass=CombinedMeta):
         n_shots: Ant[int, 'Number of shots'],
         fst_src: Ant[list, 'First source location'],
         d_src: Ant[list, 'Source spacing'],
-        num_src: Ant[list, 'Number of sources'],
+        src_depth: Ant[float, 'Source depth'],
+        src_per_shot: Ant[list, 'Number of sources per shot'],
         fst_rec: Ant[list, 'First receiver location'],
         d_rec: Ant[list, 'Receiver spacing'],
-        num_rec: Ant[list, 'Number of receivers']
+        rec_depth: Ant[float, 'Receiver depth'],
+        rec_per_shot: Ant[int, 'Receivers per shot'],
+        d_intra_shot: Ant[float, 'Intra-shot spacing']
     ):
-        helper = lambda fst, d, num: [fst + i * d for i in range(num)]
-        src_idx = []
-        rec_idx = []
-        assert( len(fst_src) in [1,2] )
-        for i in range(len(fst_src)):
-            assert(len(fst_src[i]) == 2)
-            tmp_src = []
-            tmp_rec = []
-            for j in range(len(fst_src[i])):
-                tmp_src.append(
-                    helper(fst_src[i][j], d_src[i][j], num_src[i][j])
-                )
-                tmp_rec.append(    
-                    helper(fst_rec[i][j], d_rec[i][j], num_rec[i][j])
-                )
-            src_idx.append(tmp_src)
-            rec_idx.append(tmp_rec)
-        self.build_src(n_shots=n_shots, idx=src_idx)
-        self.build_rec(n_shots=n_shots, idx=rec_idx)
+        get_src = lambda i : \
+            self.build_src(
+                n_shots=n_shots,
+                src_per_shot=src_per_shot,
+                fst_src=fst_src[i],
+                src_depth=src_depth[i],
+                d_src=d_src[i],
+                d_intra_shot=d_intra_shot[i],
+            )
+        get_rec = lambda i : \
+            self.build_rec(
+                n_shots=n_shots,
+                n_rec_per_shot=rec_per_shot,
+                fst_rec=fst_rec[i],
+                rec_depth=rec_depth[i],
+                d_rec=d_rec[i]
+            )
+        self.src_loc_y = get_src(0)
+        self.rec_loc_y = get_rec(0)
+        if( len(fst_src) == 2 ):
+            self.src_loc_x = get_src(1)
+        else:
+            self.src_loc_x = None
+
+        if( len(fst_rec) == 2 ):
+            self.rec_loc_x = get_rec(1)
+        else:
+            self.rec_loc_x = None
 
     def build_src(
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        idx: Ant[list, 'Source indices']
+        src_per_shot: Ant[int, 'Sources per shot'],
+        fst_src: Ant[list, 'First source location'],
+        src_depth: Ant[float, 'Source depth'],
+        d_src: Ant[float, 'Source spacing'],
+        d_intra_shot: Ant[float, 'Intra-shot spacing']
     ):
-        assert( len(idx) in [1,2] )
-        assert( len(idx[0]) == 2 )
-        self.src_loc_y = uni_src_rec(
+        return towed_src(
             n_shots=n_shots,
-            idx_y=idx[0][0],
-            idx_x=idx[0][1]
+            src_per_shot=src_per_shot,
+            fst_src=fst_src,
+            src_depth=src_depth,
+            d_src=d_src,
+            d_intra_shot=d_intra_shot,
         )
-        if( len(idx) == 2 ):
-            assert(len(idx[1]) == 2)
-            self.src_loc_x = uni_src_rec(
-                n_shots=n_shots,
-                idx_y=idx[1][0],
-                idx_x=idx[1][1]
-            )
 
     def build_rec(
         self,
         *,
         n_shots: Ant[int, 'Number of shots'],
-        idx: Ant[list, 'Source indices']
+        n_rec_per_shot: Ant[int, 'Receivers per shot'],
+        fst_rec: Ant[list, 'First receiver location'],
+        rec_depth: Ant[float, 'Receiver depth'],
+        d_rec: Ant[float, 'Receiver spacing'],
     ):
-        assert( len(idx) in [1,2] )
-        assert( len(idx[0]) == 2 )
-        self.rec_loc_y = uni_src_rec(
+        return fixed_rec(
             n_shots=n_shots,
-            idx_y=idx[0][0],
-            idx_x=idx[0][1]
+            n_rec_per_shot=n_rec_per_shot,
+            fst_rec=fst_rec,
+            rec_depth=rec_depth,
+            d_rec=d_rec
         )
-        if( len(idx) == 2 ):
-            assert(len(idx[1]) == 2)
-            self.rec_loc_x = uni_src_rec(
-                n_shots=n_shots,
-                idx_y=idx[1][0],
-                idx_x=idx[1][1]
-            )
 
 class SurveyFunctionAmpAbstract(Survey, metaclass=CombinedMeta):
     def build_amp(self, *, func, **kw):
@@ -321,7 +327,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def take_step(self, **kw):
         pass
 
-    def fwi(self, **kw):
+    def pre_process(self):
         make_plots = self.custom.get('make_plots', [])
         verbose = self.custom.get('verbose', False)
         print_freq = self.custom.get('print_freq', 1)
@@ -346,11 +352,30 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                 plt.savefig(f'{curr_run_dir}/{p}_{epoch}.jpg')
                 plt.clf()
         plot_curr(0)
-        for epoch in range(self.epochs):
-            if( verbose and epoch % print_freq == 0 ):
+        return {
+            'verbose': verbose,
+            'print_freq': print_freq,
+            'curr_run_dir': curr_run_dir,
+            'gif_speed': gif_speed,
+            'plot_curr': plot_curr
+        }
+    
+    def in_loop_pre_process(self, **kw):
+        def helper(epoch):
+            if( kw['verbose'] and epoch % kw['print_freq'] == 0 ):
                 print(f'Epoch {epoch+1}/{self.epochs}')
-            self.take_step(epoch=epoch, **kw)
-            plot_curr(epoch+1)
+        return helper
+
+    def in_loop_post_process(self, **kw):
+        plot_curr = kw['plot_curr']
+        def helper(epoch):
+            plot_curr(kw['epoch']+1)
+        return helper
+
+    def post_process(self, **kw):
+        make_plots = kw['make_plots']
+        curr_run_dir = kw['curr_run_dir']
+        gif_speed = kw['gif_speed']
         if( len(make_plots) > 0 ):
             for p,_ in make_plots:
                 print(f'Making gif for {p}')
@@ -358,12 +383,28 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                     f'convert -delay {gif_speed} $(ls -tr ' + \
                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
                 )
+        
+    def fwi(self, **kw):
+        precomputed_meta = self.pre_process()
+        in_loop_pre_process = self.in_loop_pre_process(**precomputed_meta)
+        in_loop_post_process = self.in_loop_post_process(**precomputed_meta)
+        for epoch in range(self.epochs):
+            in_loop_pre_process(epoch=epoch)
+            self.take_step(epoch=epoch, **kw)
+            in_loop_post_process(epoch=epoch)
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
         self.optimizer.zero_grad()
         self.model.forward(**kw)
-        loss_lcl = self.loss(self.model.u, self.obs_data)
+        loss_lcl = kw.get('loss_scaling', 1.0) \
+            * self.loss(self.model.u, self.obs_data)
         loss_lcl.backward()
+        if( 'clip_grad' in kw.keys() ):
+            for att, clip_val in kw['clip_grad']:
+                torch.nn.utils.clip_grad_value_(
+                    getattr(self.model, att),
+                    clip_val
+                )
         self.optimizer.step()
         self.scheduler.step()

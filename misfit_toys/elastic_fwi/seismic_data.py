@@ -19,10 +19,10 @@ def marmousi_acoustic():
     vp.requires_grad=True
 
     uniform_survey = SurveyUniformLambda(
-        n_shots=1,
+        n_shots=20,
         fst_src=[[1, 1]],
-        d_src=[[1, 2]],
-        num_src=[[1, 1]],
+        d_src=[[20, 2]],
+        num_src=[[20, 1]],
         fst_rec=[[1, 2]],
         d_rec=[[1, 3]],
         num_rec=[[1, 100]],
@@ -33,6 +33,9 @@ def marmousi_acoustic():
             ('rec_loc_y', devices[0])
         ]
     )
+    for i in range(uniform_survey.src_loc_y.shape[0]):
+        print(uniform_survey.src_loc_y)
+    input('yo')
 
     model = Model(
         survey=uniform_survey,
