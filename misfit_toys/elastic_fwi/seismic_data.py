@@ -7,7 +7,7 @@ from .elastic_class import *
 from scipy.ndimage import gaussian_filter
 from .elastic_custom import *
 
-def marmousi_acoustic():
+def marmousi_acoustic(): 
     devices = get_all_devices()
     vp_true = retrieve_dataset(
         field='vp',
@@ -21,7 +21,14 @@ def marmousi_acoustic():
     # vp=torch.tensor(
     #     1./gaussian_filter(1./vp_true.numpy(), sigma=40.0)
     # ).to(devices[0])
-    vp = 3000.0 * torch.ones_like(vp_true).to(devices[0])
+    # vp = 3000.0 * torch.ones_like(vp_true).to(devices[0])
+    mu = 0.0
+    sig = 0.1
+    vp = vp_true.clone()
+    vp = (vp * (1.0 + mu + sig * torch.randn_like(vp))).to(devices[0])
+    # vp=torch.tensor(
+    #     1./gaussian_filter(1./vp.numpy(), sigma=40.0)
+    # ).to(devices[0])
     vp.requires_grad=True
 
     uniform_survey = SurveyUniformLambda(
@@ -53,8 +60,8 @@ def marmousi_acoustic():
             ('src_amp_y', devices[0]),
             ('rec_loc_y', devices[0])
         ],
-        ricker_freq=1.0,
-        peak_time=0.08,
+        ricker_freq=10.0,
+        peak_time=0.05,
         nt=1000,
         dt=0.0001
     )
@@ -79,16 +86,16 @@ def marmousi_acoustic():
     fwi_solver = FWI(
         obs_data=obs_data,
         model=model, 
-        loss=W1(lambda x: x**2 / (x**2).sum()),
+        loss=torch.nn.MSELoss(reduction='sum'),
         optimizer=[
-            torch.optim.Adam,
-            {'lr': 0.1}
+            torch.optim.SGD,
+            {'lr': 1.0}
         ],
         scheduler=[
-            (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.1}),
+            (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.9}),
             (torch.optim.lr_scheduler.ExponentialLR, {'gamma': 0.99})
         ],
-        epochs=10,
+        epochs=25,
         batch_size=1,
         trainable=['vp'],
         make_plots=[('vp', True)],
@@ -96,7 +103,7 @@ def marmousi_acoustic():
         verbose=True,
         deploy=[],
         clip_grad=[('vp', 0.98)],
-        loss_scaling=1e20
+        loss_scaling=1.0e20
     )
 
     return fwi_solver, model, uniform_survey

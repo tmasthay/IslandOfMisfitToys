@@ -353,6 +353,20 @@ def downsample_tensor(tensor, axis, ratio):
     
     return tensor[tuple(slices)]
 
+def get_member_name(obj, sub_obj, special=False):
+    if( special ):
+        l = dir(obj)
+    else:
+        l = [e for e in dir(obj) if not e.startswith('__')]
+    fields = [i for i,e in enumerate(l) if id(getattr(obj, e)) == id(sub_obj)]
+
+    if( len(fields) == 0 ):
+        raise ValueError(f'{sub_obj} not found in {obj}')
+    elif( len(fields) > 1 ):
+        raise ValueError(f'{sub_obj} found multiple times in {obj}')
+    else:
+        return l[fields[0]]
+
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations

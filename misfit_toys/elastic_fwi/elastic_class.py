@@ -199,7 +199,7 @@ class Model(metaclass=SlotMeta):
         self.rho = rho
         self.freq = freq
         self.dy, self.dx, self.dt = dy, dx, survey.dt
-        self.ny, self.dy, self.nt = *vp.shape, survey.src_amp_y.shape[-1]
+        self.ny, self.nx, self.nt = *vp.shape, survey.src_amp_y.shape[-1]
         self.custom = dict()
         full_slots = self.survey.__slots__ + self.__slots__
         new_keys = set(kw.keys()).difference(set(full_slots))
@@ -333,7 +333,8 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             'print_freq': print_freq,
             'curr_run_dir': curr_run_dir,
             'gif_speed': gif_speed,
-            'plot_curr': plot_curr
+            'plot_curr': plot_curr,
+            'make_plots': make_plots
         }
     
     def in_loop_pre_process(self, **kw):
@@ -368,11 +369,16 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             in_loop_pre_process(epoch=epoch)
             loss_lcl, grad_norms = self.take_step(epoch=epoch, **kw)
             print_idt = lambda x,idt: print('%s%s'%(4*idt*' ',x))
-            print_idt(f'Loss: {loss_lcl}', 1)
-            print_idt(f'Learning rate: {self.optimizer.param_groups[0]["lr"]}', 1)
+            print_idt(f'Loss: {loss_lcl:.4e}', 1)
+            print_idt(
+                f'Learning rate: {self.optimizer.param_groups[0]["lr"]:.4e}', 
+                1
+            )
             for (i,p) in enumerate(self.trainable):
-                print_idt(f'Grad norm {p}: {grad_norms[i]}', 1)
+                name = get_member_name(self.model, p)
+                print_idt(f'Grad norm "{name}": {grad_norms[i]:.4e}', 1)
             in_loop_post_process(epoch=epoch)
+        self.post_process(**precomputed_meta)
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
