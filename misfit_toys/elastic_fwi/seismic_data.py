@@ -91,7 +91,7 @@ def marmousi_acoustic():
         obs_data=obs_data,
         model=model, 
         loss=torch.nn.MSELoss(reduction='sum'),
-        optimizer=[x
+        optimizer=[
             torch.optim.SGD,
             {'lr': 1.0}
         ],
