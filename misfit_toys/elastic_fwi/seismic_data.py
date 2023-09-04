@@ -84,14 +84,14 @@ def marmousi_acoustic():
     obs_data = model.forward()
     model.vp = vp
     
-    multi_gpu = True
+    multi_gpu = False
     model.setup_multi_gpu(multi_gpu=multi_gpu)
 
     fwi_solver = FWI(
         obs_data=obs_data,
         model=model, 
         loss=torch.nn.MSELoss(reduction='sum'),
-        optimizer=[
+        optimizer=[x
             torch.optim.SGD,
             {'lr': 1.0}
         ],

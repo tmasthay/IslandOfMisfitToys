@@ -252,8 +252,7 @@ class Model(metaclass=SlotMeta):
     def forward(self, **kw):
         """forward solver"""
         if( self.model == 'acoustic' ):
-            input('here')
-            self.u = self.propagator(
+            self.u = self.propagator.forward(
                 self.dt,
                 source_amplitudes=self.survey.src_amp_y,
                 source_locations=self.survey.src_loc_y,
@@ -271,7 +270,7 @@ class Model(metaclass=SlotMeta):
             if( hasattr(self.survey, 'src_amp_x') ):
                 kw_lcl['source_amplitudes_x'] = self.src_amp_x
 
-            self.u = self.propagator(
+            self.u = self.propagator.forward(
                 self.dt,
                 **kw_lcl
             )[-2]
