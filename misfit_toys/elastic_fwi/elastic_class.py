@@ -176,6 +176,7 @@ class Model(metaclass=SlotMeta):
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
     custom: Ant[dict, 'Custom parameters for user flexibility']
+    propagator: Ant[Callable, 'Propagator function']
 
     def __init__(
         self,
@@ -189,6 +190,7 @@ class Model(metaclass=SlotMeta):
         dy: Ant[float, 'Spatial step size y'],
         dx: Ant[float, 'Spatial step size x'],
         deploy: Ant[list, 'GPU/CPU Deployment protocol'],
+        multi_gpu: Ant[bool, 'Multi-GPU mode']=False,
         **kw
     ):
         self.survey = survey
@@ -206,6 +208,43 @@ class Model(metaclass=SlotMeta):
         for k in new_keys:
             self.custom[k] = kw[k]
         device_deploy(self, deploy)
+        self.setup_multi_gpu(multi_gpu=multi_gpu)
+
+    def setup_multi_gpu(self, *, multi_gpu):
+        if( multi_gpu ):
+            if( self.model == 'acoustic' ):
+                self.propagator = torch.nn.DataParallel(
+                    deepwave.Scalar(self.vp, self.dx)
+                )
+            else:
+                raise NotImplementedError('Elastic multi-GPU not implemented')
+        else:
+            if( self.model.model == 'acoustic' ):
+                self.propagator = lambda dtd, sad, sld, rld, pmlf: \
+                    deepwave.scalar(
+                        self.vp,
+                        self.dx,
+                        dtd,
+                        source_amplitudes=sad,
+                        source_locations=sld,
+                        receiver_locations=rld,
+                        pml_freq=pmlf
+                    )[-1]
+            else:
+                self.propagator = lambda dtd, sad, sld, rld, pmlf: \
+                    elastic(
+                        *deepwave.common.vpvsrho_to_lambmubuoyancy(
+                            self.vp, 
+                            self.vs, 
+                            self.rho
+                        ),
+                        self.dx,
+                        dtd,
+                        source_amplitudes_y=sad,
+                        source_locations_y=sld,
+                        receiver_locations_y=rld,
+                        pml_freq=pmlf
+                    )[-2]
 
     def get(self, key):
         return self.custom[key]
@@ -213,9 +252,8 @@ class Model(metaclass=SlotMeta):
     def forward(self, **kw):
         """forward solver"""
         if( self.model == 'acoustic' ):
-            self.u = deepwave.scalar(
-                self.vp,
-                self.dx,
+            input('here')
+            self.u = self.propagator(
                 self.dt,
                 source_amplitudes=self.survey.src_amp_y,
                 source_locations=self.survey.src_loc_y,
@@ -233,13 +271,7 @@ class Model(metaclass=SlotMeta):
             if( hasattr(self.survey, 'src_amp_x') ):
                 kw_lcl['source_amplitudes_x'] = self.src_amp_x
 
-            self.u = elastic(
-                *deepwave.common.vpvsrho_to_lambmubuoyancy(
-                    self.vp, 
-                    self.vs, 
-                    self.rho
-                ),
-                self.dx,
+            self.u = self.propagator(
                 self.dt,
                 **kw_lcl
             )[-2]
@@ -365,7 +397,9 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         precomputed_meta = self.pre_process()
         in_loop_pre_process = self.in_loop_pre_process(**precomputed_meta)
         in_loop_post_process = self.in_loop_post_process(**precomputed_meta)
+        start_time = time.time()
         for epoch in range(self.epochs):
+            start_epoch = time.time()
             in_loop_pre_process(epoch=epoch)
             loss_lcl, grad_norms = self.take_step(epoch=epoch, **kw)
             print_idt = lambda x,idt: print('%s%s'%(4*idt*' ',x))
@@ -378,6 +412,13 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                 name = get_member_name(self.model, p)
                 print_idt(f'Grad norm "{name}": {grad_norms[i]:.4e}', 1)
             in_loop_post_process(epoch=epoch)
+            epoch_time = time.time() - start_epoch
+            total_time = time.time() - start_time
+            avg_time_per_epoch = total_time / (epoch+1)
+            etr = avg_time_per_epoch * (self.epochs-epoch-1)
+            print_idt(f'Epoch time: {epoch_time:.4e} s', 2)
+            print_idt(f'Avg time per epoch: {avg_time_per_epoch:.4e} s', 2)
+            print_idt(f'ETR: {etr:.4e} s', 2)
         self.post_process(**precomputed_meta)
     
 class FWI(FWIAbstract, metaclass=SlotMeta):
