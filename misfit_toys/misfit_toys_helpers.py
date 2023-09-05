@@ -13,6 +13,7 @@ import itertools
 from .base_helpers import *
 from .misfit_toys_helpers_helpers.download_data import *
 from torch.optim.lr_scheduler import _LRScheduler
+import deepwave as dw
 
 def get_file(s, path=''):
     full_path = list(set(path.split(':')) \
@@ -295,8 +296,12 @@ def retrieve_dataset(
     path=os.getcwd(),
     check=False
 ):
-    if( path is None ): path = ''
-    if( path == '' or path[0] != '/' ):
+
+    if( path is None ): 
+        path = ''
+    if( path == 'conda' ):
+        path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
+    elif( path == '' or path[0] != '/' ):
         path = os.path.join(os.getcwd(), path)
     
     full_path = os.path.join(path, folder)
@@ -314,11 +319,19 @@ def retrieve_dataset(
     return torch.load(os.path.join(full_path, f'{field}.pt'))
 
 def device_deploy(obj, deploy):
-    for att, device in deploy:
-        curr = getattr(obj, att)
-        if( curr is None ):
-            raise ValueError(f'Attribute {att} in {obj} is None')
-        setattr(obj, att, curr.to(device))
+    if len(deploy) > 0 and deploy[0][0] == 'all':
+        device = deploy[0][1]
+        for field in dir(obj):
+            if not field.startswith("__"):
+                curr = getattr(obj, field)
+                if isinstance(curr, torch.Tensor):
+                    setattr(obj, field, curr.to(device))
+    else:
+        for att, device in deploy:
+            curr = getattr(obj, att)
+            if curr is None:
+                raise ValueError(f'Attribute {att} in {obj} is None')
+            setattr(obj, att, curr.to(device))
 
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
@@ -407,6 +420,70 @@ class SlotMeta(type):
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
 
+class ConstrainedVelocity(torch.nn.Module):
+    def __init__(self, *, initial, min_vel, max_vel):
+        super().__init__()
+        self.min_vel = min_vel
+        self.max_vel = max_vel
+        self.model = torch.nn.Parameter(
+            torch.logit((initial - min_vel) / (max_vel - min_vel))
+        )
 
+    def forward(self):
+        return torch.sigmoid(self.model) * (self.max_vel - self.min_vel) \
+            + self.min_vel
+    
+class IdentityVelocity(torch.nn.Module):
+    def __init__(self, *, initial):
+        super().__init__()
+        self.model = torch.nn.Parameter(initial)
+
+    def forward(self):
+        return self.model
+
+class Prop(torch.nn.Module):
+    def __init__(self, *, v, dx, dt, freq, deploy=[]):
+        super().__init__()
+        self.v = v
+        self.dx = dx
+        self.dt = dt
+        self.freq = freq
+        device_deploy(self, deploy)
+
+    def forward(
+        self,
+        *,
+        source_amplitudes, 
+        source_locations, 
+        receiver_locations
+    ):
+        max_vel = torch.max(self.v.model)
+        return dw.scalar(
+            self.v.model,
+            self.dx, 
+            self.dt,
+            source_amplitudes=source_amplitudes,
+            source_locations=source_locations,
+            receiver_locations=receiver_locations,
+            max_vel=max_vel,
+            pml_freq=self.freq,
+            time_pad_frac=0.2,
+        )
+    
+def build_prop(
+    *,
+    vp,
+    dx,
+    dt,
+    freq,
+    device,
+    multi_gpu=True
+):
+    v = IdentityVelocity(initial=vp.to(device))
+    prop = Prop(v=v, dx=dx, dt=dt, freq=freq)
+    device_deploy(prop, [('all', device)])
+    if( multi_gpu ):
+        prop = torch.nn.DataParallel(prop).to(device)
+    return prop
 
     

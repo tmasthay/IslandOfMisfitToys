@@ -176,7 +176,7 @@ class Model(metaclass=SlotMeta):
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
     custom: Ant[dict, 'Custom parameters for user flexibility']
-    propagator: Ant[Callable, 'Propagator function']
+    prop: Ant[Callable, 'Propagator function']
 
     def __init__(
         self,
@@ -213,38 +213,21 @@ class Model(metaclass=SlotMeta):
     def setup_multi_gpu(self, *, multi_gpu):
         if( multi_gpu ):
             if( self.model == 'acoustic' ):
-                self.propagator = torch.nn.DataParallel(
-                    deepwave.Scalar(self.vp, self.dx)
+                self.prop = build_prop(
+                    vp=self.vp,
+                    dx=self.dx,
+                    dt=self.dt,
+                    freq=self.freq,
+                    device='cuda',
+                    multi_gpu=multi_gpu
                 )
             else:
                 raise NotImplementedError('Elastic multi-GPU not implemented')
         else:
-            if( self.model.model == 'acoustic' ):
-                self.propagator = lambda dtd, sad, sld, rld, pmlf: \
-                    deepwave.scalar(
-                        self.vp,
-                        self.dx,
-                        dtd,
-                        source_amplitudes=sad,
-                        source_locations=sld,
-                        receiver_locations=rld,
-                        pml_freq=pmlf
-                    )[-1]
+            if( self.model == 'acoustic' ):
+                raise NotImplementedError('Acoustic single-GPU not implemented')
             else:
-                self.propagator = lambda dtd, sad, sld, rld, pmlf: \
-                    elastic(
-                        *deepwave.common.vpvsrho_to_lambmubuoyancy(
-                            self.vp, 
-                            self.vs, 
-                            self.rho
-                        ),
-                        self.dx,
-                        dtd,
-                        source_amplitudes_y=sad,
-                        source_locations_y=sld,
-                        receiver_locations_y=rld,
-                        pml_freq=pmlf
-                    )[-2]
+                raise NotImplementedError('Elastic single-GPU not implemented')
 
     def get(self, key):
         return self.custom[key]
@@ -252,13 +235,10 @@ class Model(metaclass=SlotMeta):
     def forward(self, **kw):
         """forward solver"""
         if( self.model == 'acoustic' ):
-            self.u = self.propagator.forward(
-                self.dt,
+            self.u = self.prop(
                 source_amplitudes=self.survey.src_amp_y,
                 source_locations=self.survey.src_loc_y,
-                receiver_locations=self.survey.rec_loc_y,
-                pml_freq=self.freq,
-                **kw
+                receiver_locations=self.survey.rec_loc_y
             )[-1]
         elif( self.model.lower() == 'elastic' ):
             kw_lcl = {
@@ -270,10 +250,7 @@ class Model(metaclass=SlotMeta):
             if( hasattr(self.survey, 'src_amp_x') ):
                 kw_lcl['source_amplitudes_x'] = self.src_amp_x
 
-            self.u = self.propagator.forward(
-                self.dt,
-                **kw_lcl
-            )[-2]
+            raise NotImplementedError('Elastic forward not implemented')
         else:
             raise ValueError(f'Unknown model type {self.model}')
         return self.u
@@ -423,7 +400,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
 class FWI(FWIAbstract, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
         self.optimizer.zero_grad()
-        self.model.forward(**kw)
+        self.model.prop.forward(**kw)
         loss_lcl = self.custom.get('loss_scaling', 1.0) \
             * self.loss(self.model.u, self.obs_data)
         loss_lcl.backward()
@@ -435,6 +412,10 @@ class FWI(FWIAbstract, metaclass=SlotMeta):
                 )
         grad_norms = []
         for p in self.trainable:
+            input(type(p))
+            input(p.requires_grad)
+            input(p.shape)
+            input(get_member_name(self.model, p))
             grad_norms.append(p.grad.norm())
         self.optimizer.step()
         self.scheduler.step()

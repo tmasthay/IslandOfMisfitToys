@@ -82,10 +82,8 @@ def marmousi_acoustic():
 
     print('Computing observations...')
     obs_data = model.forward()
+    print('Observations made')
     model.vp = vp
-    
-    multi_gpu = False
-    model.setup_multi_gpu(multi_gpu=multi_gpu)
 
     fwi_solver = FWI(
         obs_data=obs_data,
