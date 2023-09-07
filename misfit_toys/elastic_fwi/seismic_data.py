@@ -219,8 +219,9 @@ def marmousi_acoustic():
     vp_true = vp_true[:ny, :nx]
     v_init = v_init[:ny, :nx]
 
-    input('CHECKPOINT 1')
-    input(torch.cuda.memory_summary())
+    msg1 = print
+    msg1('CHECKPOINT 1')
+    msg1(torch.cuda.memory_summary())
 
     ricker_freq = 25.0
     uniform_survey = SurveyUniformLambda(
@@ -255,8 +256,9 @@ def marmousi_acoustic():
         dt=dt
     )
 
-    input('CHECKPOINT 2: SURVEY')
-    input(torch.cuda.memory_summary())
+    msg2 = print
+    msg2('CHECKPOINT 2: SURVEY')
+    msg2(torch.cuda.memory_summary())
 
     pml_freq = ricker_freq
     model = Model(
@@ -274,8 +276,9 @@ def marmousi_acoustic():
         dx=dx
     )
 
-    input('CHECKPOINT 3: MODEL')
-    input(torch.cuda.memory_summary())
+    msg3 = print
+    msg3('CHECKPOINT 3: MODEL')
+    msg3(torch.cuda.memory_summary())
 
     prop = Prop(
         model=model,
@@ -288,9 +291,31 @@ def marmousi_acoustic():
         },
         device=devices[0]
     )
-    input('CHECKPOINT 4: PROP')
-    input(torch.cuda.memory_summary())
-    input(mem_report(*torch.cuda.mem_get_info(), rep=['free', 'total']))
+    msg4 = input
+    msg4('CHECKPOINT 4: PROP')
+    msg4(torch.cuda.memory_summary())
+    msg4(mem_report(*torch.cuda.mem_get_info(), rep=['free', 'total']))
+    msg4(torch.cuda.list_gpu_processes())
 
-    print(f'Data loaded with shape {observed_data.shape}')
+    fwi_solver = FWI(
+        prop=prop,
+        obs_data=observed_data,
+        loss=torch.nn.MSELoss(),
+        optimizer=[torch.optim.SGD, {'lr': 1.0}],
+        scheduler=[
+            (
+                torch.optim.lr_scheduler.StepLR,
+                {'step_size': 10, 'gamma': 0.9}
+            ),
+            (
+                torch.optim.lr_scheduler.ExponentialLR,
+                {'gamma': 0.99}
+            )
+        ],
+        epochs=5,
+        batch_size=1,
+        multi_gpu=False,
+    )
+
+
     return None

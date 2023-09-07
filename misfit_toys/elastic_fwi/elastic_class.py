@@ -192,7 +192,6 @@ class SurveyUniformLambda(
 class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']
     model: Ant[str, 'model', '', '', 'acoustic or elastic']
-    u: Ant[torch.Tensor, 'Wavefield solution']
     vp: Ant[AbstractParam, 'P-wave velocity']
     vs: Ant[AbstractParam, 'S-wave velocity']
     rho: Ant[AbstractParam, 'Density']
@@ -223,7 +222,6 @@ class Model(metaclass=SlotMeta):
     ):
         self.survey = survey
         self.model = model
-        self.u = torch.tensor(0.0)
         self.vp = vp_param(param=vp, trainable=False, device='cpu')
         self.vs = vs_param(param=vs, trainable=False, device='cpu')
         self.rho = rho_param(param=rho, trainable=False, device='cpu')
@@ -241,7 +239,6 @@ class Model(metaclass=SlotMeta):
         self.vs = self.vs.to(device)
         self.rho = self.rho.to(device)
         self.survey = self.survey.to(device)
-        self.u = self.u.to(device)
         return self
 
 class Prop(torch.nn.Module, metaclass=SlotMeta):
@@ -276,15 +273,15 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
         self.model = self.model.to(device)
         return self
 
-    def forward(self, **kw):
+    def forward(self, *, batch_idx, **kw):
         if( self.model.model == 'acoustic' ):
-            self.model.u = dw.scalar(
+            return dw.scalar(
                 self.model.vp(),
                 self.model.dx,
                 self.model.dt,
-                source_amplitudes=self.model.survey.src_amp_y(),
-                source_locations=self.model.survey.src_loc_y,
-                receiver_locations=self.model.survey.rec_loc_y,
+                source_amplitudes=self.model.survey.src_amp_y()[batch_idx],
+                source_locations=self.model.survey.src_loc_y[batch_idx],
+                receiver_locations=self.model.survey.rec_loc_y[batch_idx],
                 **kw
             )[-1]
         elif( self.model.model == 'elastic' ):
@@ -299,20 +296,19 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                 kw_builder['receiver_locations_x'] = \
                     self.model.survey.rec_loc_x
             full_kw = {**kw_builder, **kw}
-            self.model.u = dw.elastic(
+            return dw.elastic(
                 vp=self.model.vp(),
                 vs=self.model.vs(),
                 rho=self.model.rho(),
                 dx=self.model.dx,
                 dt=self.model.dt,
-                source_amplitudes_y=self.model.survey.src_amp_y(),
-                source_locations_y=self.model.survey.src_loc_y,
-                receiver_locations_y=self.model.survey.rec_loc_y,
+                source_amplitudes_y=self.model.survey.src_amp_y()[batch_idx],
+                source_locations_y=self.model.survey.src_loc_y[batch_idx],
+                receiver_locations_y=self.model.survey.rec_loc_y[batch_idx],
                 **full_kw
             )[-2]
         else:
             raise ValueError(f'Unknown model type {self.model.model}')
-        return self.model.u
 
 class FWIAbstract(ABC, metaclass=CombinedMeta):
     prop: Ant[Prop, 'Propagator object']
@@ -321,7 +317,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
     scheduler: Ant[list, 'Learning rate scheduling params']
     epochs: Ant[int, 'Number of epochs', '1']
-    batch_size: Ant[int, 'Batch size', '1']
+    batches: Ant[list, 'Batches of data']
     trainable: Ant[list, 'Trainable parameters']
     trainable_str: Ant[list, 'Trainable parameters as strings']
     custom: Ant[dict, 'Custom parameters for user flexibility']
@@ -335,7 +331,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         optimizer,
         scheduler,
         epochs,
-        batch_size,
+        num_batches,
         multi_gpu=False,
         **kw
     ):
@@ -346,11 +342,14 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.obs_data = obs_data
         self.loss = loss
         self.epochs = epochs
-        self.batch_size = batch_size
+        self.batches = self.build_batches(num_batches, obs_data.shape[0])
         self.build_trainables()
         self.optimizer = optimizer[0](self.trainable, **optimizer[1])
         self.build_scheduler(scheduler)
         self.build_customs(**kw)
+
+    def build_batches(self, num_batches, n_data):
+        return np.array_split(np.arange(n_data), num_batches)
 
     def build_trainables(self):
         self.trainable_str = []
@@ -591,23 +590,25 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
         if( epoch == 0 ):
             self.custom['log'] = {
                 'loss': [],
-                'grad': {k: [] for k in self.trainable_str}
+                'grad_norm': {k: [] for k in self.trainable_str}
             }
+        epoch_loss = 0.0
         self.optimizer.zero_grad()
-        self.prop.forward(**kw)
-        loss_lcl = self.custom.get('loss_scaling', 1.0) \
-            * self.loss(self.prop.model.u, self.obs_data)
-        self.custom['log']['loss'].append(loss_lcl.detach().cpu())
-        loss_lcl.backward()
-        if( 'clip_grad' in self.custom.keys() ):
-            for att, clip_val in self.custom['clip_grad']:
-                torch.nn.utils.clip_grad_value_(
-                    getattr(self.prop.model, att).param,
-                    clip_val
-                )
-        
+        for batch_idx in self.batches:
+            out = self.prop.forward(batch_idx=batch_idx, **kw)
+            loss_lcl = self.custom.get('loss_scaling', 1.0) \
+                * self.loss(out, self.obs_data)
+            self.custom['log']['loss'].append(loss_lcl.detach().cpu())
+            epoch_loss += loss_lcl.item()
+            loss_lcl.backward()
+            if( 'clip_grad' in self.custom.keys() ):
+                for att, clip_val in self.custom['clip_grad']:
+                    torch.nn.utils.clip_grad_value_(
+                        getattr(self.prop.model, att).param,
+                        clip_val
+                    )
         for name, p in zip(self.trainable_str, self.trainable):
-            self.custom['log']['grad'][name].append(p.grad.detach().cpu())
+            self.custom['log']['grad_norm'][name].append(p.grad.norm())
         self.optimizer.step()
         self.scheduler.step()
         return self.custom['log']
