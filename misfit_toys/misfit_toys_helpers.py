@@ -1,4 +1,3 @@
-import os
 from subprocess import check_output as co
 from subprocess import CalledProcessError
 import sys
@@ -7,8 +6,8 @@ import matplotlib.pyplot as plt
 from imageio import imread, mimsave
 import numpy as np
 import torch
-from typing import Annotated as Ant, Any
-from abc import ABCMeta
+from typing import Annotated as Ant, Any, Optional as Opt
+from abc import ABCMeta, abstractmethod
 import itertools
 from .base_helpers import *
 from .misfit_toys_helpers_helpers.download_data import *
@@ -333,6 +332,14 @@ def device_deploy(obj, deploy):
                 raise ValueError(f'Attribute {att} in {obj} is None')
             setattr(obj, att, curr.to(device))
 
+def deploy_params(obj, train, device, defaults=None):
+    defaults = {} if defaults is None else defaults
+    full_train = {**defaults, **train}
+    for k,v in full_train.items():
+        setattr(obj, k, getattr(obj, k).to(device))
+        getattr(obj, k).requires_grad = v
+
+    
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
 
@@ -420,70 +427,43 @@ class SlotMeta(type):
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
 
-class ConstrainedVelocity(torch.nn.Module):
-    def __init__(self, *, initial, min_vel, max_vel):
+class AbstractParam(torch.nn.Module, metaclass=ABCMeta):
+    def __init__(self, *, param, trainable, device='cpu', **kw):
         super().__init__()
-        self.min_vel = min_vel
-        self.max_vel = max_vel
-        self.model = torch.nn.Parameter(
-            torch.logit((initial - min_vel) / (max_vel - min_vel))
-        )
+        self.param = torch.nn.Parameter(param.to(device)) 
+        self.param.requires_grad = trainable
+        self.device = device
+        for k, v in kw.items():
+            setattr(self, k, v)
 
+    @abstractmethod
     def forward(self):
-        return torch.sigmoid(self.model) * (self.max_vel - self.min_vel) \
-            + self.min_vel
+        raise NotImplementedError('Forward not implemented')
     
-class IdentityVelocity(torch.nn.Module):
-    def __init__(self, *, initial):
-        super().__init__()
-        self.model = torch.nn.Parameter(initial)
-
+class Param(AbstractParam):
     def forward(self):
-        return self.model
-
-class Prop(torch.nn.Module):
-    def __init__(self, *, v, dx, dt, freq, deploy=[]):
-        super().__init__()
-        self.v = v
-        self.dx = dx
-        self.dt = dt
-        self.freq = freq
-        device_deploy(self, deploy)
-
-    def forward(
-        self,
-        *,
-        source_amplitudes, 
-        source_locations, 
-        receiver_locations
+        return self.param
+    
+class ConstrainedParam(AbstractParam):
+    def __init__(
+        self, 
+        *, 
+        param, 
+        trainable, 
+        device='cpu', 
+        min_val, 
+        max_val
     ):
-        max_vel = torch.max(self.v.model)
-        return dw.scalar(
-            self.v.model,
-            self.dx, 
-            self.dt,
-            source_amplitudes=source_amplitudes,
-            source_locations=source_locations,
-            receiver_locations=receiver_locations,
-            max_vel=max_vel,
-            pml_freq=self.freq,
-            time_pad_frac=0.2,
+        param = torch.logit((param - min_val) / (max_val - min_val))
+        super().__init__(
+            param=param,
+            trainable=trainable,
+            device=device,
+            min_val=min_val,
+            max_val=max_val
         )
     
-def build_prop(
-    *,
-    vp,
-    dx,
-    dt,
-    freq,
-    device,
-    multi_gpu=True
-):
-    v = IdentityVelocity(initial=vp.to(device))
-    prop = Prop(v=v, dx=dx, dt=dt, freq=freq)
-    device_deploy(prop, [('all', device)])
-    if( multi_gpu ):
-        prop = torch.nn.DataParallel(prop).to(device)
-    return prop
-
+    def forward(self):
+        return torch.sigmoid(self.param) * (self.max_val - self.min_val) \
+            + self.min_val
     
