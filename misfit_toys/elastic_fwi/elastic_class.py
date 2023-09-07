@@ -173,7 +173,6 @@ class SurveyUniformLambda(
         amp_func: Ant[Callable, 'Source amplitude function'],
         y_amp_param: Ant[AbstractParam, 'Source amplitude y parameter'],
         x_amp_param: Ant[AbstractParam, 'Source amplitude x parameter'],
-        deploy: Ant[list, 'GPU/CPU Deployment protocol'],
         nt: Ant[int, 'Number of time steps'],
         dt: Ant[float, 'Temporal step size'],
         **kw

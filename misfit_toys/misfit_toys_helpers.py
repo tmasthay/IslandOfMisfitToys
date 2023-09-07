@@ -395,7 +395,30 @@ def report(verbose):
     else:
         def helper(msg, idt): pass
         return helper
-    
+
+def mem_report(*args, precision=2, sep=', ', rep=None):
+    filtered_args = []
+    if( rep is None ):
+        rep = []
+    [rep.append('unknown') for _ in range(len(args) - len(rep))]
+    add = lambda x, i: filtered_args.append(x + ' (' + rep[i] + ')')
+    for (i,arg) in enumerate(args):
+        if( 1e18 < arg ):
+            add(f'{arg/1e18:.{precision}f} EB', i)
+        elif( 1e15 < arg ):
+            add(f'{arg/1e15:.{precision}f} PB', i)
+        elif( 1e12 < arg ):
+            add(f'{arg/1e12:.{precision}f} TB', i)
+        elif( 1e9 < arg ):
+            add(f'{arg/1e9:.{precision}f} GB', i)
+        elif( 1e6 < arg ):
+            add(f'{arg/1e6:.{precision}f} MB', i)
+        elif( 1e3 < arg ):
+            add(f'{arg/1e3:.{precision}f} KB', i)
+        else:
+            add(f'{arg:.{precision}f} B', i)
+    return sep.join(filtered_args)
+
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
