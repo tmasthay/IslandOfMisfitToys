@@ -14,8 +14,8 @@ def marmousi_acoustic():
         folder='marmousi',
         path=os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
     )
-    ratio_y = 4
-    ratio_x = 4
+    ratio_y = 1
+    ratio_x = 1
     vp_true = downsample_tensor(vp_true, axis=0, ratio=ratio_y)
     vp_true = downsample_tensor(vp_true, axis=1, ratio=ratio_x)
     # vp=torch.tensor(
@@ -32,7 +32,7 @@ def marmousi_acoustic():
     vp.requires_grad=True
 
     uniform_survey = SurveyUniformLambda(
-        n_shots=1,
+        n_shots=4,
         src_y={
             'src_per_shot': 1,
             'fst_src': 1,
@@ -55,6 +55,8 @@ def marmousi_acoustic():
                     peak_time=self.custom['peak_time']
                 ).repeat(*pts.shape[:-1], 1)
         ),
+        y_amp_param=Param,
+        x_amp_param=Param,
         deploy=[
             ('src_loc_y', devices[0]),
             ('src_amp_y', devices[0]),
@@ -70,24 +72,42 @@ def marmousi_acoustic():
         survey=uniform_survey,
         model='acoustic',
         vp=vp_true,
-        u=None,
         rho=None,
         vs=None,
+        vp_param=Param,
+        vs_param=Param,
+        rho_param=Param,
+        u=None,
         freq=1.0,
         dy=0.004,
         dx=0.004,
-        deploy=[('vp', devices[0])],
-        multi_gpu=True
+        deploy=[('vp', devices[0])]
+    )
+
+    prop = Prop(
+        model=model,
+        train={
+            'vp': True,
+            'rho': False,
+            'vs': False,
+            'src_amp_y': False,
+            'src_amp_x': False
+        },
+        device=devices[0]
     )
 
     print('Computing observations...')
-    obs_data = model.forward()
+    do_compute = True
+    if( do_compute ):
+        obs_data = prop.forward()
+    else:
+        obs_data = None
     print('Observations made')
-    model.vp = vp
+    prop.model.vp = Param(param=vp, trainable=True, device=devices[0])
 
     fwi_solver = FWI(
-        obs_data=obs_data,
-        model=model, 
+        prop=prop,
+        obs_data=obs_data, 
         loss=torch.nn.MSELoss(reduction='sum'),
         optimizer=[
             torch.optim.SGD,
@@ -97,9 +117,9 @@ def marmousi_acoustic():
             (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.9}),
             (torch.optim.lr_scheduler.ExponentialLR, {'gamma': 0.99})
         ],
-        epochs=25,
+        epochs=5,
         batch_size=1,
-        trainable=['vp'],
+        multi_gpu=False,
         make_plots=[('vp', True)],
         print_freq=1,
         verbose=True,
@@ -108,4 +128,4 @@ def marmousi_acoustic():
         loss_scaling=1.0e20
     )
 
-    return fwi_solver, model, uniform_survey
+    return fwi_solver

@@ -339,7 +339,6 @@ def deploy_params(obj, train, device, defaults=None):
         setattr(obj, k, getattr(obj, k).to(device))
         getattr(obj, k).requires_grad = v
 
-    
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
 
@@ -387,6 +386,16 @@ def get_member_name(obj, sub_obj, special=False):
     else:
         return l[fields[0]]
 
+def report(verbose):
+    if( verbose ):
+        def helper(msg, idt):
+            indent = 4 * idt * ' '
+            print(f'{indent}{msg}')
+        return helper
+    else:
+        def helper(msg, idt): pass
+        return helper
+    
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
@@ -430,11 +439,18 @@ class CombinedMeta(SlotMeta, ABCMeta):
 class AbstractParam(torch.nn.Module, metaclass=ABCMeta):
     def __init__(self, *, param, trainable, device='cpu', **kw):
         super().__init__()
-        self.param = torch.nn.Parameter(param.to(device)) 
+        self.param = torch.nn.Parameter(param).to(device)
         self.param.requires_grad = trainable
         self.device = device
         for k, v in kw.items():
             setattr(self, k, v)
+
+    def to(self, device):
+        if( self.device == device ): return self 
+        self.device = device
+        self.param = torch.nn.Parameter(self.param.to(device))
+        # self.param = self.param.to(device)
+        return self
 
     @abstractmethod
     def forward(self):

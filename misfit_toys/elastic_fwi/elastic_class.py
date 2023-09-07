@@ -16,6 +16,7 @@ from .custom_losses import *
 from ..misfit_toys_helpers import *
 from tqdm import tqdm
 from datetime import datetime
+from ..base_helpers import human_time as ht
 
 plt.rc('text', usetex=False)
 
@@ -24,8 +25,8 @@ class Survey(ABC, metaclass=CombinedMeta):
     src_loc_x: Opt[Ant[torch.Tensor, 'Source locations x']]
     rec_loc_y: Ant[torch.Tensor, 'Receiver locations y']
     rec_loc_x: Opt[Ant[torch.Tensor, 'Receiver locations x']]
-    src_amp_y: Ant[torch.nn.Parameter, 'Source amplitudes y']
-    src_amp_x: Opt[Ant[torch.nn.Parameter, 'Source amplitudes x']]
+    src_amp_y: Ant[AbstractParam, 'Source amplitudes y']
+    src_amp_x: Opt[Ant[AbstractParam, 'Source amplitudes x']]
     dt: Ant[float, 'Temporal step size']
     nt: Ant[int, 'Number of time steps']
     custom: Ant[dict, 'Custom parameters for user flexibility']
@@ -49,6 +50,18 @@ class Survey(ABC, metaclass=CombinedMeta):
                 )
             self.custom[k] = v
 
+    def to(self, device):
+        self.src_loc_y = self.src_loc_y.to(device)
+        self.rec_loc_y = self.rec_loc_y.to(device)
+        self.src_amp_y = self.src_amp_y.to(device)
+        if( self.src_loc_x is not None ):
+            self.src_loc_x = self.src_loc_x.to(device)
+        if( self.rec_loc_x is not None ):
+            self.rec_loc_x = self.rec_loc_x.to(device)
+        if( self.src_amp_x is not None ):
+            self.src_amp_x = self.src_amp_x.to(device)
+        return self
+            
     @abstractmethod
     def build_src(self, **kw):
         """build source locations"""
@@ -158,8 +171,8 @@ class SurveyUniformLambda(
         rec_y: Ant[dict, 'Rec y info']=None,
         rec_x: Ant[dict, 'Rec x info']=None,
         amp_func: Ant[Callable, 'Source amplitude function'],
-        y_amp_param: Ant[Param, 'Source amplitude y parameter'],
-        x_amp_param: Ant[Param, 'Source amplitude x parameter'],
+        y_amp_param: Ant[AbstractParam, 'Source amplitude y parameter'],
+        x_amp_param: Ant[AbstractParam, 'Source amplitude x parameter'],
         deploy: Ant[list, 'GPU/CPU Deployment protocol'],
         nt: Ant[int, 'Number of time steps'],
         dt: Ant[float, 'Temporal step size'],
@@ -176,7 +189,6 @@ class SurveyUniformLambda(
         self.dt = dt
         set_nonslotted_params(self, kw)
         self.build_amp(func=amp_func, y_param=y_amp_param, x_param=x_amp_param)
-        device_deploy(self, deploy)
 
 class Model(metaclass=SlotMeta):
     survey: Ant[Survey, 'Survey object']
@@ -193,7 +205,6 @@ class Model(metaclass=SlotMeta):
     dt: Ant[float, 'Temporal step size']
     freq: Ant[float, 'PML frequency']
     custom: Ant[dict, 'Custom parameters for user flexibility']
-    prop: Ant[Callable, 'Propagator function']
 
     def __init__(
         self,
@@ -209,104 +220,74 @@ class Model(metaclass=SlotMeta):
         freq: Ant[float, 'PML frequency'],
         dy: Ant[float, 'Spatial step size y'],
         dx: Ant[float, 'Spatial step size x'],
-        deploy: Ant[list, 'GPU/CPU Deployment protocol'],
-        multi_gpu: Ant[bool, 'Multi-GPU mode']=False,
         **kw
     ):
         self.survey = survey
         self.model = model
-        self.u = None
+        self.u = torch.tensor(0.0)
         self.vp = vp_param(param=vp, trainable=False, device='cpu')
         self.vs = vs_param(param=vs, trainable=False, device='cpu')
         self.rho = rho_param(param=rho, trainable=False, device='cpu')
         self.freq = freq
         self.dy, self.dx, self.dt = dy, dx, survey.dt
-        self.ny, self.nx, self.nt = *vp.shape, survey.src_amp_y.shape[-1]
+        self.ny, self.nx, self.nt = *vp.shape, survey.src_amp_y.param.shape[-1]
         self.custom = dict()
         full_slots = self.survey.__slots__ + self.__slots__
         new_keys = set(kw.keys()).difference(set(full_slots))
         for k in new_keys:
             self.custom[k] = kw[k]
-        device_deploy(self, deploy)
-        self.setup_multi_gpu(multi_gpu=multi_gpu)
 
-    def setup_multi_gpu(self, *, multi_gpu):
-        if( multi_gpu ):
-            if( self.model == 'acoustic' ):
-                self.prop = build_prop(
-                    vp=self.vp,
-                    dx=self.dx,
-                    dt=self.dt,
-                    freq=self.freq,
-                    device='cuda',
-                    multi_gpu=multi_gpu
-                )
-            else:
-                raise NotImplementedError('Elastic multi-GPU not implemented')
-        else:
-            if( self.model == 'acoustic' ):
-                raise NotImplementedError('Acoustic single-GPU not implemented')
-            else:
-                raise NotImplementedError('Elastic single-GPU not implemented')
-
-    def get(self, key):
-        return self.custom[key]
-
-    def forward(self, **kw):
-        """forward solver"""
-        if( self.model == 'acoustic' ):
-            self.u = self.prop(
-                source_amplitudes=self.survey.src_amp_y,
-                source_locations=self.survey.src_loc_y,
-                receiver_locations=self.survey.rec_loc_y
-            )[-1]
-        elif( self.model.lower() == 'elastic' ):
-            kw_lcl = {
-                'source_amplitudes_y': self.src_amp_y,
-                'source_locations_y': self.src_loc,
-                'receiver_locations_y': self.rec_loc,
-                'pml_freq': self.freq
-            }
-            if( hasattr(self.survey, 'src_amp_x') ):
-                kw_lcl['source_amplitudes_x'] = self.src_amp_x
-
-            raise NotImplementedError('Elastic forward not implemented')
-        else:
-            raise ValueError(f'Unknown model type {self.model}')
-        return self.u
+    def to(self, device):
+        self.vp = self.vp.to(device)
+        self.vs = self.vs.to(device)
+        self.rho = self.rho.to(device)
+        self.survey = self.survey.to(device)
+        self.u = self.u.to(device)
+        return self
 
 class Prop(torch.nn.Module, metaclass=SlotMeta):
     model: Opt[Ant[Model, 'Model']]
 
     def __init__(self, *, model, train=None, device='cpu'):
         super().__init__()
-        self.model = model
+        train = {} if train is None else train
+        default_train = {
+            'vp': True,
+            'vs': False,
+            'rho': False,
+            'src_amp_y': False,
+            'src_amp_x': False
+        }
+        full_train = {**default_train, **train}
+        self.model = model.to(device)
         valid_params = ['vp', 'vs', 'rho', 'src_amp_y', 'src_amp_x']
-        assert all([e in valid_params for e in train.keys()])
-        deploy_params(
-            model, 
-            train, 
-            device, 
-            defaults={'vp': True, 'vs': False, 'rho': False}
-        )
-        deploy_params(
-            model.survey,
-            train,
-            device,
-            defaults={'src_amp_y': True, 'src_amp_x': False}
-        )
+        assert all([e in valid_params for e in full_train.keys()]), \
+            f'Invalid trainable parameters: expected {valid_params}' \
+                + f', got {full_train.keys()}'
+        self.model.vp.param.requires_grad = full_train['vp']
+        self.model.vs.param.requires_grad = full_train['vs']
+        self.model.rho.param.requires_grad = full_train['rho']
+        self.model.survey.src_amp_y.param.requires_grad = \
+            full_train['src_amp_y']
+        self.model.survey.src_amp_x.param.requires_grad = \
+            full_train['src_amp_x']
+        self.to(device)
+
+    def to(self, device):
+        self.model = self.model.to(device)
+        return self
 
     def forward(self, **kw):
         if( self.model.model == 'acoustic' ):
             self.model.u = dw.scalar(
-                vp=self.model.vp(),
-                dx=self.model.dx,
-                dt=self.model.dt,
-                source_amplitudes=self.model.survey.src_amp_y,
+                self.model.vp(),
+                self.model.dx,
+                self.model.dt,
+                source_amplitudes=self.model.survey.src_amp_y(),
                 source_locations=self.model.survey.src_loc_y,
-                receiver_locations=self.model.survey.rec_loc_y
+                receiver_locations=self.model.survey.rec_loc_y,
                 **kw
-            )
+            )[-1]
         elif( self.model.model == 'elastic' ):
             kw_builder = {}
             if( hasattr(self.model.survey, 'src_amp_x') ):
@@ -329,7 +310,7 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                 source_locations_y=self.model.survey.src_loc_y,
                 receiver_locations_y=self.model.survey.rec_loc_y,
                 **full_kw
-            )
+            )[-2]
         else:
             raise ValueError(f'Unknown model type {self.model.model}')
         return self.model.u
@@ -356,9 +337,13 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         scheduler,
         epochs,
         batch_size,
+        multi_gpu=False,
         **kw
     ):
-        self.prop = prop
+        if( multi_gpu ):
+            self.prop = torch.nn.DataParallel(prop).to('cuda')
+        else:
+            self.prop = prop
         self.obs_data = obs_data
         self.loss = loss
         self.epochs = epochs
@@ -373,15 +358,15 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.trainable = []
         for s in ['vp', 'vs', 'rho']:
             curr = getattr(self.prop.model, s)
-            if( curr.requires_grad ):
+            if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
-                self.trainable.append(curr)
+                self.trainable.append(curr.param)
 
         for s in ['src_amp_y', 'src_amp_x']:
             curr = getattr(self.prop.model.survey, s)
-            if( curr.requires_grad ):
+            if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
-                self.trainable.append(curr)
+                self.trainable.append(curr.param)
     
     def build_scheduler(self, scheduler):
         schedule_list = []
@@ -392,7 +377,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         )
 
     def build_customs(self, **kw):
-        self.customs = {}
+        self.custom = {}
         for k,v in kw.items():
             self.custom[k] = v
 
@@ -533,13 +518,16 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         plot_base_path = self.custom.get('plot_base_path', 'plots_iomt')
         gif_speed = self.custom.get('gif_speed', 100)
 
+        rpt = report(verbose)
+
         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
         the_time = '_'.join(the_time.split('_')[1:])
         curr_run_dir = f'{plot_base_path}/{the_time}'
         os.system(f'mkdir -p {curr_run_dir}')
         def plot_curr(epoch):
             for p,do_transpose in make_plots:
-                tmp = getattr(self.model, p)
+                rpt(f'Plotting {p} after {epoch} epochs', 1)
+                tmp = getattr(self.prop.model, p).param
                 if( do_transpose ):
                     tmp = tmp.T
                 tmp1 = tmp.detach().cpu().numpy()
@@ -550,12 +538,13 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 plt.clf()
         plot_curr(0)
         return {
-            'verbose': verbose,
             'print_freq': print_freq,
             'curr_run_dir': curr_run_dir,
             'gif_speed': gif_speed,
             'plot_curr': plot_curr,
-            'make_plots': make_plots
+            'make_plots': make_plots,
+            'global_start': time.time(),
+            **self.custom
         }
 
     def post_train(self, **kw):
@@ -569,41 +558,57 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     f'convert -delay {gif_speed} $(ls -tr ' + \
                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
                 )
+        return {}
 
     def pre_step(self, epoch, **kw):
         verbose = kw.get('verbose', True)
         print_freq = kw.get('print_freq', 1)
         if( verbose and epoch % print_freq == 0 ):
             print(f'Epoch {epoch+1}/{self.epochs}')
+        return {'step_start': time.time()}
 
     def post_step(self, epoch, **kw): 
-        plot_curr = kw['plot_curr']
-        def helper(epoch):
-            plot_curr(epoch+1)
-        return helper
+        kw['plot_curr'](epoch+1)
+        verbose = self.custom.get('verbose', False)
+        rpt = report(verbose)
+        idt = 1
+        rpt(f'Loss: {self.custom["log"]["loss"][-1]:.4e}', idt)
+        for k,v in self.custom['log']['grad'].items():
+            rpt(f'Grad norm "{k}": {v[-1].norm():.4e}', idt)
+        epoch_time = time.time() - kw['step_start']
+        total_time = time.time() - kw['global_start']
+        avg_time_per_epoch = total_time / (epoch+1)
+        etr = avg_time_per_epoch * (self.epochs-epoch-1)
+        rpt(
+            f'(Epoch,Total,ETR) = ' 
+                + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})', 
+            idt
+        )
+        return {}
+        
 
-
-class FWI(FWIAbstract, metaclass=SlotMeta):
+class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
+        if( epoch == 0 ):
+            self.custom['log'] = {
+                'loss': [],
+                'grad': {k: [] for k in self.trainable_str}
+            }
         self.optimizer.zero_grad()
-        input(kw.keys())
-        self.model.prop.forward(**kw)
+        self.prop.forward(**kw)
         loss_lcl = self.custom.get('loss_scaling', 1.0) \
-            * self.loss(self.model.u, self.obs_data)
+            * self.loss(self.prop.model.u, self.obs_data)
+        self.custom['log']['loss'].append(loss_lcl.detach().cpu())
         loss_lcl.backward()
         if( 'clip_grad' in self.custom.keys() ):
             for att, clip_val in self.custom['clip_grad']:
                 torch.nn.utils.clip_grad_value_(
-                    getattr(self.model, att),
+                    getattr(self.prop.model, att).param,
                     clip_val
                 )
-        grad_norms = []
-        for p in self.trainable:
-            input(type(p))
-            input(p.requires_grad)
-            input(p.shape)
-            input(get_member_name(self.model, p))
-            grad_norms.append(p.grad.norm())
+        
+        for name, p in zip(self.trainable_str, self.trainable):
+            self.custom['log']['grad'][name].append(p.grad.detach().cpu())
         self.optimizer.step()
         self.scheduler.step()
-        return loss_lcl, grad_norms
+        return self.custom['log']
