@@ -296,8 +296,7 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                 kw_builder['receiver_locations_x'] = \
                     self.model.survey.rec_loc_x
             full_kw = {**kw_builder, **kw}
-            return dw.elastic(
-                vp=self.model.vp(),
+            return dw.elastic(                vp=self.model.vp(),
                 vs=self.model.vs(),
                 rho=self.model.rho(),
                 dx=self.model.dx,
@@ -407,105 +406,6 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         post_train_meta = self.post_train(**post_train_kw)
         return post_train_meta
 
-#think of better name later on
-# class FWIConcrete1(FWIAbstract, metaclass=CombinedMeta):
-
-#     @abstractmethod
-#     def take_step(self, **kw):
-#         pass
-
-#     def pre_process(self):
-#         make_plots = self.custom.get('make_plots', [])
-#         verbose = self.custom.get('verbose', False)
-#         print_freq = self.custom.get('print_freq', 1)
-#         cmap = self.custom.get('cmap', 'seismic')
-#         aspect = self.custom.get('aspect', 'auto')
-#         plot_base_path = self.custom.get('plot_base_path', 'plots_iomt')
-#         gif_speed = self.custom.get('gif_speed', 100)
-
-#         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
-#         the_time = '_'.join(the_time.split('_')[1:])
-#         curr_run_dir = f'{plot_base_path}/{the_time}'
-#         os.system(f'mkdir -p {curr_run_dir}')
-#         def plot_curr(epoch):
-#             for p,do_transpose in make_plots:
-#                 tmp = getattr(self.model, p)
-#                 if( do_transpose ):
-#                     tmp = tmp.T
-#                 tmp1 = tmp.detach().cpu().numpy()
-#                 plt.imshow(tmp1, aspect=aspect, cmap=cmap)
-#                 plt.colorbar()
-#                 plt.title(f'{p} after {epoch} epochs')
-#                 plt.savefig(f'{curr_run_dir}/{p}_{epoch}.jpg')
-#                 plt.clf()
-#         plot_curr(0)
-#         return {
-#             'verbose': verbose,
-#             'print_freq': print_freq,
-#             'curr_run_dir': curr_run_dir,
-#             'gif_speed': gif_speed,
-#             'plot_curr': plot_curr,
-#             'make_plots': make_plots
-#         }
-    
-#     def in_loop_pre_process(self, **kw):
-#         def helper(epoch):
-#             if( kw['verbose'] and epoch % kw['print_freq'] == 0 ):
-#                 print(f'Epoch {epoch+1}/{self.epochs}')
-#         return helper
-
-#     def in_loop_post_process(self, **kw):
-#         plot_curr = kw['plot_curr']
-#         def helper(epoch):
-#             plot_curr(epoch+1)
-#         return helper
-
-#     def post_process(self, **kw):
-#         make_plots = kw['make_plots']
-#         curr_run_dir = kw['curr_run_dir']
-#         gif_speed = kw['gif_speed']
-#         if( len(make_plots) > 0 ):
-#             for p,_ in make_plots:
-#                 print(f'Making gif for {p}')
-#                 os.system(
-#                     f'convert -delay {gif_speed} $(ls -tr ' + \
-#                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
-#                 )
-        
-#     def fwi(self, **kw):
-#         kw_default = {
-#             'source_amplitudes': self.model.survey.src_amp_y,
-#             'source_locations': self.model.survey.src_loc_y,
-#             'receiver_locations': self.model.survey.rec_loc_y
-#         }
-#         kw = {**kw_default, **kw}
-#         precomputed_meta = self.pre_process()
-#         in_loop_pre_process = self.in_loop_pre_process(**precomputed_meta)
-#         in_loop_post_process = self.in_loop_post_process(**precomputed_meta)
-#         start_time = time.time()
-#         for epoch in range(self.epochs):
-#             start_epoch = time.time()
-#             in_loop_pre_process(epoch=epoch)
-#             loss_lcl, grad_norms = self.take_step(epoch=epoch, **kw)
-#             print_idt = lambda x,idt: print('%s%s'%(4*idt*' ',x))
-#             print_idt(f'Loss: {loss_lcl:.4e}', 1)
-#             print_idt(
-#                 f'Learning rate: {self.optimizer.param_groups[0]["lr"]:.4e}', 
-#                 1
-#             )
-#             for (i,p) in enumerate(self.trainable):
-#                 name = get_member_name(self.model, p)
-#                 print_idt(f'Grad norm "{name}": {grad_norms[i]:.4e}', 1)
-#             in_loop_post_process(epoch=epoch)
-#             epoch_time = time.time() - start_epoch
-#             total_time = time.time() - start_time
-#             avg_time_per_epoch = total_time / (epoch+1)
-#             etr = avg_time_per_epoch * (self.epochs-epoch-1)
-#             print_idt(f'Epoch time: {epoch_time:.4e} s', 2)
-#             print_idt(f'Avg time per epoch: {avg_time_per_epoch:.4e} s', 2)
-#             print_idt(f'ETR: {etr:.4e} s', 2)
-#         self.post_process(**precomputed_meta)
-    
 class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     def pre_train(self, **kw):
         make_plots = self.custom.get('make_plots', [])
@@ -594,10 +494,21 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             }
         epoch_loss = 0.0
         self.optimizer.zero_grad()
+        input([len(e) for e in self.batches])
+        input(sum([len(e) for e in self.batches]))
         for batch_idx in self.batches:
+            input(self.prop.model.survey.src_amp_y().shape)
+            input(batch_idx.shape)
             out = self.prop.forward(batch_idx=batch_idx, **kw)
+            assert( 
+                out.shape == self.obs_data[batch_idx].shape,
+                f'Output shape {out.shape} != ' + \
+                    f'Observed data shape {self.obs_data[batch_idx].shape}'
+            )
+            print(out.shape)
+            print(self.obs_data[batch_idx].shape)
             loss_lcl = self.custom.get('loss_scaling', 1.0) \
-                * self.loss(out, self.obs_data)
+                * self.loss(out, self.obs_data[batch_idx])
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())
             epoch_loss += loss_lcl.item()
             loss_lcl.backward()

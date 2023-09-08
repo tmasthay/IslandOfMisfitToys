@@ -89,7 +89,8 @@ def marmousi_acoustic():
         torch.save(observed_data, data_path)
         observed_data = observed_data
     observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
-    
+    observed_data = observed_data.to(device)
+
     devices = get_all_devices()
     vp_true = vp_true[:ny, :nx]
     v_init = v_init[:ny, :nx]
@@ -192,16 +193,21 @@ def marmousi_acoustic():
         multi_gpu=False,
     )
     
-    input(
+    print(
         see_fields(
             fwi_solver,
             field='device',
             member_paths=[
+                'obs_data',
                 'prop.model.vp.param',
                 'prop.model.vs.param',
                 'prop.model.rho.param',
                 'prop.model.survey.src_amp_y.param',
                 'prop.model.survey.src_amp_x.param',
+                'prop.model.survey.rec_loc_y',
+                'prop.model.survey.rec_loc_x',
+                'prop.model.survey.src_loc_y',
+                'prop.model.survey.src_loc_x'
             ]
         )
     )
