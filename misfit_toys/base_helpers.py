@@ -27,6 +27,31 @@ def human_time(seconds, lengths=[1, 2, 2, 2]):
     
     return ":".join(result) if days > 0 else result[0]
 
+def data_attr(obj):
+    return [
+        attr for attr in dir(obj) if \
+        not (attr.startswith('__') and attr.endswith('__')) \
+        and not callable(getattr(obj, attr))
+    ]
 
+def data_attr(obj):
+    # Your previously defined function
+    return [attr for attr in dir(obj) if not (attr.startswith('__') and attr.endswith('__')) and not callable(getattr(obj, attr))]
+
+def see_fields(obj_name, obj, *, level=0, idt='    ', field):
+    data = data_attr(obj)
+    input(f'{obj_name}...{str(data)}')
+    res = ''
+
+    def bld(x, l):
+        return f'{l*idt}{x}\n'
+
+    for curr in data:
+        if curr == field: 
+            res += bld(f'{obj_name}.{field} = {getattr(obj, field)}', level)
+        else:
+            curr_obj = getattr(obj, curr)
+            res += see_fields(curr, curr_obj, level=(level+1), idt=idt, field=field)
+    return res
 
     

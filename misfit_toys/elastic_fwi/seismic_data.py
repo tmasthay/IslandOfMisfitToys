@@ -7,6 +7,7 @@ from .elastic_class import *
 from scipy.ndimage import gaussian_filter
 from deepwave import scalar
 
+
 def marmousi_acoustic():
     device = torch.device('cuda')
     path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
@@ -189,6 +190,5 @@ def marmousi_acoustic():
         num_batches=n_shots,
         multi_gpu=False,
     )
-
-
-    return None
+    
+    return fwi_solver
