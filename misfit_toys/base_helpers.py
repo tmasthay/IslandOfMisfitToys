@@ -27,63 +27,27 @@ def human_time(seconds, lengths=[1, 2, 2, 2]):
     
     return ":".join(result) if days > 0 else result[0]
 
-def data_attr(obj):
-    return [
-        attr for attr in dir(obj) if \
-        not (attr.startswith('__') and attr.endswith('__')) \
-        and not callable(getattr(obj, attr))
-    ]
+def see_fields(obj, *, field, member_paths, idt='    ', level=0):
+    if( member_paths is None ): member_paths = []
+    if( len(member_paths) == 0 ):
+        raise ValueError('member_paths must be a non-empty list of strings')
+    if( not isinstance(member_paths, list) ):
+        raise ValueError('member_paths must be a list of strings')
+    history = []
+    for p in member_paths:
+        p = p.split('.')
+        c = obj
+        s = ''
+        for (l,e) in enumerate(p):
+            if( not hasattr(c, e) ):
+                raise ValueError(
+                    f'{c.__class__} does not have member {e}' + 
+                    f' at level {l} of path {p}'
+                )
+            c = getattr(c, e)
+            s += f'{l*idt}{e}\n'
+            if( hasattr(c, field) ):
+                s += f'{(l+1)*idt}{field}: {getattr(c, field)}\n'
+        history.append(s)
+    return '\n'.join(history)
 
-def data_attr(obj, exclude_bools=None):
-    if exclude_bools is None: exclude_bools = []
-    # Your previously defined function
-    tmp = [attr for attr in dir(obj) if not (attr.startswith('__') and attr.endswith('__')) and not callable(getattr(obj, attr))]
-    check_exclude = lambda x : any([e(x) for e in exclude_bools])
-    tmp = [attr for attr in tmp if not check_exclude(attr)]
-    return tmp
-
-def see_fields(
-    obj_name, 
-    obj, 
-    *, 
-    level=0, 
-    idt='    ', 
-    field, 
-    exclude_lambda=None,
-    exclude_classes=None,
-    exclude_strings=None
-):
-    if exclude_lambda is None: exclude_lambda = []
-    if exclude_classes is None: exclude_classes = []
-    if exclude_strings is None: exclude_strings = []
-
-    data = data_attr(obj)
-    res = ''
-
-    def bld(x, l):
-        return f'{l*idt}{x}\n'
-
-    for curr in data:
-        curr_obj = getattr(obj, curr)
-        if( curr in exclude_strings ): continue
-        if( any([type(curr_obj) is e for e in exclude_classes]) ): continue
-        if( any([e(curr_obj) for e in exclude_lambda]) ): continue
-
-        if curr == field: 
-            res += bld(f'{obj_name}.{field} = {getattr(obj, field)}', level)
-        else:
-            check = any([type(curr_obj) is e for e in exclude_classes])
-            input(f'RECURSE: {curr}=={type(curr_obj)}...{check}...{exclude_classes}')
-            res += see_fields(
-                curr, 
-                curr_obj, 
-                level=(level+1), 
-                idt=idt, 
-                field=field,
-                exclude_lambda=exclude_lambda,
-                exclude_strings=exclude_strings,
-                exclude_classes=exclude_classes
-            )
-    return res
-
-    

@@ -6,6 +6,7 @@ from masthay_helpers.typlotlib import setup_gg_plot, rand_color, set_color_plot_
 from .elastic_class import *
 from scipy.ndimage import gaussian_filter
 from deepwave import scalar
+from ..base_helpers import *
 
 
 def marmousi_acoustic():
@@ -165,7 +166,7 @@ def marmousi_acoustic():
         },
         device=devices[0]
     )
-    msg4 = input
+    msg4 = print
     msg4('CHECKPOINT 4: PROP')
     msg4(torch.cuda.memory_summary())
     msg4(mem_report(*torch.cuda.mem_get_info(), rep=['free', 'total']))
@@ -191,4 +192,17 @@ def marmousi_acoustic():
         multi_gpu=False,
     )
     
+    input(
+        see_fields(
+            fwi_solver,
+            field='device',
+            member_paths=[
+                'prop.model.vp.param',
+                'prop.model.vs.param',
+                'prop.model.rho.param',
+                'prop.model.survey.src_amp_y.param',
+                'prop.model.survey.src_amp_x.param',
+            ]
+        )
+    )
     return fwi_solver
