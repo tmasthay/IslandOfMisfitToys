@@ -7,130 +7,6 @@ from .elastic_class import *
 from scipy.ndimage import gaussian_filter
 from deepwave import scalar
 
-def marmousi_acoustic_dummy(): 
-    devices = get_all_devices()
-    path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
-    vp_true = retrieve_dataset(
-        field='vp',
-        folder='marmousi',
-        path=path
-    )
-    ratio_y = 1
-    ratio_x = 1
-    vp_true = downsample_tensor(vp_true, axis=0, ratio=ratio_y)
-    vp_true = downsample_tensor(vp_true, axis=1, ratio=ratio_x)
-    # vp=torch.tensor(
-    #     1./gaussian_filter(1./vp_true.numpy(), sigma=40.0)
-    # ).to(devices[0])
-    # vp = 3000.0 * torch.ones_like(vp_true).to(devices[0])
-    mu = 0.0
-    sig = 0.1
-    vp = vp_true.clone()
-    vp = (vp * (1.0 + mu + sig * torch.randn_like(vp))).to(devices[0])
-    # vp=torch.tensor(
-    #     1./gaussian_filter(1./vp.numpy(), sigma=40.0)
-    # ).to(devices[0])
-    vp.requires_grad=True
-
-    uniform_survey = SurveyUniformLambda(
-        n_shots=4,
-        src_y={
-            'src_per_shot': 1,
-            'fst_src': 1,
-            'src_depth': 2,
-            'd_src': 20,
-            'd_intra_shot': 0
-        },
-        rec_y={
-            'rec_per_shot': 1,
-            'fst_rec': 1,
-            'rec_depth': 2,
-            'd_rec': 20,
-        },
-        amp_func=(
-            lambda *,self,pts,comp: None if pts == None else \
-                deepwave.wavelets.ricker(
-                    freq=self.custom['ricker_freq'],
-                    length=self.nt,
-                    dt=self.dt,
-                    peak_time=self.custom['peak_time']
-                ).repeat(*pts.shape[:-1], 1)
-        ),
-        y_amp_param=Param,
-        x_amp_param=Param,
-        deploy=[
-            ('src_loc_y', devices[0]),
-            ('src_amp_y', devices[0]),
-            ('rec_loc_y', devices[0])
-        ],
-        ricker_freq=10.0,
-        peak_time=0.05,
-        nt=1000,
-        dt=0.0001
-    )
-
-    model = Model(
-        survey=uniform_survey,
-        model='acoustic',
-        vp=vp_true,
-        rho=None,
-        vs=None,
-        vp_param=Param,
-        vs_param=Param,
-        rho_param=Param,
-        u=None,
-        freq=1.0,
-        dy=0.004,
-        dx=0.004,
-        deploy=[('vp', devices[0])]
-    )
-
-    prop = Prop(
-        model=model,
-        train={
-            'vp': True,
-            'rho': False,
-            'vs': False,
-            'src_amp_y': False,
-            'src_amp_x': False
-        },
-        device=devices[0]
-    )
-
-    print('Computing observations...')
-    do_compute = True
-    if( do_compute ):
-        obs_data = prop.forward()
-    else:
-        obs_data = None
-    print('Observations made')
-    prop.model.vp = Param(param=vp, trainable=True, device=devices[0])
-
-    fwi_solver = FWI(
-        prop=prop,
-        obs_data=obs_data, 
-        loss=torch.nn.MSELoss(reduction='sum'),
-        optimizer=[
-            torch.optim.SGD,
-            {'lr': 1.0}
-        ],
-        scheduler=[
-            (torch.optim.lr_scheduler.StepLR, {'step_size': 10, 'gamma': 0.9}),
-            (torch.optim.lr_scheduler.ExponentialLR, {'gamma': 0.99})
-        ],
-        epochs=5,
-        batch_size=1,
-        multi_gpu=False,
-        make_plots=[('vp', True)],
-        print_freq=1,
-        verbose=True,
-        deploy=[],
-        clip_grad=[('vp', 0.98)],
-        loss_scaling=1.0e20
-    )
-
-    return fwi_solver
-
 def marmousi_acoustic():
     device = torch.device('cuda')
     path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
@@ -166,11 +42,8 @@ def marmousi_acoustic():
         return deepwave.common.cosine_taper_end(x, 100)
 
     # Select portion of data for inversion
-    n_shots_batch = 8
     n_receivers_per_shot = 100
     nt = 300
-
-    batches = np.array_split(np.arange(n_shots), -(-n_shots // n_shots_batch))
 
     # source_locations
     source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
@@ -313,7 +186,7 @@ def marmousi_acoustic():
             )
         ],
         epochs=5,
-        batch_size=1,
+        num_batches=n_shots,
         multi_gpu=False,
     )
 
