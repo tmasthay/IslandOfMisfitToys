@@ -476,6 +476,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         the_time = '_'.join(the_time.split('_')[1:])
         curr_run_dir = f'{plot_base_path}/{the_time}'
         os.system(f'mkdir -p {curr_run_dir}')
+
         def plot_curr(epoch):
             for p,do_transpose in make_plots:
                 rpt(f'Plotting {p} after {epoch} epochs', 1)
@@ -489,6 +490,13 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 plt.savefig(f'{curr_run_dir}/{p}_{epoch}.jpg')
                 plt.clf()
         plot_curr(0)
+
+        def batch_print(batch_no, batch_idx):
+            rpt(
+                f'Batch {batch_no+1}/{len(self.batches)}' + \
+                    f' ({len(batch_idx)} samples)', 
+                1
+            )
         return {
             'print_freq': print_freq,
             'curr_run_dir': curr_run_dir,
@@ -525,7 +533,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         rpt = report(verbose)
         idt = 1
         rpt(f'Loss: {self.custom["log"]["loss"][-1]:.4e}', idt)
-        for k,v in self.custom['log']['grad'].items():
+        for k,v in self.custom['log']['grad_norm'].items():
             rpt(f'Grad norm "{k}": {v[-1].norm():.4e}', idt)
         epoch_time = time.time() - kw['step_start']
         total_time = time.time() - kw['global_start']
@@ -541,6 +549,13 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
         prot = self.custom.get('prot', print)
+        debug = self.custom.get('debug', False)
+        show_batch = self.custom.get('show_batch', False)
+
+        do_prot = lambda x : prot(x) if debug else None
+
+        print_batch = lambda x : print(x) if show_batch else None
+
         if( epoch == 0 ):
             self.custom['log'] = {
                 'loss': [],
@@ -549,18 +564,22 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
         epoch_loss = 0.0
         self.optimizer.zero_grad()
         for (batch_no, batch_idx) in enumerate(self.batches):
-            prot(f'Entering batch loop {batch_no}')
-            if( self.custom.get('debug', False) and batch_no > 0):
+            print_batch(
+                f'    Batch {batch_no+1}/{len(self.batches)}'
+                    + f' ({len(batch_idx)} samples)'
+            )
+            if( debug and batch_no > 0):
                 self.report_debug(
                     extra_obj=[
                         ('out', out),
                         ('obs_data', self.obs_data[batch_idx])
-                    ]
+                    ],
+                    prot=prot
                 )
-                prot(full_mem_report(title=f'Batch {batch_no}'))
-            prot('Attempting forward solve')
+                do_prot(full_mem_report(title=f'Batch {batch_no}'))
+            do_prot('Attempting forward solve')
             out = self.prop.forward(batch_idx=batch_idx, **kw)
-            prot('Forward completed')
+            do_prot('Forward completed')
             assert( 
                 out.shape == self.obs_data[batch_idx].shape,
                 f'Output shape {out.shape} != ' + \
@@ -568,18 +587,18 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             )
             loss_lcl = self.custom.get('loss_scaling', 1.0) \
                 * self.loss(out, self.obs_data[batch_idx])
-            prot('Loss computed')
+            do_prot('Loss computed')
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())
             epoch_loss += loss_lcl.item()
             loss_lcl.backward()
-            prot('Backprop done')
+            do_prot('Backprop done')
             if( 'clip_grad' in self.custom.keys() ):
                 for att, clip_val in self.custom['clip_grad']:
                     torch.nn.utils.clip_grad_value_(
                         getattr(self.prop.model, att).param,
                         clip_val
                     )
-            prot('Grad clipped')
+            do_prot('Grad clipped')
         for name, p in zip(self.trainable_str, self.trainable):
             self.custom['log']['grad_norm'][name].append(p.grad.norm())
         self.optimizer.step()
