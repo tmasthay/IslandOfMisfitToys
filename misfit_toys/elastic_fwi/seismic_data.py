@@ -110,7 +110,7 @@ def marmousi_acoustic():
             'd_intra_shot': 0
         },
         rec_y={
-            'rec_per_shot': 1,
+            'rec_per_shot': 100,
             'fst_rec': 1,
             'rec_depth': 2,
             'd_rec': 20,
@@ -191,6 +191,8 @@ def marmousi_acoustic():
         epochs=5,
         num_batches=n_shots,
         multi_gpu=False,
+        debug=True,
+        prot=print
     )
     
     print(

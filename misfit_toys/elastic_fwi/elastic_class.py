@@ -393,6 +393,13 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     @abstractmethod
     def post_step(self, epoch, **kw): pass
 
+    @abstractmethod
+    def debug_data(self, **kw): pass
+
+    def report_debug(self, **kw):
+        prot = kw.get('prot', print)
+        prot(self.debug_data(**kw))
+
     def fwi(self, **kw):
         pre_train_meta = self.pre_train(**kw)
         pre_step_meta, post_step_meta = {}, {}
@@ -407,6 +414,53 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         return post_train_meta
 
 class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
+    def debug_data(self, header=80*'*', extra_obj=None):
+        def extract_data(obj):
+            data_attr = [
+                e for e in dir(obj)
+                    if not e.startswith('_')           
+            ]
+            return {k: getattr(obj, k) for k in data_attr}
+        
+        def summarize(obj_name, obj):
+            s = [header, f'{obj_name} data']
+            if( isinstance(obj, torch.Tensor) ):
+                s.append(f'    shape == {obj.shape}')
+                return s
+            
+            data = extract_data(obj)
+            runner = []
+            idt = '    '
+            for k,v in data.items():
+                tmp = idt + k 
+                if( isinstance(v, torch.Tensor) ):
+                    tmp += f'.shape == {v.shape}'
+                elif( isinstance(v, AbstractParam) ):
+                    tmp1 = tmp + f'.param.shape == {v.param.shape}'
+                    tmp2 = tmp + f'().shape == {v.forward().shape}'
+                    tmp = tmp1 + '\n' + tmp2
+                else:
+                    tmp = idt + tmp + f'.shape == (no shape?)'
+                if( tmp.startswith(2*idt) ):
+                    runner.append(tmp)
+                elif( '\n' in tmp ):
+                    tmp = tmp.split('\n')
+                    for t in tmp:
+                        runner.insert(0, t)
+                else:
+                    runner.insert(0, tmp)
+            s.extend(runner)
+            return s
+        
+        if( extra_obj is None ): extra_obj = []
+        d = [header, 'DEBUG DATA']
+        d.extend(summarize('survey', self.prop.model.survey))
+        d.extend(summarize('model', self.prop.model))
+        for obj_name, obj in extra_obj:
+            d.extend(summarize(obj_name, obj))
+        d.extend(['END DEBUG DATA', header])
+        return '\n'.join(d)
+    
     def pre_train(self, **kw):
         make_plots = self.custom.get('make_plots', [])
         verbose = self.custom.get('verbose', False)
@@ -482,11 +536,11 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})', 
             idt
         )
-        return {}
-        
+        return {}   
 
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
+        prot = self.custom.get('prot', print)
         if( epoch == 0 ):
             self.custom['log'] = {
                 'loss': [],
@@ -494,30 +548,38 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             }
         epoch_loss = 0.0
         self.optimizer.zero_grad()
-        input([len(e) for e in self.batches])
-        input(sum([len(e) for e in self.batches]))
-        for batch_idx in self.batches:
-            input(self.prop.model.survey.src_amp_y().shape)
-            input(batch_idx.shape)
+        for (batch_no, batch_idx) in enumerate(self.batches):
+            prot(f'Entering batch loop {batch_no}')
+            if( self.custom.get('debug', False) and batch_no > 0):
+                self.report_debug(
+                    extra_obj=[
+                        ('out', out),
+                        ('obs_data', self.obs_data[batch_idx])
+                    ]
+                )
+                prot(full_mem_report(title=f'Batch {batch_no}'))
+            prot('Attempting forward solve')
             out = self.prop.forward(batch_idx=batch_idx, **kw)
+            prot('Forward completed')
             assert( 
                 out.shape == self.obs_data[batch_idx].shape,
                 f'Output shape {out.shape} != ' + \
                     f'Observed data shape {self.obs_data[batch_idx].shape}'
             )
-            print(out.shape)
-            print(self.obs_data[batch_idx].shape)
             loss_lcl = self.custom.get('loss_scaling', 1.0) \
                 * self.loss(out, self.obs_data[batch_idx])
+            prot('Loss computed')
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())
             epoch_loss += loss_lcl.item()
             loss_lcl.backward()
+            prot('Backprop done')
             if( 'clip_grad' in self.custom.keys() ):
                 for att, clip_val in self.custom['clip_grad']:
                     torch.nn.utils.clip_grad_value_(
                         getattr(self.prop.model, att).param,
                         clip_val
                     )
+            prot('Grad clipped')
         for name, p in zip(self.trainable_str, self.trainable):
             self.custom['log']['grad_norm'][name].append(p.grad.norm())
         self.optimizer.step()

@@ -419,6 +419,17 @@ def mem_report(*args, precision=2, sep=', ', rep=None):
             add(f'{arg:.{precision}f} B', i)
     return sep.join(filtered_args)
 
+def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
+    if( title is None ): title = ''
+    else: title = title + '\n    '
+    return title \
+        + mem_report(
+            *torch.cuda.mem_get_info(), 
+            precision=precision, 
+            sep=sep, 
+            rep=rep
+        )
+
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
