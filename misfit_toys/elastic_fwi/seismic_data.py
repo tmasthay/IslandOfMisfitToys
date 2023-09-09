@@ -100,8 +100,9 @@ def marmousi_acoustic():
     msg1(torch.cuda.memory_summary())
 
     ricker_freq = 25.0
+    n_shots_train = 4
     uniform_survey = SurveyUniformLambda(
-        n_shots=4,
+        n_shots=n_shots,
         src_y={
             'src_per_shot': 1,
             'fst_src': 1,
