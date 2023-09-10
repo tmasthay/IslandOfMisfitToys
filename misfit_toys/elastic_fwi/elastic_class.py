@@ -412,7 +412,6 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         post_train_kw = {**pre_train_meta, **pre_step_meta, **post_step_meta}
         post_train_meta = self.post_train(**post_train_kw)
         return post_train_meta
-    #SCAR'S COMMENT
 
 class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     def debug_data(self, header=80*'*', extra_obj=None):
