@@ -386,15 +386,65 @@ def get_member_name(obj, sub_obj, special=False):
     else:
         return l[fields[0]]
 
-def report(verbose):
-    if( verbose ):
-        def helper(msg, idt):
-            indent = 4 * idt * ' '
-            print(f'{indent}{msg}')
-        return helper
+def verbosity_str_to_int(*, verbosity, levels):
+    if( type(verbosity) == int ): return verbosity
+    elif( type(verbosity) == str ):
+        verbosity = verbosity.lower()
+        for (level, level_names) in levels:
+            if( verbosity in level_names ): return level
+        raise ValueError(f'Verbose value {verbosity} not recognized')
     else:
-        def helper(msg, idt): pass
-        return helper
+        raise ValueError(
+            f'Verbosity must be int or str, got {type(verbosity)}'
+        )
+
+def clean_levels(levels):  
+    if( levels is None ):
+        levels = []
+        levels.append((0, ['none', 'silent']))
+        levels.append((1, ['low', 'progress']))
+        levels.append((2, ['medium', 'debug']))
+        levels.append((np.inf, ['high', 'all']))
+    for (i,l) in enumerate(levels):
+        if( type(l) is int ):
+            levels[i] = (l, [str(l)])
+    for (i,l) in enumerate(levels):
+        if( type(l) not in [list, tuple] or len(l) != 2 ):
+            raise ValueError('Levels must be list of pairs')
+        elif( type(l[1]) is not list ):
+            raise ValueError(f'Level names must be list, got {type(l[1])}')
+        elif( str(l[0]) not in l[1] ):
+            l[1].append(str(l[0]))
+            if( l[0] is np.inf ):
+                l[1].append('infinity')
+    levels = sorted(levels, key=lambda x: x[0])
+    return levels
+
+def run_verbosity(*, verbosity, levels):
+    levels = clean_levels(levels)  
+    v2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
+    verbosity_int = v2i(verbosity)
+    def helper(f):
+        def helper_inner(*args, _verbosity_, **kw):
+            _verbosity_int = v2i(_verbosity_)
+            if( _verbosity_int <= verbosity_int ):
+                return f(*args, **kw)
+            else:
+                return None
+        return helper_inner
+    return helper
+
+# def report(*, verbosity, levels=None, protocol=print):
+#     vs2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
+#     verbosity_int = vs2i(verbosity)
+
+#     def helper(msg, *, idt=0, end='\n', idt_str='    ', **kw):
+#         verbosity_dummy = kw.get('verbosity', 1)
+#         verbosity_dummy_int = vs2i(verbosity_dummy)
+#         if( verbosity_dummy_int < verbosity_int ):
+#             indent = idt * idt_str
+#             protocol(f'{indent}{msg}', end=end)
+#     return helper
 
 def mem_report(*args, precision=2, sep=', ', rep=None):
     filtered_args = []

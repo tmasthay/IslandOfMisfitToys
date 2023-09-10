@@ -21,14 +21,14 @@ def marmousi_acoustic():
     nx = 751
     dy = 4.0
     dx = 4.0
-    v_init = torch.tensor(1/gaussian_filter(1/vp_true.numpy(), 40))
+    v_init = torch.tensor(1/gaussian_filter(1/vp_true.numpy(), 10))
 
     freq = 25
     nt = 750
-    dt = 0.001
+    dt = 0.004
     peak_time = 1.5 / freq
 
-    n_shots = 10
+    n_shots = 115
 
     def taper(x):
         return deepwave.common.cosine_taper_end(x, 100)
@@ -136,7 +136,7 @@ def marmousi_acoustic():
     model = Model(
         survey=uniform_survey,
         model='acoustic',
-        vp=vp_true,
+        vp=v_init,
         rho=None,
         vs=None,
         vp_param=Param,
@@ -178,9 +178,9 @@ def marmousi_acoustic():
         epochs=5,
         num_batches=n_shots // 5,
         multi_gpu=False,
-        debug=False,
-        prot=print,
-        show_batch=False
+        verbosity='progress',
+        protocol=print,
+        make_plots=[('vp', True)]
     )
     
     print(

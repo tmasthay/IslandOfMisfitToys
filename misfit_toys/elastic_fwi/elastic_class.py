@@ -376,7 +376,32 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def build_customs(self, **kw):
         self.custom = {}
         for k,v in kw.items():
-            self.custom[k] = v
+            self.custom[k] = v        
+        self.build_custom_meta(**kw)
+    
+    def build_custom_meta(self, **kw):
+        verbosity = self.custom.get('verbosity', 1)
+        print_protocol = self.custom.get('print_protocol', print)
+        verbosity_levels = self.custom.get('verbosity_levels', None)
+        idt_str = self.custom.get('idt_str', '    ')
+
+        def report(s, *, idt=0, end='\n'):
+            print_protocol(idt_str*idt + s, end=end)
+
+        self.custom['run'] = run_verbosity(
+            verbosity=verbosity,
+            levels=verbosity_levels
+        )
+        self.custom['rpt'] = self.custom['run'](report)
+        # def stephen_uncurry(f, _verbosity_):
+        #     def helper(*args, **kw):
+        #         return f(*args, _verbosity_=_verbosity_, **kw)
+        #     return helper
+        # rpt = self.custom['rpt']
+        # self.custom['rpt_silent'] = stephen_uncurry(rpt, 'silent')
+        # self.custom['rpt_progress'] = stephen_uncurry(rpt, 'progress')
+        # self.custom['rpt_debug'] = stephen_uncurry(rpt, 'debug')
+        # self.custom['rpt_inf'] = stephen_uncurry(rpt, 'inf')
 
     @abstractmethod
     def take_step(self, **kw): pass
@@ -393,27 +418,6 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     @abstractmethod
     def post_step(self, epoch, **kw): pass
 
-    @abstractmethod
-    def debug_data(self, **kw): pass
-
-    def report_debug(self, **kw):
-        prot = kw.get('prot', print)
-        prot(self.debug_data(**kw))
-
-    def fwi(self, **kw):
-        pre_train_meta = self.pre_train(**kw)
-        pre_step_meta, post_step_meta = {}, {}
-        for epoch in range(self.epochs):
-            pre_step_kw = {**pre_train_meta, **pre_step_meta}
-            pre_step_meta = self.pre_step(epoch, **pre_step_kw)
-            step_meta = self.take_step(epoch=epoch, **kw)
-            post_step_kw = {**pre_train_meta, **pre_step_meta, **step_meta}
-            post_step_meta = self.post_step(epoch, **post_step_kw)
-        post_train_kw = {**pre_train_meta, **pre_step_meta, **post_step_meta}
-        post_train_meta = self.post_train(**post_train_kw)
-        return post_train_meta
-
-class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     def debug_data(self, header=80*'*', extra_obj=None):
         def extract_data(obj):
             data_attr = [
@@ -460,57 +464,89 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
             d.extend(summarize(obj_name, obj))
         d.extend(['END DEBUG DATA', header])
         return '\n'.join(d)
-    
-    def pre_train(self, **kw):
-        make_plots = self.custom.get('make_plots', [])
-        verbose = self.custom.get('verbose', False)
-        print_freq = self.custom.get('print_freq', 1)
-        cmap = self.custom.get('cmap', 'seismic')
-        aspect = self.custom.get('aspect', 'auto')
-        plot_base_path = self.custom.get('plot_base_path', 'plots_iomt')
-        gif_speed = self.custom.get('gif_speed', 100)
 
-        rpt = report(verbose)
+    def fwi(self, **kw):
+        def rpt_inf(head, d):
+            s = '{\n'
+            for k,v in d.items():
+                s += f'    {k}: {v}\n'
+            s += '}\n'
+            msg = head + ' = """' + s + '\n"""'
+            self.custom['rpt'](msg, _verbosity_='inf')
+
+        pre_train_meta = self.pre_train(**kw)
+        rpt_inf('Pre-train kwargs', pre_train_meta)
+        pre_step_meta, post_step_meta = {}, {}
+        for epoch in range(self.epochs):
+            pre_step_kw = {**pre_train_meta, **pre_step_meta}
+            rpt_inf(f'Pre-step meta (epoch={epoch})', pre_step_meta)
+            pre_step_meta = self.pre_step(epoch, **pre_step_kw)
+            rpt_inf(f'Pre-step kwargs (epoch={epoch})', pre_step_kw)
+            step_meta = self.take_step(epoch=epoch, **pre_step_meta)
+            rpt_inf(f'Step meta (epoch={epoch})', step_meta)
+            post_step_kw = {**pre_train_meta, **pre_step_meta, **step_meta}
+            rpt_inf(f'Post-step kwargs (epoch={epoch})', post_step_kw)
+            post_step_meta = self.post_step(epoch, **post_step_kw)
+            rpt_inf(f'Post-step meta (epoch={epoch})', post_step_meta)
+        post_train_kw = {**pre_train_meta, **pre_step_meta, **post_step_meta}
+        rpt_inf('Post-train kwargs', post_train_kw)
+        post_train_meta = self.post_train(**post_train_kw)
+        rpt_inf('Post-train meta', post_train_meta)
+        return post_train_meta
+
+class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
+    def build_custom_meta(self, **kw):
+        super().build_custom_meta(**kw)
+        set_field = lambda k, v: self.custom.setdefault(k, v)
+        set_field('make_plots', [])
+        set_field('print_freq', 1)
+        set_field('cmap', 'seismic')
+        set_field('aspect', 'auto')
+        set_field('plot_base_path', 'plots_iomt')
+        set_field('gif_speed', 100)
+        set_field('plot_base_path', 'plots_iomt')
+        set_field('forward_kwargs', {})
 
         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
         the_time = '_'.join(the_time.split('_')[1:])
-        curr_run_dir = f'{plot_base_path}/{the_time}'
+        curr_run_dir = self.custom['plot_base_path'] + '/' + the_time
+        self.custom['curr_run_dir'] = curr_run_dir
+
         os.system(f'mkdir -p {curr_run_dir}')
 
         def plot_curr(epoch):
-            for p,do_transpose in make_plots:
-                rpt(f'Plotting {p} after {epoch} epochs', 1)
+            for p,do_transpose in self.custom['make_plots']:
+                self.custom['rpt'](
+                    f'Plotting {p} after {epoch} epochs', 
+                    _verbosity_='debug'
+                )
                 tmp = getattr(self.prop.model, p).param
                 if( do_transpose ):
                     tmp = tmp.T
                 tmp1 = tmp.detach().cpu().numpy()
-                plt.imshow(tmp1, aspect=aspect, cmap=cmap)
+                plt.imshow(
+                    tmp1, 
+                    aspect=self.custom['aspect'], 
+                    cmap=self.custom['cmap']
+                )
                 plt.colorbar()
                 plt.title(f'{p} after {epoch} epochs')
                 plt.savefig(f'{curr_run_dir}/{p}_{epoch}.jpg')
                 plt.clf()
-        plot_curr(0)
-
-        def batch_print(batch_no, batch_idx):
-            rpt(
-                f'Batch {batch_no+1}/{len(self.batches)}' + \
-                    f' ({len(batch_idx)} samples)', 
-                1
-            )
-        return {
-            'print_freq': print_freq,
-            'curr_run_dir': curr_run_dir,
-            'gif_speed': gif_speed,
-            'plot_curr': plot_curr,
-            'make_plots': make_plots,
-            'global_start': time.time(),
-            **self.custom
-        }
-
+        self.custom['plot_curr'] = plot_curr
+    
+    def pre_train(self, **kw):
+        self.custom['plot_curr'](0)
+        return {'train_start': time.time()}
+    
     def post_train(self, **kw):
-        make_plots = kw['make_plots']
-        curr_run_dir = kw['curr_run_dir']
-        gif_speed = kw['gif_speed']
+        make_plots = self.custom['make_plots']
+        curr_run_dir = self.custom['curr_run_dir']
+        gif_speed = self.custom['gif_speed']
+        
+        def rpt(s):
+            self.custom['rpt'](s, _verbosity_='debug', idt=1, end='\n')
+
         if( len(make_plots) > 0 ):
             for p,_ in make_plots:
                 print(f'Making gif for {p}')
@@ -518,43 +554,45 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     f'convert -delay {gif_speed} $(ls -tr ' + \
                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
                 )
-        return {}
+        return {'train_end': time.time()}
 
     def pre_step(self, epoch, **kw):
-        verbose = kw.get('verbose', True)
-        print_freq = kw.get('print_freq', 1)
-        if( verbose and epoch % print_freq == 0 ):
-            print(f'Epoch {epoch+1}/{self.epochs}')
+        print_freq = self.custom['print_freq']
+
+        rpt = self.custom['rpt']
+        rpt_prog = lambda s: rpt(s, idt=0, end='\n', _verbosity_='progress')
+        if( epoch % print_freq == 0 ):
+            rpt_prog(f'Epoch {epoch+1}/{self.epochs}')
+
         return {'step_start': time.time()}
 
     def post_step(self, epoch, **kw): 
-        kw['plot_curr'](epoch+1)
-        verbose = self.custom.get('verbose', False)
-        rpt = report(verbose)
-        idt = 1
-        rpt(f'Loss: {self.custom["log"]["loss"][-1]:.4e}', idt)
+        self.custom['plot_curr'](epoch+1)
+
+        rpt = self.custom['rpt']
+        rpt_prog = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
+
+        rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
         for k,v in self.custom['log']['grad_norm'].items():
-            rpt(f'Grad norm "{k}": {v[-1].norm():.4e}', idt)
+            rpt_prog(f'Grad norm "{k}": {v[-1].norm():.4e}')
         epoch_time = time.time() - kw['step_start']
-        total_time = time.time() - kw['global_start']
+        total_time = time.time() - kw['train_start']
         avg_time_per_epoch = total_time / (epoch+1)
         etr = avg_time_per_epoch * (self.epochs-epoch-1)
-        rpt(
+        rpt_prog(
             f'(Epoch,Total,ETR) = ' 
-                + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})', 
-            idt
+                + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})'
         )
-        return {}   
+        return {'step_end': time.time()}   
 
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
-        prot = self.custom.get('prot', print)
-        debug = self.custom.get('debug', False) 
-        show_batch = self.custom.get('show_batch', False)
+        rpt = self.custom['rpt']
+        rpt_prog = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
+        rpt_btch = lambda s,e: rpt(s, idt=1, end=e, _verbosity_='progress')
+        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
 
-        do_prot = lambda x : prot(x) if debug else None
-
-        print_batch = lambda x : print(x) if show_batch else None
+        epoch_start = kw['step_start']
 
         if( epoch == 0 ):
             self.custom['log'] = {
@@ -564,22 +602,25 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
         epoch_loss = 0.0
         self.optimizer.zero_grad()
         for (batch_no, batch_idx) in enumerate(self.batches):
-            print_batch(
-                f'    Batch {batch_no+1}/{len(self.batches)}'
-                    + f' ({len(batch_idx)} samples)'
-            )
-            if( debug and batch_no > 0):
-                self.report_debug(
-                    extra_obj=[
-                        ('out', out),
-                        ('obs_data', self.obs_data[batch_idx])
-                    ],
-                    prot=prot
+            batch_start = time.time()
+            if( batch_no == 0 ):
+                rpt_btch(f'Starting first batch of {len(self.batches)}', '\r')
+            if(  batch_no > 0):
+                rpt_debug(
+                    self.debug_data(
+                        extra_obj=[
+                            ('out', out),
+                            ('obs_data', self.obs_data[batch_idx])
+                        ],
+                    ),
                 )
-                do_prot(full_mem_report(title=f'Batch {batch_no}'))
-            do_prot('Attempting forward solve')
-            out = self.prop.forward(batch_idx=batch_idx, **kw)
-            do_prot('Forward completed')
+                rpt_debug(full_mem_report(title=f'Batch {batch_no}'))
+            rpt_debug('Attempting forward solve')
+            out = self.prop.forward(
+                batch_idx=batch_idx, 
+                **self.custom['forward_kwargs']
+            )
+            rpt_debug('Forward completed')
             assert( 
                 out.shape == self.obs_data[batch_idx].shape,
                 f'Output shape {out.shape} != ' + \
@@ -587,18 +628,28 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             )
             loss_lcl = self.custom.get('loss_scaling', 1.0) \
                 * self.loss(out, self.obs_data[batch_idx])
-            do_prot('Loss computed')
+            rpt_debug('Loss computed')
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())
             epoch_loss += loss_lcl.item()
             loss_lcl.backward()
-            do_prot('Backprop done')
+            rpt_debug('Backprop done')
             if( 'clip_grad' in self.custom.keys() ):
                 for att, clip_val in self.custom['clip_grad']:
                     torch.nn.utils.clip_grad_value_(
                         getattr(self.prop.model, att).param,
                         clip_val
                     )
-            do_prot('Grad clipped')
+            rpt_debug('Grad clipped')
+            batch_time = time.time() - batch_start
+            total_time = time.time() - epoch_start
+            avg_batch_time = total_time / (batch_no+1)
+            etr = avg_batch_time * (len(self.batches)-batch_no-1)
+            rpt_btch(
+                f'Completed {batch_no+1}/{len(self.batches)} -> '
+                    + f'(batch, total, Epoch ETR) ='
+                    + f' ({ht(batch_time)}, {ht(total_time)}, {ht(etr)})',
+                '\r'
+            )
         for name, p in zip(self.trainable_str, self.trainable):
             self.custom['log']['grad_norm'][name].append(p.grad.norm())
         self.optimizer.step()
