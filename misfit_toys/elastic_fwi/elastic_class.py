@@ -550,7 +550,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def take_step(self, *, epoch, **kw):
         prot = self.custom.get('prot', print)
-        debug = self.custom.get('debug', False)
+        debug = self.custom.get('debug', False) 
         show_batch = self.custom.get('show_batch', False)
 
         do_prot = lambda x : prot(x) if debug else None
