@@ -9,7 +9,7 @@ from deepwave import scalar
 from ..base_helpers import *
 
 
-def marmousi_acoustic():
+def marmousi_acoustic2():
     device = torch.device('cuda')
     path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
     vp_true = retrieve_dataset(
@@ -21,7 +21,8 @@ def marmousi_acoustic():
     nx = 751
     dy = 4.0
     dx = 4.0
-    v_init = torch.tensor(1/gaussian_filter(1/vp_true.numpy(), 10))
+    # v_init = torch.tensor(1/gaussian_filter(1/vp_true.numpy(), 10))
+    v_init = 4500 * torch.ones_like(vp_true)
 
     freq = 25
     nt = 750
@@ -202,3 +203,154 @@ def marmousi_acoustic():
         )
     )
     return fwi_solver
+
+def marmousi_acoustic_alan_check():
+    u_obs = retrieve_dataset(field='u_obs', folder='marmousi', path='conda')
+    vp = retrieve_dataset(field='vp', folder='marmousi', path='conda')
+    
+    ny = 600
+    nx = 250
+    nt = 300
+    
+    freq = 25
+    peak_time = 1.5 / freq
+    dt = 0.004
+
+    rec_per_shot = 100
+    n_shots = 20
+    
+    vp = vp[:ny, :nx]
+    u_obs = u_obs[:n_shots, :rec_per_shot, :nt]
+
+    survey = SurveyUniformLambda(
+        n_shots=n_shots,
+        src_y={
+            'src_per_shot': 1,
+            'fst_src': 10,
+            'src_depth': 2,
+            'd_src': 20,
+            'd_intra_shot': 0
+        },
+        rec_y={
+            'rec_per_shot': rec_per_shot,
+            'fst_rec': 0,
+            'rec_depth': 2,
+            'd_rec': 6,
+        },
+        amp_func=(
+            lambda *,self,pts,comp: None if pts == None else \
+                deepwave.wavelets.ricker(
+                    freq=self.custom['ricker_freq'],
+                    length=self.nt,
+                    dt=self.dt,
+                    peak_time=self.custom['peak_time']
+                ).repeat(*pts.shape[:-1], 1)
+        ),
+        y_amp_param=Param,
+        x_amp_param=Param,
+        ricker_freq=freq,
+        peak_time=peak_time,
+        nt=nt,
+        dt=dt
+    )
+
+    source_amplitudes = (
+        (deepwave.wavelets.ricker(freq, nt, dt, peak_time))
+        .repeat(n_shots, 1, 1)
+    )
+
+    n_sources_per_shot = 1
+    device = 'cpu'
+    d_source = 20
+    first_source = 10
+    source_depth = 2
+
+    receiver_depth = 2
+    d_receiver = 6
+    first_receiver = 0
+    n_receivers_per_shot = 100
+
+    source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
+                               dtype=torch.long, device=device)
+    source_locations[..., 1] = source_depth
+    source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
+                                first_source)
+
+    # receiver_locations
+    receiver_locations = torch.zeros(n_shots, n_receivers_per_shot, 2,
+                                    dtype=torch.long, device=device)
+    receiver_locations[..., 1] = receiver_depth
+    receiver_locations[:, :, 0] = (
+        (torch.arange(n_receivers_per_shot) * d_receiver +
+        first_receiver)
+        .repeat(n_shots, 1)
+    ) 
+
+    v_init = torch.tensor(1/gaussian_filter(1/vp.numpy(), 40))
+    model = Model(
+        survey=survey,
+        model='acoustic',
+        vp=v_init,
+        rho=None,
+        vs=None,
+        vp_param=Param,
+        vs_param=Param,
+        rho_param=Param,
+        freq=freq,
+        dy=4.0,
+        dx=4.0
+    )
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    prop = Prop(
+        model=model,
+        train={
+            'vp': True,
+            'rho': False,
+            'vs': False,
+            'src_amp_y': False,
+            'src_amp_x': False
+        },
+        device=device
+    )
+
+    fwi = FWI(
+        prop=prop,
+        obs_data=u_obs,
+        loss=torch.nn.MSELoss(),
+        optimizer=[torch.optim.SGD, {'lr': 1e9, 'momentum': 0.9}],
+        scheduler=[
+            (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
+        ],
+        epochs=5,
+        num_batches=n_shots // 5,
+        multi_gpu=False,
+        verbosity='progress',
+        protocol=print,
+        make_plots=[('vp', True)]
+    )
+    
+    print(torch.all(fwi.prop.model.vp.param == v_init.to(device)))
+    print(torch.all(fwi.prop.model.survey.src_amp_y() == source_amplitudes.to(device)))
+    print(torch.all(fwi.prop.model.survey.src_loc_y == source_locations.to(device)))
+    print(torch.all(fwi.prop.model.survey.rec_loc_y == receiver_locations.to(device)))
+    
+    alan_optimizer = torch.optim.SGD([v_init], lr=1e9, momentum=0.9)
+    alan_loss_fn = torch.nn.MSELoss()
+    input(fwi.optimizer.param_groups)
+    input(alan_optimizer.param_groups)
+    print([e == f for (e,f) in zip(fwi.optimizer.param_groups, alan_optimizer.param_groups)])
+    print(torch.all(fwi.optimizer.param_groups == alan_optimizer.param_groups))
+    print(torch.all(fwi.loss_fn == alan_loss_fn))
+
+    print(fwi.prop.model.vp.param.requires_grad)
+    print(fwi.prop.model.vs.param.requires_grad)
+    print(fwi.prop.model.rho.param.requires_grad)
+    print(fwi.prop.model.survey.src_amp_y.param.requires_grad)
+    print(fwi.prop.model.survey.src_amp_x.param.requires_grad)
+    print(fwi.prop.model)
+
+    return fwi
+
+def marmousi_acoustic():
+    return marmousi_acoustic_alan_check()

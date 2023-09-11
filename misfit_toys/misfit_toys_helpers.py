@@ -171,7 +171,7 @@ def towed_src(
     src_depth,
     d_intra_shot
 ):
-    res = torch.zeros(n_shots, src_per_shot, 2)
+    res = torch.zeros(n_shots, src_per_shot, 2, dtype=torch.long)
     res[:, :, 1] = src_depth
     for i in range(n_shots):
         for j in range(src_per_shot):

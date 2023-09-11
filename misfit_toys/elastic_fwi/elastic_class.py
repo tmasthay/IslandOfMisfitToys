@@ -270,6 +270,7 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
         self.to(device)
 
     def to(self, device):
+        super().to(device)
         self.model = self.model.to(device)
         return self
 
@@ -506,6 +507,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         set_field('gif_speed', 100)
         set_field('plot_base_path', 'plots_iomt')
         set_field('forward_kwargs', {})
+        set_field('loss_scaling', 1.0)
 
         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
         the_time = '_'.join(the_time.split('_')[1:])
@@ -626,7 +628,7 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 f'Output shape {out.shape} != ' + \
                     f'Observed data shape {self.obs_data[batch_idx].shape}'
             )
-            loss_lcl = self.custom.get('loss_scaling', 1.0) \
+            loss_lcl = self.custom['loss_scaling'] \
                 * self.loss(out, self.obs_data[batch_idx])
             rpt_debug('Loss computed')
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())

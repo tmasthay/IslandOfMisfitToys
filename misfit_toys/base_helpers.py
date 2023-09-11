@@ -50,4 +50,3 @@ def see_fields(obj, *, field, member_paths, idt='    ', level=0):
                 s += f'{(l+1)*idt}{field}: {getattr(c, field)}\n'
         history.append(s)
     return '\n'.join(history)
-
