@@ -264,13 +264,27 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
             full_train['src_amp_y']
         self.model.survey.src_amp_x.param.requires_grad = \
             full_train['src_amp_x']
-    
-    def forward(self, *, batch_idx, device, **kw):
+
+    def get_elastic_kwargs(self, idx, device):
+        if( self.model != 'elastic' ):
+            raise ValueError('No elastic kwargs for acoustic model')
+        else:
+            kw = {}
+            if( hasattr(self.model.survey, 'src_amp_x') ):
+                kw['source_amplitudes_x'] = \
+                    self.model.survey.src_amp_x(idx=idx).to(device)
+                kw['source_locations_x'] = \
+                    self.model.survey.src_loc_x[idx].to(device)
+                kw['receiver_locations_x'] = \
+                    self.model.survey.rec_loc_x[idx].to(device)
+            return kw
+
+    def forward(self, *, idx, device, **kw):
         if( self.model.model == 'acoustic' ):
-            v = self.model.vp().to(device)
-            amp_y = self.model.survey.src_amp_y()[batch_idx].to(device)
-            srcy = self.model.survey.src_loc_y[batch_idx].to(device)
-            recy = self.model.survey.rec_loc_y[batch_idx].to(device)
+            v = self.model.vp()[idx].to(device)
+            amp_y = self.model.survey.src_amp_y()[idx].to(device)
+            srcy = self.model.survey.src_loc_y[idx].to(device)
+            recy = self.model.survey.rec_loc_y[idx].to(device)
             return dw.scalar(
                 v,
                 self.model.dx,
@@ -281,53 +295,25 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                 **kw
             )[-1]
         elif( self.model.model == 'elastic' ):
-            kw_builder = {}
-            if( hasattr(self.model.survey, 'src_amp_x') ):
-                kw_builder['source_amplitudes_x'] = \
-                    self.model.survey.src_amp_x()
-            if( hasattr(self.model.survey, 'src_loc_x') ):
-                kw_builder['source_locations_x'] = \
-                    self.model.survey.src_loc_x
-            if( hasattr(self.model.survey, 'rec_loc_x') ):
-                kw_builder['receiver_locations_x'] = \
-                    self.model.survey.rec_loc_x
-            full_kw = {**kw_builder, **kw}
-            return dw.elastic(                vp=self.model.vp(),
-                vs=self.model.vs(),
-                rho=self.model.rho(),
+            full_kw = {**self.get_elastic_kwargs(idx, device), **kw}
+            return dw.elastic(vp=self.model.vp(idx=idx).to(device),
+                vs=self.model.vs(idx=idx).to(device),
+                rho=self.model.rho(idx=idx).to(device),
                 dx=self.model.dx,
                 dt=self.model.dt,
-                source_amplitudes_y=self.model.survey.src_amp_y()[batch_idx],
-                source_locations_y=self.model.survey.src_loc_y[batch_idx],
-                receiver_locations_y=self.model.survey.rec_loc_y[batch_idx],
+                source_amplitudes_y=self.model.survey.src_amp_y(idx=idx) \
+                    .to(device),
+                source_locations_y=self.model.survey.src_loc_y[idx] \
+                    .to(device),
+                receiver_locations_y=self.model.survey.rec_loc_y[idx] \
+                    .to(device),
                 **full_kw
             )[-2]
         else:
             raise ValueError(f'Unknown model type {self.model.model}')
-
-class DeployerGPU(torch.nn.DataParallel):
-    def __init__(self, *, prop, devices=None):
-        if( not torch.cuda.is_available() ):
-            raise ValueError('CUDA not available!')
         
-        if( devices in ['all', None] ):
-            devices = [f'cuda:{i}' for i in range(torch.cuda.device_count())]
-            if( len(devices) == 0 ):
-                raise ValueError('No CUDA devices found!')
-        super().__init__(prop.to(devices[0]), device_ids=devices)
-
-class DeployerCPU(torch.nn.Module):
-    def __init__(self, *, prop, devices='ignore'):
-        super().__init__()
-        self.module = prop.to('cpu')
-
-class DeployerIdentity(torch.nn.Module):
-    def __init__(self, *, prop, devices='ignore'):
-        super().__init__()
-        self.module = prop
-
 class FWIAbstract(ABC, metaclass=CombinedMeta):
-    deployer: Ant[Union[DeployerGPU, DeployerCPU], 'Deployer']
+    prop: Ant[Prop, 'Propagator']
     obs_data: Ant[torch.Tensor, 'Observed data']
     loss: Ant[torch.nn.Module, 'Loss function'] 
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
@@ -341,7 +327,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def __init__(
         self,
         *,
-        deployer,
+        prop,
         obs_data,
         loss,
         optimizer,
@@ -351,7 +337,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         batch_size=None,
         **kw
     ):
-        self.deployer = deployer
+        self.prop = prop
         self.obs_data = obs_data
         self.loss = loss
         self.epochs = epochs
@@ -374,7 +360,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.build_customs(**kw)
 
     def build_batches(self, num_batches, n_data):
-        return np.array_split(np.arange(n_data), num_batches)
+        return torch.arange(n_data).split(num_batches)
 
     def build_trainables(self):
         self.trainable_str = []
@@ -522,6 +508,23 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         return post_train_meta
 
 class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
+    rpt: Ant[Callable, 'Report function']
+    rpt_prog: Ant[Callable, 'Progress report function']
+    rpt_debug: Ant[Callable, 'Debug report function']
+    rpt_inf: Ant[Callable, 'Info report function']
+    rpt_return: Ant[Callable, 'Return report function']
+    closure_calls: Ant[int, 'Number of closure calls']
+
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.rpt = self.custom['rpt']
+        self.rpt_prog = lambda s: self.rpt(s, idt=1, end='\n', _verbosity_='progress')
+        self.rpt_debug = lambda s: self.rpt(s, idt=1, end='\n', _verbosity_='debug')
+        self.rpt_inf = lambda s: self.rpt(s, idt=1, end='\n', _verbosity_='inf')
+        self.rpt_return = lambda s: self.rpt(s, idt=1, end='\r', _verbosity_='progress')
+        self.closure_calls = 0
+        self.take_step = self.take_step_meta()
+
     def build_custom_meta(self, **kw):
         super().build_custom_meta(**kw)
         set_field = lambda k, v: self.custom.setdefault(k, v)
@@ -563,7 +566,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 plt.clf()
         self.custom['plot_curr'] = plot_curr
     
-    def batch_report_start(self, *, batch, batch_idx, out):
+    def batch_report_start(self, *, batch, idx):
         rpt = self.custom['rpt']
         rpt_btch = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
         rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
@@ -573,10 +576,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
             rpt_debug(
                 self.debug_data(
                     extra_obj=[
-                        ('out', out),
-                        ('obs_data', self.obs_data[batch_idx])
-                    ],
-                ),
+                        ('obs_data', self.obs_data[idx])
+                    ]
+                )
             )
             rpt_debug(full_mem_report(title=f'Batch {batch}'))
         return time.time()
@@ -657,122 +659,57 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         )
         return {'step_end': time.time()}   
 
-class FWI(FWIMetaHandler, metaclass=SlotMeta):
-    def take_step(self, *, epoch, **kw):
-        rpt = self.custom['rpt']
-        rpt_prog = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
-        rpt_btch = lambda s,e: rpt(s, idt=1, end=e, _verbosity_='progress')
-        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
-        epoch_start = kw['step_start']
-
-        if( epoch == 0 ):
-            self.custom['log'] = {
-                'loss': [],
-                'grad_norm': {k: [] for k in self.trainable_str}
-            }
- 
-        times_closure_called = 0
-        def call_only_once(f):
-            def helper(*args, **kw):
-                if( times_closure_called <= 1 ):
-                    return f(*args, **kw)
-            return helper
-        rpt_prog = call_only_once(rpt_prog)
-        rpt_btch = call_only_once(rpt_btch)
-        rpt_debug = call_only_once(rpt_debug)
-        rbs = call_only_once(self.batch_report_start)
-        rbe = call_only_once(self.batch_report_end)
-
-        def forward_pass(*, batch, batch_idx, out):
-            start = rbs(batch=batch, batch_idx=batch_idx, out=out)
-
-            rpt_debug('Attempting forward solve')
-            out = self.deployer.module.forward(
-                batch_idx=batch_idx, 
-                **self.custom['forward_kwargs']
-            )
-            rpt_debug('Forward completed')
-            
-            return out, start
-        
-        def loss_eval(*, batch_idx, out):
-            loss_lcl = self.custom['loss_scaling'] \
-                    * self.loss(out, self.obs_data[batch_idx])
-            rpt_debug('Loss computed')
-            self.custom['log']['loss'].append(loss_lcl.detach().cpu())
-            return loss_lcl
-        
-        def loss_backward(*, loss_lcl):
-            rpt_debug('Backprop started')
-            loss_lcl.backward()
-            rpt_debug('Backprop done')
-
-        def clip_grad():
-            if( 'clip_grad' in self.custom.keys() ):
-                for att, clip_val in self.custom['clip_grad']:
-                    torch.nn.utils.clip_grad_value_(
-                        getattr(self.deployer.module.model, att).param,
-                        clip_val
-                    )
-                rpt_debug('Grad clipped')
-        
-        def closure_tmp():
-            nonlocal times_closure_called, out
-            times_closure_called += 1
-            epoch_loss = 0.0
-            self.optimizer.zero_grad()
-            for (batch_no, batch_idx) in enumerate(self.batches):
-                out, start = forward_pass(
-                    batch=batch_no, 
-                    batch_idx=batch_idx, 
-                    out=out
-                )
-
-                loss_lcl = loss_eval(batch_idx=batch_idx, out=out)
-                epoch_loss += loss_lcl.item()
-                loss_backward(loss_lcl=loss_lcl)
-
-                clip_grad()
-
-                rbe(
+    def take_step_meta(self):
+        if( self.verbosity == 'silent' ):
+            return self.take_step
+        else:
+            def helper(*, epoch, batch, idx, **kw):
+                batch_start = self.batch_report_start(batch=batch, idx=idx)
+                self.take_step(epoch=epoch, batch=batch, idx=idx, **kw)
+                loss_lcl = self.loss_eval(batch_idx=idx, out=self.out)
+                self.batch_report_end(
                     epoch=epoch,
-                    epoch_start=epoch_start,
-                    epoch_loss=epoch_loss,
-                    batch=batch_no,
-                    batch_idx=batch_idx,
-                    batch_start=start
+                    epoch_start=kw['step_start'],
+                    epoch_loss=loss_lcl.item(),
+                    batch=batch,
+                    batch_idx=idx,
+                    batch_start=batch_start
                 )
-            return loss_lcl
-        
+            return helper
 
-        self.optimizer.zero_grad()
-        for (batch, batch_idx) in enumerate(self.batches):
-            out = self.deployer.module(
-                batch_idx=batch_idx,
-                device=torch.device('cuda'),
-                **self.custom['forward_kwargs']
-            )
-            loss_lcl = self.custom['loss_scaling'] \
-                * self.loss(out, self.obs_data[batch_idx])
-            loss_lcl.backward()
-            if( 'clip_grad' in self.custom.keys() ):
-                for att, clip_val in self.custom['clip_grad']:
-                    torch.nn.utils.clip_grad_value_(
-                        getattr(self.deployer.module.model, att).param,
-                        clip_val
-                    )
-            self.custom['log']['loss'].append(loss_lcl.detach().cpu())
-        
-        self.optimizer.step()
-        self.scheduler.step()
+class FWI(FWIMetaHandler, metaclass=SlotMeta):
+    def postprocess_loss(self, loss_lcl):
+        if( 'clip_grad' in self.custom.keys() ):
+            for att, clip_val in self.custom['clip_grad']:
+                torch.nn.utils.clip_grad_value_(
+                    getattr(self.prop, att),
+                    clip_val
+                )
+        self.custom['log']['loss'].append(loss_lcl.detach().cpu())
 
+    def postprocess_step(self):
         for name, p in zip(self.trainable_str, self.trainable):
             if( p.grad is not None ): 
                 self.custom['log']['grad_norm'][name].append(p.grad.norm())
             else:
-                rpt_debug(f'No gradient for {name}')
+                self.rpt_debug(f'No gradient for {name}')
                 self.custom['log']['grad_norm'][name].append(None)
+    
+    def take_step(self, *, epoch, batch, idx, **kw):
+        self.optimizer.zero_grad()
+        self.out = self.prop(
+            idx=idx,
+            device=torch.device('cuda'),
+            **self.custom['forward_kwargs']
+        )
+        loss_lcl = self.custom['loss_scaling'] \
+            * self.loss(self.out, self.obs_data[idx])
+        loss_lcl.backward()
+        self.postprocess_loss(loss_lcl)
+    
+        self.optimizer.step()
+        self.scheduler.step()
 
-        del loss_lcl, out
+        del loss_lcl
 
         return self.custom['log']

@@ -520,14 +520,20 @@ class SlotMeta(type):
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
 
-class AbstractParam(torch.nn.Module, metaclass=ABCMeta):
+class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
+    param: Ant[torch.nn.Parameter, 'Parameter']
+    trainable: Ant[bool, 'Trainable']
+    device: Ant[str, 'Device']
+    custom: Ant[dict, 'Custom']
+
     def __init__(self, *, param, trainable, device='cpu', **kw):
         super().__init__()
         self.param = torch.nn.Parameter(param).to(device)
         self.param.requires_grad = trainable
         self.device = device
+        self.custom = {}
         for k, v in kw.items():
-            setattr(self, k, v)
+            self.custom[k] = v
 
     def to(self, device):
         if( self.device == device ): return self 
@@ -537,12 +543,15 @@ class AbstractParam(torch.nn.Module, metaclass=ABCMeta):
         return self
 
     @abstractmethod
-    def forward(self):
+    def forward(self, **kw):
         raise NotImplementedError('Forward not implemented')
     
 class Param(AbstractParam):
-    def forward(self):
-        return self.param
+    def forward(self, *, idx):
+        if( idx == 'all' ):
+            return self.param
+        else:
+            return self.param[idx]
     
 class ConstrainedParam(AbstractParam):
     def __init__(
@@ -563,7 +572,13 @@ class ConstrainedParam(AbstractParam):
             max_val=max_val
         )
     
-    def forward(self):
-        return torch.sigmoid(self.param) * (self.max_val - self.min_val) \
-            + self.min_val
+    def forward(self, *, idx):
+        if( idx == 'all' ):
+            return torch.sigmoid(self.param) \
+                * (self.max_val - self.min_val) \
+                + self.min_val
+        else:
+            return torch.sigmoid(self.param[idx]) \
+                * (self.max_val - self.min_val) \
+                + self.min_val
     
