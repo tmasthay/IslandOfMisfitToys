@@ -503,6 +503,10 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
                     idx=idx,
                     **pre_step_meta
                 )
+                if( batch == 0  ):
+                    self.custom['log']['loss'].append(step_meta['batch_loss'])
+                else:
+                    self.custom['log']['loss'][epoch] += step_meta['batch_loss']
                 rpt_inf(f'Step meta (epoch={epoch})', step_meta)
             post_step_kw = {**pre_train_meta, **pre_step_meta, **step_meta}
             rpt_inf(f'Post-step kwargs (epoch={epoch})', post_step_kw)
@@ -545,6 +549,19 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         set_field('plot_base_path', 'plots_iomt')
         set_field('forward_kwargs', {})
         set_field('loss_scaling', 1.0)
+        set_field(
+            'log', 
+            {
+                'loss': [], 
+                'grad_norm': {
+                    'vp': [],
+                    'vs': [],
+                    'rho': [],
+                    'src_amp_y': [],
+                    'src_amp_x': []
+                }
+            }
+        )
 
         the_time = sco('date')[0].replace(' ', '_').replace(':', '-')
         the_time = '_'.join(the_time.split('_')[1:])
@@ -575,19 +592,16 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         self.custom['plot_curr'] = plot_curr
     
     def batch_report_start(self, *, batch, idx):
-        rpt = self.custom['rpt']
-        rpt_btch = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
-        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
         if( batch == 0 ):
-            rpt_btch(f'Starting first batch of {len(self.batches)}')
-        rpt_debug(
+            self.rpt_return(f'Starting first batch of {len(self.batches)}')
+        self.rpt_debug(
             self.debug_data(
                 extra_obj=[
                     ('obs_data', self.obs_data[idx])
                 ]
             )
         )
-        rpt_debug(full_mem_report(title=f'Batch {batch}'))
+        self.rpt_debug(full_mem_report(title=f'Batch {batch}'))
         return time.time()
 
     def batch_report_end(
@@ -600,15 +614,11 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         batch_idx,
         batch_start
     ):
-        rpt = self.custom['rpt']
-        rpt_btch = lambda s: rpt(s, idt=1, end='\r', _verbosity_='progress')
-        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
-
         batch_time = time.time() - batch_start
         epoch_time = time.time() - epoch_start
         avg_time_per_batch = epoch_time / (batch+1)
         etr = avg_time_per_batch * (len(self.batches)-batch-1)
-        rpt_btch(
+        self.rpt_return(
             f'Completed {batch+1}/{len(self.batches)} -> '
                 + f'(batch, total, Epoch ETR) ='
                 + f' ({ht(batch_time)}, {ht(epoch_time)}, {ht(etr)})'
@@ -648,19 +658,20 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     def post_step(self, epoch, **kw): 
         self.custom['plot_curr'](epoch+1)
 
-        rpt = self.custom['rpt']
-        rpt_prog = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
-
-        rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
+        self.rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
         for k,v in self.custom['log']['grad_norm'].items():
-            curr_norm = 'None' if v[-1] is None else f'{v[-1].norm():.4e}'
-            rpt_prog(f'Grad norm "{k}": {curr_norm}')
+            curr_norm = 'None' if len(v) == 0 or v[-1] is None else f'{v[-1].norm():.4e}'
+            curr_statement = f'Grad norm "{k}": {curr_norm}'
+            if( curr_norm == 'None' ):
+                self.rpt_debug(curr_statement)
+            else:
+                self.rpt_prog(curr_statement)
 
         epoch_time = time.time() - kw['step_start']
         total_time = time.time() - kw['train_start']
         avg_time_per_epoch = total_time / (epoch+1)
         etr = avg_time_per_epoch * (self.epochs-epoch-1)
-        rpt_prog(
+        self.rpt_prog(
             f'(Epoch,Total,ETR) = ' 
                 + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})'
         )
@@ -684,49 +695,42 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 self.batch_report_end(
                     epoch=epoch,
                     epoch_start=kw['step_start'],
-                    epoch_loss=loss_lcl.item(),
+                    epoch_loss=loss_lcl,
                     batch=batch,
                     batch_idx=idx,
                     batch_start=batch_start
                 )
+                return loss_lcl
             return helper
     
     def take_step(self, *, epoch, batch, idx, **kw):
         return self.take_step_meta(epoch=epoch, batch=batch, idx=idx, **kw)
 
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
-    def postprocess_loss(self, loss_lcl):
+    def postprocess_loss(self):
         if( 'clip_grad' in self.custom.keys() ):
             for att, clip_val in self.custom['clip_grad']:
                 torch.nn.utils.clip_grad_value_(
-                    getattr(self.prop, att),
+                    getattr(self.prop.model, att).param,
                     clip_val
                 )
-        self.custom['log']['loss'].append(loss_lcl.detach().cpu())
-
-    def postprocess_step(self):
-        for name, p in zip(self.trainable_str, self.trainable):
-            if( p.grad is not None ): 
-                self.custom['log']['grad_norm'][name].append(p.grad.norm())
-            else:
-                self.rpt_debug(f'No gradient for {name}')
-                self.custom['log']['grad_norm'][name].append(None)
     
     def _take_step_(self, *, epoch, batch, idx, **kw):
         self.optimizer.zero_grad()
-        self.out = self.prop(
+        out = self.prop(
             idx=idx,
             device=torch.device('cuda'),
             **self.custom['forward_kwargs']
         )
-        loss_lcl = self.custom['loss_scaling'] \
-            * self.loss(self.out, self.obs_data[idx])
-        loss_lcl.backward()
-        self.postprocess_loss(loss_lcl)
+        loss = self.custom['loss_scaling'] \
+            * self.loss(out, self.obs_data[idx])
+        loss.backward()
+        batch_loss = float(loss.detach().cpu().numpy())
+        self.postprocess_loss()
     
         self.optimizer.step()
         self.scheduler.step()
 
-        del loss_lcl
-
-        return self.custom['log']
+        del loss, out
+        torch.cuda.empty_cache()
+        return {'batch_loss': batch_loss}

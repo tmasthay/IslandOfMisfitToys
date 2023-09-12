@@ -327,8 +327,8 @@ def marmousi_acoustic_alan_check():
             (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
         ],
         epochs=250,
-        batch_size=1,
-        verbosity='inf',
+        batch_size=10,
+        verbosity='progress',
         print_protocol=print,
         make_plots=[('vp', True)],
         clip_grad=[('vp', 0.95)]
@@ -340,7 +340,7 @@ def marmousi_acoustic_alan_check():
         print(torch.all(prop2.model.vp.param == v_init.to(device)))
         print(torch.all(prop2.model.survey.src_amp_y() == source_amplitudes.to(device)))
         print(torch.all(prop2.model.survey.src_loc_y == source_locations.to(device)))
-        input(torch.all(prop2.model.survey.rec_loc_y == receiver_locations.to(device)))
+        print(torch.all(prop2.model.survey.rec_loc_y == receiver_locations.to(device)))
         
         alan_optimizer = torch.optim.SGD([v_init], lr=1e9, momentum=0.9)
         alan_loss_fn = torch.nn.MSELoss()
