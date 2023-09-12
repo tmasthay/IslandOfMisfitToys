@@ -218,7 +218,7 @@ def marmousi_acoustic_alan_check():
     dt = 0.004
 
     rec_per_shot = 100
-    n_shots = 30
+    n_shots = 20
     
     vp = vp[:ny, :nx]
     u_obs = u_obs[:n_shots, :rec_per_shot, :nt]
@@ -229,7 +229,7 @@ def marmousi_acoustic_alan_check():
             'src_per_shot': 1,
             'fst_src': 10,
             'src_depth': 2,
-            'd_src': 3,
+            'd_src': 20,
             'd_intra_shot': 0
         },
         rec_y={
@@ -313,13 +313,13 @@ def marmousi_acoustic_alan_check():
     )
     # deployer = Deployer(prop=prop, devices='all')
     # deployer = DeployerGPU(prop=prop, devices='all')
-    deployer = torch.nn.DataParallel(prop).to(device)
+    # deployer = torch.nn.DataParallel(prop).to(device)
     # deployer = DeployerCPU(prop=prop)
     # deployer = DeployerIdentity(prop=prop, devices='ignore')
 
     inputd = lambda x, **kw: input(x)
     fwi = FWI(
-        deployer=deployer,
+        prop=prop,
         obs_data=u_obs.to(device),
         loss=torch.nn.MSELoss(),
         optimizer=[torch.optim.SGD, {'lr': 1e9, 'momentum': 0.9}],
@@ -327,31 +327,33 @@ def marmousi_acoustic_alan_check():
             (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
         ],
         epochs=250,
-        batch_size=50,
-        verbosity='progress',
+        batch_size=1,
+        verbosity='inf',
         print_protocol=print,
         make_plots=[('vp', True)],
         clip_grad=[('vp', 0.95)]
     )
     
-    prop2 = fwi.deployer.module
-    print(torch.all(prop2.model.vp.param == v_init.to(device)))
-    print(torch.all(prop2.model.survey.src_amp_y() == source_amplitudes.to(device)))
-    print(torch.all(prop2.model.survey.src_loc_y == source_locations.to(device)))
-    print(torch.all(prop2.model.survey.rec_loc_y == receiver_locations.to(device)))
-    
-    alan_optimizer = torch.optim.SGD([v_init], lr=1e9, momentum=0.9)
-    alan_loss_fn = torch.nn.MSELoss()
-    print(fwi.optimizer.param_groups)
-    print(alan_optimizer.param_groups)
-    print([e == f for (e,f) in zip(fwi.optimizer.param_groups, alan_optimizer.param_groups)])
+    prop2 = fwi.prop
+    debug = True
+    if( debug ):
+        print(torch.all(prop2.model.vp.param == v_init.to(device)))
+        print(torch.all(prop2.model.survey.src_amp_y() == source_amplitudes.to(device)))
+        print(torch.all(prop2.model.survey.src_loc_y == source_locations.to(device)))
+        input(torch.all(prop2.model.survey.rec_loc_y == receiver_locations.to(device)))
+        
+        alan_optimizer = torch.optim.SGD([v_init], lr=1e9, momentum=0.9)
+        alan_loss_fn = torch.nn.MSELoss()
+        print(fwi.optimizer.param_groups)
+        print(alan_optimizer.param_groups)
+        print([e == f for (e,f) in zip(fwi.optimizer.param_groups, alan_optimizer.param_groups)])
 
-    print(prop2.model.vp.param.requires_grad)
-    print(prop2.model.vs.param.requires_grad)
-    print(prop2.model.rho.param.requires_grad)
-    print(prop2.model.survey.src_amp_y.param.requires_grad)
-    print(prop2.model.survey.src_amp_x.param.requires_grad)
-    print(prop2.model)
+        print(prop2.model.vp.param.requires_grad)
+        print(prop2.model.vs.param.requires_grad)
+        print(prop2.model.rho.param.requires_grad)
+        print(prop2.model.survey.src_amp_y.param.requires_grad)
+        print(prop2.model.survey.src_amp_x.param.requires_grad)
+        print(prop2.model)
 
     return fwi
 

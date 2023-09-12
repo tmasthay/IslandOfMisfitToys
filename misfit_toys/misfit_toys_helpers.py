@@ -547,7 +547,7 @@ class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
         raise NotImplementedError('Forward not implemented')
     
 class Param(AbstractParam):
-    def forward(self, *, idx):
+    def forward(self, *, idx='all'):
         if( idx == 'all' ):
             return self.param
         else:
@@ -572,7 +572,7 @@ class ConstrainedParam(AbstractParam):
             max_val=max_val
         )
     
-    def forward(self, *, idx):
+    def forward(self, *, idx='all'):
         if( idx == 'all' ):
             return torch.sigmoid(self.param) \
                 * (self.max_val - self.min_val) \

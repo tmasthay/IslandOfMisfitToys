@@ -281,8 +281,8 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
 
     def forward(self, *, idx, device, **kw):
         if( self.model.model == 'acoustic' ):
-            v = self.model.vp()[idx].to(device)
-            amp_y = self.model.survey.src_amp_y()[idx].to(device)
+            v = self.model.vp(idx='all').to(device)
+            amp_y = self.model.survey.src_amp_y(idx=idx).to(device)
             srcy = self.model.survey.src_loc_y[idx].to(device)
             recy = self.model.survey.rec_loc_y[idx].to(device)
             return dw.scalar(
@@ -296,9 +296,10 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
             )[-1]
         elif( self.model.model == 'elastic' ):
             full_kw = {**self.get_elastic_kwargs(idx, device), **kw}
-            return dw.elastic(vp=self.model.vp(idx=idx).to(device),
-                vs=self.model.vs(idx=idx).to(device),
-                rho=self.model.rho(idx=idx).to(device),
+            return dw.elastic(
+                vp=self.model.vp(idx='all').to(device),
+                vs=self.model.vs(idx='all').to(device),
+                rho=self.model.rho(idx='all').to(device),
                 dx=self.model.dx,
                 dt=self.model.dt,
                 source_amplitudes_y=self.model.survey.src_amp_y(idx=idx) \
@@ -366,13 +367,13 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.trainable_str = []
         self.trainable = []
         for s in ['vp', 'vs', 'rho']:
-            curr = getattr(self.deployer.module.model, s)
+            curr = getattr(self.prop.model, s)
             if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
                 self.trainable.append(curr.param)
 
         for s in ['src_amp_y', 'src_amp_x']:
-            curr = getattr(self.deployer.module.model.survey, s)
+            curr = getattr(self.prop.model.survey, s)
             if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
                 self.trainable.append(curr.param)
@@ -471,8 +472,8 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         
         if( extra_obj is None ): extra_obj = []
         d = [header, 'DEBUG DATA']
-        d.extend(summarize('survey', self.deployer.module.model.survey))
-        d.extend(summarize('model', self.deployer.module.model))
+        d.extend(summarize('survey', self.prop.model.survey))
+        d.extend(summarize('model', self.prop.model))
         for obj_name, obj in extra_obj:
             d.extend(summarize(obj_name, obj))
         d.extend(['END DEBUG DATA', header])
@@ -495,8 +496,14 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             rpt_inf(f'Pre-step meta (epoch={epoch})', pre_step_meta)
             pre_step_meta = self.pre_step(epoch, **pre_step_kw)
             rpt_inf(f'Pre-step kwargs (epoch={epoch})', pre_step_kw)
-            step_meta = self.take_step(epoch=epoch, **pre_step_meta)
-            rpt_inf(f'Step meta (epoch={epoch})', step_meta)
+            for (batch, idx) in enumerate(self.batches):
+                step_meta = self.take_step(
+                    epoch=epoch, 
+                    batch=batch,
+                    idx=idx,
+                    **pre_step_meta
+                )
+                rpt_inf(f'Step meta (epoch={epoch})', step_meta)
             post_step_kw = {**pre_train_meta, **pre_step_meta, **step_meta}
             rpt_inf(f'Post-step kwargs (epoch={epoch})', post_step_kw)
             post_step_meta = self.post_step(epoch, **post_step_kw)
@@ -514,6 +521,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     rpt_inf: Ant[Callable, 'Info report function']
     rpt_return: Ant[Callable, 'Return report function']
     closure_calls: Ant[int, 'Number of closure calls']
+    take_step_meta: Ant[Callable, 'Take step meta function']
 
     def __init__(self, **kw):
         super().__init__(**kw)
@@ -523,7 +531,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         self.rpt_inf = lambda s: self.rpt(s, idt=1, end='\n', _verbosity_='inf')
         self.rpt_return = lambda s: self.rpt(s, idt=1, end='\r', _verbosity_='progress')
         self.closure_calls = 0
-        self.take_step = self.take_step_meta()
+        self.take_step_meta = self._take_step_meta_()
 
     def build_custom_meta(self, **kw):
         super().build_custom_meta(**kw)
@@ -551,7 +559,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     f'Plotting {p} after {epoch} epochs', 
                     _verbosity_='debug'
                 )
-                tmp = getattr(self.deployer.module.model, p).param
+                tmp = getattr(self.prop.model, p).param
                 if( do_transpose ):
                     tmp = tmp.T
                 tmp1 = tmp.detach().cpu().numpy()
@@ -572,15 +580,14 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
         if( batch == 0 ):
             rpt_btch(f'Starting first batch of {len(self.batches)}')
-        else:
-            rpt_debug(
-                self.debug_data(
-                    extra_obj=[
-                        ('obs_data', self.obs_data[idx])
-                    ]
-                )
+        rpt_debug(
+            self.debug_data(
+                extra_obj=[
+                    ('obs_data', self.obs_data[idx])
+                ]
             )
-            rpt_debug(full_mem_report(title=f'Batch {batch}'))
+        )
+        rpt_debug(full_mem_report(title=f'Batch {batch}'))
         return time.time()
 
     def batch_report_end(
@@ -659,14 +666,21 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         )
         return {'step_end': time.time()}   
 
-    def take_step_meta(self):
-        if( self.verbosity == 'silent' ):
-            return self.take_step
+    @abstractmethod 
+    def _take_step_(self, *, epoch, batch, idx, **kw): pass
+
+    def _take_step_meta_(self):
+        if( self.custom['verbosity'] == 'silent' ):
+            return self._take_step_
         else:
             def helper(*, epoch, batch, idx, **kw):
                 batch_start = self.batch_report_start(batch=batch, idx=idx)
-                self.take_step(epoch=epoch, batch=batch, idx=idx, **kw)
-                loss_lcl = self.loss_eval(batch_idx=idx, out=self.out)
+                loss_lcl = self._take_step_(
+                    epoch=epoch, 
+                    batch=batch, 
+                    idx=idx, 
+                    **kw
+                )
                 self.batch_report_end(
                     epoch=epoch,
                     epoch_start=kw['step_start'],
@@ -676,6 +690,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     batch_start=batch_start
                 )
             return helper
+    
+    def take_step(self, *, epoch, batch, idx, **kw):
+        return self.take_step_meta(epoch=epoch, batch=batch, idx=idx, **kw)
 
 class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def postprocess_loss(self, loss_lcl):
@@ -695,7 +712,7 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 self.rpt_debug(f'No gradient for {name}')
                 self.custom['log']['grad_norm'][name].append(None)
     
-    def take_step(self, *, epoch, batch, idx, **kw):
+    def _take_step_(self, *, epoch, batch, idx, **kw):
         self.optimizer.zero_grad()
         self.out = self.prop(
             idx=idx,
