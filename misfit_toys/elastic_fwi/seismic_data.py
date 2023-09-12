@@ -218,7 +218,7 @@ def marmousi_acoustic_alan_check():
     dt = 0.004
 
     rec_per_shot = 100
-    n_shots = 20
+    n_shots = 30
     
     vp = vp[:ny, :nx]
     u_obs = u_obs[:n_shots, :rec_per_shot, :nt]
@@ -229,7 +229,7 @@ def marmousi_acoustic_alan_check():
             'src_per_shot': 1,
             'fst_src': 10,
             'src_depth': 2,
-            'd_src': 20,
+            'd_src': 3,
             'd_intra_shot': 0
         },
         rec_y={
@@ -312,10 +312,10 @@ def marmousi_acoustic_alan_check():
         }
     ).to(device)
     # deployer = Deployer(prop=prop, devices='all')
-    # deployer = DeployerGPU(prop=prop, devices='all')
+    deployer = DeployerGPU(prop=prop, devices='all')
     # deployer = torch.nn.DataParallel(prop).to(device)
     # deployer = DeployerCPU(prop=prop)
-    deployer = DeployerIdentity(prop=prop, devices='ignore')
+    # deployer = DeployerIdentity(prop=prop, devices='ignore')
 
     inputd = lambda x, **kw: input(x)
     fwi = FWI(
@@ -327,7 +327,7 @@ def marmousi_acoustic_alan_check():
             (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
         ],
         epochs=250,
-        batch_size=10,
+        batch_size=50,
         verbosity='progress',
         print_protocol=print,
         make_plots=[('vp', True)],
