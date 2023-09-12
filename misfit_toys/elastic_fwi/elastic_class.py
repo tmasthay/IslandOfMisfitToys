@@ -264,20 +264,20 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
             full_train['src_amp_y']
         self.model.survey.src_amp_x.param.requires_grad = \
             full_train['src_amp_x']
-
-    def to(self, device):
-        self.model.to(device)
-        return self
     
     def forward(self, *, batch_idx, **kw):
         if( self.model.model == 'acoustic' ):
+            v = self.model.vp()
+            amp_y = self.model.survey.src_amp_y()[batch_idx]
+            srcy = self.model.survey.src_loc_y[batch_idx]
+            recy = self.model.survey.rec_loc_y[batch_idx]
             return dw.scalar(
-                self.model.vp(),
+                v,
                 self.model.dx,
                 self.model.dt,
-                source_amplitudes=self.model.survey.src_amp_y()[batch_idx],
-                source_locations=self.model.survey.src_loc_y[batch_idx],
-                receiver_locations=self.model.survey.rec_loc_y[batch_idx],
+                source_amplitudes=amp_y,
+                source_locations=srcy,
+                receiver_locations=recy,
                 **kw
             )[-1]
         elif( self.model.model == 'elastic' ):
@@ -320,7 +320,12 @@ class DeployerCPU(torch.nn.Module):
     def __init__(self, *, prop, devices='ignore'):
         super().__init__()
         self.module = prop.to('cpu')
-            
+
+class DeployerIdentity(torch.nn.Module):
+    def __init__(self, *, prop, devices='ignore'):
+        super().__init__()
+        self.module = prop
+
 class FWIAbstract(ABC, metaclass=CombinedMeta):
     deployer: Ant[Union[DeployerGPU, DeployerCPU], 'Deployer']
     obs_data: Ant[torch.Tensor, 'Observed data']
@@ -682,7 +687,7 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             start = rbs(batch=batch, batch_idx=batch_idx, out=out)
 
             rpt_debug('Attempting forward solve')
-            out = self.deployer.module(
+            out = self.deployer.module.forward(
                 batch_idx=batch_idx, 
                 **self.custom['forward_kwargs']
             )
@@ -766,5 +771,7 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
             else:
                 rpt_debug(f'No gradient for {name}')
                 self.custom['log']['grad_norm'][name].append(None)
+
+        del loss_lcl, out
 
         return self.custom['log']

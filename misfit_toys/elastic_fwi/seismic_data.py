@@ -206,7 +206,6 @@ def marmousi_acoustic2():
 
 def marmousi_acoustic_alan_check():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
     u_obs = retrieve_dataset(field='u_obs', folder='marmousi', path='conda')
     vp = retrieve_dataset(field='vp', folder='marmousi', path='conda')
     
@@ -254,7 +253,7 @@ def marmousi_acoustic_alan_check():
         peak_time=peak_time,
         nt=nt,
         dt=dt
-    )
+    ).to(device)
 
     source_amplitudes = (
         (deepwave.wavelets.ricker(freq, nt, dt, peak_time))
@@ -300,7 +299,7 @@ def marmousi_acoustic_alan_check():
         freq=freq,
         dy=4.0,
         dx=4.0
-    )
+    ).to(device)
 
     prop = Prop(
         model=model,
@@ -313,10 +312,12 @@ def marmousi_acoustic_alan_check():
         }
     ).to(device)
     # deployer = Deployer(prop=prop, devices='all')
-    # deployer = DeployerGPU(prop=prop, devices=['cuda:0'])
-    deployer = torch.nn.DataParallel(prop).to(device)
+    # deployer = DeployerGPU(prop=prop, devices='all')
+    # deployer = torch.nn.DataParallel(prop).to(device)
     # deployer = DeployerCPU(prop=prop)
+    deployer = DeployerIdentity(prop=prop, devices='ignore')
 
+    inputd = lambda x, **kw: input(x)
     fwi = FWI(
         deployer=deployer,
         obs_data=u_obs.to(device),
@@ -326,11 +327,11 @@ def marmousi_acoustic_alan_check():
             (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
         ],
         epochs=250,
-        batch_size=20,
-        multi_gpu=True,
+        batch_size=10,
         verbosity='progress',
-        print_protocol=(lambda x,**kw : input(x)),
-        make_plots=[('vp', True)]
+        print_protocol=print,
+        make_plots=[('vp', True)],
+        clip_grad=[('vp', 0.95)]
     )
     
     prop2 = fwi.deployer.module
