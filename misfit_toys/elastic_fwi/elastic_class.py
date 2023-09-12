@@ -265,12 +265,12 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
         self.model.survey.src_amp_x.param.requires_grad = \
             full_train['src_amp_x']
     
-    def forward(self, *, batch_idx, **kw):
+    def forward(self, *, batch_idx, device, **kw):
         if( self.model.model == 'acoustic' ):
-            v = self.model.vp()
-            amp_y = self.model.survey.src_amp_y()[batch_idx]
-            srcy = self.model.survey.src_loc_y[batch_idx]
-            recy = self.model.survey.rec_loc_y[batch_idx]
+            v = self.model.vp().to(device)
+            amp_y = self.model.survey.src_amp_y()[batch_idx].to(device)
+            srcy = self.model.survey.src_loc_y[batch_idx].to(device)
+            recy = self.model.survey.rec_loc_y[batch_idx].to(device)
             return dw.scalar(
                 v,
                 self.model.dx,
@@ -748,7 +748,8 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
         self.optimizer.zero_grad()
         for (batch, batch_idx) in enumerate(self.batches):
             out = self.deployer.module(
-                batch_idx=batch_idx, 
+                batch_idx=batch_idx,
+                device=torch.device('cuda'),
                 **self.custom['forward_kwargs']
             )
             loss_lcl = self.custom['loss_scaling'] \

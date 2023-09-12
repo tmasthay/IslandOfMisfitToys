@@ -310,10 +310,10 @@ def marmousi_acoustic_alan_check():
             'src_amp_y': False,
             'src_amp_x': False
         }
-    ).to(device)
+    )
     # deployer = Deployer(prop=prop, devices='all')
-    deployer = DeployerGPU(prop=prop, devices='all')
-    # deployer = torch.nn.DataParallel(prop).to(device)
+    # deployer = DeployerGPU(prop=prop, devices='all')
+    deployer = torch.nn.DataParallel(prop).to(device)
     # deployer = DeployerCPU(prop=prop)
     # deployer = DeployerIdentity(prop=prop, devices='ignore')
 
