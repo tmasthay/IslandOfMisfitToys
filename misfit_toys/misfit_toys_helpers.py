@@ -434,7 +434,7 @@ def run_verbosity(*, verbosity, levels):
         return helper_inner
     return helper
 
-# def report(*, verbosity, levels=None, protocol=print):
+# def report( *, verbosity, levels=None, protocol=print):
 #     vs2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
 #     verbosity_int = vs2i(verbosity)
 

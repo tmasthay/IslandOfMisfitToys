@@ -7,11 +7,8 @@ import numpy as np
 import argparse
 from random import randint
 from warnings import warn
-from typing import Annotated as Ant
-from typing import Callable
+from typing import Callable, Union, Optional as Opt, Annotated as Ant
 from abc import ABC, abstractmethod
-from typing import Annotated as Ant
-from typing import Optional as Opt
 from .custom_losses import *
 from ..misfit_toys_helpers import *
 from tqdm import tqdm
@@ -242,9 +239,9 @@ class Model(metaclass=SlotMeta):
         return self
 
 class Prop(torch.nn.Module, metaclass=SlotMeta):
-    model: Opt[Ant[Model, 'Model']]
+    model: Ant[Model, 'Model']
 
-    def __init__(self, *, model, train=None, device='cpu'):
+    def __init__(self, *, model, train=None):
         super().__init__()
         train = {} if train is None else train
         default_train = {
@@ -255,7 +252,7 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
             'src_amp_x': False
         }
         full_train = {**default_train, **train}
-        self.model = model.to(device)
+        self.model = model
         valid_params = ['vp', 'vs', 'rho', 'src_amp_y', 'src_amp_x']
         assert all([e in valid_params for e in full_train.keys()]), \
             f'Invalid trainable parameters: expected {valid_params}' \
@@ -267,13 +264,11 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
             full_train['src_amp_y']
         self.model.survey.src_amp_x.param.requires_grad = \
             full_train['src_amp_x']
-        self.to(device)
 
     def to(self, device):
-        super().to(device)
-        self.model = self.model.to(device)
+        self.model.to(device)
         return self
-
+    
     def forward(self, *, batch_idx, **kw):
         if( self.model.model == 'acoustic' ):
             return dw.scalar(
@@ -310,8 +305,24 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
         else:
             raise ValueError(f'Unknown model type {self.model.model}')
 
+class DeployerGPU(torch.nn.DataParallel):
+    def __init__(self, *, prop, devices=None):
+        if( not torch.cuda.is_available() ):
+            raise ValueError('CUDA not available!')
+        
+        if( devices in ['all', None] ):
+            devices = [f'cuda:{i}' for i in range(torch.cuda.device_count())]
+            if( len(devices) == 0 ):
+                raise ValueError('No CUDA devices found!')
+        super().__init__(prop.to(devices[0]), device_ids=devices)
+
+class DeployerCPU(torch.nn.Module):
+    def __init__(self, *, prop, devices='ignore'):
+        super().__init__()
+        self.module = prop.to('cpu')
+            
 class FWIAbstract(ABC, metaclass=CombinedMeta):
-    prop: Ant[Prop, 'Propagator object']
+    deployer: Ant[Union[DeployerGPU, DeployerCPU], 'Deployer']
     obs_data: Ant[torch.Tensor, 'Observed data']
     loss: Ant[torch.nn.Module, 'Loss function'] 
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
@@ -325,24 +336,33 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def __init__(
         self,
         *,
-        prop,
+        deployer,
         obs_data,
         loss,
         optimizer,
         scheduler,
         epochs,
-        num_batches,
-        multi_gpu=False,
+        num_batches=None,
+        batch_size=None,
         **kw
     ):
-        if( multi_gpu ):
-            self.prop = torch.nn.DataParallel(prop).to('cuda')
-        else:
-            self.prop = prop
+        self.deployer = deployer
         self.obs_data = obs_data
         self.loss = loss
         self.epochs = epochs
+
+        if( num_batches is None ):
+            if( batch_size is None ):
+                num_batches = 1
+            else:
+                num_batches = int(np.ceil(obs_data.shape[0]/batch_size))
+        elif( batch_size is not None ):
+            raise ValueError(
+                'Only one of num_batches or batch_size can be specified' 
+                + f'got num_batches={num_batches}, batch_size={batch_size}'
+            )
         self.batches = self.build_batches(num_batches, obs_data.shape[0])
+
         self.build_trainables()
         self.optimizer = optimizer[0](self.trainable, **optimizer[1])
         self.build_scheduler(scheduler)
@@ -355,13 +375,13 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.trainable_str = []
         self.trainable = []
         for s in ['vp', 'vs', 'rho']:
-            curr = getattr(self.prop.model, s)
+            curr = getattr(self.deployer.module.model, s)
             if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
                 self.trainable.append(curr.param)
 
         for s in ['src_amp_y', 'src_amp_x']:
-            curr = getattr(self.prop.model.survey, s)
+            curr = getattr(self.deployer.module.model.survey, s)
             if( curr.param.requires_grad ):
                 self.trainable_str.append(s)
                 self.trainable.append(curr.param)
@@ -389,6 +409,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         def report(s, *, idt=0, end='\n'):
             print_protocol(idt_str*idt + s, end=end)
 
+        self.custom['verbosity'] = verbosity
         self.custom['run'] = run_verbosity(
             verbosity=verbosity,
             levels=verbosity_levels
@@ -459,8 +480,8 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         
         if( extra_obj is None ): extra_obj = []
         d = [header, 'DEBUG DATA']
-        d.extend(summarize('survey', self.prop.model.survey))
-        d.extend(summarize('model', self.prop.model))
+        d.extend(summarize('survey', self.deployer.module.model.survey))
+        d.extend(summarize('model', self.deployer.module.model))
         for obj_name, obj in extra_obj:
             d.extend(summarize(obj_name, obj))
         d.extend(['END DEBUG DATA', header])
@@ -522,7 +543,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     f'Plotting {p} after {epoch} epochs', 
                     _verbosity_='debug'
                 )
-                tmp = getattr(self.prop.model, p).param
+                tmp = getattr(self.deployer.module.model, p).param
                 if( do_transpose ):
                     tmp = tmp.T
                 tmp1 = tmp.detach().cpu().numpy()
@@ -537,6 +558,48 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 plt.clf()
         self.custom['plot_curr'] = plot_curr
     
+    def batch_report_start(self, *, batch, batch_idx, out):
+        rpt = self.custom['rpt']
+        rpt_btch = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
+        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
+        if( batch == 0 ):
+            rpt_btch(f'Starting first batch of {len(self.batches)}')
+        else:
+            rpt_debug(
+                self.debug_data(
+                    extra_obj=[
+                        ('out', out),
+                        ('obs_data', self.obs_data[batch_idx])
+                    ],
+                ),
+            )
+            rpt_debug(full_mem_report(title=f'Batch {batch}'))
+        return time.time()
+
+    def batch_report_end(
+        self, 
+        *,
+        epoch,
+        epoch_start,
+        epoch_loss,
+        batch,
+        batch_idx,
+        batch_start
+    ):
+        rpt = self.custom['rpt']
+        rpt_btch = lambda s: rpt(s, idt=1, end='\r', _verbosity_='progress')
+        rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
+
+        batch_time = time.time() - batch_start
+        epoch_time = time.time() - epoch_start
+        avg_time_per_batch = epoch_time / (batch+1)
+        etr = avg_time_per_batch * (len(self.batches)-batch-1)
+        rpt_btch(
+            f'Completed {batch+1}/{len(self.batches)} -> '
+                + f'(batch, total, Epoch ETR) ='
+                + f' ({ht(batch_time)}, {ht(epoch_time)}, {ht(etr)})'
+        )
+
     def pre_train(self, **kw):
         self.custom['plot_curr'](0)
         return {'train_start': time.time()}
@@ -576,7 +639,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
 
         rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
         for k,v in self.custom['log']['grad_norm'].items():
-            rpt_prog(f'Grad norm "{k}": {v[-1].norm():.4e}')
+            curr_norm = 'None' if v[-1] is None else f'{v[-1].norm():.4e}'
+            rpt_prog(f'Grad norm "{k}": {curr_norm}')
+
         epoch_time = time.time() - kw['step_start']
         total_time = time.time() - kw['train_start']
         avg_time_per_epoch = total_time / (epoch+1)
@@ -593,7 +658,6 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
         rpt_prog = lambda s: rpt(s, idt=1, end='\n', _verbosity_='progress')
         rpt_btch = lambda s,e: rpt(s, idt=1, end=e, _verbosity_='progress')
         rpt_debug = lambda s: rpt(s, idt=1, end='\n', _verbosity_='debug')
-
         epoch_start = kw['step_start']
 
         if( epoch == 0 ):
@@ -601,59 +665,106 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 'loss': [],
                 'grad_norm': {k: [] for k in self.trainable_str}
             }
-        epoch_loss = 0.0
-        self.optimizer.zero_grad()
-        for (batch_no, batch_idx) in enumerate(self.batches):
-            batch_start = time.time()
-            if( batch_no == 0 ):
-                rpt_btch(f'Starting first batch of {len(self.batches)}', '\r')
-            if(  batch_no > 0):
-                rpt_debug(
-                    self.debug_data(
-                        extra_obj=[
-                            ('out', out),
-                            ('obs_data', self.obs_data[batch_idx])
-                        ],
-                    ),
-                )
-                rpt_debug(full_mem_report(title=f'Batch {batch_no}'))
+ 
+        times_closure_called = 0
+        def call_only_once(f):
+            def helper(*args, **kw):
+                if( times_closure_called <= 1 ):
+                    return f(*args, **kw)
+            return helper
+        rpt_prog = call_only_once(rpt_prog)
+        rpt_btch = call_only_once(rpt_btch)
+        rpt_debug = call_only_once(rpt_debug)
+        rbs = call_only_once(self.batch_report_start)
+        rbe = call_only_once(self.batch_report_end)
+
+        def forward_pass(*, batch, batch_idx, out):
+            start = rbs(batch=batch, batch_idx=batch_idx, out=out)
+
             rpt_debug('Attempting forward solve')
-            out = self.prop.forward(
+            out = self.deployer.module(
                 batch_idx=batch_idx, 
                 **self.custom['forward_kwargs']
             )
             rpt_debug('Forward completed')
-            assert( 
-                out.shape == self.obs_data[batch_idx].shape,
-                f'Output shape {out.shape} != ' + \
-                    f'Observed data shape {self.obs_data[batch_idx].shape}'
-            )
+            
+            return out, start
+        
+        def loss_eval(*, batch_idx, out):
             loss_lcl = self.custom['loss_scaling'] \
-                * self.loss(out, self.obs_data[batch_idx])
+                    * self.loss(out, self.obs_data[batch_idx])
             rpt_debug('Loss computed')
             self.custom['log']['loss'].append(loss_lcl.detach().cpu())
-            epoch_loss += loss_lcl.item()
+            return loss_lcl
+        
+        def loss_backward(*, loss_lcl):
+            rpt_debug('Backprop started')
             loss_lcl.backward()
             rpt_debug('Backprop done')
+
+        def clip_grad():
             if( 'clip_grad' in self.custom.keys() ):
                 for att, clip_val in self.custom['clip_grad']:
                     torch.nn.utils.clip_grad_value_(
-                        getattr(self.prop.model, att).param,
+                        getattr(self.deployer.module.model, att).param,
                         clip_val
                     )
-            rpt_debug('Grad clipped')
-            batch_time = time.time() - batch_start
-            total_time = time.time() - epoch_start
-            avg_batch_time = total_time / (batch_no+1)
-            etr = avg_batch_time * (len(self.batches)-batch_no-1)
-            rpt_btch(
-                f'Completed {batch_no+1}/{len(self.batches)} -> '
-                    + f'(batch, total, Epoch ETR) ='
-                    + f' ({ht(batch_time)}, {ht(total_time)}, {ht(etr)})',
-                '\r'
+                rpt_debug('Grad clipped')
+        
+        def closure_tmp():
+            nonlocal times_closure_called, out
+            times_closure_called += 1
+            epoch_loss = 0.0
+            self.optimizer.zero_grad()
+            for (batch_no, batch_idx) in enumerate(self.batches):
+                out, start = forward_pass(
+                    batch=batch_no, 
+                    batch_idx=batch_idx, 
+                    out=out
+                )
+
+                loss_lcl = loss_eval(batch_idx=batch_idx, out=out)
+                epoch_loss += loss_lcl.item()
+                loss_backward(loss_lcl=loss_lcl)
+
+                clip_grad()
+
+                rbe(
+                    epoch=epoch,
+                    epoch_start=epoch_start,
+                    epoch_loss=epoch_loss,
+                    batch=batch_no,
+                    batch_idx=batch_idx,
+                    batch_start=start
+                )
+            return loss_lcl
+        
+
+        self.optimizer.zero_grad()
+        for (batch, batch_idx) in enumerate(self.batches):
+            out = self.deployer.module(
+                batch_idx=batch_idx, 
+                **self.custom['forward_kwargs']
             )
-        for name, p in zip(self.trainable_str, self.trainable):
-            self.custom['log']['grad_norm'][name].append(p.grad.norm())
+            loss_lcl = self.custom['loss_scaling'] \
+                * self.loss(out, self.obs_data[batch_idx])
+            loss_lcl.backward()
+            if( 'clip_grad' in self.custom.keys() ):
+                for att, clip_val in self.custom['clip_grad']:
+                    torch.nn.utils.clip_grad_value_(
+                        getattr(self.deployer.module.model, att).param,
+                        clip_val
+                    )
+            self.custom['log']['loss'].append(loss_lcl.detach().cpu())
+        
         self.optimizer.step()
         self.scheduler.step()
+
+        for name, p in zip(self.trainable_str, self.trainable):
+            if( p.grad is not None ): 
+                self.custom['log']['grad_norm'][name].append(p.grad.norm())
+            else:
+                rpt_debug(f'No gradient for {name}')
+                self.custom['log']['grad_norm'][name].append(None)
+
         return self.custom['log']
