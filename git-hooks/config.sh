@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the directories
-CURRENT_DIR=$(dirname "$0")
+CURRENT_DIR="$ISL/git-hooks"
 HOOKS_DIR="../.git/hooks"
 
 # Create the symbolic link
