@@ -66,6 +66,7 @@ def gpu_mem_helper():
 
     s = ''.join(lines[start_line+1:end_line])
     def helper(msg=''):
+        input(s)
         print('%s...%s'%(msg, ':::'.join(sco(s))))
     return helper
 

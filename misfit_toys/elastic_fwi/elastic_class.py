@@ -716,21 +716,28 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 )
     
     def _take_step_(self, *, epoch, batch, idx, **kw):
+        gpu_mem = gpu_mem_helper()
         self.optimizer.zero_grad()
+        gpu_mem('Before forward')
         out = self.prop(
             idx=idx,
             device=torch.device('cuda'),
             **self.custom['forward_kwargs']
         )
+        gpu_mem('After forward')
         loss = self.custom['loss_scaling'] \
             * self.loss(out, self.obs_data[idx])
         loss.backward()
+        gpu_mem('After backward')
         batch_loss = float(loss.detach().cpu().numpy())
         self.postprocess_loss()
     
         self.optimizer.step()
         self.scheduler.step()
+        gpu_mem('After step')
 
         del loss, out
         torch.cuda.empty_cache()
+        gpu_mem('After empty cache')
+        input('Press to continue')
         return {'batch_loss': batch_loss}

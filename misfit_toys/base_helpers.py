@@ -9,6 +9,34 @@ def sco(s, split=True):
         else: return u
     except CalledProcessError:
         return None
+    
+import subprocess
+
+import subprocess
+
+def sco_bash(function_name, *args, split=False):
+    source_command = "source ~/.bash_functions"
+    function_call = f'{function_name} {" ".join(map(str, args))}'
+    full_command = f'{source_command} && {function_call}'
+
+    # Invoke the bash shell and execute the command
+    process = subprocess.Popen(
+        ['bash', '-c', full_command],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    stdout, stderr = process.communicate()
+
+    # Decode the output and error bytes to string
+    stdout = stdout.decode("utf-8")
+    stderr = stderr.decode("utf-8")
+
+    # If there's an error, raise it
+    if stderr:
+        raise RuntimeError(f"Error executing '{function_call}': {stderr}")
+
+    return stdout.split('\n')[:-1] if split else stdout.strip()
 
 def human_time(seconds, lengths=[1, 2, 2, 2]):
     delta = timedelta(seconds=seconds)

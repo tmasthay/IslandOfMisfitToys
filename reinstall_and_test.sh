@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ~/.bash_functions
+
 # Default value for the parameter
 RUN_PYTHON_COMMANDS=0
 
