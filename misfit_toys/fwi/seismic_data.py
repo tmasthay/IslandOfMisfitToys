@@ -327,11 +327,11 @@ def marmousi_acoustic_alan_check():
             (torch.optim.lr_scheduler.ConstantLR, {'factor': 1.0})
         ],
         epochs=250,
-        batch_size=10,
+        num_batches=7,
         verbosity='progress',
         print_protocol=print,
         make_plots=[('vp', True)],
-        clip_grad=[('vp', 0.95)]
+        clip_grad=[('vp', 0.98)]
     )
     
     prop2 = fwi.prop

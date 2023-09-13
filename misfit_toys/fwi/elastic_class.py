@@ -363,7 +363,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.build_customs(**kw)
 
     def build_batches(self, num_batches, n_data):
-        return torch.arange(n_data).split(num_batches)
+        return torch.arange(n_data).split(int(np.ceil(n_data / num_batches)))
 
     def build_trainables(self):
         self.trainable_str = []
@@ -693,9 +693,10 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
     def postprocess_loss(self):
         if( 'clip_grad' in self.custom.keys() ):
             for att, clip_val in self.custom['clip_grad']:
+                a = getattr(self.prop.model, att).param
                 torch.nn.utils.clip_grad_value_(
-                    getattr(self.prop.model, att).param,
-                    clip_val
+                    a,
+                    torch.quantile(a.grad.detach().abs(), 0.98)
                 )
     
     def _take_step_(self, *, epoch, batch, idx, **kw):
