@@ -1,3 +1,4 @@
+import subprocess
 from subprocess import check_output as co
 from subprocess import CalledProcessError
 from datetime import timedelta
@@ -9,10 +10,6 @@ def sco(s, split=True):
         else: return u
     except CalledProcessError:
         return None
-    
-import subprocess
-
-import subprocess
 
 def sco_bash(function_name, *args, split=False):
     source_command = "source ~/.bash_functions"
@@ -35,8 +32,11 @@ def sco_bash(function_name, *args, split=False):
     # If there's an error, raise it
     if stderr:
         raise RuntimeError(f"Error executing '{function_call}': {stderr}")
+    
+    while( stdout[-1] == '\n' ):
+        stdout = stdout[:-1]
 
-    return stdout.split('\n')[:-1] if split else stdout.strip()
+    return stdout.split('\n') if split else stdout
 
 def human_time(seconds, lengths=[1, 2, 2, 2]):
     delta = timedelta(seconds=seconds)
