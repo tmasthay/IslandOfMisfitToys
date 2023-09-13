@@ -1,3 +1,9 @@
 #!/bin/bash
+
+if [ -z "$ISL" ]; then
+   echo "Need to set ISL env var to use commit-msg checker"
+   exit 1
+fi
+
 source "$ISL/git-hooks/commit-msg-checker.sh"
 
