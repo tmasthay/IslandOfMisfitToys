@@ -322,7 +322,7 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     optimizer: Ant[torch.optim.Optimizer, 'Optimizer']
     scheduler: Ant[list, 'Learning rate scheduling params']
     epochs: Ant[int, 'Number of epochs', '1']
-    batches: Ant[list, 'Batches of data']
+    num_batches: Ant[list, 'Batches of data']
     trainable: Ant[list, 'Trainable parameters']
     trainable_str: Ant[list, 'Trainable parameters as strings']
     custom: Ant[dict, 'Custom parameters for user flexibility']
@@ -345,26 +345,27 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.loss = loss
         self.epochs = epochs
 
-        if( num_batches is None ):
-            if( batch_size is None ):
-                num_batches = 1
-            else:
-                num_batches = int(np.ceil(obs_data.shape[0]/batch_size))
-        elif( batch_size is not None ):
-            raise ValueError(
-                'Only one of num_batches or batch_size can be specified' 
-                + f'got num_batches={num_batches}, batch_size={batch_size}'
-            )
-        self.batches = self.build_batches(num_batches, obs_data.shape[0])
+        self.build_num_batches(n=num_batches, s=batch_size)
 
         self.build_trainables()
         self.optimizer = optimizer[0](self.trainable, **optimizer[1])
         self.build_scheduler(scheduler)
+
         self.build_customs(**kw)
 
-    def build_batches(self, num_batches, n_data):
-        return torch.arange(n_data).split(int(np.ceil(n_data / num_batches)))
-
+    def build_num_batches(self, *, n, s):
+        if( n is None ):
+            if( s is None ):
+                n = 1
+            else:
+                n = int(np.ceil(self.obs_data.shape[0]/s))
+        elif( s is not None ):
+            raise ValueError(
+                'Only one of num_batches or batch_size can be specified' 
+                + f'got num_batches={n}, batch_size={s}'
+            )
+        self.num_batches = n
+    
     def build_trainables(self):
         self.trainable_str = []
         self.trainable = []
@@ -497,19 +498,24 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
             epoch_loss = 0.0
             self.optimizer.zero_grad()
             src_amp = self.prop.model.survey.src_amp_y()
-            for (batch, idx) in enumerate(self.batches):
+            batch_size = int(np.ceil(src_amp.shape[0] / self.num_batches))
+            v = self.prop.model.vp()
+            for batch in range(self.num_batches):
                 self.batch_report_start(batch=batch)
                 self.custom['batch_start'] = time.time()
-                idx = slice(idx[0], idx[-1]+1)
+                il = batch * batch_size
+                ir = min( (batch+1) * batch_size, src_amp.shape[0] )
+                if( ir <= il ): 
+                    raise ValueError(f'ir={ir}, il={il}, but need ir > il')
                 out = dw.scalar(
-                    self.prop.model.vp(),
+                    v,
                     self.prop.model.dx,
                     self.prop.model.dt,
-                    source_amplitudes=src_amp[idx],
-                    source_locations=self.prop.model.survey.src_loc_y[idx],
-                    receiver_locations=self.prop.model.survey.rec_loc_y[idx]
+                    source_amplitudes=src_amp[il:ir],
+                    source_locations=self.prop.model.survey.src_loc_y[il:ir],
+                    receiver_locations=self.prop.model.survey.rec_loc_y[il:ir]
                 )
-                loss = self.loss(out[-1], self.obs_data[idx])
+                loss = self.loss(out[-1], self.obs_data[il:ir])
                 epoch_loss += loss.item()
                 loss.backward()
                 self.batch_report_end(batch=batch)
@@ -594,7 +600,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     
     def batch_report_start(self, *, batch):
         if( batch == 0 ):
-            self.rpt_return(f'Starting first batch of {len(self.batches)}')
+            self.rpt_return(f'Starting first batch of {self.num_batches}')
         self.rpt_debug(
             self.debug_data(
                 extra_obj=[
@@ -609,9 +615,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         batch_time = time.time() - self.custom['batch_start']
         epoch_time = time.time() - self.custom['epoch_start']
         avg_time_per_batch = epoch_time / (batch+1)
-        etr = avg_time_per_batch * (len(self.batches)-batch-1)
+        etr = avg_time_per_batch * (self.num_batches-batch-1)
         self.rpt_return(
-            f'Completed {batch+1}/{len(self.batches)} -> '
+            f'Completed {batch+1}/{self.num_batches} -> '
                 + f'(batch, total, Epoch ETR) ='
                 + f' ({ht(batch_time)}, {ht(epoch_time)}, {ht(etr)})'
         )
