@@ -14,6 +14,8 @@ from ..misfit_toys_helpers import *
 from tqdm import tqdm
 from datetime import datetime
 from ..base_helpers import human_time as ht
+import sys
+from pympler.asizeof import asizeof
 
 plt.rc('text', usetex=False)
 
@@ -482,18 +484,19 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def fwi(self, **kw):
         self.pre_train()
         for epoch in range(self.epochs):
+            self.custom['curr_loss'] = 0.0
+            print(f'Custom size = {asizeof(self)}')
             self.pre_step(epoch)
+            self.optimizer.zero_grad()
             for (batch, idx) in enumerate(self.batches):
-                step_meta = self.take_step(
+                self.take_step(
                     epoch=epoch, 
                     batch=batch,
                     idx=idx,
                     **kw
                 )
-                if( batch == 0  ):
-                    self.custom['log']['loss'].append(step_meta['batch_loss'])
-                else:
-                    self.custom['log']['loss'][epoch] += step_meta['batch_loss']
+            self.optimizer.step()
+            self.scheduler.step()
             self.post_step(epoch)
         self.post_train()
 
@@ -637,14 +640,15 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     def post_step(self, epoch): 
         self.custom['plot_curr'](epoch+1)
 
-        self.rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
-        for k,v in self.custom['log']['grad_norm'].items():
-            curr_norm = 'None' if len(v) == 0 or v[-1] is None else f'{v[-1].norm():.4e}'
-            curr_statement = f'Grad norm "{k}": {curr_norm}'
-            if( curr_norm == 'None' ):
-                self.rpt_debug(curr_statement)
-            else:
-                self.rpt_prog(curr_statement)
+        # self.rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
+        self.rpt_prog(f'Loss: {self.custom["curr_loss"]:.4e}')
+        # for k,v in self.custom['log']['grad_norm'].items():
+        #     curr_norm = 'None' if len(v) == 0 or v[-1] is None else f'{v[-1].norm():.4e}'
+        #     curr_statement = f'Grad norm "{k}": {curr_norm}'
+        #     if( curr_norm == 'None' ):
+        #         self.rpt_debug(curr_statement)
+        #     else:
+        #         self.rpt_prog(curr_statement)
 
         epoch_time = time.time() - self.custom['step_start']
         total_time = time.time() - self.custom['train_start']
@@ -673,7 +677,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 )
                 self.batch_report_end(
                     epoch=epoch,
-                    epoch_start=kw['step_start'],
+                    epoch_start=self.custom['step_start'],
                     epoch_loss=loss_lcl,
                     batch=batch,
                     batch_idx=idx,
@@ -695,28 +699,27 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 )
     
     def _take_step_(self, *, epoch, batch, idx, **kw):
-        gpu_mem('Enter step')
-        self.optimizer.zero_grad()
-        gpu_mem('Before forward')
+        #gpu_mem('Enter step', color=(5,3,5))
+        # self.optimizer.zero_grad()
+        #gpu_mem('Before forward', color=(5, 0, 0))
         out = self.prop(
             idx=idx,
             device=torch.device('cuda'),
             **self.custom['forward_kwargs']
         )
-        gpu_mem('After forward')
+        #gpu_mem('After forward', color=(0, 5, 0))
         loss = self.custom['loss_scaling'] \
             * self.loss(out, self.obs_data[idx])
         loss.backward()
-        gpu_mem('After backward')
-        batch_loss = float(loss.detach().cpu().numpy())
+        #gpu_mem('After backward', color=(0, 0, 5))
+        self.custom['curr_loss'] += loss.item()
         self.postprocess_loss()
     
-        self.optimizer.step()
-        self.scheduler.step()
-        gpu_mem('After step')
+        # self.optimizer.step()
+        # self.scheduler.step()
+        #gpu_mem('After step', color=(5, 5, 0))
 
-        del loss, out
-        torch.cuda.empty_cache()
-        gpu_mem('After empty cache')
-        input('Press to continue')
-        return {'batch_loss': batch_loss}
+        # del loss, out
+        # torch.cuda.empty_cache()
+        #gpu_mem('After empty cache', color=(5, 0, 5))
+        # return {'batch_loss': batch_loss}

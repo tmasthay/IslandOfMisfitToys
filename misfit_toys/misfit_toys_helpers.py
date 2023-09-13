@@ -51,6 +51,9 @@ def report_gpu_memory_allocation(msg, mode=2):
 def gpu_mem(msg='', color='red', print_protocol=print):
     if( len(msg) > 0 and msg[-1] != '\n' ): msg += '\n'
 
+    if( type(color) == tuple ):
+        color = [str(e) for e in color]
+        color = 'rgb' + '_'.join(color)
     out = sco_bash('gpu_mem', color, split=True)
     out = [f'    {e}' for e in out if len(e) > 0]
     out[-1] = out[-1].replace('\n', '')
