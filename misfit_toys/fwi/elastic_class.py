@@ -480,43 +480,22 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         return '\n'.join(d)
 
     def fwi(self, **kw):
-        def rpt_inf(head, d):
-            s = '{\n'
-            for k,v in d.items():
-                s += f'    {k}: {v}\n'
-            s += '}\n'
-            msg = head + ' = """' + s + '\n"""'
-            self.custom['rpt'](msg, _verbosity_='inf')
-
-        pre_train_meta = self.pre_train(**kw)
-        rpt_inf('Pre-train kwargs', pre_train_meta)
-        pre_step_meta, post_step_meta = {}, {}
+        self.pre_train()
         for epoch in range(self.epochs):
-            pre_step_kw = {**pre_train_meta, **pre_step_meta}
-            rpt_inf(f'Pre-step meta (epoch={epoch})', pre_step_meta)
-            pre_step_meta = self.pre_step(epoch, **pre_step_kw)
-            rpt_inf(f'Pre-step kwargs (epoch={epoch})', pre_step_kw)
+            self.pre_step(epoch)
             for (batch, idx) in enumerate(self.batches):
                 step_meta = self.take_step(
                     epoch=epoch, 
                     batch=batch,
                     idx=idx,
-                    **pre_step_meta
+                    **kw
                 )
                 if( batch == 0  ):
                     self.custom['log']['loss'].append(step_meta['batch_loss'])
                 else:
                     self.custom['log']['loss'][epoch] += step_meta['batch_loss']
-                rpt_inf(f'Step meta (epoch={epoch})', step_meta)
-            post_step_kw = {**pre_train_meta, **pre_step_meta, **step_meta}
-            rpt_inf(f'Post-step kwargs (epoch={epoch})', post_step_kw)
-            post_step_meta = self.post_step(epoch, **post_step_kw)
-            rpt_inf(f'Post-step meta (epoch={epoch})', post_step_meta)
-        post_train_kw = {**pre_train_meta, **pre_step_meta, **post_step_meta}
-        rpt_inf('Post-train kwargs', post_train_kw)
-        post_train_meta = self.post_train(**post_train_kw)
-        rpt_inf('Post-train meta', post_train_meta)
-        return post_train_meta
+            self.post_step(epoch)
+        self.post_train()
 
 class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
     rpt: Ant[Callable, 'Report function']
@@ -624,11 +603,11 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 + f' ({ht(batch_time)}, {ht(epoch_time)}, {ht(etr)})'
         )
 
-    def pre_train(self, **kw):
+    def pre_train(self):
         self.custom['plot_curr'](0)
-        return {'train_start': time.time()}
+        self.custom['train_start'] = time.time()
     
-    def post_train(self, **kw):
+    def post_train(self):
         make_plots = self.custom['make_plots']
         curr_run_dir = self.custom['curr_run_dir']
         gif_speed = self.custom['gif_speed']
@@ -643,9 +622,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                     f'convert -delay {gif_speed} $(ls -tr ' + \
                     f'{curr_run_dir}/{p}_*.jpg) {curr_run_dir}/{p}.gif'
                 )
-        return {'train_end': time.time()}
+        self.custom['train_end' ] = time.time()
 
-    def pre_step(self, epoch, **kw):
+    def pre_step(self, epoch):
         print_freq = self.custom['print_freq']
 
         rpt = self.custom['rpt']
@@ -653,9 +632,9 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
         if( epoch % print_freq == 0 ):
             rpt_prog(f'Epoch {epoch+1}/{self.epochs}')
 
-        return {'step_start': time.time()}
+        self.custom['step_start'] = time.time()
 
-    def post_step(self, epoch, **kw): 
+    def post_step(self, epoch): 
         self.custom['plot_curr'](epoch+1)
 
         self.rpt_prog(f'Loss: {self.custom["log"]["loss"][-1]:.4e}')
@@ -667,15 +646,15 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
             else:
                 self.rpt_prog(curr_statement)
 
-        epoch_time = time.time() - kw['step_start']
-        total_time = time.time() - kw['train_start']
+        epoch_time = time.time() - self.custom['step_start']
+        total_time = time.time() - self.custom['train_start']
         avg_time_per_epoch = total_time / (epoch+1)
         etr = avg_time_per_epoch * (self.epochs-epoch-1)
         self.rpt_prog(
             f'(Epoch,Total,ETR) = ' 
                 + f'({ht(epoch_time)}, {ht(total_time)}, {ht(etr)})'
         )
-        return {'step_end': time.time()}   
+        self.custom['step_end'] = time.time()
 
     @abstractmethod 
     def _take_step_(self, *, epoch, batch, idx, **kw): pass
