@@ -38,22 +38,19 @@ def sco_bash(function_name, *args, split=False):
 
     return stdout.split('\n') if split else stdout
 
-def human_time(seconds, lengths=[1, 2, 2, 2]):
-    delta = timedelta(seconds=seconds)
-    days = delta.days
-    hours, remainder = divmod(delta.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    result = []
-    
-    if days > 0:
-        day_str = f"{days:0{lengths[0]}d}"
-        result.append(day_str)
-        
-    time_str = (f"{hours:0{lengths[1]}d}:{minutes:0{lengths[2]}d}:"
-                f"{seconds:0{lengths[3]}d}")
-    result.append(time_str)
-    
-    return ":".join(result) if days > 0 else result[0]
+def human_time(seconds, dec=2):
+    s = str(timedelta(seconds=seconds))
+    def clean_intra_day(u):
+        if( len(u.split(':')[0]) == 1 ):
+            u = '0' + u
+        if( dec == 0 and '.' in u ):
+            u = u.split('.')[0]
+        elif( dec < 6 and '.' in u ):
+            u = u.split('.')[0] + '.' + u.split('.')[1][:dec]
+        return u
+    units = s.split(', ')
+    units[-1] = clean_intra_day(units[-1])
+    return ', '.join(units)
 
 def see_fields(obj, *, field, member_paths, idt='    ', level=0):
     if( member_paths is None ): member_paths = []

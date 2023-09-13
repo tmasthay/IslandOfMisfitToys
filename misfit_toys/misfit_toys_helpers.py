@@ -538,11 +538,8 @@ class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
         raise NotImplementedError('Forward not implemented')
     
 class Param(AbstractParam):
-    def forward(self, *, idx='all'):
-        if( idx == 'all' ):
-            return self.param
-        else:
-            return self.param[idx]
+    def forward(self):
+        return self.param
     
 class ConstrainedParam(AbstractParam):
     def __init__(

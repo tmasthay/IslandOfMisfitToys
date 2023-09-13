@@ -281,12 +281,16 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                     self.model.survey.rec_loc_x[idx].to(device)
             return kw
 
-    def forward(self, *, idx, device, **kw):
+    def forward(self):
         if( self.model.model == 'acoustic' ):
-            v = self.model.vp(idx='all').to(device)
-            amp_y = self.model.survey.src_amp_y(idx=idx).to(device)
-            srcy = self.model.survey.src_loc_y[idx].to(device)
-            recy = self.model.survey.rec_loc_y[idx].to(device)
+            v = self.model.vp()
+            amp_y = self.model.survey.src_amp_y(),
+            srcy = self.model.survey.src_loc_y,
+            recy = self.model.survey.rec_loc_y
+            input(v.shape)
+            input(amp_y.shape)
+            input(srcy.shape)
+            input(recy.shape)
             return dw.scalar(
                 v,
                 self.model.dx,
@@ -294,22 +298,18 @@ class Prop(torch.nn.Module, metaclass=SlotMeta):
                 source_amplitudes=amp_y,
                 source_locations=srcy,
                 receiver_locations=recy,
-                **kw
             )[-1]
         elif( self.model.model == 'elastic' ):
-            full_kw = {**self.get_elastic_kwargs(idx, device), **kw}
+            full_kw = {**self.get_elastic_kwargs}
             return dw.elastic(
-                vp=self.model.vp(idx='all').to(device),
-                vs=self.model.vs(idx='all').to(device),
-                rho=self.model.rho(idx='all').to(device),
+                vp=self.model.vp(),
+                vs=self.model.vs(),
+                rho=self.model.rho(),
                 dx=self.model.dx,
                 dt=self.model.dt,
-                source_amplitudes_y=self.model.survey.src_amp_y(idx=idx) \
-                    .to(device),
-                source_locations_y=self.model.survey.src_loc_y[idx] \
-                    .to(device),
-                receiver_locations_y=self.model.survey.rec_loc_y[idx] \
-                    .to(device),
+                source_amplitudes_y=self.model.survey.src_amp_y(),
+                source_locations_y=self.model.survey.src_loc_y,
+                receiver_locations_y=self.model.survey.rec_loc_y
                 **full_kw
             )[-2]
         else:
@@ -423,6 +423,12 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
     def take_step(self, **kw): pass
 
     @abstractmethod
+    def batch_report_start(self, *, batch): pass
+
+    @abstractmethod
+    def batch_report_end(self, *, batch): pass
+
+    @abstractmethod
     def pre_train(self, **kw): pass
 
     @abstractmethod
@@ -485,16 +491,29 @@ class FWIAbstract(ABC, metaclass=CombinedMeta):
         self.pre_train()
         for epoch in range(self.epochs):
             self.custom['curr_loss'] = 0.0
+            self.custom['epoch_start'] = time.time()
             print(f'Custom size = {asizeof(self)}')
             self.pre_step(epoch)
+            epoch_loss = 0.0
             self.optimizer.zero_grad()
+            src_amp = self.prop.model.survey.src_amp_y()
             for (batch, idx) in enumerate(self.batches):
-                self.take_step(
-                    epoch=epoch, 
-                    batch=batch,
-                    idx=idx,
-                    **kw
+                self.batch_report_start(batch=batch)
+                self.custom['batch_start'] = time.time()
+                idx = slice(idx[0], idx[-1]+1)
+                out = dw.scalar(
+                    self.prop.model.vp(),
+                    self.prop.model.dx,
+                    self.prop.model.dt,
+                    source_amplitudes=src_amp[idx],
+                    source_locations=self.prop.model.survey.src_loc_y[idx],
+                    receiver_locations=self.prop.model.survey.rec_loc_y[idx]
                 )
+                loss = self.loss(out[-1], self.obs_data[idx])
+                epoch_loss += loss.item()
+                loss.backward()
+                self.batch_report_end(batch=batch)
+            self.custom['epoch_end'] = time.time()
             self.optimizer.step()
             self.scheduler.step()
             self.post_step(epoch)
@@ -573,31 +592,22 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
                 plt.clf()
         self.custom['plot_curr'] = plot_curr
     
-    def batch_report_start(self, *, batch, idx):
+    def batch_report_start(self, *, batch):
         if( batch == 0 ):
             self.rpt_return(f'Starting first batch of {len(self.batches)}')
         self.rpt_debug(
             self.debug_data(
                 extra_obj=[
-                    ('obs_data', self.obs_data[idx])
+                    ('obs_data', self.obs_data)
                 ]
             )
         )
         self.rpt_debug(full_mem_report(title=f'Batch {batch}'))
-        return time.time()
+        self.custom['batch_start'] = time.time()
 
-    def batch_report_end(
-        self, 
-        *,
-        epoch,
-        epoch_start,
-        epoch_loss,
-        batch,
-        batch_idx,
-        batch_start
-    ):
-        batch_time = time.time() - batch_start
-        epoch_time = time.time() - epoch_start
+    def batch_report_end(self, *, batch):
+        batch_time = time.time() - self.custom['batch_start']
+        epoch_time = time.time() - self.custom['epoch_start']
         avg_time_per_batch = epoch_time / (batch+1)
         etr = avg_time_per_batch * (len(self.batches)-batch-1)
         self.rpt_return(
@@ -668,7 +678,7 @@ class FWIMetaHandler(FWIAbstract, ABC, metaclass=CombinedMeta):
             return self._take_step_
         else:
             def helper(*, epoch, batch, idx, **kw):
-                batch_start = self.batch_report_start(batch=batch, idx=idx)
+                batch_start = self.batch_report_start(batch=batch)
                 loss_lcl = self._take_step_(
                     epoch=epoch, 
                     batch=batch, 
