@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ -z "$ISL" ]; then
+   echo "Need to set environment variable ISL to project directory!"
+fi
+
 COMMIT_MSG_FILE="$1"
 DIRECTIVES="BUG|BUGFIX|FEATURE|DEBUG|CLEAN|DOCS|SAFETY|REFACTOR|STYLE|TEST|INIT|CONFIG|REVERT|DEPRECATE|UPDATE|CHORE|PERFORMANCE"
 PATTERN="^($DIRECTIVES): .+"
