@@ -29,15 +29,6 @@ def get_file(s, path=''):
         )
     )
 
-def run_and_time(start_msg, end_msg, f, *args, **kwargs):
-    stars = 80*'*' + '\n'
-    print('%s\n%s'%(stars, start_msg), file=sys.stderr)
-    start_time = time()
-    u = f(*args, **kwargs)
-    print('%s ::: %.4f\n%s'%(end_msg, time() - start_time, stars), 
-        file=sys.stderr)
-    return u
-
 def make_gif(x, folder, the_map='cividis'):
     os.system('mkdir -p %s'%folder)
     for i in range(len(x)):
@@ -57,18 +48,14 @@ def report_gpu_memory_allocation(msg, mode=2):
     memory_gb = torch.cuda.memory_allocated() / (1024 ** 3)
     print(f"GPU Memory {msg}: {memory_gb:.2f} GB")
 
-def gpu_mem_helper():
-    with open(os.path.expanduser('~/.bash_functions'), 'r') as f:
-        lines = f.readlines()
+def gpu_mem(msg='', color='red', print_protocol=print):
+    if( len(msg) > 0 and msg[-1] != '\n' ): msg += '\n'
 
-    start_line = next(i for i, line in enumerate(lines) if line.strip() == 'gpu_mem() {')
-    end_line = next(i for i, line in enumerate(lines) if i > start_line and line.strip() == '}')
-
-    s = ''.join(lines[start_line+1:end_line])
-    def helper(msg=''):
-        input(s)
-        print('%s...%s'%(msg, ':::'.join(sco(s))))
-    return helper
+    out = sco_bash('gpu_mem', color, split=True)
+    out = [f'    {e}' for e in out if len(e) > 0]
+    out[-1] = out[-1].replace('\n', '')
+    out = '\n'.join(out)
+    print_protocol(f'{msg}{out}')
 
 def add_bullseye(ax, x, y, s, color_seq, alphas, **kw):
     def listify(x):

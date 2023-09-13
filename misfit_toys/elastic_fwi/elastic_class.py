@@ -716,7 +716,7 @@ class FWI(FWIMetaHandler, metaclass=SlotMeta):
                 )
     
     def _take_step_(self, *, epoch, batch, idx, **kw):
-        gpu_mem = gpu_mem_helper()
+        gpu_mem('Enter step')
         self.optimizer.zero_grad()
         gpu_mem('Before forward')
         out = self.prop(
