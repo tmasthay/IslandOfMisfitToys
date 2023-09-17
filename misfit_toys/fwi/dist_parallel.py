@@ -12,6 +12,8 @@ from deepwave import scalar
 from ..utils import *
 from .modules.seismic_data import SeismicData
 from .modules.models import Model, Prop
+from .modules.visual import make_plots
+from .modules.training import Training
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -62,58 +64,6 @@ def setup_distribution(
     prop = Prop(model, dx, dt, freq).to(rank)
     prop = DDP(prop, device_ids=[rank])
     return prop, obs_data, src_amp, src_loc, rec_loc
-
-def make_plots(*, v_true, v_init, model):
-    v = model()
-    vmin = v_true.min()
-    vmax = v_true.max()
-    _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
-                        sharey=True)
-    ax[0].imshow(v_init.cpu().T, aspect='auto', cmap='gray',
-                vmin=vmin, vmax=vmax)
-    ax[0].set_title("Initial")
-    ax[1].imshow(v.detach().cpu().T, aspect='auto', cmap='gray',
-                vmin=vmin, vmax=vmax)
-    ax[1].set_title("Out")
-    ax[2].imshow(v_true.cpu().T, aspect='auto', cmap='gray',
-                vmin=vmin, vmax=vmax)
-    ax[2].set_title("True")
-    plt.tight_layout()
-    plt.savefig('example_distributed_ddp.jpg')
-
-    v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
-
-def train(*, prop, src_amp, src_loc, rec_loc, obs_data, dt, rank):
-    # Setup optimiser to perform inversion
-    loss_fn = torch.nn.MSELoss()
-
-    # Run optimisation/inversion
-    n_epochs = 2
-
-    for cutoff_freq in [10, 15, 20, 25, 30]:
-        sos = butter(6, cutoff_freq, fs=1/dt, output='sos')
-        sos = [torch.tensor(sosi).to(obs_data.dtype).to(rank) for sosi in sos]
-
-        def filt(x):
-            return biquad(biquad(biquad(x, *sos[0]), *sos[1]),
-                          *sos[2])
-        observed_data_filt = filt(obs_data)
-        optimiser = torch.optim.LBFGS(prop.parameters())
-        for epoch in range(n_epochs):
-            def closure():
-                optimiser.zero_grad()
-                out = prop(src_amp, src_loc, rec_loc)
-                out_filt = filt(taper(out[-1], 100))
-                loss = 1e6*loss_fn(out_filt, observed_data_filt)
-                print(
-                    f'Rank={rank}, Freq={cutoff_freq}, Epoch={epoch}, ' +
-                    f'Loss={loss.item():.4e}',
-                    flush=True
-                )
-                loss.backward()
-                return loss
-
-            optimiser.step(closure)
 
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
@@ -170,7 +120,7 @@ def run_rank(rank, world_size):
     )
 
     #Perform training
-    train(
+    train_obj = Training(
         prop=prop,
         src_amp=src_amp,
         src_loc=src_loc,
