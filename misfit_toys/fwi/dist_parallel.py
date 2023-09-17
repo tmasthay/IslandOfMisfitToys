@@ -82,6 +82,64 @@ def get_initials(*, ny, nx, filter_freq, n_shots, rec_per_shot, nt):
 
     return v_true, v_init, obs_data
 
+def setup_distribution(
+    *,
+    obs_data,
+    src_amp,
+    src_loc,
+    rec_loc,
+    model,
+    dx,
+    dt,
+    freq,
+    rank,
+    world_size
+):
+    #chunk the data according to rank
+    obs_data = torch.chunk(
+        obs_data, 
+        world_size
+    )[rank].to(rank)
+
+    src_amp = torch.chunk(
+        src_amp, 
+        world_size
+    )[rank].to(rank)
+
+    src_loc = torch.chunk(
+        src_loc, 
+        world_size
+    )[rank].to(rank)
+
+    rec_loc = torch.chunk(
+        rec_loc, 
+        world_size
+    )[rank].to(rank)
+
+    prop = Prop(model, dx, dt, freq).to(rank)
+    prop = DDP(prop, device_ids=[rank])
+    return prop, obs_data, src_amp, src_loc, rec_loc
+
+def make_plots(*, v_true, v_init, model):
+    v = model()
+    vmin = v_true.min()
+    vmax = v_true.max()
+    _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
+                        sharey=True)
+    ax[0].imshow(v_init.cpu().T, aspect='auto', cmap='gray',
+                vmin=vmin, vmax=vmax)
+    ax[0].set_title("Initial")
+    ax[1].imshow(v.detach().cpu().T, aspect='auto', cmap='gray',
+                vmin=vmin, vmax=vmax)
+    ax[1].set_title("Out")
+    ax[2].imshow(v_true.cpu().T, aspect='auto', cmap='gray',
+                vmin=vmin, vmax=vmax)
+    ax[2].set_title("True")
+    plt.tight_layout()
+    plt.savefig('example_distributed_ddp.jpg')
+
+    v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
+
 def train(*, prop, src_amp, src_loc, rec_loc, obs_data, dt, rank):
     # Setup optimiser to perform inversion
     loss_fn = torch.nn.MSELoss()
@@ -159,32 +217,23 @@ def run_rank(rank, world_size):
         .repeat(n_shots, src_per_shot, 1)
     )
 
-
-    #chunk the data according to rank
-    obs_data = torch.chunk(
-        obs_data, 
-        world_size
-    )[rank].to(rank)
-
-    src_amp = torch.chunk(
-        src_amp, 
-        world_size
-    )[rank].to(rank)
-
-    src_loc = torch.chunk(
-        src_loc, 
-        world_size
-    )[rank].to(rank)
-
-    rec_loc = torch.chunk(
-        rec_loc, 
-        world_size
-    )[rank].to(rank)
-
     model = Model(v_init, 1000, 2500)
-    prop = Prop(model, dx, dt, freq).to(rank)
-    prop = DDP(prop, device_ids=[rank])
 
+    #Setup distribution onto multiple GPUs
+    prop, obs_data, src_amp, src_loc, rec_loc = setup_distribution(
+        obs_data=obs_data,
+        src_amp=src_amp,
+        src_loc=src_loc,
+        rec_loc=rec_loc,
+        model=model,
+        dx=dx,
+        dt=dt,
+        freq=freq,
+        rank=rank,
+        world_size=world_size
+    )
+
+    #Perform training
     train(
         prop=prop,
         src_amp=src_amp,
@@ -197,24 +246,8 @@ def run_rank(rank, world_size):
 
     # Plot
     if rank == 0:
-        v = model()
-        vmin = v_true.min()
-        vmax = v_true.max()
-        _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
-                             sharey=True)
-        ax[0].imshow(v_init.cpu().T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
-        ax[0].set_title("Initial")
-        ax[1].imshow(v.detach().cpu().T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
-        ax[1].set_title("Out")
-        ax[2].imshow(v_true.cpu().T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
-        ax[2].set_title("True")
-        plt.tight_layout()
-        plt.savefig('example_distributed_ddp.jpg')
+        make_plots(v_true=v_true, v_init=v_init, model=model)
 
-        v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
     cleanup()
 
 
