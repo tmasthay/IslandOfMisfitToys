@@ -100,7 +100,7 @@ def run_rank(rank, world_size):
     first_source = 10  # 10 * 4m = 40m
     source_depth = 2  # 2 * 4m = 8m
 
-    n_receivers_per_shot = 384
+    n_receivers_per_shot = 100
     d_receiver = 6  # 6 * 4m = 24m
     first_receiver = 0  # 0 * 4m = 0m
     receiver_depth = 2  # 2 * 4m = 8m
