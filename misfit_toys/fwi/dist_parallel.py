@@ -43,31 +43,6 @@ def run_rank(rank, world_size):
         filter_freq=40
     )
 
-    #source locations
-    # src_loc = towed_src(
-    #     n_shots=data.n_shots,
-    #     src_per_shot=data.src_per_shot,
-    #     d_src=20,
-    #     fst_src=10,
-    #     src_depth=2,
-    #     d_intra_shot=0
-    # )
-
-    # #receiver locations
-    # rec_loc = fixed_rec(
-    #     n_shots=data.n_shots,
-    #     rec_per_shot=data.rec_per_shot,
-    #     d_rec=6,
-    #     rec_depth=2,
-    #     fst_rec=0
-    # )
-
-    # # source amplitudes
-    # src_amp = (
-    #     (dw.wavelets.ricker(data.freq, data.nt, data.dt, data.peak_time))
-    #     .repeat(data.n_shots, data.src_per_shot, 1)
-    # )
-
     model = Model(data.v_init, 1000, 2500)
 
     #Setup distribution onto multiple GPUs

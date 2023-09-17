@@ -28,19 +28,6 @@ class SeismicData:
         taper_length,
         filter_freq
     ):
-        # self.ny, self.nx, self.nt = 600, 250, 300
-        # self.dy, self.dx, self.dt = 4.0, 4.0, 0.004
-
-        # self.n_shots, self.src_per_shot, self.rec_per_shot = 16, 1, 100
-        # self.d_src, self.fst_src, self.src_depth = 20, 10, 2
-        # self.d_rec, self.fst_rec, self.rec_depth = 6, 0, 2
-        # self.d_intra_shot = 0
-
-        # self.freq = 25
-        # self.peak_time = 1.5 / self.freq
-
-        # self.taper_length = 100
-        # self.filter_freq = 40
         self.ny, self.nx, self.nt = ny, nx, nt
         self.dy, self.dx, self.dt = dy, dx, dt
 
