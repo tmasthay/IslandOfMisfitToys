@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 from imageio import imread, mimsave
 import numpy as np
 import torch
-from typing import Annotated as Ant, Any, Optional as Opt
+from typing import Annotated as Ant, Any, Optional as Opt, Callable
 from abc import ABCMeta, abstractmethod
 import itertools
 from .base_helpers import *
 from .misfit_toys_helpers_helpers.download_data import *
 from torch.optim.lr_scheduler import _LRScheduler
 import deepwave as dw
+from warnings import warn
 
 def get_file(s, path=''):
     full_path = list(set(path.split(':')) \
@@ -60,40 +61,6 @@ def gpu_mem(msg='', color='red', print_protocol=print):
     out = '\n'.join(out)
     print_protocol(f'{msg}{out}')
 
-def add_bullseye(ax, x, y, s, color_seq, alphas, **kw):
-    def listify(x):
-        if( type(x) != list ): return 3 * [x]
-        elif( len(x) == 1 ): return 3 * [x[0]]
-        else: return x
-    color_seq = listify(color_seq)
-    alphas = listify(alphas)
-    assert( len(alphas) == len(color_seq) )
-    L = len(color_seq)
-    for (i,c) in enumerate(color_seq):
-        ax.add_patch(
-            plt.Circle(
-                (x,y), 
-                s*(L-i)/L, 
-                color=c, 
-                alpha=alphas[i],
-                **kw
-            )
-        )
-        plt.scatter(x,y,s=0.0, color='w')
-
-def constant_array(x):
-    return np.all([torch.all(e == x[0]) for e in x])
-
-def get_survey_type(src, rec):
-    if( constant_array(rec) ):
-        return 'Common Gather'
-    elif( constant_array( rec.unsqueeze(2) - src.unsqueeze(1) ) ):
-        return 'Common Offset'
-    elif( constant_array( rec.unsqueeze(2) + src.unsqueeze(1) ) ):
-        return 'Common Midpoint'
-    else:
-        return 'Irregular Survey'
-    
 def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
     if( scale ):
         scaling = torch.max(torch.abs(ref))
@@ -105,48 +72,6 @@ def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
     tmp = ref + noise
     v = tmp.clone().requires_grad_()
     return v
-
-def vertical_stratify(ny, nx, layers, values, device):
-    assert( len(layers) == len(values) - 1 )
-    assert( len(values) >= 1 )
-    u = values[0] * torch.ones(ny,nx, device=device)
-    if( len(layers) > 0 ):
-        for l in range(len(layers)-1):
-            u[layers[l]:layers[l+1], :] = values[l+1]
-        u[layers[-1]:] = values[-1]
-    return u
-
-def uniform_vertical_stratify(ny, nx, values, device):
-    layers = [i*ny // len(values) for i in range(1,len(values))]
-    return vertical_stratify(ny, nx, layers, values, device)
-
-def plot_material_params(vp, vs, rho, cmap):
-    up = vp.cpu().detach()
-    us = vs.cpu().detach()
-    urho = rho.cpu().detach()
-    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10,7))
-
-    alpha = 0.3
-    im0 = axs[0].imshow(up, cmap=cmap)
-    axs[0].set_title(r'$V_p$')
-    fig.colorbar(im0, ax=axs[0],shrink=alpha)
-
-    im1 = axs[1].imshow(us, cmap=cmap)
-    axs[1].set_title(r'$V_s$')
-    fig.colorbar(im1, ax=axs[1], shrink=alpha)
-
-    im2 = axs[2].imshow(urho, cmap=cmap)
-    axs[2].set_title(r'$\rho$')
-    fig.colorbar(im2, ax=axs[2], shrink=alpha)
-
-    for i in range(3):
-        axs[i].set_xlabel('Horizontal location (km)')
-        axs[i].set_ylabel('Depth (km)')
-
-    plt.subplots_adjust(wspace=0.5, hspace=0.5)
-
-    plt.savefig('params.pdf')
-    plt.clf()
 
 def read_tensor(s, device):
     if( s == None ): return None
@@ -188,34 +113,6 @@ def get_all_devices():
         torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())
     ]
     return gpus + [torch.device('cpu')]
-
-def open_ide(*args, ide_precedence=True, no_ide=[], default='/usr/bin/open'):
-    cmd = default
-    def scan_no_ide():
-        nonlocal cmd
-        for open_cmd in no_ide:
-            check1 = sco('which %s'%open_cmd)
-            check2 = sco('type %s'%open_cmd)
-            if( bool(check1 or check2) ):
-                cmd = open_cmd
-                break
-    if( not ide_precedence ): scan_no_ide()
-    if( cmd == default ):
-        python_parent_pid = os.getppid()
-        shell_parent = sco(
-            f'ps -p $(ps -o ppid= -p {python_parent_pid}) -o comm='
-        )[0] \
-        .strip()
-        cmd = default
-        for a in args:
-            ide, open_cmd = a[0].lower(), a[1]
-            if( shell_parent == ide ):
-                cmd = open_cmd
-                break
-    if( ide_precedence and cmd == default ): scan_no_ide()
-    def helper(file_name):
-        os.system(f'{cmd} {file_name}')
-    return helper
 
 def fetch_and_convert_data(
     *,
@@ -283,14 +180,14 @@ def retrieve_dataset(
     *, 
     field, 
     folder, 
-    path=os.getcwd(),
+    path=None,
     check=False
 ):
 
-    if( path is None ): 
-        path = ''
-    if( path == 'conda' ):
+    if( path in [None, 'conda'] ): 
         path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
+    elif( path == 'pwd' ):
+        path = os.getcwd()
     elif( path == '' or path[0] != '/' ):
         path = os.path.join(os.getcwd(), path)
     
@@ -307,28 +204,6 @@ def retrieve_dataset(
     # add another 
     fetch_and_convert_data(subset=folder, path=path, check=check)
     return torch.load(os.path.join(full_path, f'{field}.pt'))
-
-def device_deploy(obj, deploy):
-    if len(deploy) > 0 and deploy[0][0] == 'all':
-        device = deploy[0][1]
-        for field in dir(obj):
-            if not field.startswith("__"):
-                curr = getattr(obj, field)
-                if isinstance(curr, torch.Tensor):
-                    setattr(obj, field, curr.to(device))
-    else:
-        for att, device in deploy:
-            curr = getattr(obj, att)
-            if curr is None:
-                raise ValueError(f'Attribute {att} in {obj} is None')
-            setattr(obj, att, curr.to(device))
-
-def deploy_params(obj, train, device, defaults=None):
-    defaults = {} if defaults is None else defaults
-    full_train = {**defaults, **train}
-    for k,v in full_train.items():
-        setattr(obj, k, getattr(obj, k).to(device))
-        getattr(obj, k).requires_grad = v
 
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
@@ -362,20 +237,6 @@ def downsample_tensor(tensor, axis, ratio):
     slices[axis] = slice(None, None, ratio)
     
     return tensor[tuple(slices)]
-
-def get_member_name(obj, sub_obj, special=False):
-    if( special ):
-        l = dir(obj)
-    else:
-        l = [e for e in dir(obj) if not e.startswith('__')]
-    fields = [i for i,e in enumerate(l) if id(getattr(obj, e)) == id(sub_obj)]
-
-    if( len(fields) == 0 ):
-        raise ValueError(f'{sub_obj} not found in {obj}')
-    elif( len(fields) > 1 ):
-        raise ValueError(f'{sub_obj} found multiple times in {obj}')
-    else:
-        return l[fields[0]]
 
 def verbosity_str_to_int(*, verbosity, levels):
     if( type(verbosity) == int ): return verbosity
@@ -425,18 +286,6 @@ def run_verbosity(*, verbosity, levels):
         return helper_inner
     return helper
 
-# def report( *, verbosity, levels=None, protocol=print):
-#     vs2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
-#     verbosity_int = vs2i(verbosity)
-
-#     def helper(msg, *, idt=0, end='\n', idt_str='    ', **kw):
-#         verbosity_dummy = kw.get('verbosity', 1)
-#         verbosity_dummy_int = vs2i(verbosity_dummy)
-#         if( verbosity_dummy_int < verbosity_int ):
-#             indent = idt * idt_str
-#             protocol(f'{indent}{msg}', end=end)
-#     return helper
-
 def mem_report(*args, precision=2, sep=', ', rep=None):
     filtered_args = []
     if( rep is None ):
@@ -470,6 +319,93 @@ def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
             sep=sep, 
             rep=rep
         )
+
+def create_obs_marm_dw(path, device):
+    if( path == 'conda' ):
+        path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
+    warn(
+        '\n    This function contains a CUDA memory leak!' +
+        '\n    Run this prior to your main script and then use ' + 
+        '\n    retrieve_dataset function to pull in obs_data'
+    )
+    try:
+        print('Attempt obs_data fetch...', end='')
+        obs_data = retrieve_dataset(
+            field='obs_data', 
+            folder='marmousi', 
+            path=path
+        )
+        print(f'Found marmousi data in {path}, shape={obs_data.shape}')
+        print('OVERWRITE WARNING! CTRL+C OR KILL NOW IF YOU WANT TO KEEP IT')
+        print('Sleeping for 3 seconds...', end='')
+        time.sleep(3)
+        print(
+            f'Proceeding to overwrite ' +
+            f'{os.path.join(path, "marmousi/obs_data")}'
+        )
+        del obs_data
+    except FileNotFoundError:
+        print(f'No marmousi observation data in {path}, creating now...')
+
+
+    vp = retrieve_dataset(field='vp', folder='marmousi', path=path).to(device)
+    n_shots = 115
+
+    n_sources_per_shot = 1
+    d_source = 20  # 20 * 4m = 80m
+    first_source = 10  # 10 * 4m = 40m
+    source_depth = 2  # 2 * 4m = 8m
+
+    n_receivers_per_shot = 384
+    d_receiver = 6  # 6 * 4m = 24m
+    first_receiver = 0  # 0 * 4m = 0m
+    receiver_depth = 2  # 2 * 4m = 8m
+
+    freq = 25
+    nt = 750
+    dt = 0.004
+    peak_time = 1.5 / freq
+
+    source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
+                                   dtype=torch.long).to(device)
+    source_locations[..., 1] = source_depth
+    source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
+                                 first_source)
+
+    # receiver_locations
+    receiver_locations = torch.zeros(n_shots, n_receivers_per_shot,
+                                     2, dtype=torch.long).to(device)
+    receiver_locations[..., 1] = receiver_depth
+    receiver_locations[:, :, 0] = (
+        (torch.arange(n_receivers_per_shot) * d_receiver +
+         first_receiver)
+        .repeat(n_shots, 1)
+    )
+
+    # source_amplitudes
+    source_amplitudes = (
+        (dw.wavelets.ricker(freq, nt, dt, peak_time))
+        .repeat(n_shots, n_sources_per_shot, 1)
+    ).to(device)
+
+    dx = 4.0
+    out = dw.scalar(
+        vp,
+        dx,
+        dt,
+        source_amplitudes=source_amplitudes,
+        source_locations=source_locations,
+        receiver_locations=receiver_locations,
+        pml_freq=freq,
+        accuracy=8
+    )[-1]
+    out_cpu = out.to('cpu')
+
+    torch.save(out_cpu, os.path.join(path, 'marmousi/obs_data.pt'))
+    del source_amplitudes, source_locations, receiver_locations, vp
+    del out, out_cpu
+    torch.cuda.empty_cache()
+
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
@@ -513,25 +449,10 @@ class CombinedMeta(SlotMeta, ABCMeta):
 
 class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
     param: Ant[torch.nn.Parameter, 'Parameter']
-    trainable: Ant[bool, 'Trainable']
-    device: Ant[str, 'Device']
-    custom: Ant[dict, 'Custom']
 
-    def __init__(self, *, param, trainable, device='cpu', **kw):
+    def __init__(self, *, param):
         super().__init__()
-        self.param = torch.nn.Parameter(param).to(device)
-        self.param.requires_grad = trainable
-        self.device = device
-        self.custom = {}
-        for k, v in kw.items():
-            self.custom[k] = v
-
-    def to(self, device):
-        if( self.device == device ): return self 
-        self.device = device
-        self.param = torch.nn.Parameter(self.param.to(device))
-        # self.param = self.param.to(device)
-        return self
+        self.param = param
 
     @abstractmethod
     def forward(self, **kw):
@@ -569,4 +490,130 @@ class ConstrainedParam(AbstractParam):
             return torch.sigmoid(self.param[idx]) \
                 * (self.max_val - self.min_val) \
                 + self.min_val
+
+class ParamFWI(torch.nn.Module, metaclass=SlotMeta):
+    param: Ant[torch.nn.Parameter, 'Parameter']
+    forward: Ant[Callable, 'Parameter']
+    custom: Ant[dict, 'Custom metadata']
+
+    def __init__(
+        self, 
+        *, 
+        initial, 
+        setup=None, 
+        forward=None, 
+        requires_grad=False,
+        store_kw=False,
+        **kw
+    ):
+        if( initial is None ):
+            self.param = None
+            return
+
+        super().__init__()
+        setup, self.forward = self.builder(setup=setup, forward=forward, **kw)
+        self.param = torch.nn.Parameter(setup(initial))
+        self.param.requires_grad = requires_grad
+
+        if( store_kw ): self.custom = kw
+
+    def builder(self, *, setup, forward, **kw):
+        pre_setups, extract = self.setup_predefinitions()
+        setup_key = 'user_defined_callables'
+        for k, v in pre_setups.items():
+            if( setup in v[0] and forward in v[1] ):
+                setup_key = k
+                break
+            elif( setup in v[0] ):
+                raise ValueError(
+                    f'If setup is in {v[0]}, forward must be in {v[1]}, ' +
+                    f'got setup={setup}, forward={forward}'
+                )
+        return extract(setup=setup, forward=forward, key=setup_key, **kw)
+
+    def setup_predefinitions(self):
+        pre_setups = {
+            'identity': ((None, 'identity'), (None, 'identity')),
+            'logit': (
+                (None, 'logit', 'constrained'), 
+                ('sigmoid', 'logit_inverse', 'constrained')
+            )
+        }
+        def extract(*, setup, forward, key, **kw):
+            if( key == 'identity' ):
+                return lambda x: x, lambda x: x
+            elif( key == 'logit' ):
+                try: 
+                    minv, maxv = kw['min_val'], kw['max_val']
+                except KeyError:
+                    raise ValueError(
+                        f'Setup=={setup} requires min_val and max_val ' +
+                        f'to be specified in kw, got {kw.keys()}'
+                    )
+                def logit(x):
+                    return torch.logit( (x-minv) / (maxv-minv) )
+                def logit_inv(x):
+                    return torch.sigmoid(x) * (maxv-minv) + minv
+                return logit, logit_inv
+            elif( key == 'user_defined_callables' ):
+                if( not callable(setup) or not callable(forward) ):
+                    raise ValueError(
+                        f'If setup and forward are not in predefined_setups, ' +
+                        f'they must be callable, got ' +
+                        f'type(setup)={type(setup)}, ' +
+                        f'type(forward)={type(forward)}'
+                    )
+                return setup, forward
+            else:
+                raise ValueError(f'BUG: Unexpected setup_key={key}')
+        return pre_setups, extract
+
+class WaveModel(torch.nn.Module, metaclass=SlotMeta):
+    vp: Ant[ParamFWI, 'ParamFWI']
+    vs: Opt[Ant[ParamFWI, 'ParamFWI']]
+    rho: Opt[Ant[ParamFWI, 'ParamFWI']]
+    src_amp_y: Ant[ParamFWI, 'ParamFWI']
+    src_amp_x: Opt[Ant[ParamFWI, 'ParamFWI']]
+
+    def __init__(self, *, vp, src_amp_y, vs=None, rho=None, src_amp_x=None):
+        super().__init__()
+        self.vp = vp
+        self.src_amp_y = src_amp_y
+        self.vs = vs
+        self.rho = rho
+        self.src_amp_x = src_amp_x
     
+    def forward(
+        self, 
+        *, 
+        dx,
+        dt,
+        src_loc_y, 
+        rec_loc_y, 
+        model='acoustic',
+        **kw
+    ):
+        if( model == 'acoustic' ):
+            return dw.acoustic(
+                self.vp(),
+                dx,
+                dt,
+                source_amplitudes=self.src_amp_y(),
+                source_locations=src_loc_y,
+                receiver_locations=rec_loc_y,
+                **kw
+            )[-1]
+        elif( model == 'elastic' ):
+            return dw.elastic(
+                vp=self.vp(),
+                vs=self.vs(),
+                rho=self.rho(),
+                dx=dx,
+                dt=dt,
+                source_amplitudes_y=self.src_amp_y(),
+                source_locations_y=src_loc_y,
+                receiver_locations_y=rec_loc_y,
+                **kw
+            )[-2]
+        else:
+            raise ValueError(f'Unknown model {model}')

@@ -1,14 +1,18 @@
 __all__ = [
-    "custom_losses",
-    "driver",
-    "elastic_custom",
+    "elastic_class",
     "seismic_data",
+    "driver",
+    "custom_losses",
+    "elastic_custom",
+    "dist_parallel_og",
     "postprocess",
-    "elastic_class"
+    "dist_parallel"
 ]
-from .custom_losses import *
-from .driver import *
-from .elastic_custom import *
-from .seismic_data import *
-from .postprocess import *
 from .elastic_class import *
+from .seismic_data import *
+from .driver import *
+from .custom_losses import *
+from .elastic_custom import *
+from .dist_parallel_og import *
+from .postprocess import *
+from .dist_parallel import *

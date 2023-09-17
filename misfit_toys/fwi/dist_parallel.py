@@ -9,7 +9,7 @@ from scipy.signal import butter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
-
+from ..misfit_toys_helpers import *
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -23,7 +23,6 @@ def setup(rank, world_size):
 
 def cleanup():
     dist.destroy_process_group()
-
 
 # Generate a velocity model constrained to be within a desired range
 class Model(torch.nn.Module):
@@ -70,8 +69,9 @@ def run_rank(rank, world_size):
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = torch.from_file('marmousi_vp.bin',
-                             size=ny*nx).reshape(ny, nx)
+    # v_true = torch.from_file('marmousi_vp.bin',
+                            #  size=ny*nx).reshape(ny, nx)
+    v_true = retrieve_dataset(field='vp', folder='marmousi', path='conda')
 
     # Select portion of model for inversion
     ny = 600
@@ -81,7 +81,19 @@ def run_rank(rank, world_size):
     # Smooth to use as starting model
     v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), 40))
 
-    n_shots = 115
+    observed_data = retrieve_dataset(
+        field='obs_data', 
+        folder='marmousi',
+        path='conda'
+    )
+
+    def taper(x):
+        # Taper the ends of traces
+        return deepwave.common.cosine_taper_end(x, 100)
+
+    # Select portion of data for inversion
+    n_shots = 16
+    n_receivers_per_shot = 100
 
     n_sources_per_shot = 1
     d_source = 20  # 20 * 4m = 80m
@@ -94,29 +106,10 @@ def run_rank(rank, world_size):
     receiver_depth = 2  # 2 * 4m = 8m
 
     freq = 25
-    nt = 750
+    nt = 300
     dt = 0.004
     peak_time = 1.5 / freq
-
-    observed_data = (
-        torch.from_file('marmousi_data.bin',
-                        size=n_shots*n_receivers_per_shot*nt)
-        .reshape(n_shots, n_receivers_per_shot, nt)
-    )
-
-    def taper(x):
-        # Taper the ends of traces
-        return deepwave.common.cosine_taper_end(x, 100)
-
-    # Select portion of data for inversion
-    n_shots = 16
-    n_receivers_per_shot = 100
-    nt = 300
-    observed_data = (
-        taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
-    )
-
-    # source_locations
+    
     source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
                                    dtype=torch.long)
     source_locations[..., 1] = source_depth
@@ -135,8 +128,12 @@ def run_rank(rank, world_size):
 
     # source_amplitudes
     source_amplitudes = (
-        (deepwave.wavelets.ricker(freq, nt, dt, peak_time))
+        (dw.wavelets.ricker(freq, nt, dt, peak_time))
         .repeat(n_shots, n_sources_per_shot, 1)
+    )
+
+    observed_data = (
+        taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
     )
 
     observed_data = \
@@ -215,7 +212,9 @@ def run(world_size):
              nprocs=world_size,
              join=True)
 
-
-if __name__ == "__main__":
+def main():
     n_gpus = torch.cuda.device_count()
     run(n_gpus)
+
+if __name__ == "__main__":
+    main()
