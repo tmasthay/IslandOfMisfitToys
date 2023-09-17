@@ -14,56 +14,7 @@ from .modules.seismic_data import SeismicData
 from .modules.models import Model, Prop
 from .modules.visual import make_plots
 from .modules.training import Training
-
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
-
-    # initialize the process group
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-
-    torch.cuda.set_device(rank)
-
-def cleanup():
-    dist.destroy_process_group()
-
-def setup_distribution(
-    *,
-    obs_data,
-    src_amp,
-    src_loc,
-    rec_loc,
-    model,
-    dx,
-    dt,
-    freq,
-    rank,
-    world_size
-):
-    #chunk the data according to rank
-    obs_data = torch.chunk(
-        obs_data, 
-        world_size
-    )[rank].to(rank)
-
-    src_amp = torch.chunk(
-        src_amp, 
-        world_size
-    )[rank].to(rank)
-
-    src_loc = torch.chunk(
-        src_loc, 
-        world_size
-    )[rank].to(rank)
-
-    rec_loc = torch.chunk(
-        rec_loc, 
-        world_size
-    )[rank].to(rank)
-
-    prop = Prop(model, dx, dt, freq).to(rank)
-    prop = DDP(prop, device_ids=[rank])
-    return prop, obs_data, src_amp, src_loc, rec_loc
+from .modules.distribution import Distribution, setup, cleanup
 
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
@@ -106,7 +57,8 @@ def run_rank(rank, world_size):
     model = Model(data.v_init, 1000, 2500)
 
     #Setup distribution onto multiple GPUs
-    prop, data.obs_data, src_amp, src_loc, rec_loc = setup_distribution(
+    d = Distribution(rank=rank, world_size=world_size)
+    prop, data.obs_data, src_amp, src_loc, rec_loc = d.setup_distribution(
         obs_data=data.obs_data,
         src_amp=src_amp,
         src_loc=src_loc,
@@ -114,9 +66,7 @@ def run_rank(rank, world_size):
         model=model,
         dx=dx,
         dt=dt,
-        freq=freq,
-        rank=rank,
-        world_size=world_size
+        freq=freq
     )
 
     #Perform training
@@ -138,7 +88,6 @@ def run_rank(rank, world_size):
 
 
 def run(world_size):
-
     mp.spawn(run_rank,
              args=(world_size,),
              nprocs=world_size,
