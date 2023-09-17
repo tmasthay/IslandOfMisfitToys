@@ -62,43 +62,47 @@ class Prop(torch.nn.Module):
             time_pad_frac=0.2,
         )
 
+# Taper the ends of traces
+def taper(x):
+    return deepwave.common.cosine_taper_end(x, 100)
 
-def run_rank(rank, world_size):
-    print(f"Running DDP on rank {rank} / {world_size}.")
-    setup(rank, world_size)
-    ny = 2301
-    nx = 751
-    dx = 4.0
-
-    n_shots = 16
-    src_per_shot = 1
-    rec_per_shot = 100
-
-    freq = 25
-    nt = 300
-    dt = 0.004
-    peak_time = 1.5 / freq
-
+def get_initials(*, ny, nx, filter_freq, n_shots, rec_per_shot, nt):
     #grab marmousi data
     v_true = get_data(field='vp', folder='marmousi', path='conda')
     obs_data = get_data(field='obs_data', folder='marmousi', path='conda')
-    
+    obs_data = taper(obs_data[:n_shots, :rec_per_shot, :nt])
+
     # Select portion of model for inversion
     ny = 600
     nx = 250
     v_true = v_true[:ny, :nx]
 
     # Smooth to use as starting model
-    v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), 40))
+    v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), filter_freq))
 
+    return v_true, v_init, obs_data
 
+def run_rank(rank, world_size):
+    print(f"Running DDP on rank {rank} / {world_size}.")
+    setup(rank, world_size)
+    ny, nx, nt = 2301, 751, 300
+    dy, dx, dt = 4.0, 4.0, 0.004
 
-    def taper(x):
-        # Taper the ends of traces
-        return deepwave.common.cosine_taper_end(x, 100)
+    n_shots, src_per_shot, rec_per_shot = 16, 1, 100
 
+    freq = 25
+    peak_time = 1.5 / freq
 
-    
+    v_true, v_init, obs_data = get_initials(
+        ny=ny, 
+        nx=nx, 
+        filter_freq=40,
+        n_shots=n_shots,
+        rec_per_shot=rec_per_shot,
+        nt=nt
+    )
+
+    #source locations
     src_loc = towed_src(
         n_shots=n_shots,
         src_per_shot=src_per_shot,
@@ -108,6 +112,7 @@ def run_rank(rank, world_size):
         d_intra_shot=0
     )
 
+    #receiver locations
     rec_loc = fixed_rec(
         n_shots=n_shots,
         rec_per_shot=rec_per_shot,
@@ -116,14 +121,14 @@ def run_rank(rank, world_size):
         fst_rec=0
     )
 
-    # source_amplitudes
+    # source amplitudes
     src_amp = (
         (dw.wavelets.ricker(freq, nt, dt, peak_time))
         .repeat(n_shots, src_per_shot, 1)
     )
 
-    obs_data = taper(obs_data[:n_shots, :rec_per_shot, :nt])
 
+    #chunk the data according to rank
     obs_data = torch.chunk(
         obs_data, 
         world_size
