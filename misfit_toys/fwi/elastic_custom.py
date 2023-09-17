@@ -11,7 +11,7 @@ from typing import Annotated as Ant
 from abc import ABC, abstractmethod
 
 from .custom_losses import *
-from ..misfit_toys_helpers import *
+from ..utils import *
 
 global device
 global cmap

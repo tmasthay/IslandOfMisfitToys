@@ -9,8 +9,8 @@ import torch
 from typing import Annotated as Ant, Any, Optional as Opt, Callable
 from abc import ABCMeta, abstractmethod
 import itertools
-from .base_helpers import *
-from .misfit_toys_helpers_helpers.download_data import *
+from .swiffer import *
+from .basement.download_data import *
 from torch.optim.lr_scheduler import _LRScheduler
 import deepwave as dw
 from warnings import warn
@@ -406,6 +406,8 @@ def create_obs_marm_dw(path, device):
     del out, out_cpu
     torch.cuda.empty_cache()
 
+def taper(x, length):
+    return dw.common.cosine_taper_end(x, length)
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):

@@ -9,7 +9,8 @@ from scipy.signal import butter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
-from ..misfit_toys_helpers import *
+from ..utils import *
+from .modules.seismic_data import SeismicData
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -19,7 +20,6 @@ def setup(rank, world_size):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
     torch.cuda.set_device(rank)
-
 
 def cleanup():
     dist.destroy_process_group()
@@ -61,26 +61,6 @@ class Prop(torch.nn.Module):
             pml_freq=self.freq,
             time_pad_frac=0.2,
         )
-
-# Taper the ends of traces
-def taper(x):
-    return deepwave.common.cosine_taper_end(x, 100)
-
-def get_initials(*, ny, nx, filter_freq, n_shots, rec_per_shot, nt):
-    #grab marmousi data
-    v_true = get_data(field='vp', folder='marmousi', path='conda')
-    obs_data = get_data(field='obs_data', folder='marmousi', path='conda')
-    obs_data = taper(obs_data[:n_shots, :rec_per_shot, :nt])
-
-    # Select portion of model for inversion
-    ny = 600
-    nx = 250
-    v_true = v_true[:ny, :nx]
-
-    # Smooth to use as starting model
-    v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), filter_freq))
-
-    return v_true, v_init, obs_data
 
 def setup_distribution(
     *,
@@ -160,7 +140,7 @@ def train(*, prop, src_amp, src_loc, rec_loc, obs_data, dt, rank):
             def closure():
                 optimiser.zero_grad()
                 out = prop(src_amp, src_loc, rec_loc)
-                out_filt = filt(taper(out[-1]))
+                out_filt = filt(taper(out[-1], 100))
                 loss = 1e6*loss_fn(out_filt, observed_data_filt)
                 print(
                     f'Rank={rank}, Freq={cutoff_freq}, Epoch={epoch}, ' +
@@ -183,14 +163,7 @@ def run_rank(rank, world_size):
     freq = 25
     peak_time = 1.5 / freq
 
-    v_true, v_init, obs_data = get_initials(
-        ny=ny, 
-        nx=nx, 
-        filter_freq=40,
-        n_shots=n_shots,
-        rec_per_shot=rec_per_shot,
-        nt=nt
-    )
+    data = SeismicData()
 
     #source locations
     src_loc = towed_src(
@@ -217,11 +190,11 @@ def run_rank(rank, world_size):
         .repeat(n_shots, src_per_shot, 1)
     )
 
-    model = Model(v_init, 1000, 2500)
+    model = Model(data.v_init, 1000, 2500)
 
     #Setup distribution onto multiple GPUs
-    prop, obs_data, src_amp, src_loc, rec_loc = setup_distribution(
-        obs_data=obs_data,
+    prop, data.obs_data, src_amp, src_loc, rec_loc = setup_distribution(
+        obs_data=data.obs_data,
         src_amp=src_amp,
         src_loc=src_loc,
         rec_loc=rec_loc,
@@ -239,14 +212,14 @@ def run_rank(rank, world_size):
         src_amp=src_amp,
         src_loc=src_loc,
         rec_loc=rec_loc,
-        obs_data=obs_data,
+        obs_data=data.obs_data,
         dt=dt,
         rank=rank
     )
 
     # Plot
     if rank == 0:
-        make_plots(v_true=v_true, v_init=v_init, model=model)
+        make_plots(v_true=data.v_true, v_init=data.v_init, model=model)
 
     cleanup()
 
