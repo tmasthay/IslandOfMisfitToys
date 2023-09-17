@@ -4,25 +4,60 @@ from typing import Annotated as Ant, Optional as Opt
 from scipy.ndimage import gaussian_filter
 
 class SeismicData:
-    def __init__(self):
-        self.define_parameters()
+    def __init__(
+        self,
+        *,
+        ny,
+        nx,
+        nt,
+        dy,
+        dx,
+        dt,
+        n_shots,
+        src_per_shot,
+        rec_per_shot,
+        d_src,
+        fst_src,
+        src_depth,
+        d_rec,
+        fst_rec,
+        rec_depth,
+        d_intra_shot,
+        freq,
+        peak_time,
+        taper_length,
+        filter_freq
+    ):
+        # self.ny, self.nx, self.nt = 600, 250, 300
+        # self.dy, self.dx, self.dt = 4.0, 4.0, 0.004
+
+        # self.n_shots, self.src_per_shot, self.rec_per_shot = 16, 1, 100
+        # self.d_src, self.fst_src, self.src_depth = 20, 10, 2
+        # self.d_rec, self.fst_rec, self.rec_depth = 6, 0, 2
+        # self.d_intra_shot = 0
+
+        # self.freq = 25
+        # self.peak_time = 1.5 / self.freq
+
+        # self.taper_length = 100
+        # self.filter_freq = 40
+        self.ny, self.nx, self.nt = ny, nx, nt
+        self.dy, self.dx, self.dt = dy, dx, dt
+
+        self.n_shots, self.src_per_shot, self.rec_per_shot = \
+            n_shots, src_per_shot, rec_per_shot
+        self.d_src, self.fst_src, self.src_depth = d_src, fst_src, src_depth
+        self.d_rec, self.fst_rec, self.rec_depth = d_rec, fst_rec, rec_depth
+        self.d_intra_shot = d_intra_shot
+
+        self.freq = freq
+        self.peak_time = peak_time
+
+        self.taper_length = taper_length
+        self.filter_freq = filter_freq
+        
         self.get_initials()
         self.build_survey()
-
-    def define_parameters(self):
-        self.ny, self.nx, self.nt = 600, 250, 300
-        self.dy, self.dx, self.dt = 4.0, 4.0, 0.004
-
-        self.n_shots, self.src_per_shot, self.rec_per_shot = 16, 1, 100
-        self.d_src, self.fst_src, self.src_depth = 20, 10, 2
-        self.d_rec, self.fst_rec, self.rec_depth = 6, 0, 2
-        self.d_intra_shot = 0
-
-        self.freq = 25
-        self.peak_time = 1.5 / self.freq
-
-        self.taper_length = 100
-        self.filter_freq = 40
 
     def get_initials(self):
         #grab marmousi data
