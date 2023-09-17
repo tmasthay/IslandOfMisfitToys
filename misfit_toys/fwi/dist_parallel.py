@@ -81,7 +81,7 @@ def run_rank(rank, world_size):
     # Smooth to use as starting model
     v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), 40))
 
-    observed_data = retrieve_dataset(
+    obs_data = retrieve_dataset(
         field='obs_data', 
         folder='marmousi',
         path='conda'
@@ -91,59 +91,82 @@ def run_rank(rank, world_size):
         # Taper the ends of traces
         return deepwave.common.cosine_taper_end(x, 100)
 
-    # Select portion of data for inversion
+
     n_shots = 16
-    n_receivers_per_shot = 100
+    src_per_shot = 1
+    rec_per_shot = 100
+    # d_source = 20  # 20 * 4m = 80m
+    # first_source = 10  # 10 * 4m = 40m
+    # source_depth = 2  # 2 * 4m = 8m
 
-    n_sources_per_shot = 1
-    d_source = 20  # 20 * 4m = 80m
-    first_source = 10  # 10 * 4m = 40m
-    source_depth = 2  # 2 * 4m = 8m
-
-    n_receivers_per_shot = 100
-    d_receiver = 6  # 6 * 4m = 24m
-    first_receiver = 0  # 0 * 4m = 0m
-    receiver_depth = 2  # 2 * 4m = 8m
+    # n_receivers_per_shot = 100
+    # d_receiver = 6  # 6 * 4m = 24m
+    # first_receiver = 0  # 0 * 4m = 0m
+    # receiver_depth = 2  # 2 * 4m = 8m
 
     freq = 25
     nt = 300
     dt = 0.004
     peak_time = 1.5 / freq
     
-    source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
-                                   dtype=torch.long)
-    source_locations[..., 1] = source_depth
-    source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
-                                 first_source)
+    # source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
+    #                                dtype=torch.long)
+    # source_locations[..., 1] = source_depth
+    # source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
+    #                              first_source)
+    src_loc = towed_src(
+        n_shots=n_shots,
+        src_per_shot=src_per_shot,
+        d_src=20,
+        fst_src=10,
+        src_depth=2,
+        d_intra_shot=0
+    )
 
     # receiver_locations
-    receiver_locations = torch.zeros(n_shots, n_receivers_per_shot,
-                                     2, dtype=torch.long)
-    receiver_locations[..., 1] = receiver_depth
-    receiver_locations[:, :, 0] = (
-        (torch.arange(n_receivers_per_shot) * d_receiver +
-         first_receiver)
-        .repeat(n_shots, 1)
+    # receiver_locations = torch.zeros(n_shots, n_receivers_per_shot,
+    #                                  2, dtype=torch.long)
+    # receiver_locations[..., 1] = receiver_depth
+    # receiver_locations[:, :, 0] = (
+    #     (torch.arange(n_receivers_per_shot) * d_receiver +
+    #      first_receiver)
+    #     .repeat(n_shots, 1)
+    # )
+    rec_loc = fixed_rec(
+        n_shots=n_shots,
+        rec_per_shot=rec_per_shot,
+        d_rec=6,
+        rec_depth=2,
+        fst_rec=0
     )
 
     # source_amplitudes
-    source_amplitudes = (
+    src_amp = (
         (dw.wavelets.ricker(freq, nt, dt, peak_time))
-        .repeat(n_shots, n_sources_per_shot, 1)
+        .repeat(n_shots, src_per_shot, 1)
     )
 
-    observed_data = (
-        taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
-    )
+    obs_data = taper(obs_data[:n_shots, :rec_per_shot, :nt])
 
-    observed_data = \
-        torch.chunk(observed_data, world_size)[rank].to(rank)
-    source_amplitudes = \
-        torch.chunk(source_amplitudes, world_size)[rank].to(rank)
-    source_locations = \
-        torch.chunk(source_locations, world_size)[rank].to(rank)
-    receiver_locations = \
-        torch.chunk(receiver_locations, world_size)[rank].to(rank)
+    obs_data = torch.chunk(
+        obs_data, 
+        world_size
+    )[rank].to(rank)
+
+    src_amp = torch.chunk(
+        src_amp, 
+        world_size
+    )[rank].to(rank)
+
+    src_loc = torch.chunk(
+        src_loc, 
+        world_size
+    )[rank].to(rank)
+
+    rec_loc = torch.chunk(
+        rec_loc, 
+        world_size
+    )[rank].to(rank)
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(model, dx, dt, freq).to(rank)
@@ -157,19 +180,17 @@ def run_rank(rank, world_size):
 
     for cutoff_freq in [10, 15, 20, 25, 30]:
         sos = butter(6, cutoff_freq, fs=1/dt, output='sos')
-        sos = [torch.tensor(sosi).to(observed_data.dtype).to(rank)
-               for sosi in sos]
+        sos = [torch.tensor(sosi).to(obs_data.dtype).to(rank) for sosi in sos]
 
         def filt(x):
             return biquad(biquad(biquad(x, *sos[0]), *sos[1]),
                           *sos[2])
-        observed_data_filt = filt(observed_data)
+        observed_data_filt = filt(obs_data)
         optimiser = torch.optim.LBFGS(prop.parameters())
         for epoch in range(n_epochs):
             def closure():
                 optimiser.zero_grad()
-                out = prop(source_amplitudes, source_locations,
-                           receiver_locations)
+                out = prop(src_amp, src_loc, rec_loc)
                 out_filt = filt(taper(out[-1]))
                 loss = 1e6*loss_fn(out_filt, observed_data_filt)
                 print(
