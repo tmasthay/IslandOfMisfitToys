@@ -69,10 +69,20 @@ def run_rank(rank, world_size):
     ny = 2301
     nx = 751
     dx = 4.0
-    # v_true = torch.from_file('marmousi_vp.bin',
-                            #  size=ny*nx).reshape(ny, nx)
-    v_true = retrieve_dataset(field='vp', folder='marmousi', path='conda')
 
+    n_shots = 16
+    src_per_shot = 1
+    rec_per_shot = 100
+
+    freq = 25
+    nt = 300
+    dt = 0.004
+    peak_time = 1.5 / freq
+
+    #grab marmousi data
+    v_true = get_data(field='vp', folder='marmousi', path='conda')
+    obs_data = get_data(field='obs_data', folder='marmousi', path='conda')
+    
     # Select portion of model for inversion
     ny = 600
     nx = 250
@@ -81,39 +91,14 @@ def run_rank(rank, world_size):
     # Smooth to use as starting model
     v_init = torch.tensor(1/gaussian_filter(1/v_true.numpy(), 40))
 
-    obs_data = retrieve_dataset(
-        field='obs_data', 
-        folder='marmousi',
-        path='conda'
-    )
+
 
     def taper(x):
         # Taper the ends of traces
         return deepwave.common.cosine_taper_end(x, 100)
 
 
-    n_shots = 16
-    src_per_shot = 1
-    rec_per_shot = 100
-    # d_source = 20  # 20 * 4m = 80m
-    # first_source = 10  # 10 * 4m = 40m
-    # source_depth = 2  # 2 * 4m = 8m
-
-    # n_receivers_per_shot = 100
-    # d_receiver = 6  # 6 * 4m = 24m
-    # first_receiver = 0  # 0 * 4m = 0m
-    # receiver_depth = 2  # 2 * 4m = 8m
-
-    freq = 25
-    nt = 300
-    dt = 0.004
-    peak_time = 1.5 / freq
     
-    # source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
-    #                                dtype=torch.long)
-    # source_locations[..., 1] = source_depth
-    # source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
-    #                              first_source)
     src_loc = towed_src(
         n_shots=n_shots,
         src_per_shot=src_per_shot,
@@ -123,15 +108,6 @@ def run_rank(rank, world_size):
         d_intra_shot=0
     )
 
-    # receiver_locations
-    # receiver_locations = torch.zeros(n_shots, n_receivers_per_shot,
-    #                                  2, dtype=torch.long)
-    # receiver_locations[..., 1] = receiver_depth
-    # receiver_locations[:, :, 0] = (
-    #     (torch.arange(n_receivers_per_shot) * d_receiver +
-    #      first_receiver)
-    #     .repeat(n_shots, 1)
-    # )
     rec_loc = fixed_rec(
         n_shots=n_shots,
         rec_per_shot=rec_per_shot,

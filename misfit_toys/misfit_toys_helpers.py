@@ -176,7 +176,7 @@ def fetch_and_convert_data(
             print(f'\n{failure_head}\n' + '*'*len(failure_head))
             print('\n'.join(res['failure']))
 
-def retrieve_dataset(
+def get_data(
     *, 
     field, 
     folder, 
@@ -326,11 +326,11 @@ def create_obs_marm_dw(path, device):
     warn(
         '\n    This function contains a CUDA memory leak!' +
         '\n    Run this prior to your main script and then use ' + 
-        '\n    retrieve_dataset function to pull in obs_data'
+        '\n    get_data function to pull in obs_data'
     )
     try:
         print('Attempt obs_data fetch...', end='')
-        obs_data = retrieve_dataset(
+        obs_data = get_data(
             field='obs_data', 
             folder='marmousi', 
             path=path
