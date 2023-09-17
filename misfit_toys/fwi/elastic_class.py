@@ -13,7 +13,7 @@ from .custom_losses import *
 from ..utils import *
 from tqdm import tqdm
 from datetime import datetime
-from ..base_helpers import human_time as ht
+from ..swiffer import human_time as ht
 import sys
 from pympler.asizeof import asizeof
 

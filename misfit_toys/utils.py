@@ -348,7 +348,7 @@ def create_obs_marm_dw(path, device):
         print(f'No marmousi observation data in {path}, creating now...')
 
 
-    vp = retrieve_dataset(field='vp', folder='marmousi', path=path).to(device)
+    vp = get_data(field='vp', folder='marmousi', path=path).to(device)
     n_shots = 115
 
     n_sources_per_shot = 1

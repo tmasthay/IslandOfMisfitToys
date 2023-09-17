@@ -19,20 +19,13 @@ from .modules.distribution import Distribution, setup, cleanup
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
-    ny, nx, nt = 2301, 751, 300
-    dy, dx, dt = 4.0, 4.0, 0.004
-
-    n_shots, src_per_shot, rec_per_shot = 16, 1, 100
-
-    freq = 25
-    peak_time = 1.5 / freq
 
     data = SeismicData()
 
     #source locations
     src_loc = towed_src(
-        n_shots=n_shots,
-        src_per_shot=src_per_shot,
+        n_shots=data.n_shots,
+        src_per_shot=data.src_per_shot,
         d_src=20,
         fst_src=10,
         src_depth=2,
@@ -41,8 +34,8 @@ def run_rank(rank, world_size):
 
     #receiver locations
     rec_loc = fixed_rec(
-        n_shots=n_shots,
-        rec_per_shot=rec_per_shot,
+        n_shots=data.n_shots,
+        rec_per_shot=data.rec_per_shot,
         d_rec=6,
         rec_depth=2,
         fst_rec=0
@@ -50,8 +43,8 @@ def run_rank(rank, world_size):
 
     # source amplitudes
     src_amp = (
-        (dw.wavelets.ricker(freq, nt, dt, peak_time))
-        .repeat(n_shots, src_per_shot, 1)
+        (dw.wavelets.ricker(data.freq, data.nt, data.dt, data.peak_time))
+        .repeat(data.n_shots, data.src_per_shot, 1)
     )
 
     model = Model(data.v_init, 1000, 2500)
@@ -64,9 +57,9 @@ def run_rank(rank, world_size):
         src_loc=src_loc,
         rec_loc=rec_loc,
         model=model,
-        dx=dx,
-        dt=dt,
-        freq=freq
+        dx=data.dx,
+        dt=data.dt,
+        freq=data.freq
     )
 
     #Perform training
@@ -76,7 +69,7 @@ def run_rank(rank, world_size):
         src_loc=src_loc,
         rec_loc=rec_loc,
         obs_data=data.obs_data,
-        dt=dt,
+        dt=data.dt,
         rank=rank
     )
 
