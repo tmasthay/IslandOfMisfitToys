@@ -12,9 +12,9 @@ class SeismicData:
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitude, x component']]
     src_loc: Ant[torch.Tensor, 'Source locations']
     rec_loc: Ant[torch.Tensor, 'Receiver locations']
-    vp_init: Ant[torch.Tensor, 'Initial P velocity model']
-    vs_init: Opt[Ant[torch.Tensor, 'Initial S velocity model']]
-    rho_init: Opt[Ant[torch.Tensor, 'Initial density model']]
+    vp: Ant[torch.Tensor, 'Initial P velocity model']
+    vs: Opt[Ant[torch.Tensor, 'Initial S velocity model']]
+    rho: Opt[Ant[torch.Tensor, 'Initial density model']]
     vp_true: Opt[Ant[torch.Tensor, 'True P velocity model']]
     vs_true: Opt[Ant[torch.Tensor, 'True S velocity model']]
     rho_true: Opt[Ant[torch.Tensor, 'True density model']]
@@ -63,9 +63,9 @@ class SeismicData:
         self.src_amp_x = get(src_amp_x)
         self.src_loc = get(src_loc)
         self.rec_loc = get(rec_loc)
-        self.vp_init = get(vp_init)
-        self.vs_init = get(vs_init)
-        self.rho_init = get(rho_init)
+        self.vp = get(vp_init)
+        self.vs = get(vs_init)
+        self.rho = get(rho_init)
         self.vp_true = get(vp_true)
         self.vs_true = get(vs_true)
         self.rho_true = get(rho_true)

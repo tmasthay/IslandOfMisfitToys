@@ -114,6 +114,18 @@ def get_all_devices():
     ]
     return gpus + [torch.device('cpu')]
 
+def parse_path(path):
+    if( path is None or path.startswith('conda') ):
+        if( path == 'conda' ):
+            path = 'conda/data'
+        else:
+            path = path.replace('conda', os.environ['CONDA_PREFIX'])
+    elif( path.startswith('pwd') ):
+        path = path.replace('pwd', os.getcwd())
+    else:
+        path = os.path.join(os.getcwd(), path)
+    return path
+
 def fetch_and_convert_data(
     *,
     subset='all',
@@ -128,6 +140,18 @@ def fetch_and_convert_data(
             'ext': 'bin',
             'ny': 2301,
             'nx': 751,
+            'dy': 4.0,
+            'dx': 4.0,
+            'dt': 0.004,
+            'd_src': 20,
+            'fst_src': 10,
+            'src_depth': 2,
+            'd_rec': 6,
+            'fst_rec': 0,
+            'rec_depth': 2,
+            'd_intra_shot': 0,
+            'freq': 25,
+            'peak_time': 1.5 / 25,
             'vp': {},
             'rho': {},
             'obs_data': (create_obs_marm_dw, (), {'device': device})
@@ -210,16 +234,33 @@ def get_data(
     fetch_and_convert_data(subset=folder, path=path, check=check)
     return torch.load(os.path.join(full_path, f'{field}.pt'))
 
-def get_data2(*, field, path=None):
-    path_tok = path.split('/')
-    if( path_tok[0] in [None, 'conda'] ):
-        path_tok[0] = os.environ['CONDA_PREFIX'] + '/data'
-    elif( path_tok[0] == 'pwd' ):
-        path_tok[0] = os.getcwd()
-    elif( path_tok[0] != '' ):
-        path_tok[0] = os.path.join(os.getcwd(), path_tok[0])
-    path = '/'.join(path_tok)
+def get_data2(*, field, path=None, allow_none=False):
+    if( path is None or path.startswith('conda') ):
+        if( path == 'conda' ):
+            path = 'conda/data'
+        else:
+            path = path.replace('conda', os.environ['CONDA_PREFIX'])
+    elif( path.startswith('pwd') ):
+        path = path.replace('pwd', os.getcwd())
+    else:
+        path = os.path.join(os.getcwd(), path)
+
     field_file = os.path.join(path, f'{field}.pt')
+    if( os.path.exists(path) ):
+        try:
+            return torch.load(field_file)
+        except FileNotFoundError:
+            if( allow_none ):
+                print(f'File {field}.pt not found in {path}, return None')
+                return None
+            print(
+                f'File {field}.pt not found in {path}' +
+                f'\n    Delete {path} and try again'
+            )
+            raise
+    subset = path.split('/')[-1]
+    dummy_path = '/'.join(path.split('/')[:-1])
+
     if( os.path.exists(path) ):
         try:
             return torch.load(field_file)
@@ -229,8 +270,34 @@ def get_data2(*, field, path=None):
                 f'\n    Delete {path} and try again'
             )
             raise
-    fetch_and_convert_data(subset=path_tok[-1], path='/'.join(path_tok[:-1]))
+    fetch_and_convert_data(subset=subset, path=dummy_path)
     return torch.load(field_file)
+
+def get_metadata(*, path):
+    path = parse_path(path)
+    return eval(open(f'{path}/metadata.json', 'r').read())
+
+def get_primitives(d):
+    prim_list = [int, float, str, bool]
+    omit_keys = ['source', 'url', 'filename', 'ext']
+    def helper(data, runner):
+        for k,v in data.items():
+            if( k in omit_keys ): continue
+            if( type(v) == dict ):
+                input(f'key={k}, recurse!')
+                runner = helper(v, runner)
+            elif( type(v) in prim_list ):
+                print(f'    key = {k}, value = {v}, attempt placement')
+                print(f'{8*" "}before = {runner}')
+                if( k in runner.keys() and runner[k] != v ):
+                    raise ValueError(f'Primitive type mismatch for {k}')
+                else:
+                    runner[k] = v
+                input(f'{8*" "}after = {runner}')
+            else:
+                input(f'v = {v}, runner={runner}')
+        return runner
+    return helper(d, {})
 
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}

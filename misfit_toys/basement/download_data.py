@@ -222,5 +222,3 @@ def store_metadata(*, path, metadata):
         print(s)
         with open(json_path, 'w') as f:
             f.write(res_str)
-
-
