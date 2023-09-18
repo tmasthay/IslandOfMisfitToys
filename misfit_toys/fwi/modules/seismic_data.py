@@ -2,92 +2,95 @@ from ...utils import *
 from torchaudio.functional import biquad
 from typing import Annotated as Ant, Optional as Opt
 from scipy.ndimage import gaussian_filter
+from dataclasses import dataclass, field
+import json
 
+@dataclass(slots=True)
 class SeismicData:
+    obs_data: Ant[torch.Tensor, 'Observed data']
+    src_amp_y: Ant[torch.Tensor, 'Source amplitude, y component']
+    src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitude, x component']]
+    src_loc: Ant[torch.Tensor, 'Source locations']
+    rec_loc: Ant[torch.Tensor, 'Receiver locations']
+    vp_init: Ant[torch.Tensor, 'Initial P velocity model']
+    vs_init: Opt[Ant[torch.Tensor, 'Initial S velocity model']]
+    rho_init: Opt[Ant[torch.Tensor, 'Initial density model']]
+    vp_true: Opt[Ant[torch.Tensor, 'True P velocity model']]
+    vs_true: Opt[Ant[torch.Tensor, 'True S velocity model']]
+    rho_true: Opt[Ant[torch.Tensor, 'True density model']]
+    src_amp_y_true: Opt[Ant[torch.Tensor, 'True source amplitude, y component']]
+    src_amp_x_true: Opt[Ant[torch.Tensor, 'True source amplitude, x component']]
+    nx: Ant[int, 'Number of x grid points']
+    ny: Ant[int, 'Number of y grid points']
+    nt: Ant[int, 'Number of time steps']
+    dx: Ant[float, 'Grid spacing in x']
+    dy: Ant[float, 'Grid spacing in y']
+    dt: Ant[float, 'Time step']
+    n_shots: Ant[int, 'Number of shots']
+    src_per_shot: Ant[int, 'Number of sources per shot']
+    rec_per_shot: Ant[int, 'Number of receivers per shot']
+    custom: Ant[dict, 'Custom data']
+    
     def __init__(
         self,
         *,
-        ny,
-        nx,
-        nt,
-        dy,
-        dx,
-        dt,
-        n_shots,
-        src_per_shot,
-        rec_per_shot,
-        d_src,
-        fst_src,
-        src_depth,
-        d_rec,
-        fst_rec,
-        rec_depth,
-        d_intra_shot,
-        freq,
-        peak_time,
-        taper_length,
-        filter_freq
+        obs_data: Ant[str, 'obs_data']='obs_data',
+        src_amp_y: Ant[str, 'Source amplitude, y component']='src_amp_y',
+        src_amp_x: Ant[str, 'Source amplitude, x component']=None,
+        src_loc: Ant[str, 'Source locations']='src_loc',
+        rec_loc: Ant[str, 'Receiver locations']='rec_loc',
+        vp_init: Ant[str, 'Initial P velocity model']='vp_init',
+        vs_init: Opt[Ant[str, 'Initial S velocity model']]=None,
+        rho_init: Opt[Ant[str, 'Initial density model']]=None,
+        vp_true: Opt[Ant[str, 'True P velocity model']]=None,
+        vs_true: Opt[Ant[str, 'True S velocity model']]=None,
+        rho_true: Opt[Ant[str, 'True density model']]=None,
+        src_amp_y_true: Opt[
+            Ant[torch.Tensor, 'True source amplitude, y component']
+        ]=None,
+        src_amp_x_true: Opt[
+            Ant[str, 'True source amplitude, x component']
+        ]=None,
+        path: Ant[str, 'Path to data']
     ):
-        self.ny, self.nx, self.nt = ny, nx, nt
-        self.dy, self.dx, self.dt = dy, dx, dt
+        def get(filename):
+            if( filename is not None ):
+                return get_data2(field=filename, path=path)
+            else:
+                return None
+        self.obs_data = get(obs_data)
+        self.src_amp_y = get(src_amp_y)
+        self.src_amp_x = get(src_amp_x)
+        self.src_loc = get(src_loc)
+        self.rec_loc = get(rec_loc)
+        self.vp_init = get(vp_init)
+        self.vs_init = get(vs_init)
+        self.rho_init = get(rho_init)
+        self.vp_true = get(vp_true)
+        self.vs_true = get(vs_true)
+        self.rho_true = get(rho_true)
+        self.src_amp_y_true = get(src_amp_y_true)
+        self.src_amp_x_true = get(src_amp_x_true)
 
-        self.n_shots, self.src_per_shot, self.rec_per_shot = \
-            n_shots, src_per_shot, rec_per_shot
-        self.d_src, self.fst_src, self.src_depth = d_src, fst_src, src_depth
-        self.d_rec, self.fst_rec, self.rec_depth = d_rec, fst_rec, rec_depth
-        self.d_intra_shot = d_intra_shot
+        dynamic = ['ny', 'nx', 'nt', 'n_shots', 'src_per_shot', 'rec_per_shot']
+        self.ny, self.nx = self.vp_init.shape
+        self.nt = self.obs_data.shape[-1]
+        self.n_shots = self.src_amp_y.shape[0]
+        self.src_per_shot = self.src_amp_y.shape[1]
+        self.rec_per_shot = self.rec_loc.shape[1]
 
-        self.freq = freq
-        self.peak_time = peak_time
-
-        self.taper_length = taper_length
-        self.filter_freq = filter_freq
-        
-        self.get_initials()
-        self.build_survey()
-
-    def get_initials(self):
-        #grab marmousi data
-        self.v_true = get_data(field='vp', folder='marmousi', path='conda')
-        self.obs_data = get_data(
-            field='obs_data', 
-            folder='marmousi', 
-            path='conda'
-        )
-        self.obs_data = taper(
-            self.obs_data[:self.n_shots, :self.rec_per_shot, :self.nt], 
-            self.taper_length
-        )
-
-        self.v_true = self.v_true[:self.ny, :self.nx]
-
-        # Smooth to use as starting model
-        self.v_init = torch.tensor(
-            1/gaussian_filter(1/self.v_true.numpy(), self.filter_freq)
-        )
-
-    def build_survey(self):
-        self.src_loc = towed_src(
-            n_shots=self.n_shots,
-            src_per_shot=self.src_per_shot,
-            d_src=self.d_src,
-            fst_src=self.fst_src,
-            src_depth=self.src_depth,
-            d_intra_shot=self.d_intra_shot
-        )
-
-        #receiver locations
-        self.rec_loc = fixed_rec(
-            n_shots=self.n_shots,
-            rec_per_shot=self.rec_per_shot,
-            d_rec=self.d_rec,
-            rec_depth=self.rec_depth,
-            fst_rec=self.fst_rec
-        )
-
-        # source amplitudes
-        self.src_amp_y = \
-            dw.wavelets.ricker(self.freq, self.nt, self.dt, self.peak_time) \
-            .repeat(self.n_shots, self.src_per_shot, 1)
-    # )
+        metadata = eval(open(f'{path}/metadata.json', 'r').read())
+        self.custom = {}
+        for k,v in metadata.items():
+            if( k in self.__slots__ and k in dynamic ):
+                if( getattr(self, k) != v ):
+                    raise ValueError(
+                        f"Metadata value for {k} does not match data"
+                        f'self.{k} = {getattr(self, k)}' 
+                        f' but metadata[{k}] = {v}'
+                    )
+            elif( k in self.__slots__ ):
+                setattr(self, k, v)
+            else:
+                self.custom[k] = v
 

@@ -9,7 +9,7 @@ import sys
 import requests
 from subprocess import CalledProcessError
 import torch
-from ..base_helpers import sco
+from ..swiffer import sco
 
 def expand_metadata(meta):
     d = dict()
@@ -166,3 +166,53 @@ def check_data_installation(path):
             print(f'FAILURE "{file}"')
             res['failure'].append(file)
     return res
+
+def prettify_dict(d, jsonify=True):
+    s = str(d)
+    s = s.replace('{', '{\n')
+    s = s.replace('}', '\n}')
+    s = s.replace(', ', ',\n')
+    lines = s.split('\n')
+    idt = 4*' '
+    idt_level = 0
+    for (i,l) in enumerate(lines):
+        if( l in ['}', '},'] ):
+            idt_level -= 1
+            if( idt_level < 0 ):
+                idt_level = 0
+        lines[i] = idt_level*idt + l
+        if( l[-1] == '{' ):
+            idt_level += 1
+    res = '\n'.join(lines)
+    if( jsonify ):
+        res = res.replace("'", '"')
+    return res
+
+def store_metadata(*, path, metadata):
+    def lean(d):
+        omit = ['url', 'filename', 'ext']
+        u = {k:v for k,v in d.items() if k not in omit}
+        u['source'] = os.path.join(d['url'], d['filename'])
+        return u
+    
+    res = {}
+    for k, v in metadata.items():
+        res[k] = {}
+        for k1, v1 in v.items():
+            res[k][k1] = lean(v1)
+        json_path = os.path.join(path, k, 'metadata.json')
+        if( os.path.exists(json_path) ):
+            prev = eval(open(json_path, 'r').read())
+        else:
+            prev = {}
+        res = {**prev, **res}
+        res_str = prettify_dict(res, jsonify=True) 
+        sep = 80*'*' + '\n'
+        s = sep 
+        s += f'Storing metadata for {k} in {json_path}/metadata.json\n'
+        s += res_str + f'\n{sep}\n'
+        print(s)
+        with open(json_path, 'w') as f:
+            f.write(res_str)
+
+

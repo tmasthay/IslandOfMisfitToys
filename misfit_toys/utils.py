@@ -118,7 +118,7 @@ def fetch_and_convert_data(
     *,
     subset='all',
     path=os.getcwd(),
-    check=True
+    check=False
 ):
     datasets = {
         'marmousi': {
@@ -161,6 +161,7 @@ def fetch_and_convert_data(
 
     fetch_data(datasets, path=path)
     convert_data(datasets, path=path)
+    store_metadata(metadata=datasets, path=path)
 
     if( check ):
         res = check_data_installation(path)
@@ -175,6 +176,8 @@ def fetch_and_convert_data(
             failure_head = 'FAILURE: %d / %d'%(len(res['failure']), total)     
             print(f'\n{failure_head}\n' + '*'*len(failure_head))
             print('\n'.join(res['failure']))
+        
+    return datasets
 
 def get_data(
     *, 
@@ -204,6 +207,28 @@ def get_data(
     # add another 
     fetch_and_convert_data(subset=folder, path=path, check=check)
     return torch.load(os.path.join(full_path, f'{field}.pt'))
+
+def get_data2(*, field, path=None):
+    path_tok = path.split('/')
+    if( path_tok[0] in [None, 'conda'] ):
+        path_tok[0] = os.environ['CONDA_PREFIX'] + '/data'
+    elif( path_tok[0] == 'pwd' ):
+        path_tok[0] = os.getcwd()
+    elif( path_tok[0] != '' ):
+        path_tok[0] = os.path.join(os.getcwd(), path_tok[0])
+    path = '/'.join(path_tok)
+    field_file = os.path.join(path, f'{field}.pt')
+    if( os.path.exists(path) ):
+        try:
+            return torch.load(field_file)
+        except FileNotFoundError:
+            print(
+                f'File {field}.pt not found in {path}' +
+                f'\n    Delete {path} and try again'
+            )
+            raise
+    fetch_and_convert_data(subset=path_tok[-1], path='/'.join(path_tok[:-1]))
+    return torch.load(field_file)
 
 def sub_dict(d, keys):
     return {k:v for k,v in d.items() if k in keys}
