@@ -20,27 +20,32 @@ def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 
+    # data = SeismicData(
+    #     ny=600,
+    #     nx=250,
+    #     nt=300,
+    #     dy=4.0,
+    #     dx=4.0,
+    #     dt=0.004,
+    #     n_shots=16,
+    #     src_per_shot=1,
+    #     rec_per_shot=100,
+    #     d_src=20,
+    #     fst_src=10,
+    #     src_depth=2,
+    #     d_rec=6,
+    #     fst_rec=0,
+    #     rec_depth=2,
+    #     d_intra_shot=0,
+    #     freq=25,
+    #     peak_time=1.5 / 25,
+    #     taper_length=100,
+    #     filter_freq=40
+    # )
     data = SeismicData(
-        ny=600,
-        nx=250,
-        nt=300,
-        dy=4.0,
-        dx=4.0,
-        dt=0.004,
-        n_shots=16,
-        src_per_shot=1,
-        rec_per_shot=100,
-        d_src=20,
-        fst_src=10,
-        src_depth=2,
-        d_rec=6,
-        fst_rec=0,
-        rec_depth=2,
-        d_intra_shot=0,
-        freq=25,
-        peak_time=1.5 / 25,
-        taper_length=100,
-        filter_freq=40
+        path='conda/marmousi',
+        obs_data='obs_data',
+        src_amp_y='src_amp_y',
     )
 
     model = Model(data.v_init, 1000, 2500)

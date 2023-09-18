@@ -1,9 +1,10 @@
 from ...utils import *
 from torchaudio.functional import biquad
-from typing import Annotated as Ant, Optional as Opt
+from typing import Annotated as Ant, Optional as Opt, Union
 from scipy.ndimage import gaussian_filter
 from dataclasses import dataclass, field
 import json
+from ...data.data import *
 
 @dataclass(slots=True)
 class SeismicData:
@@ -34,30 +35,36 @@ class SeismicData:
     def __init__(
         self,
         *,
-        obs_data: Ant[str, 'obs_data']='obs_data',
-        src_amp_y: Ant[str, 'Source amplitude, y component']='src_amp_y',
-        src_amp_x: Ant[str, 'Source amplitude, x component']=None,
-        src_loc: Ant[str, 'Source locations']='src_loc',
-        rec_loc: Ant[str, 'Receiver locations']='rec_loc',
-        vp_init: Ant[str, 'Initial P velocity model']='vp_init',
-        vs_init: Opt[Ant[str, 'Initial S velocity model']]=None,
-        rho_init: Opt[Ant[str, 'Initial density model']]=None,
-        vp_true: Opt[Ant[str, 'True P velocity model']]=None,
-        vs_true: Opt[Ant[str, 'True S velocity model']]=None,
-        rho_true: Opt[Ant[str, 'True density model']]=None,
+        obs_data: Ant[Union[str, torch.Tensor] , 'obs_data']='obs_data',
+        src_amp_y: Ant[Union[str, torch.Tensor], 'Source amp. y']='src_amp_y',
+        src_loc: Ant[Union[str, torch.Tensor], 'Source locations']='src_loc',
+        rec_loc: Ant[Union[str, torch.Tensor], 'Receiver locations']='rec_loc',
+        vp_init: Ant[
+            Union[str, torch.Tensor], 
+            'Initial P velocity model'
+        ]='vp_init',
+        src_amp_x: Opt[Ant[Union[str, torch.Tensor], 'Source amp. x']]=None,
+        vs_init: Opt[Ant[Union[str, torch.Tensor], 'Init S vel']]=None,
+        rho_init: Opt[Ant[Union[str, torch.Tensor], 'Init density']]=None,
+        vp_true: Opt[Ant[Union[str, torch.Tensor], 'True P vel']]=None,
+        vs_true: Opt[Ant[Union[str, torch.Tensor], 'True S vel']]=None,
+        rho_true: Opt[Ant[Union[str, torch.Tensor], 'True density ']]=None,
         src_amp_y_true: Opt[
-            Ant[torch.Tensor, 'True source amplitude, y component']
+            Ant[Union[str, torch.Tensor], 'True source amp. y']
         ]=None,
         src_amp_x_true: Opt[
-            Ant[str, 'True source amplitude, x component']
+            Ant[Union[str, torch.Tensor], 'True source amp. x']
         ]=None,
         path: Ant[str, 'Path to data']
     ):
         def get(filename):
-            if( filename is not None ):
+            if( isinstance(filename, torch.Tensor) ):
+                return filename
+            elif( filename is not None ):
                 return get_data2(field=filename, path=path)
             else:
                 return None
+            
         self.obs_data = get(obs_data)
         self.src_amp_y = get(src_amp_y)
         self.src_amp_x = get(src_amp_x)
