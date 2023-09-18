@@ -10,6 +10,8 @@ import requests
 from subprocess import CalledProcessError
 import torch
 from ..swiffer import sco
+import re
+import copy 
 
 def expand_metadata(meta):
     d = dict()
@@ -114,6 +116,7 @@ def any_to_torch(
      
 def fetch_data(d, *, path, unzip=True):
     convert_search = dict()
+    calls = []
     for folder, info in d.items():
         convert_search[folder] = []
 
@@ -131,9 +134,16 @@ def fetch_data(d, *, path, unzip=True):
                 os.system(f'gunzip {file_path}')
                 d[folder][file]['filename'] = \
                     d[folder][file]['filename'].replace('.gz', '')
-    return d
+            for k,v in meta.items():
+                if( type(v) == tuple ):
+                    func = v[0]
+                    args = v[1]
+                    kwargs = v[2]
+                    clos = lambda: func(*args, path=path, **kwargs)
+                    calls.append(clos)
+    return calls
 
-def convert_data(d, *, path):
+def convert_data(d, *, path, calls=None):
     for folder, files in d.items():
         for field, meta in files.items():
             curr = os.path.join(path, folder)
@@ -149,6 +159,8 @@ def convert_data(d, *, path):
                 f' {curr}/*.'.join(['bin', 'sgy', 'segy', 'gz'])
             )
         )
+    for call in calls:
+        call()
 
 def check_data_installation(path):
     pytorch_files = sco(f'find {path} -name "*.pt"')
@@ -169,6 +181,7 @@ def check_data_installation(path):
 
 def prettify_dict(d, jsonify=True):
     s = str(d)
+    s = re.sub(r'<function (\w+) at 0x[\da-f]+>', r'\1', s)
     s = s.replace('{', '{\n')
     s = s.replace('}', '\n}')
     s = s.replace(', ', ',\n')
@@ -176,7 +189,7 @@ def prettify_dict(d, jsonify=True):
     idt = 4*' '
     idt_level = 0
     for (i,l) in enumerate(lines):
-        if( l in ['}', '},'] ):
+        if( l in ['}', '},', ','] ):
             idt_level -= 1
             if( idt_level < 0 ):
                 idt_level = 0
@@ -201,15 +214,10 @@ def store_metadata(*, path, metadata):
         for k1, v1 in v.items():
             res[k][k1] = lean(v1)
         json_path = os.path.join(path, k, 'metadata.json')
-        if( os.path.exists(json_path) ):
-            prev = eval(open(json_path, 'r').read())
-        else:
-            prev = {}
-        res = {**prev, **res}
         res_str = prettify_dict(res, jsonify=True) 
         sep = 80*'*' + '\n'
         s = sep 
-        s += f'Storing metadata for {k} in {json_path}/metadata.json\n'
+        s += f'Storing metadata for {k} in {json_path}\n'
         s += res_str + f'\n{sep}\n'
         print(s)
         with open(json_path, 'w') as f:

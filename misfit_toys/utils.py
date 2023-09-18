@@ -120,6 +120,7 @@ def fetch_and_convert_data(
     path=os.getcwd(),
     check=False
 ):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     datasets = {
         'marmousi': {
             'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
@@ -128,7 +129,8 @@ def fetch_and_convert_data(
             'ny': 2301,
             'nx': 751,
             'vp': {},
-            'rho': {}
+            'rho': {},
+            'obs_data': (create_obs_marm_dw, (), {'device': device})
         },
         'marmousi2': {
             'url': 'http://www.agl.uh.edu/downloads/',
@@ -159,8 +161,8 @@ def fetch_and_convert_data(
     ):
         datasets = {k:v for k,v in datasets.items() if k in subset} 
 
-    fetch_data(datasets, path=path)
-    convert_data(datasets, path=path)
+    calls = fetch_data(datasets, path=path)
+    convert_data(datasets, path=path, calls=calls)
     store_metadata(metadata=datasets, path=path)
 
     if( check ):
@@ -345,13 +347,15 @@ def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
             rep=rep
         )
 
-def create_obs_marm_dw(path, device):
+def create_obs_marm_dw(path, device, overwrite=False):
     if( path == 'conda' ):
         path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
     warn(
-        '\n    This function contains a CUDA memory leak!' +
-        '\n    Run this prior to your main script and then use ' + 
-        '\n    get_data function to pull in obs_data'
+        '\n    This function contains a CUDA memory leak!' 
+        '\n    Run this prior to your main script and then use ' 
+        '\n    get_data function to pull in obs_data.'
+        '\n    Doing so will make this small memory leak only occur once'
+        ' and be cleaned up by the garbage collector and thus benign.'
     )
     try:
         print('Attempt obs_data fetch...', end='')
@@ -361,6 +365,12 @@ def create_obs_marm_dw(path, device):
             path=path
         )
         print(f'Found marmousi data in {path}, shape={obs_data.shape}')
+        if( not overwrite ):
+            print(
+                'Not overwriting, returning obs_data...'
+                'set overwrite=True to overwrite'
+            )
+            return obs_data
         print('OVERWRITE WARNING! CTRL+C OR KILL NOW IF YOU WANT TO KEEP IT')
         print('Sleeping for 3 seconds...', end='')
         time.sleep(3)
