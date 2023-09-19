@@ -54,6 +54,7 @@ def segy_to_torch(
 
     # Read the SEGY file
     stream = _read_segy(input_path)
+    # stream = read_segy(input_path, endian='big')
 
     print('DONE reading SEGY file "%s"'%input_path, file=out)
 
@@ -484,17 +485,22 @@ class DataFactory(ABC):
         os.makedirs(self.path, exist_ok=False)
         
         fields = { k:v for k,v in d.items() if type(v) == dict }
-        assert( list(fields.keys()) == ['vp', 'rho'] )
         for k,v in fields.items():
             if( 'filename' not in v ):
                 v['filename'] = k
 
         def field_url(x):
             url_path = os.path.join(d['url'], fields[x]['filename'])
-            return url_path + '.' + d['ext']
+            if( not url_path.endswith('.gz') ):
+                return url_path + '.' + d['ext']
+            else:
+                return url_path
         
         for k, v in fields.items():
-            web_data_file = os.path.join(self.path, k) + f'.{d["ext"]}'
+            web_data_file = os.path.join(self.path, k) + '.' + d['ext']
+            url = field_url(k)
+            if( not url.endswith('.gz') ):
+                web_data_file += '.gz'
             final_data_file = os.path.join(self.path, k) + '.pt'
             cmd = f'curl {field_url(k)} --output {web_data_file}'
             header = f'ATTEMPT DOWNLOAD: {cmd}'
@@ -502,7 +508,8 @@ class DataFactory(ABC):
             print(f'\n{stars}\nATTEMPT: {cmd}')
             os.system(cmd)
             print(f'SUCCESSFUL DOWNLOAD\n{stars}\n')
-            if( d.get('unzip', False) and web_data_file.endswith('.gz') ):
+            if( web_data_file.endswith('.gz') ):
+                input('About to unzip')
                 os.system(f'gunzip {web_data_file}')
                 web_data_file = web_data_file.replace('.gz', '')
 
