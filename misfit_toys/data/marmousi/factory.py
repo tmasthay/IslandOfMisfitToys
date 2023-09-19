@@ -23,7 +23,7 @@ class Factory(DataFactoryMeta):
 
         d.ny, d.nx = vp.shape
 
-        src_loc = towed_src(
+        src_loc_y = towed_src(
             n_shots=d.n_shots,
             src_per_shot=d.src_per_shot,
             d_src=d.d_src,
@@ -32,7 +32,7 @@ class Factory(DataFactoryMeta):
             d_intra_shot=d.d_intra_shot
         ).to(self.device)
 
-        rec_loc = fixed_rec(
+        rec_loc_y = fixed_rec(
             n_shots=d.n_shots,
             rec_per_shot=d.rec_per_shot,
             d_rec=d.d_rec,
@@ -41,23 +41,10 @@ class Factory(DataFactoryMeta):
         ).to(self.device)
 
         # source_amplitudes
-        src_amp = \
+        src_amp_y = \
             dw.wavelets.ricker(d.freq, d.nt, d.dt, d.peak_time) \
             .repeat(d.n_shots, d.src_per_shot, 1) \
             .to(self.device)
-        
-        print('Building obs_data')
-        out = dw.scalar(
-            vp,
-            d.dx,
-            d.dt,
-            source_amplitudes=src_amp,
-            source_locations=src_loc,
-            receiver_locations=rec_loc,
-            pml_freq=d.freq,
-            accuracy=d.accuracy
-        )[-1]
-        out_cpu = out.to('cpu')
 
         subpath = 'deepwave_example'
         os.makedirs(os.path.join(self.path, subpath), exist_ok=True)
@@ -70,35 +57,51 @@ class Factory(DataFactoryMeta):
             f.write(prettify_dict(der_dict))
 
         d_der = DotDict(der_dict)
-        out_der = out_cpu[:d_der.n_shots, :d_der.rec_per_shot, :d_der.nt]
-        src_amp_y_der = src_amp[
+        src_amp_y_der = src_amp_y[
             :d_der.n_shots, 
             :d_der.src_per_shot, 
             :d_der.nt
         ]
-        src_loc_der = src_loc[:d_der.n_shots, :d_der.src_per_shot, :]
-        rec_loc_der = rec_loc[:d_der.n_shots, :d_der.rec_per_shot, :]
+        src_loc_der = src_loc_y[:d_der.n_shots, :d_der.src_per_shot, :]
+        rec_loc_der = rec_loc_y[:d_der.n_shots, :d_der.rec_per_shot, :]
         v_init_der = v_init[:d_der.ny, :d_der.nx]
-        vp = vp[:d_der.ny, :d_der.nx]
+        vp_der = vp[:d_der.ny, :d_der.nx]
+
+        print('Building obs_data...', end='', flush=True)
+        out = dw.scalar(
+            vp,
+            d.dy,
+            d.dt,
+            source_amplitudes=src_amp_y,
+            source_locations=src_loc_y,
+            receiver_locations=rec_loc_y,
+            pml_freq=d.freq,
+            accuracy=d.accuracy
+        )[-1]
+        print('SUCCESS', flush=True)
+
+        out_cpu = out.to('cpu')
+        out_der = out_cpu[:d_der.n_shots, :d_der.rec_per_shot, :d_der.nt]
+
         
         outputs = {
             'obs_data': out.to('cpu'),
-            'src_amp_y': src_amp.to('cpu'),
-            'src_loc': src_loc.to('cpu'),
-            'rec_loc': rec_loc.to('cpu'),
+            'src_amp_y': src_amp_y.to('cpu'),
+            'src_loc_y': src_loc_y.to('cpu'),
+            'rec_loc_y': rec_loc_y.to('cpu'),
             'vp_init': v_init.to('cpu'),
             f'{subpath}/obs_data': out_der.to('cpu'),
             f'{subpath}/src_amp_y': src_amp_y_der.to('cpu'),
-            f'{subpath}/src_loc': src_loc_der.to('cpu'),
-            f'{subpath}/rec_loc': rec_loc_der.to('cpu'),
+            f'{subpath}/src_loc_y': src_loc_der.to('cpu'),
+            f'{subpath}/rec_loc_y': rec_loc_der.to('cpu'),
             f'{subpath}/vp_init': v_init_der.to('cpu'),
-            f'{subpath}/vp_true': vp.to('cpu')
+            f'{subpath}/vp_true': vp_der.to('cpu')
         }
         for k,v in outputs.items():
             print(f'Saving {k}...', end='')
             torch.save(v, os.path.join(self.path, f'{k}.pt'))
             print('SUCCESS')
 
-        del src_amp, src_loc, rec_loc, vp, v_init
+        del src_amp_y, src_loc_y, rec_loc_y, vp, v_init
         del out, out_cpu
         torch.cuda.empty_cache()

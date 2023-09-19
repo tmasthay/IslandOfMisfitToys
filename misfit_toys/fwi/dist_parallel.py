@@ -11,11 +11,11 @@ import deepwave
 from deepwave import scalar
 from ..utils import *
 from .modules.seismic_data import SeismicData
-from .modules.models import Model, Prop
+from .modules.models import Prop
 from .modules.visual import make_plots
 from .modules.training import Training
 from .modules.distribution import Distribution, setup, cleanup
-from .modules.models import ParamConstrained
+from .modules.models import ParamConstrained, Param
 import copy
 
 
@@ -35,12 +35,12 @@ def run_rank(rank, world_size):
 
     #Setup distribution onto multiple GPUs
     d = Distribution(rank=rank, world_size=world_size)
-    prop, data.obs_data, data.src_amp_y, data.src_loc, data.rec_loc = \
+    prop, data.obs_data, data.src_amp_y, data.src_loc_y, data.rec_loc_y = \
         d.setup_distribution(
             obs_data=data.obs_data,
             src_amp=data.src_amp_y,
-            src_loc=data.src_loc,
-            rec_loc=data.rec_loc,
+            src_loc=data.src_loc_y,
+            rec_loc=data.rec_loc_y,
             model=model,
             dx=data.dx,
             dt=data.dt,
@@ -51,8 +51,8 @@ def run_rank(rank, world_size):
     train_obj = Training(
         prop=prop,
         src_amp=data.src_amp_y,
-        src_loc=data.src_loc,
-        rec_loc=data.rec_loc,
+        src_loc=data.src_loc_y,
+        rec_loc=data.rec_loc_y,
         obs_data=data.obs_data,
         dt=data.dt,
         rank=rank

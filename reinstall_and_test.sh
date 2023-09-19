@@ -15,7 +15,6 @@ python update_imports.py
 pip uninstall -y IslandOfMisfitToys
 pip install .
 
-
 if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     rm -rf $CONDA_PREFIX/data
     cd examples; python data_fetching.py; cd ..

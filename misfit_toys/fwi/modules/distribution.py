@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.distributed as dist
-from .models import Prop, Model
+from .models import Prop
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 def setup(rank, world_size):

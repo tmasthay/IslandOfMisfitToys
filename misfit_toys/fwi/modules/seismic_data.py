@@ -11,8 +11,8 @@ class SeismicData:
     obs_data: Ant[torch.Tensor, 'Observed data']
     src_amp_y: Ant[torch.Tensor, 'Source amplitude, y component']
     src_amp_x: Opt[Ant[torch.Tensor, 'Source amplitude, x component']]
-    src_loc: Ant[torch.Tensor, 'Source locations']
-    rec_loc: Ant[torch.Tensor, 'Receiver locations']
+    src_loc_y: Ant[torch.Tensor, 'Source locations']
+    rec_loc_y: Ant[torch.Tensor, 'Receiver locations']
     vp: Ant[torch.Tensor, 'Initial P velocity model']
     vs: Opt[Ant[torch.Tensor, 'Initial S velocity model']]
     rho: Opt[Ant[torch.Tensor, 'Initial density model']]
@@ -41,8 +41,8 @@ class SeismicData:
         path: Ant[str, 'Path to data'],
         obs_data: Ant[Union[str, torch.Tensor] , 'obs_data']=None,
         src_amp_y: Ant[Union[str, torch.Tensor], 'Source amp. y']=None,
-        src_loc: Ant[Union[str, torch.Tensor], 'Source locations']=None,
-        rec_loc: Ant[Union[str, torch.Tensor], 'Receiver locations']=None,
+        src_loc_y: Ant[Union[str, torch.Tensor], 'Source locations']=None,
+        rec_loc_y: Ant[Union[str, torch.Tensor], 'Receiver locations']=None,
         vp_init: Ant[
             Union[str, torch.Tensor], 
             'Initial P velocity model'
@@ -76,8 +76,8 @@ class SeismicData:
         self.obs_data = get(obs_data, 'obs_data')
         self.src_amp_y = get(src_amp_y, 'src_amp_y')
         self.src_amp_x = get(src_amp_x, 'src_amp_x')
-        self.src_loc = get(src_loc, 'src_loc')
-        self.rec_loc = get(rec_loc, 'rec_loc')
+        self.src_loc_y = get(src_loc_y, 'src_loc_y')
+        self.rec_loc_y = get(rec_loc_y, 'rec_loc_y')
         self.vp = get(vp_init, 'vp_init')
         self.vs = get(vs_init, 'vs_init')
         self.rho = get(rho_init, 'rho_init')
