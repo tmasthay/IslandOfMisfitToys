@@ -497,11 +497,15 @@ class DataFactory(ABC):
             web_data_file = os.path.join(self.path, k) + f'.{d["ext"]}'
             final_data_file = os.path.join(self.path, k) + '.pt'
             cmd = f'curl {field_url(k)} --output {web_data_file}'
-            header = f'ATTEMPT: {cmd}'
+            header = f'ATTEMPT DOWNLOAD: {cmd}'
             stars = len(header) * '*'
             print(f'\n{stars}\nATTEMPT: {cmd}')
             os.system(cmd)
-            print(f'SUCCESS\n{stars}\n')
+            print(f'SUCCESSFUL DOWNLOAD\n{stars}\n')
+            if( d.get('unzip', False) and web_data_file.endswith('.gz') ):
+                os.system(f'gunzip {web_data_file}')
+                web_data_file = web_data_file.replace('.gz', '')
+
             any_to_torch(
                 input_path=web_data_file,
                 output_path=final_data_file,
