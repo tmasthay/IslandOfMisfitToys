@@ -27,7 +27,7 @@ def run_rank(rank, world_size):
     vp_init = copy.deepcopy(data.vp)
 
     model = ParamConstrained(
-        model=data.vp, 
+        p=data.vp, 
         minv=1000, 
         maxv=2500, 
         requires_grad=True
