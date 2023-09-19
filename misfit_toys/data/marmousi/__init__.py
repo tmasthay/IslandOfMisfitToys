@@ -1,6 +1,6 @@
 __all__ = [
-    "metadata",
-    "factory"
+    "factory",
+    "metadata"
 ]
-from .metadata import *
 from .factory import *
+from .metadata import *
