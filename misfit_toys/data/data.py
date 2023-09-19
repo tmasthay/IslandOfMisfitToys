@@ -25,10 +25,6 @@ def auto_path(make_dir=False):
         return wrapper
     return decorator
 
-def get_pydict(path):
-    path = path.replace('.py', '') + '.py'
-    return eval(open(path, 'r').read())
-
 def expand_metadata(meta):
     d = dict()
     for folder,folder_meta in meta.items():
@@ -471,17 +467,16 @@ def downsample_tensor(tensor, axis, ratio):
     return tensor[tuple(slices)]
 
 class DataFactory(ABC):
-    @auto_path(make_dir=True)
+    @auto_path(make_dir=False)
     def __init__(self, *, path):
         self.path = path
 
-    def manufacture_data(self, **kw):
-        file_folder = os.path.dirname(os.path.abspath(__file__))
-        d = get_pydict(f'{file_folder}/marmousi')
+    def _manufacture_data(self, *, metadata, **kw):
+        d = metadata
 
         if( os.path.exists(self.path) ):
             print(
-                f'{path} already exists...ignoring.'
+                f'{self.path} already exists...ignoring.'
                 'If you want to regenerate data, delete this folder ' 
                 'or specify a different path.'
             )
@@ -495,25 +490,27 @@ class DataFactory(ABC):
                 v['filename'] = k
 
         def field_url(x):
-            return os.path.join(d['url'], fields[x]['filename'], d['ext'])
-
-        data = {}
-        for k, v in fields.keys():
-            web_data_file = os.path.join(self.path, k, d['ext'])
-            final_data_file = os.path.join(self.path, k, '.pt')
-            os.system(
-                f'curl {field_url(k)} --output '
-                f'{os.path.join(self.path, k, d["ext"])}'
-            )
+            url_path = os.path.join(d['url'], fields[x]['filename'])
+            return url_path + '.' + d['ext']
+        
+        for k, v in fields.items():
+            web_data_file = os.path.join(self.path, k) + f'.{d["ext"]}'
+            final_data_file = os.path.join(self.path, k) + '.pt'
+            cmd = f'curl {field_url(k)} --output {web_data_file}'
+            header = f'ATTEMPT: {cmd}'
+            stars = len(header) * '*'
+            print(f'\n{stars}\nATTEMPT: {cmd}')
+            os.system(cmd)
+            print(f'SUCCESS\n{stars}\n')
             any_to_torch(
                 input_path=web_data_file,
                 output_path=final_data_file,
                 **{**d, **v}
             )
             os.system(f'rm {web_data_file}')
-            data[k] = torch.load(final_data_file)
+            d[k] = torch.load(final_data_file)
 
-        self.generate_derived_data(data=data, **kw)
+        self.generate_derived_data(data=d, **kw)
         return d
     
     @abstractmethod
