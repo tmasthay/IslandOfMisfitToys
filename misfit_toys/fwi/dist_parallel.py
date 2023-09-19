@@ -42,13 +42,9 @@ def run_rank(rank, world_size):
     #     taper_length=100,
     #     filter_freq=40
     # )
-    data = SeismicData(
-        path='conda/marmousi',
-        obs_data='obs_data',
-        src_amp_y='src_amp_y',
-    )
+    data = SeismicData(path='conda/data/marmousi/deepwave_example')
 
-    model = Model(data.v_init, 1000, 2500)
+    model = Model(data.vp, 1000, 2500)
 
     #Setup distribution onto multiple GPUs
     d = Distribution(rank=rank, world_size=world_size)

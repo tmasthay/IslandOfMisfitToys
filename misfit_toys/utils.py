@@ -13,6 +13,35 @@ from .swiffer import *
 from torch.optim.lr_scheduler import _LRScheduler
 import deepwave as dw
 from warnings import warn
+import os
+
+def parse_path(path):
+    if( path is None or path.startswith('conda') ):
+        if( path == 'conda' ):
+            path = 'conda/data'
+        else:
+            path = path.replace('conda', os.environ['CONDA_PREFIX'])
+    elif( path.startswith('pwd') ):
+        path = path.replace('pwd', os.getcwd())
+    else:
+        path = os.path.join(os.getcwd(), path)
+    return path
+
+def auto_path(make_dir=False):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if 'path' in kwargs:
+                kwargs['path'] = parse_path(kwargs['path'])
+                if make_dir:
+                    os.makedirs(kwargs['path'], exist_ok=True) 
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def get_pydict(path, filename='metadata'):
+    filename = filename.replace('.pydict', '') + '.pydict'
+    full_path = os.path.join(path, filename)
+    return eval(open(full_path, 'r').read())
 
 def gpu_mem(msg='', color='red', print_protocol=print):
     if( len(msg) > 0 and msg[-1] != '\n' ): msg += '\n'

@@ -1,6 +1,11 @@
 #!/bin/bash
 
-source ~/.bash_functions
+source ~/.bashrc
+
+conda activate dw
+echo "CONDA_PREFIX: $CONDA_PREFIX"
+
+CURR=$(pwd)
 
 # Default value for the parameter
 RUN_PYTHON_COMMANDS=0
@@ -14,7 +19,12 @@ python update_imports.py
 pip uninstall -y IslandOfMisfitToys
 pip install .
 
-CURR=$(pwd)
+
+if [ ! -z "$CONDA_PREFIX" ]; then
+    rm -rf $CONDA_PREFIX/data
+    cd examples; python data_fetching.py; cd ..
+fi
+
 cd
 
 if [[ $RUN_PYTHON_COMMANDS -ne 0 ]]; then

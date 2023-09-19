@@ -22,6 +22,15 @@ def metadata():
         'freq': 25,
         'peak_time': 1.5 / 25,
         'accuracy': 8,
-        'vp': {},
-        'rho': {}
+        'vp_true': { 'filename': 'vp' },
+        'rho_true': { 'filename': 'rho' },
+        'derived': {
+            'deepwave_example': {
+                'ny': 600,
+                'nx': 250,
+                'nt': 300,
+                'n_shots': 16,
+                'rec_per_shot': 100
+            }
+        }
     }

@@ -14,17 +14,8 @@ from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
 from importlib import import_module
-
-def auto_path(make_dir=False):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            if 'path' in kwargs:
-                kwargs['path'] = parse_path(kwargs['path'])
-                if make_dir:
-                    os.makedirs(kwargs['path'], exist_ok=True) 
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
+from ..utils import auto_path, parse_path
+import copy
 
 def expand_metadata(meta):
     d = dict()
@@ -266,18 +257,6 @@ def fixed_rec(
         .repeat(n_shots, 1)
     return res  
 
-def parse_path(path):
-    if( path is None or path.startswith('conda') ):
-        if( path == 'conda' ):
-            path = 'conda/data'
-        else:
-            path = path.replace('conda', os.environ['CONDA_PREFIX'])
-    elif( path.startswith('pwd') ):
-        path = path.replace('pwd', os.getcwd())
-    else:
-        path = os.path.join(os.getcwd(), path)
-    return path
-
 def fetch_and_convert_data(
     *,
     subset='all',
@@ -424,8 +403,8 @@ def get_data2(*, field, path=None, allow_none=False):
     fetch_and_convert_data(subset=subset, path=dummy_path)
     return torch.load(field_file)
 
+@auto_path(make_dir=False)
 def get_metadata(*, path):
-    path = parse_path(path)
     return eval(open(f'{path}/metadata.json', 'r').read())
 
 def get_primitives(d):
@@ -474,7 +453,7 @@ class DataFactory(ABC):
         self.path = path
 
     def _manufacture_data(self, *, metadata, **kw):
-        d = metadata
+        d = copy.deepcopy(metadata)
 
         if( os.path.exists(self.path) ):
             print(
@@ -485,7 +464,9 @@ class DataFactory(ABC):
             return
         os.makedirs(self.path, exist_ok=False)
         
-        fields = { k:v for k,v in d.items() if type(v) == dict }
+        fields = { 
+            k:v for k,v in d.items() if type(v) == dict and k != 'derived'
+        }
         for k,v in fields.items():
             if( 'filename' not in v ):
                 v['filename'] = k
@@ -541,4 +522,21 @@ class DataFactoryMeta(DataFactory):
         self.metadata = metadata_func()
 
     def manufacture_data(self):
-        return self._manufacture_data(metadata=self.metadata)
+        d = self._manufacture_data(metadata=self.metadata)
+        with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
+            f.write(prettify_dict(self.metadata))
+        return d
+    
+    @staticmethod
+    def get_derived_meta(*, meta):
+        if( 'derived' not in meta ):
+            return None
+        base_items = {k:v for k, v in meta.items() if type(v) != dict}
+        derived = meta['derived']
+        common = {**base_items, **derived.get('common', {})}
+        if( 'common' in derived ):
+            del derived['common']
+        for k, v in derived.items():
+            derived[k] = {**common, **v}
+        return derived
+            
