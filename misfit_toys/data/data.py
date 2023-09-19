@@ -26,7 +26,7 @@ def auto_path(make_dir=False):
     return decorator
 
 def get_pydict(path):
-    path = path.replace('.pydict', '') + '.pydict'
+    path = path.replace('.py', '') + '.py'
     return eval(open(path, 'r').read())
 
 def expand_metadata(meta):
