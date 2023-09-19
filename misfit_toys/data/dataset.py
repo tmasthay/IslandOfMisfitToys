@@ -521,8 +521,7 @@ class DataFactory(ABC):
             os.system(f'rm {web_data_file}')
             d[k] = torch.load(final_data_file)
 
-        self.generate_derived_data(data=d, **kw)
-        return d
+        return self.generate_derived_data(data=d, **kw)
     
     @abstractmethod
     def generate_derived_data(self, *, data, **kw):

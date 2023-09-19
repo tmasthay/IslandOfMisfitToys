@@ -16,7 +16,8 @@ class Factory(DataFactory):
         self.metadata = metadata()
 
     def generate_derived_data(self, *, data):
-        pass
+        d = DotDict(data)
+        return d
 
     def manufacture_data(self):
         self._manufacture_data(metadata=self.metadata)
