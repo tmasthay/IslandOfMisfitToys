@@ -476,9 +476,10 @@ class DataFactory(ABC):
         self.path = path
 
     def manufacture_data(self, **kw):
-        d = get_pydict('marmousi')
+        file_folder = os.path.dirname(os.path.abspath(__file__))
+        d = get_pydict(f'{file_folder}/marmousi')
 
-        if( os.path.exists(path) ):
+        if( os.path.exists(self.path) ):
             print(
                 f'{path} already exists...ignoring.'
                 'If you want to regenerate data, delete this folder ' 
