@@ -12,6 +12,22 @@ from ..swiffer import sco
 import re
 from warnings import warn
 import deepwave as dw
+from abc import ABC, abstractmethod
+
+def auto_path(make_dir=False):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if 'path' in kwargs:
+                kwargs['path'] = parse_path(kwargs['path'])
+                if make_dir:
+                    os.makedirs(kwargs['path'], exist_ok=True) 
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def get_pydict(path):
+    path = path.replace('.pydict', '') + '.pydict'
+    return eval(open(path, 'r').read())
 
 def expand_metadata(meta):
     d = dict()
@@ -273,7 +289,7 @@ def fetch_and_convert_data(
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     datasets = {
         'marmousi': {
-            'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
+            'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + \
                 'GEOMODELS/Marmousi',
             'ext': 'bin',
             'ny': 2301,
@@ -454,97 +470,51 @@ def downsample_tensor(tensor, axis, ratio):
     
     return tensor[tuple(slices)]
 
-def create_obs_marm_dw(path, device, overwrite=False):
-    if( path == 'conda' ):
-        path = os.path.join(sco('echo $CONDA_PREFIX')[0], 'data')
-    warn(
-        '\n    This function contains a CUDA memory leak!' 
-        '\n    Run this prior to your main script and then use ' 
-        '\n    get_data function to pull in obs_data.'
-        '\n    Doing so will make this small memory leak only occur once'
-        ' and be cleaned up by the garbage collector and thus benign.'
-    )
-    try:
-        print('Attempt obs_data fetch...', end='')
-        obs_data = get_data(
-            field='obs_data', 
-            folder='marmousi', 
-            path=path
-        )
-        print(f'Found marmousi data in {path}, shape={obs_data.shape}')
-        if( not overwrite ):
+class DataFactory(ABC):
+    @auto_path(make_dir=True)
+    def __init__(self, *, path):
+        self.path = path
+
+    def manufacture_data(self, **kw):
+        d = get_pydict('marmousi')
+
+        if( os.path.exists(path) ):
             print(
-                'Not overwriting, returning obs_data...'
-                'set overwrite=True to overwrite'
+                f'{path} already exists...ignoring.'
+                'If you want to regenerate data, delete this folder ' 
+                'or specify a different path.'
             )
-            return obs_data
-        print('OVERWRITE WARNING! CTRL+C OR KILL NOW IF YOU WANT TO KEEP IT')
-        print('Sleeping for 3 seconds...', end='')
-        time.sleep(3)
-        print(
-            f'Proceeding to overwrite ' +
-            f'{os.path.join(path, "marmousi/obs_data")}'
-        )
-        del obs_data
-    except FileNotFoundError:
-        print(f'No marmousi observation data in {path}, creating now...')
+            return
+        os.makedirs(self.path, exist_ok=False)
+        
+        fields = { k:v for k,v in d.items() if type(v) == dict }
+        assert( list(fields.keys()) == ['vp', 'rho'] )
+        for k,v in fields.items():
+            if( 'filename' not in v ):
+                v['filename'] = k
 
+        def field_url(x):
+            return os.path.join(d['url'], fields[x]['filename'], d['ext'])
 
-    vp = get_data(field='vp', folder='marmousi', path=path).to(device)
-    n_shots = 115
+        data = {}
+        for k, v in fields.keys():
+            web_data_file = os.path.join(self.path, k, d['ext'])
+            final_data_file = os.path.join(self.path, k, '.pt')
+            os.system(
+                f'curl {field_url(k)} --output '
+                f'{os.path.join(self.path, k, d["ext"])}'
+            )
+            any_to_torch(
+                input_path=web_data_file,
+                output_path=final_data_file,
+                **{**d, **v}
+            )
+            os.system(f'rm {web_data_file}')
+            data[k] = torch.load(final_data_file)
 
-    n_sources_per_shot = 1
-    d_source = 20  # 20 * 4m = 80m
-    first_source = 10  # 10 * 4m = 40m
-    source_depth = 2  # 2 * 4m = 8m
-
-    n_receivers_per_shot = 384
-    d_receiver = 6  # 6 * 4m = 24m
-    first_receiver = 0  # 0 * 4m = 0m
-    receiver_depth = 2  # 2 * 4m = 8m
-
-    freq = 25
-    nt = 750
-    dt = 0.004
-    peak_time = 1.5 / freq
-
-    source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
-                                   dtype=torch.long).to(device)
-    source_locations[..., 1] = source_depth
-    source_locations[:, 0, 0] = (torch.arange(n_shots) * d_source +
-                                 first_source)
-
-    # receiver_locations
-    receiver_locations = torch.zeros(n_shots, n_receivers_per_shot,
-                                     2, dtype=torch.long).to(device)
-    receiver_locations[..., 1] = receiver_depth
-    receiver_locations[:, :, 0] = (
-        (torch.arange(n_receivers_per_shot) * d_receiver +
-         first_receiver)
-        .repeat(n_shots, 1)
-    )
-
-    # source_amplitudes
-    source_amplitudes = (
-        (dw.wavelets.ricker(freq, nt, dt, peak_time))
-        .repeat(n_shots, n_sources_per_shot, 1)
-    ).to(device)
-
-    dx = 4.0
-    out = dw.scalar(
-        vp,
-        dx,
-        dt,
-        source_amplitudes=source_amplitudes,
-        source_locations=source_locations,
-        receiver_locations=receiver_locations,
-        pml_freq=freq,
-        accuracy=8
-    )[-1]
-    out_cpu = out.to('cpu')
-
-    torch.save(out_cpu, os.path.join(path, 'marmousi/obs_data.pt'))
-    del source_amplitudes, source_locations, receiver_locations, vp
-    del out, out_cpu
-    torch.cuda.empty_cache()
-
+        self.generate_derived_data(data=data, **kw)
+        return d
+    
+    @abstractmethod
+    def generate_derived_data(self, *, data, **kw):
+        pass

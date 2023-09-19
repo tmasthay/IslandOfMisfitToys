@@ -333,3 +333,8 @@ class WaveModel(torch.nn.Module, metaclass=SlotMeta):
             )[-2]
         else:
             raise ValueError(f'Unknown model {model}')
+        
+class DotDict:
+    def __init__(self, **kw):
+        for k,v in kw.items():
+            setattr(self, k, v)
