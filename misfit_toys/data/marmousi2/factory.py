@@ -1,4 +1,4 @@
-from ..dataset import *
+from ..dataset import towed_src, fixed_rec, DataFactoryMeta
 from ...utils import DotDict
 from .metadata import metadata
 import os
@@ -6,17 +6,18 @@ import torch
 from warnings import warn
 import deepwave as dw 
 
-class Factory(DataFactory):
-    def __init__(self, *, path, device=None):
-        super().__init__(path=path)
-        if( device is None ):
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        else:
-            self.device = device
-        self.metadata = metadata()
+class Factory(DataFactoryMeta):
+    # def __init__(self, *, path, device=None):
+    #     super().__init__(path=path)
+    #     if( device is None ):
+    #         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    #     else:
+    #         self.device = device
+    #     self.metadata = metadata()
 
     def generate_derived_data(self, *, data):
         d = DotDict(data)
+        vp = torch.load(os.path.join(self.path, 'vp.pt'))
         d.ny, d.nx = vp.shape
 
         if( hasattr(d, 'SHOULDNT_RUN_YET') ):
@@ -74,5 +75,5 @@ class Factory(DataFactory):
             torch.cuda.empty_cache()
         return d
 
-    def manufacture_data(self):
-        self._manufacture_data(metadata=self.metadata)
+    # def manufacture_data(self):
+    #     self._manufacture_data(metadata=self.metadata)

@@ -13,6 +13,7 @@ import re
 from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
+from importlib import import_module
 
 def auto_path(make_dir=False):
     def decorator(func):
@@ -526,3 +527,18 @@ class DataFactory(ABC):
     @abstractmethod
     def generate_derived_data(self, *, data, **kw):
         pass
+
+class DataFactoryMeta(DataFactory):
+    def __init__(self, *, path, device=None):
+        super().__init__(path=path)
+        if( device is None ):
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = device
+        parent_module = '.'.join(self.__module__.split('.')[:-1])
+        metadata_module = import_module('.metadata', package=parent_module)
+        metadata_func = getattr(metadata_module, 'metadata')
+        self.metadata = metadata_func()
+
+    def manufacture_data(self):
+        return self._manufacture_data(metadata=self.metadata)
