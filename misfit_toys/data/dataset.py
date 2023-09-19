@@ -499,7 +499,7 @@ class DataFactory(ABC):
         for k, v in fields.items():
             web_data_file = os.path.join(self.path, k) + '.' + d['ext']
             url = field_url(k)
-            if( not url.endswith('.gz') ):
+            if( url.endswith('.gz') ):
                 web_data_file += '.gz'
             final_data_file = os.path.join(self.path, k) + '.pt'
             cmd = f'curl {field_url(k)} --output {web_data_file}'
@@ -509,7 +509,7 @@ class DataFactory(ABC):
             os.system(cmd)
             print(f'SUCCESSFUL DOWNLOAD\n{stars}\n')
             if( web_data_file.endswith('.gz') ):
-                input('About to unzip')
+                print('About to unzip')
                 os.system(f'gunzip {web_data_file}')
                 web_data_file = web_data_file.replace('.gz', '')
 

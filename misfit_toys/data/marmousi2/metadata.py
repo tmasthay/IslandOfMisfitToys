@@ -24,5 +24,5 @@ def metadata():
         'accuracy': 8,
         'vp': {'filename': 'vp_marmousi-ii.segy.gz'},
         'vs': {'filename': 'vs_marmousi-ii.segy.gz'},
-        'rho': {'filename': 'rho_marmousi-ii.segy.gz'}
+        'rho': {'filename': 'density_marmousi-ii.segy.gz'}
     }

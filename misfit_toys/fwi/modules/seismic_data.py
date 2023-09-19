@@ -4,7 +4,7 @@ from typing import Annotated as Ant, Optional as Opt, Union
 from scipy.ndimage import gaussian_filter
 from dataclasses import dataclass, field
 import json
-from ...data.data import *
+from ...data.dataset import *
 
 @dataclass(slots=True)
 class SeismicData:
