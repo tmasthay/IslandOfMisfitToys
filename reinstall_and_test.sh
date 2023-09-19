@@ -8,19 +8,15 @@ echo "CONDA_PREFIX: $CONDA_PREFIX"
 CURR=$(pwd)
 
 # Default value for the parameter
-RUN_PYTHON_COMMANDS=0
-
-# Check if a command line argument is provided
-if [[ $# -gt 0 ]]; then
-    RUN_PYTHON_COMMANDS=$1
-fi
+RUN_PYTHON_COMMANDS=${1:-0}
+REDOWNLOAD_DATA=${2:-0}
 
 python update_imports.py
 pip uninstall -y IslandOfMisfitToys
 pip install .
 
 
-if [ ! -z "$CONDA_PREFIX" ]; then
+if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     rm -rf $CONDA_PREFIX/data
     cd examples; python data_fetching.py; cd ..
 fi

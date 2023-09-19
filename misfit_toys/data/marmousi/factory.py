@@ -1,4 +1,4 @@
-from ..dataset import DataFactoryMeta, towed_src, fixed_rec
+from ..dataset import DataFactoryMeta, towed_src, fixed_rec, prettify_dict
 from ...utils import DotDict
 import os
 import torch
@@ -61,10 +61,15 @@ class Factory(DataFactoryMeta):
 
         subpath = 'deepwave_example'
         os.makedirs(os.path.join(self.path, subpath), exist_ok=True)
-        
-        d_der = DotDict(
-            DataFactoryMeta.get_derived_meta(meta=self.metadata)[subpath]
-        )
+
+        der_dict = DataFactoryMeta.get_derived_meta(meta=self.metadata)[
+            subpath
+        ]
+        meta_dict_path = os.path.join(self.path, subpath, 'metadata.pydict')
+        with open(meta_dict_path, 'w') as f:
+            f.write(prettify_dict(der_dict))
+
+        d_der = DotDict(der_dict)
         out_der = out_cpu[:d_der.n_shots, :d_der.rec_per_shot, :d_der.nt]
         src_amp_y_der = src_amp[
             :d_der.n_shots, 
@@ -74,6 +79,7 @@ class Factory(DataFactoryMeta):
         src_loc_der = src_loc[:d_der.n_shots, :d_der.src_per_shot, :]
         rec_loc_der = rec_loc[:d_der.n_shots, :d_der.rec_per_shot, :]
         v_init_der = v_init[:d_der.ny, :d_der.nx]
+        vp = vp[:d_der.ny, :d_der.nx]
         
         outputs = {
             'obs_data': out.to('cpu'),
@@ -85,7 +91,8 @@ class Factory(DataFactoryMeta):
             f'{subpath}/src_amp_y': src_amp_y_der.to('cpu'),
             f'{subpath}/src_loc': src_loc_der.to('cpu'),
             f'{subpath}/rec_loc': rec_loc_der.to('cpu'),
-            f'{subpath}/vp_init': v_init_der.to('cpu')
+            f'{subpath}/vp_init': v_init_der.to('cpu'),
+            f'{subpath}/vp_true': vp.to('cpu')
         }
         for k,v in outputs.items():
             print(f'Saving {k}...', end='')

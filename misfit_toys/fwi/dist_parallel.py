@@ -15,6 +15,7 @@ from .modules.models import Model, Prop
 from .modules.visual import make_plots
 from .modules.training import Training
 from .modules.distribution import Distribution, setup, cleanup
+import copy
 
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
@@ -43,6 +44,7 @@ def run_rank(rank, world_size):
     #     filter_freq=40
     # )
     data = SeismicData(path='conda/data/marmousi/deepwave_example')
+    vp_init = copy.deepcopy(data.vp)
 
     model = Model(data.vp, 1000, 2500)
 
@@ -73,7 +75,7 @@ def run_rank(rank, world_size):
 
     # Plot
     if rank == 0:
-        make_plots(v_true=data.v_true, v_init=data.v_init, model=model)
+        make_plots(v_true=data.vp_true, v_init=vp_init, model=model)
 
     cleanup()
 
