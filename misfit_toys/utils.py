@@ -192,176 +192,176 @@ class SlotMeta(type):
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
 
-class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
-    param: Ant[torch.nn.Parameter, 'Parameter']
+# class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
+#     param: Ant[torch.nn.Parameter, 'Parameter']
 
-    def __init__(self, *, param):
-        super().__init__()
-        self.param = param
+#     def __init__(self, *, param):
+#         super().__init__()
+#         self.param = param
 
-    @abstractmethod
-    def forward(self, **kw):
-        raise NotImplementedError('Forward not implemented')
+#     @abstractmethod
+#     def forward(self, **kw):
+#         raise NotImplementedError('Forward not implemented')
     
-class Param(AbstractParam):
-    def forward(self):
-        return self.param
+# class Param(AbstractParam):
+#     def forward(self):
+#         return self.param
     
-class ConstrainedParam(AbstractParam):
-    def __init__(
-        self, 
-        *, 
-        param, 
-        trainable, 
-        device='cpu', 
-        min_val, 
-        max_val
-    ):
-        param = torch.logit((param - min_val) / (max_val - min_val))
-        super().__init__(
-            param=param,
-            trainable=trainable,
-            device=device,
-            min_val=min_val,
-            max_val=max_val
-        )
+# class ConstrainedParam(AbstractParam):
+#     def __init__(
+#         self, 
+#         *, 
+#         param, 
+#         trainable, 
+#         device='cpu', 
+#         min_val, 
+#         max_val
+#     ):
+#         param = torch.logit((param - min_val) / (max_val - min_val))
+#         super().__init__(
+#             param=param,
+#             trainable=trainable,
+#             device=device,
+#             min_val=min_val,
+#             max_val=max_val
+#         )
     
-    def forward(self, *, idx='all'):
-        if( idx == 'all' ):
-            return torch.sigmoid(self.param) \
-                * (self.max_val - self.min_val) \
-                + self.min_val
-        else:
-            return torch.sigmoid(self.param[idx]) \
-                * (self.max_val - self.min_val) \
-                + self.min_val
+#     def forward(self, *, idx='all'):
+#         if( idx == 'all' ):
+#             return torch.sigmoid(self.param) \
+#                 * (self.max_val - self.min_val) \
+#                 + self.min_val
+#         else:
+#             return torch.sigmoid(self.param[idx]) \
+#                 * (self.max_val - self.min_val) \
+#                 + self.min_val
 
-class ParamFWI(torch.nn.Module, metaclass=SlotMeta):
-    param: Ant[torch.nn.Parameter, 'Parameter']
-    forward: Ant[Callable, 'Parameter']
-    custom: Ant[dict, 'Custom metadata']
+# class ParamFWI(torch.nn.Module, metaclass=SlotMeta):
+#     param: Ant[torch.nn.Parameter, 'Parameter']
+#     forward: Ant[Callable, 'Parameter']
+#     custom: Ant[dict, 'Custom metadata']
 
-    def __init__(
-        self, 
-        *, 
-        initial, 
-        setup=None, 
-        forward=None, 
-        requires_grad=False,
-        store_kw=False,
-        **kw
-    ):
-        if( initial is None ):
-            self.param = None
-            return
+#     def __init__(
+#         self, 
+#         *, 
+#         initial, 
+#         setup=None, 
+#         forward=None, 
+#         requires_grad=False,
+#         store_kw=False,
+#         **kw
+#     ):
+#         if( initial is None ):
+#             self.param = None
+#             return
 
-        super().__init__()
-        setup, self.forward = self.builder(setup=setup, forward=forward, **kw)
-        self.param = torch.nn.Parameter(setup(initial))
-        self.param.requires_grad = requires_grad
+#         super().__init__()
+#         setup, self.forward = self.builder(setup=setup, forward=forward, **kw)
+#         self.param = torch.nn.Parameter(setup(initial))
+#         self.param.requires_grad = requires_grad
 
-        if( store_kw ): self.custom = kw
+#         if( store_kw ): self.custom = kw
 
-    def builder(self, *, setup, forward, **kw):
-        pre_setups, extract = self.setup_predefinitions()
-        setup_key = 'user_defined_callables'
-        for k, v in pre_setups.items():
-            if( setup in v[0] and forward in v[1] ):
-                setup_key = k
-                break
-            elif( setup in v[0] ):
-                raise ValueError(
-                    f'If setup is in {v[0]}, forward must be in {v[1]}, ' +
-                    f'got setup={setup}, forward={forward}'
-                )
-        return extract(setup=setup, forward=forward, key=setup_key, **kw)
+#     def builder(self, *, setup, forward, **kw):
+#         pre_setups, extract = self.setup_predefinitions()
+#         setup_key = 'user_defined_callables'
+#         for k, v in pre_setups.items():
+#             if( setup in v[0] and forward in v[1] ):
+#                 setup_key = k
+#                 break
+#             elif( setup in v[0] ):
+#                 raise ValueError(
+#                     f'If setup is in {v[0]}, forward must be in {v[1]}, ' +
+#                     f'got setup={setup}, forward={forward}'
+#                 )
+#         return extract(setup=setup, forward=forward, key=setup_key, **kw)
 
-    def setup_predefinitions(self):
-        pre_setups = {
-            'identity': ((None, 'identity'), (None, 'identity')),
-            'logit': (
-                (None, 'logit', 'constrained'), 
-                ('sigmoid', 'logit_inverse', 'constrained')
-            )
-        }
-        def extract(*, setup, forward, key, **kw):
-            if( key == 'identity' ):
-                return lambda x: x, lambda x: x
-            elif( key == 'logit' ):
-                try: 
-                    minv, maxv = kw['min_val'], kw['max_val']
-                except KeyError:
-                    raise ValueError(
-                        f'Setup=={setup} requires min_val and max_val ' +
-                        f'to be specified in kw, got {kw.keys()}'
-                    )
-                def logit(x):
-                    return torch.logit( (x-minv) / (maxv-minv) )
-                def logit_inv(x):
-                    return torch.sigmoid(x) * (maxv-minv) + minv
-                return logit, logit_inv
-            elif( key == 'user_defined_callables' ):
-                if( not callable(setup) or not callable(forward) ):
-                    raise ValueError(
-                        f'If setup and forward are not in predefined_setups, ' +
-                        f'they must be callable, got ' +
-                        f'type(setup)={type(setup)}, ' +
-                        f'type(forward)={type(forward)}'
-                    )
-                return setup, forward
-            else:
-                raise ValueError(f'BUG: Unexpected setup_key={key}')
-        return pre_setups, extract
+#     def setup_predefinitions(self):
+#         pre_setups = {
+#             'identity': ((None, 'identity'), (None, 'identity')),
+#             'logit': (
+#                 (None, 'logit', 'constrained'), 
+#                 ('sigmoid', 'logit_inverse', 'constrained')
+#             )
+#         }
+#         def extract(*, setup, forward, key, **kw):
+#             if( key == 'identity' ):
+#                 return lambda x: x, lambda x: x
+#             elif( key == 'logit' ):
+#                 try: 
+#                     minv, maxv = kw['min_val'], kw['max_val']
+#                 except KeyError:
+#                     raise ValueError(
+#                         f'Setup=={setup} requires min_val and max_val ' +
+#                         f'to be specified in kw, got {kw.keys()}'
+#                     )
+#                 def logit(x):
+#                     return torch.logit( (x-minv) / (maxv-minv) )
+#                 def logit_inv(x):
+#                     return torch.sigmoid(x) * (maxv-minv) + minv
+#                 return logit, logit_inv
+#             elif( key == 'user_defined_callables' ):
+#                 if( not callable(setup) or not callable(forward) ):
+#                     raise ValueError(
+#                         f'If setup and forward are not in predefined_setups, ' +
+#                         f'they must be callable, got ' +
+#                         f'type(setup)={type(setup)}, ' +
+#                         f'type(forward)={type(forward)}'
+#                     )
+#                 return setup, forward
+#             else:
+#                 raise ValueError(f'BUG: Unexpected setup_key={key}')
+#         return pre_setups, extract
 
-class WaveModel(torch.nn.Module, metaclass=SlotMeta):
-    vp: Ant[ParamFWI, 'ParamFWI']
-    vs: Opt[Ant[ParamFWI, 'ParamFWI']]
-    rho: Opt[Ant[ParamFWI, 'ParamFWI']]
-    src_amp_y: Ant[ParamFWI, 'ParamFWI']
-    src_amp_x: Opt[Ant[ParamFWI, 'ParamFWI']]
+# class WaveModel(torch.nn.Module, metaclass=SlotMeta):
+#     vp: Ant[ParamFWI, 'ParamFWI']
+#     vs: Opt[Ant[ParamFWI, 'ParamFWI']]
+#     rho: Opt[Ant[ParamFWI, 'ParamFWI']]
+#     src_amp_y: Ant[ParamFWI, 'ParamFWI']
+#     src_amp_x: Opt[Ant[ParamFWI, 'ParamFWI']]
 
-    def __init__(self, *, vp, src_amp_y, vs=None, rho=None, src_amp_x=None):
-        super().__init__()
-        self.vp = vp
-        self.src_amp_y = src_amp_y
-        self.vs = vs
-        self.rho = rho
-        self.src_amp_x = src_amp_x
+#     def __init__(self, *, vp, src_amp_y, vs=None, rho=None, src_amp_x=None):
+#         super().__init__()
+#         self.vp = vp
+#         self.src_amp_y = src_amp_y
+#         self.vs = vs
+#         self.rho = rho
+#         self.src_amp_x = src_amp_x
     
-    def forward(
-        self, 
-        *, 
-        dx,
-        dt,
-        src_loc_y, 
-        rec_loc_y, 
-        model='acoustic',
-        **kw
-    ):
-        if( model == 'acoustic' ):
-            return dw.acoustic(
-                self.vp(),
-                dx,
-                dt,
-                source_amplitudes=self.src_amp_y(),
-                source_locations=src_loc_y,
-                receiver_locations=rec_loc_y,
-                **kw
-            )[-1]
-        elif( model == 'elastic' ):
-            return dw.elastic(
-                vp=self.vp(),
-                vs=self.vs(),
-                rho=self.rho(),
-                dx=dx,
-                dt=dt,
-                source_amplitudes_y=self.src_amp_y(),
-                source_locations_y=src_loc_y,
-                receiver_locations_y=rec_loc_y,
-                **kw
-            )[-2]
-        else:
-            raise ValueError(f'Unknown model {model}')
+#     def forward(
+#         self, 
+#         *, 
+#         dx,
+#         dt,
+#         src_loc_y, 
+#         rec_loc_y, 
+#         model='acoustic',
+#         **kw
+#     ):
+#         if( model == 'acoustic' ):
+#             return dw.acoustic(
+#                 self.vp(),
+#                 dx,
+#                 dt,
+#                 source_amplitudes=self.src_amp_y(),
+#                 source_locations=src_loc_y,
+#                 receiver_locations=rec_loc_y,
+#                 **kw
+#             )[-1]
+#         elif( model == 'elastic' ):
+#             return dw.elastic(
+#                 vp=self.vp(),
+#                 vs=self.vs(),
+#                 rho=self.rho(),
+#                 dx=dx,
+#                 dt=dt,
+#                 source_amplitudes_y=self.src_amp_y(),
+#                 source_locations_y=src_loc_y,
+#                 receiver_locations_y=rec_loc_y,
+#                 **kw
+#             )[-2]
+#         else:
+#             raise ValueError(f'Unknown model {model}')
         
 class DotDict:
     def __init__(self, d):

@@ -1,7 +1,44 @@
 import torch
 import deepwave as dw
+from abc import abstractmethod
+from ...utils import DotDict
+from typing import Annotated as Ant, Optional as Opt
 
-# Generate a velocity model constrained to be within a desired range
+class ParamAbstract(torch.nn.Module):
+    model: Ant[ torch.nn.Parameter, 'Torch parameter' ] 
+    custom: Ant[ DotDict, 'Custom parameters' ]
+
+    def __init__(self, *, model, requires_grad=False, **kw):
+        super().__init__()
+        self.model = torch.nn.Parameter(model, requires_grad=requires_grad)
+        self.custom = DotDict(kw)
+
+    @abstractmethod
+    def forward(self):
+        raise NotImplementedError
+    
+class Param(ParamAbstract):
+    def __init__(self, *, model, requires_grad=False):
+        super().__init__(model=model, requires_grad=requires_grad)
+
+    def forward(self):
+        return self.model
+    
+class ParamConstrained(ParamAbstract):
+    def __init__(self, *, model, minv, maxv, requires_grad=False):
+        model = torch.logit((model - minv) / (maxv - minv))
+        super().__init__(
+            model=model, 
+            requires_grad=requires_grad, 
+            minv=minv, 
+            maxv=maxv
+        )
+
+    def forward(self):
+        minv = self.custom.minv
+        maxv = self.custom.maxv
+        return torch.sigmoid(self.model) * (maxv - minv) + minv
+    
 class Model(torch.nn.Module):
     def __init__(self, initial, min_vel, max_vel):
         super().__init__()

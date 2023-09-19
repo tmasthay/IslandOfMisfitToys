@@ -15,38 +15,23 @@ from .modules.models import Model, Prop
 from .modules.visual import make_plots
 from .modules.training import Training
 from .modules.distribution import Distribution, setup, cleanup
+from .modules.models import ParamConstrained
 import copy
+
 
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 
-    # data = SeismicData(
-    #     ny=600,
-    #     nx=250,
-    #     nt=300,
-    #     dy=4.0,
-    #     dx=4.0,
-    #     dt=0.004,
-    #     n_shots=16,
-    #     src_per_shot=1,
-    #     rec_per_shot=100,
-    #     d_src=20,
-    #     fst_src=10,
-    #     src_depth=2,
-    #     d_rec=6,
-    #     fst_rec=0,
-    #     rec_depth=2,
-    #     d_intra_shot=0,
-    #     freq=25,
-    #     peak_time=1.5 / 25,
-    #     taper_length=100,
-    #     filter_freq=40
-    # )
     data = SeismicData(path='conda/data/marmousi/deepwave_example')
     vp_init = copy.deepcopy(data.vp)
 
-    model = Model(data.vp, 1000, 2500)
+    model = ParamConstrained(
+        model=data.vp, 
+        minv=1000, 
+        maxv=2500, 
+        requires_grad=True
+    )
 
     #Setup distribution onto multiple GPUs
     d = Distribution(rank=rank, world_size=world_size)
