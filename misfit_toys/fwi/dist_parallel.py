@@ -23,7 +23,8 @@ def run_rank(rank, world_size):
             requires_grad=True,
             minv=1000,
             maxv=2500
-        )
+        ),
+        extra_forward_args={ 'time_pad_frac': 0.2 }
     )
     vp_init = copy.deepcopy(prop.vp().detach().cpu())
 

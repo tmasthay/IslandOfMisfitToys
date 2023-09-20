@@ -35,6 +35,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
     src_per_shot: Ant[int, 'Number of sources per shot']
     rec_per_shot: Ant[int, 'Number of receivers per shot']
     freq: Ant[float, 'Source frequency']
+    extra_forward_args: Ant[dict, 'Extra arguments to forward pass']
     metadata: Ant[dict, 'Metadata']
     custom: Ant[dict, 'Custom data']
     
@@ -43,6 +44,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self,
         *,
         path: Ant[str, 'Path to data'],
+        extra_forward_args: Opt[Ant[dict, 'Extra forward args']]=None,
         obs_data: Ant[Union[str, torch.Tensor] , 'obs_data']=None,
         src_amp_y: Ant[Union[str, torch.Tensor], 'Source amp. y']=None,
         src_loc_y: Ant[Union[str, torch.Tensor], 'Source locations']=None,
@@ -127,6 +129,18 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.metadata = get_pydict(path)
 
         self.set_meta_fields()
+        self.set_extra_forwards(extra_forward_args)
+
+    def set_extra_forwards(self, extra_forward_args):
+        if( extra_forward_args is None ):
+            self.extra_forward_args = {}
+        else:
+            self.extra_forward_args = extra_forward_args
+        if( isinstance(self.vp, ParamConstrained) ):
+            maxv = self.vp.custom.maxv
+            if( isinstance(self.vs, ParamConstrained) ):
+                maxv = min(maxv, self.vs.custom.maxv)
+            self.extra_forward_args.update({'max_vel': maxv})
     
     def set_meta_fields(self):
         custom_dict = {}
@@ -138,6 +152,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.custom = DotDict(custom_dict)
 
     def forward(self, **kw):
+        kw = { **self.extra_forward_args, **kw }
         if( self.model == 'acoustic' ):
             return dw.scalar(
                 self.vp(),
