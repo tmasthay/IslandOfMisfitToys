@@ -72,3 +72,5 @@ class Distribution:
 
         # print(list(prop.parameters()))
         self.dist_prop = DDP(self.prop, device_ids=[self.rank])
+
+        # input([(type(e), e.requires_grad) for e in list(self.dist_prop.parameters())])
