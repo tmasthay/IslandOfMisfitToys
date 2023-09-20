@@ -367,3 +367,18 @@ class DotDict:
     def __init__(self, d):
         for k,v in d.items():
             setattr(self, k, v)
+
+def idt_print(*args, levels=None, idt='    '):
+    if( levels is None ):
+        levels = [1 for _ in range(len(args))]
+        levels[0] = 0
+    elif( type(levels) is int ):
+        tmp = levels
+        levels = [tmp + 1 for _ in range(len(args))]
+        levels[0] = tmp
+
+    lines = args
+    i = 0
+    for (arg, idt_level) in zip(args, levels):
+        lines[i] = f'{idt * idt_level}{arg}'
+    return '\n'.join(lines)

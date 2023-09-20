@@ -1,32 +1,18 @@
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
 from scipy.signal import butter
 from torchaudio.functional import biquad
 from ...utils import taper
 
 class Training:
-    def __init__(
-        self,
-        *,
-        prop,
-        src_amp,
-        src_loc,
-        rec_loc,
-        obs_data,
-        dt,
-        rank
-    ):
-        self.train(
-            prop=prop,
-            src_amp=src_amp,
-            src_loc=src_loc,
-            rec_loc=rec_loc,
-            obs_data=obs_data,
-            dt=dt,
-            rank=rank
-        )
+    def __init__(self, *, distribution):
+        self.distribution = distribution
 
-    def train(self, *, prop, src_amp, src_loc, rec_loc, obs_data, dt, rank):
+    def train(self):
+        rank = self.distribution.rank
+        prop = self.distribution.dist_prop.module
+        obs_data = prop.obs_data
+        dt = prop.dt
+
         # Setup optimiser to perform inversion
         loss_fn = torch.nn.MSELoss()
 
@@ -45,7 +31,7 @@ class Training:
             for epoch in range(n_epochs):
                 def closure():
                     optimiser.zero_grad()
-                    out = prop(src_amp, src_loc, rec_loc)
+                    out = prop()
                     out_filt = filt(taper(out[-1], 100))
                     loss = 1e6*loss_fn(out_filt, observed_data_filt)
                     print(

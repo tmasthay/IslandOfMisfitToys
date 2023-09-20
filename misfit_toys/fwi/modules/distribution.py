@@ -1,7 +1,9 @@
+# from .seismic_data import SeismicProp
+from ...utils import idt_print
+
 import os
 import torch
 import torch.distributed as dist
-from .models import Prop
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 def setup(rank, world_size):
@@ -16,44 +18,57 @@ def setup(rank, world_size):
 def cleanup():
     dist.destroy_process_group()
 
+def place_rank(tensor, rank, world_size):
+    if( tensor is None ):
+        return None
+    elif( not isinstance(tensor, torch.Tensor) ):
+        raise TypeError(
+            idt_print(
+                'misfit_toys.fwi.modules.distribution.place_rank',
+                f'Expected tensor, got {type(tensor).__name__}',
+                levels=1
+            )
+        )
+    return torch.chunk(tensor, world_size)[rank].to(rank)
+
 class Distribution:
-    def __init__(self, *, rank, world_size):
+    def __init__(self, *, rank, world_size, prop):
         self.rank = rank
         self.world_size = world_size
-        
-    def setup_distribution(
-        self,
-        *,
-        obs_data,
-        src_amp,
-        src_loc,
-        rec_loc,
-        model,
-        dx,
-        dt,
-        freq
-    ):
-        #chunk the data according to rank
-        obs_data = torch.chunk(
-            obs_data, 
-            self.world_size
-        )[self.rank].to(self.rank)
+        self.prop = prop
+        self.setup_distribution()
+    
+    def setup_distribution(self):
+        def pr_tensor(obj):
+            return place_rank(obj, self.rank, self.world_size)
+    
+        def pr_param(obj):
+            if( obj is None ): return None
 
-        src_amp = torch.chunk(
-            src_amp, 
-            self.world_size
-        )[self.rank].to(self.rank)
+            rg = obj.requires_grad
+            new_val = pr_tensor(obj)
 
-        src_loc = torch.chunk(
-            src_loc, 
-            self.world_size
-        )[self.rank].to(self.rank)
+            if( new_val is None ): return None
+            return torch.nn.Parameter(new_val, requires_grad=rg)
 
-        rec_loc = torch.chunk(
-            rec_loc, 
-            self.world_size
-        )[self.rank].to(self.rank)
+        self.prop.obs_data = pr_tensor(self.prop.obs_data)
+        self.prop.src_loc_y = pr_tensor(self.prop.src_loc_y)
+        self.prop.rec_loc_y = pr_tensor(self.prop.rec_loc_y)
+    
+        self.prop.src_amp_y.p = pr_param(self.prop.src_amp_y.p)
+        self.prop.src_amp_x.p = pr_param(self.prop.src_amp_x.p)
 
-        prop = Prop(model, dx, dt, freq).to(self.rank)
-        prop = DDP(prop, device_ids=[self.rank])
-        return prop, obs_data, src_amp, src_loc, rec_loc
+        self.prop.vp = self.prop.vp.to(self.rank)
+        if( self.prop.vs is not None ):
+            self.prop.vs = self.prop.vs.to(self.rank)
+            self.prop.rho = self.prop.rho.to(self.rank)
+
+        # if( self.prop.model == 'acoustic' ):
+        #     self.prop.vp.p = pr_param(prop.data.vp.p)
+        # else:
+        #     self.prop.vs.p = pr_param(prop.data.vs.p)
+        #     prop.data.rho.p = pr_param(prop.data.rho.p)
+        #     prop.data.src_amp_x.p = pr_param(prop.data.src_amp_x.p)
+
+        # print(list(prop.parameters()))
+        self.dist_prop = DDP(self.prop, device_ids=[self.rank])

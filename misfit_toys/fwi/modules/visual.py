@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-def make_plots(*, v_true, v_init, model):
-    v = model()
+def make_plots(*, v_true, v_init, vp):
+    v = vp()
     vmin = v_true.min()
     vmax = v_true.max()
     _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
