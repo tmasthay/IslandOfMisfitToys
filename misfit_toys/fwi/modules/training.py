@@ -18,7 +18,12 @@ class Training:
 
         for cutoff_freq in [10, 15, 20, 25, 30]:
             sos = butter(6, cutoff_freq, fs=1/self.distribution.dist_prop.module.dt, output='sos')
-            sos = [torch.tensor(sosi).to(self.distribution.dist_prop.module.obs_data.dtype).to(rank) for sosi in sos]
+            sos = [
+                torch.tensor(sosi)\
+                    .to(self.distribution.dist_prop.module.obs_data.dtype) \
+                    .to(rank) 
+                for sosi in sos
+            ]
 
             def filt(x):
                 return biquad(biquad(biquad(x, *sos[0]), *sos[1]),
