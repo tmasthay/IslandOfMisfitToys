@@ -8,7 +8,9 @@ from .modules.models import Param, ParamConstrained
 import torch
 import torch.multiprocessing as mp
 import copy
+import os
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
@@ -19,8 +21,8 @@ def run_rank(rank, world_size):
         path='conda/data/marmousi/deepwave_example',
         vp_prmzt=ParamConstrained.delay_init(
             requires_grad=True,
-            minv=1000.0,
-            maxv=2500.0
+            minv=1000,
+            maxv=2500
         )
     )
     vp_init = copy.deepcopy(prop.vp().detach().cpu())
