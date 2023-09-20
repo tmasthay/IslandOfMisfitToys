@@ -42,6 +42,8 @@ class Distribution:
         def pr_tensor(obj):
             return place_rank(obj, self.rank, self.world_size)
     
+        #TODO: This may be a source of the bug.
+        #    Make sure pytorch is handling parameters properly.
         def pr_param(obj):
             if( obj is None ): return None
 
