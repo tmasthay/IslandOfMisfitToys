@@ -17,6 +17,12 @@ def run_rank(rank, world_size):
     setup(rank, world_size)
 
     #fetch data from deepwave_example
+    #  NOTE: vp_init is very slightly different from Alan's code for some 
+    #    reason. I don't know why, but this will lead to slightly different
+    #    final inversion results, and significantly different loss
+    #    evaluations. However, those loss evaluations are still within the
+    #    same order of magnitude, e.g. final value is roughly 8.0 for this
+    #    script as of Sep 20, 2023, and roughly 2.0 for Alan's code.
     prop = SeismicProp(
         path='conda/data/marmousi/deepwave_example',
         vp_prmzt=ParamConstrained.delay_init(
