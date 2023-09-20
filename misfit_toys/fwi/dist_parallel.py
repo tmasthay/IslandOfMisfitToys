@@ -10,8 +10,6 @@ import torch.multiprocessing as mp
 import copy
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
