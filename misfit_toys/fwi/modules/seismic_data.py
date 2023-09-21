@@ -172,5 +172,5 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 source_locations_y=self.src_loc_y,
                 receiver_locations_y=self.rec_loc_y,
                 **kw
-            )
+            )[-2]
 

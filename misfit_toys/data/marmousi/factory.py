@@ -5,6 +5,7 @@ import torch
 from warnings import warn
 import deepwave as dw 
 from scipy.ndimage import gaussian_filter
+import copy
 
 class Factory(DataFactoryMeta):
     def generate_derived_data(self, *, data):
@@ -46,12 +47,67 @@ class Factory(DataFactoryMeta):
             .repeat(d.n_shots, d.src_per_shot, 1) \
             .to(self.device)
 
-        subpath = 'deepwave_example'
+
+        print(f'Building obs_data in {self.path}...', end='', flush=True)
+        out = dw.scalar(
+            vp,
+            d.dy,
+            d.dt,
+            source_amplitudes=src_amp_y,
+            source_locations=src_loc_y,
+            receiver_locations=rec_loc_y,
+            pml_freq=d.freq,
+            accuracy=d.accuracy
+        )[-1]
+        print('SUCCESS', flush=True)
+        
+        self.store_vars(
+            ('obs_data', out),
+            ('src_amp_y', src_amp_y),
+            ('src_loc_y', src_loc_y),
+            ('rec_loc_y', rec_loc_y),
+            ('vp_init', v_init),
+            subpath=''
+        )
+        
+        self.downsample_all_paths(
+            src_amp_y=src_amp_y,
+            src_loc_y=src_loc_y,
+            rec_loc_y=rec_loc_y,
+            v_init=v_init,
+            vp=vp,
+            out=out
+        )
+
+        del src_amp_y, src_loc_y, rec_loc_y, vp, v_init
+        del out
+        torch.cuda.empty_cache()
+
+    def store_vars(self, *args, subpath=None):
+        if( subpath is None ):
+            subpath = ''
+        for arg in args:
+            path = os.path.join(self.path, subpath, arg[0])
+            print(f'Saving {arg[0]} to {path}...', end='')
+            filename = f'{path.replace(".pt","")}.pt'
+            torch.save(arg[1].to('cpu'), filename)
+            print('SUCCESS')
+            
+    def downsample_path(
+        self,
+        *,
+        d,
+        subpath,
+        src_amp_y,
+        src_loc_y,
+        rec_loc_y,
+        v_init,
+        vp,
+        out
+    ):
         os.makedirs(os.path.join(self.path, subpath), exist_ok=True)
 
-        der_dict = DataFactoryMeta.get_derived_meta(meta=self.metadata)[
-            subpath
-        ]
+        der_dict = d[subpath]
         meta_dict_path = os.path.join(self.path, subpath, 'metadata.pydict')
         with open(meta_dict_path, 'w') as f:
             f.write(prettify_dict(der_dict))
@@ -66,42 +122,54 @@ class Factory(DataFactoryMeta):
         rec_loc_der = rec_loc_y[:d_der.n_shots, :d_der.rec_per_shot, :]
         v_init_der = v_init[:d_der.ny, :d_der.nx]
         vp_der = vp[:d_der.ny, :d_der.nx]
-
-        print('Building obs_data...', end='', flush=True)
-        out = dw.scalar(
-            vp,
-            d.dy,
-            d.dt,
-            source_amplitudes=src_amp_y,
-            source_locations=src_loc_y,
-            receiver_locations=rec_loc_y,
-            pml_freq=d.freq,
-            accuracy=d.accuracy
-        )[-1]
-        print('SUCCESS', flush=True)
-
-        out_cpu = out.to('cpu')
-        out_der = out_cpu[:d_der.n_shots, :d_der.rec_per_shot, :d_der.nt]
-
+        out_der = out[:d_der.n_shots, :d_der.rec_per_shot, :d_der.nt]
         
-        outputs = {
-            'obs_data': out.to('cpu'),
-            'src_amp_y': src_amp_y.to('cpu'),
-            'src_loc_y': src_loc_y.to('cpu'),
-            'rec_loc_y': rec_loc_y.to('cpu'),
-            'vp_init': v_init.to('cpu'),
-            f'{subpath}/obs_data': out_der.to('cpu'),
-            f'{subpath}/src_amp_y': src_amp_y_der.to('cpu'),
-            f'{subpath}/src_loc_y': src_loc_der.to('cpu'),
-            f'{subpath}/rec_loc_y': rec_loc_der.to('cpu'),
-            f'{subpath}/vp_init': v_init_der.to('cpu'),
-            f'{subpath}/vp_true': vp_der.to('cpu')
-        }
-        for k,v in outputs.items():
-            print(f'Saving {k}...', end='')
-            torch.save(v, os.path.join(self.path, f'{k}.pt'))
-            print('SUCCESS')
+        self.store_vars(
+            ('obs_data', out_der),
+            ('src_amp_y', src_amp_y_der),
+            ('src_loc_y', src_loc_der),
+            ('rec_loc_y', rec_loc_der),
+            ('vp_init', v_init_der),
+            ('vp_true', vp_der),
+            subpath=subpath
+        )
 
-        del src_amp_y, src_loc_y, rec_loc_y, vp, v_init
-        del out, out_cpu
-        torch.cuda.empty_cache()
+        if( 'derived' in der_dict.keys() ):
+            og_path = copy.deepcopy(self.path)
+            self.path = os.path.join(self.path, subpath)
+            subder_dict = DataFactoryMeta.get_derived_meta(meta=der_dict)
+            self.downsample_all_paths(
+                der_dict=subder_dict,
+                src_amp_y=src_amp_y_der,
+                src_loc_y=src_loc_der,
+                rec_loc_y=rec_loc_der,
+                v_init=v_init_der,
+                vp=vp_der,
+                out=out_der
+            )
+            self.path = og_path
+
+    def downsample_all_paths(
+        self,
+        *,
+        der_dict=None,
+        src_amp_y,
+        src_loc_y,
+        rec_loc_y,
+        v_init,
+        vp,
+        out
+    ):
+        if( der_dict is None ):
+            der_dict = DataFactoryMeta.get_derived_meta(meta=self.metadata)
+        for subpath in der_dict.keys():
+            self.downsample_path(
+                d=der_dict,
+                subpath=subpath,
+                src_amp_y=src_amp_y,
+                src_loc_y=src_loc_y,
+                rec_loc_y=rec_loc_y,
+                v_init=v_init,
+                vp=vp,
+                out=out
+            )

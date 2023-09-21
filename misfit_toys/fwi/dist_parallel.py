@@ -10,6 +10,8 @@ import torch.multiprocessing as mp
 import copy
 import os
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
@@ -21,6 +23,9 @@ def run_rank(rank, world_size):
     #    evaluations. However, those loss evaluations are still within the
     #    same order of magnitude, e.g. final value is roughly 8.0 for this
     #    script as of Sep 20, 2023, and roughly 2.0 for Alan's code.
+    # NOTE FOLLOWUP:
+    #   I might be wrong above, given that the closure gets evaluated a 
+    #     ton of times. Loss plots look like they may match.
     prop = SeismicProp(
         path='conda/data/marmousi/deepwave_example',
         vp_prmzt=ParamConstrained.delay_init(
