@@ -27,7 +27,7 @@ def run_rank(rank, world_size):
     #   I might be wrong above, given that the closure gets evaluated a 
     #     ton of times. Loss plots look like they may match.
     prop = SeismicProp(
-        path='conda/data/marmousi/deepwave_example',
+        path='conda/data/marmousi/deepwave_example/shots16',
         vp_prmzt=ParamConstrained.delay_init(
             requires_grad=True,
             minv=1000,

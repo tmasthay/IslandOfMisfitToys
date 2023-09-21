@@ -404,6 +404,10 @@ def get_data2(*, field, path=None, allow_none=False):
     return torch.load(field_file)
 
 @auto_path(make_dir=False)
+def get_data3(*, field, path):
+    return torch.load(os.path.join(path, f'{field}.pt'))
+
+@auto_path(make_dir=False)
 def get_metadata(*, path):
     return eval(open(f'{path}/metadata.json', 'r').read())
 

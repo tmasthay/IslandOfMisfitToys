@@ -32,7 +32,7 @@ def metadata():
                 'n_shots': 20,
                 'rec_per_shot': 100,
                 'derived': {
-                    'deepwave_shots16': {
+                    'shots16': {
                         'n_shots': 16
                     }
                 }
