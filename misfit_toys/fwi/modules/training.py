@@ -25,7 +25,9 @@ def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
 
     return '\n'.join(summary)
 
-def print_tensor(tensor, print_fn=print, print_kwargs={}, **kwargs):
+def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
+    if( print_kwargs is None ):
+        print_kwargs = {'flush': True}
     print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
 
 class Training:
@@ -70,7 +72,7 @@ class Training:
                 self.distribution.dist_prop.module.parameters()
             )
 
-            print_tensor(observed_data_filt, print_fn=input)
+            # print_tensor(observed_data_filt, print_fn=input)
 
             for epoch in range(n_epochs):
                 closure_calls = 0
@@ -93,3 +95,21 @@ class Training:
                     return loss
 
                 optimiser.step(closure)
+                print_tensor(
+                    self.distribution.dist_prop.module.vp(),
+                    heading=(
+                        f'Freq={cutoff_freq}, '
+                            f'Epoch={epoch}, '
+                            f'Rank={rank}, '
+                            f'Param=vp'
+                    )
+                )
+                print_tensor(
+                    self.distribution.dist_prop.module.src_amp_y(),
+                    heading=(
+                        f'Freq={cutoff_freq}, '
+                            f'Epoch={epoch}, '
+                            f'Rank={rank}, '
+                            f'''Param=src_amp_y'''
+                    )
+                )

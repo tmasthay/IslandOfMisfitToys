@@ -104,17 +104,19 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.vp = get_prmzt(vp_init, 'vp_init', prmzt=vp_prmzt)
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
-        self.src_amp_y = get_prmzt(
-            src_amp_y, 
-            'src_amp_y', 
-            prmzt=src_amp_y_prmzt
-        )
-        self.src_amp_x = get_prmzt(
-            src_amp_x, 
-            'src_amp_y', 
-            prmzt=src_amp_x_prmzt
-        )
+        # self.src_amp_y = get_prmzt(
+        #     src_amp_y, 
+        #     'src_amp_y', 
+        #     prmzt=src_amp_y_prmzt
+        # )
+        # self.src_amp_x = get_prmzt(
+        #     src_amp_x, 
+        #     'src_amp_y', 
+        #     prmzt=src_amp_x_prmzt
+        # )
 
+        self.src_amp_y = get(src_amp_y, 'src_amp_y')
+        self.src_amp_x = get(src_amp_x, 'src_amp_x')
         self.obs_data = get(obs_data, 'obs_data')
         self.src_loc_y = get(src_loc_y, 'src_loc_y')
         self.rec_loc_y = get(rec_loc_y, 'rec_loc_y')
@@ -126,7 +128,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
         self.model = 'acoustic' if self.vs is None else 'elastic'
 
-        self.metadata = get_pydict(path)
+        self.metadata = get_pydict(path, as_class=False)
 
         self.set_meta_fields()
         self.set_extra_forwards(extra_forward_args)
@@ -153,24 +155,29 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
     def forward(self, **kw):
         kw = { **self.extra_forward_args, **kw }
+        if( 'amp_idx' in kw.keys() ):
+            amp_idx = kw['amp_idx']
+            del kw['amp_idx']
+        else:
+            amp_idx = torch.arange(self.src_amp_y.shape[0])
         if( self.model == 'acoustic' ):
             return dw.scalar(
                 self.vp(),
                 self.dy,
                 self.dt,
-                source_amplitudes=self.src_amp_y(),
+                source_amplitudes=self.src_amp_y[amp_idx],
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
                 **kw
-            )[-1]
+            )
         else:
             return dw.elastic(
                 *get_lame(self.vp(), self.vs(), self.rho()),
                 self.dy,
                 self.dt,
-                source_amplitudes_y=self.src_amp_y(),
+                source_amplitudes_y=self.src_amp_y,
                 source_locations_y=self.src_loc_y,
                 receiver_locations_y=self.rec_loc_y,
                 **kw
-            )[-2]
+            )
 

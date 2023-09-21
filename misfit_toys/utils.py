@@ -15,12 +15,16 @@ import deepwave as dw
 from warnings import warn
 import os
 
+class DotDict:
+    def __init__(self, d):
+        for k,v in d.items():
+            setattr(self, k, v)
+
 def parse_path(path):
-    if( path is None or path.startswith('conda') ):
-        if( path == 'conda' ):
-            path = 'conda/data'
-        else:
-            path = path.replace('conda', os.environ['CONDA_PREFIX'])
+    if( path is None ):
+        path = 'conda'
+    if( path.startswith('conda') ):
+        path = path.replace('conda', os.environ['CONDA_PREFIX'])
     elif( path.startswith('pwd') ):
         path = path.replace('pwd', os.getcwd())
     else:
@@ -38,10 +42,15 @@ def auto_path(make_dir=False):
         return wrapper
     return decorator
 
-def get_pydict(path, filename='metadata'):
+def get_pydict(path, *, filename='metadata', as_class=True):
+    path = parse_path(path)
     filename = filename.replace('.pydict', '') + '.pydict'
     full_path = os.path.join(path, filename)
-    return eval(open(full_path, 'r').read())
+    d = eval(open(full_path, 'r').read())
+    if( as_class ):
+        return DotDict(d)
+    else:
+        return d
 
 def gpu_mem(msg='', color='red', print_protocol=print):
     if( len(msg) > 0 and msg[-1] != '\n' ): msg += '\n'
@@ -151,6 +160,31 @@ def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
 
 def taper(x, length):
     return dw.common.cosine_taper_end(x, length)
+
+def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
+    # Compute various statistics
+    stats = {
+        'shape': tensor.shape,
+        'mean': torch.mean(tensor).item(),
+        'variance': torch.var(tensor).item(),
+        'median': torch.median(tensor).item(),
+        'min': torch.min(tensor).item(),
+        'max': torch.max(tensor).item(),
+        'stddev': torch.std(tensor).item()
+    }
+
+    # Prepare the summary string with the desired indentation
+    indent = idt_str * idt_level
+    summary = [f"{heading}:"]
+    for key, value in stats.items():
+        summary.append(f"{indent}{idt_str}{key} = {value}")
+
+    return '\n'.join(summary)
+
+def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
+    if( print_kwargs is None ):
+        print_kwargs = {'flush': True}
+    print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
@@ -363,10 +397,7 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #         else:
 #             raise ValueError(f'Unknown model {model}')
         
-class DotDict:
-    def __init__(self, d):
-        for k,v in d.items():
-            setattr(self, k, v)
+
 
 def idt_print(*args, levels=None, idt='    '):
     if( levels is None ):

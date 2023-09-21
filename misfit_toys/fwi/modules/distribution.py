@@ -51,14 +51,16 @@ class Distribution:
             new_val = pr_tensor(obj)
 
             if( new_val is None ): return None
-            return torch.nn.Parameter(new_val, requires_grad=rg)
+            return torch.nn.Parameter(new_val, requires_grad=rg).to(self.rank)
 
         self.prop.obs_data = pr_tensor(self.prop.obs_data)
         self.prop.src_loc_y = pr_tensor(self.prop.src_loc_y)
         self.prop.rec_loc_y = pr_tensor(self.prop.rec_loc_y)
     
-        self.prop.src_amp_y.p = pr_param(self.prop.src_amp_y.p)
-        self.prop.src_amp_x.p = pr_param(self.prop.src_amp_x.p)
+        # self.prop.src_amp_y.p = pr_param(self.prop.src_amp_y.p)
+        # self.prop.src_amp_x.p = pr_param(self.prop.src_amp_x.p)
+        # self.prop.src_amp_y = pr_tensor(self.prop.src_amp_y)
+        # self.prop.src_amp_x = pr_tensor(self.prop.src_amp_x)
 
         self.prop.vp = self.prop.vp.to(self.rank)
         if( self.prop.vs is not None ):

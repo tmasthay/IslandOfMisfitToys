@@ -35,6 +35,8 @@ def run_rank(rank, world_size):
         ),
         extra_forward_args={ 'time_pad_frac': 0.2 }
     )
+    prop.obs_data = taper(prop.obs_data, 100)
+    torch.save(prop.obs_data, f'tyler_obs_data_{rank}.pt')
     vp_init = copy.deepcopy(prop.vp().detach().cpu())
 
     #Setup distribution onto multiple GPUs
