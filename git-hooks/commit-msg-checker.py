@@ -23,6 +23,8 @@ def check_commit_msg(commit_msg_file):
         "DROP": "Dropped code/feature",
         "REQUEST": "Request-based change",
         "FOLLOW": "Follow-up to previous commit",
+        "REMOVE": "Removed code, feature or file",
+        "RM": "Removed code, feature or file",
         "PAUSE_BUG": "Pausing due to a bug",
         "PAUSE_DOCS": "Pausing doc changes",
         "PAUSE_FEATURE": "Pausing feature work",
