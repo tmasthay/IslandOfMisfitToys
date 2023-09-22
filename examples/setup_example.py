@@ -6,16 +6,16 @@ def create_structure(path):
     structure = {
         path: {
             'iomt_output': {
-                'figs': {'pwd': []},
-                'data': {'pwd': []}
+                'figs': None,
+                'data': None
             },
             'deepwave': {
-                'figs': {'pwd': []},
-                'data': {'pwd': []}
+                'figs': None,
+                'data': None
             },
             'compare': {
-                'figs': {'pwd': []},
-                'data': {'pwd': []}
+                'figs': None,
+                'data': None
             },
             'pwd': [
                 'metadata.pydict',
@@ -28,18 +28,28 @@ def create_structure(path):
 
     def create_recursive(base_path, structure):
         for k, v in structure.items():
-            if isinstance(v, dict):
+            if isinstance(v, dict) or v is None:
                 full_path = os.path.join(base_path, k)
                 print(f'Making "{full_path}"... ', end='')
                 os.makedirs(full_path, exist_ok=True)
                 print('SUCCESS')
-                create_recursive(full_path, v)
-            elif k == 'pwd' and isinstance(v, list):
+                if( v is None ):
+                    print(f'    GITKEEP...', end='')
+                    open(os.path.join(full_path, '.gitkeep'), 'a').close()
+                    print('SUCCESS')
+                else:
+                    create_recursive(full_path, v)
+            elif isinstance(v, list):
                 for filename in v:
                     file_path = os.path.join(base_path, filename)
                     print(f'Creating "{file_path}"... ', end='')
                     open(file_path, 'a').close()
                     print('SUCCESS')
+            elif v is None:
+                file_path = os.path.join(base_path, k, '.gitkeep')
+                print(f'Creating "{file_path}"... ', end='')
+                open(file_path, 'a').close()
+                print('SUCCESS')
             else:
                 raise TypeError(f"Unexpected (k,v) = ({k},{v})")
 
