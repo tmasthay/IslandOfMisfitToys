@@ -3,7 +3,7 @@ from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
 from misfit_toys.utils import print_tensor, taper, get_pydict
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
-#fake comment
+
 import os
 import torch
 from torchaudio.functional import biquad
@@ -101,6 +101,7 @@ def run_rank(rank, world_size):
     propper.src_loc_y = torch.chunk(propper.src_loc_y, world_size)[rank].to(rank)
     propper.rec_loc_y = torch.chunk(propper.rec_loc_y, world_size)[rank].to(rank)
     propper.src_amp_y = propper.src_amp_y.to(rank)
+    # propper.src_amp_y = torch.chunk(propper.src_amp_y, world_size)[rank].to(rank)
 
     propper.vp = propper.vp.to(rank)
 
@@ -166,7 +167,8 @@ def run_rank(rank, world_size):
         plt.tight_layout()
         plt.savefig('out_ddp_hybrid.jpg')
 
-        v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
+        # v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
+        torch.save(v.detach().cpu(), 'marmousi_v_inv.pt')
     cleanup()
 
 
