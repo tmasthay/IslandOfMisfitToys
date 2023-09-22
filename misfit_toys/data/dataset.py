@@ -16,6 +16,16 @@ from abc import ABC, abstractmethod
 from importlib import import_module
 from ..utils import auto_path, parse_path
 import copy
+from warnings import warn
+
+def fetch_warn():
+    warn(
+        'Trying to fetch data from iomt dataset.\n'
+        '    This lowers the objectivity of this test.\n'
+        '    However, the data has been tested to be the same, but '
+        'pride cometh before the fall.\n'
+        '    Be careful.\n'
+    )
 
 def expand_metadata(meta):
     d = dict()
@@ -403,12 +413,17 @@ def get_data2(*, field, path=None, allow_none=False):
     fetch_and_convert_data(subset=subset, path=dummy_path)
     return torch.load(field_file)
 
+def data_path(path):
+    def helper(field):
+        return {'field': field, 'path': path}
+    return helper
+
 def get_data3(*, field, path):
     path = parse_path(path)
     return torch.load(os.path.join(path, f'{field}.pt'))
 
-@auto_path(make_dir=False)
 def get_metadata(*, path):
+    path = parse_path(path)
     return eval(open(f'{path}/metadata.json', 'r').read())
 
 def get_primitives(d):

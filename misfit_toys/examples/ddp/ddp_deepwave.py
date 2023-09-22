@@ -1,4 +1,4 @@
-from misfit_toys.data.dataset import get_data3
+from misfit_toys.data.dataset import data_path, get_data3, fetch_warn
 
 import os
 import torch
@@ -11,6 +11,8 @@ from scipy.signal import butter
 import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
+from warnings import warn
+from itertools import product as prod
 
 
 def setup(rank, world_size):
@@ -71,7 +73,17 @@ def run_rank(rank, world_size):
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = get_data3(field='vp_true', path='conda/data/marmousi/vp_true')
+
+    has_vp_bin = True
+    field_path = None
+    try:
+        v_true = torch.from_file('marmousi_vp.bin',
+                             size=ny*nx).reshape(ny, nx)
+    except:
+        fetch_warn()
+        has_vp_bin = False
+        field_path = data_path('conda/data/marmousi')
+        v_true = get_data3(field_path('vp_true'))
 
     # Select portion of model for inversion
     ny = 600
@@ -98,11 +110,20 @@ def run_rank(rank, world_size):
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = (
-        torch.from_file('marmousi_data.bin',
-                        size=n_shots*n_receivers_per_shot*nt)
-        .reshape(n_shots, n_receivers_per_shot, nt)
-    )
+    try:
+        observed_data = (
+            torch.from_file('marmousi_data.bin',
+                            size=n_shots*n_receivers_per_shot*nt)
+            .reshape(n_shots, n_receivers_per_shot, nt)
+        )
+    except:
+        if( field_path is None ):
+            raise ValueError(
+                'See code...field_path is None shouldb be impossible'
+                'when trying to fetch observed_data'
+            )
+        fetch_warn()
+        observed_data = get_data3(field_path('observed_data'))
 
     def taper(x):
         # Taper the ends of traces
@@ -158,7 +179,10 @@ def run_rank(rank, world_size):
     # Run optimisation/inversion
     n_epochs = 2
 
-    for cutoff_freq in [10, 15, 20, 25, 30]:
+    freqs = [10, 15, 20, 25, 30]
+
+    vp_record = torch.zeros(len(freqs), n_epochs, *v_true.shape)
+    for cutoff_freq in freqs:
         sos = butter(6, cutoff_freq, fs=1/dt, output='sos')
         sos = [torch.tensor(sosi).to(observed_data.dtype).to(rank)
                for sosi in sos]
@@ -179,27 +203,52 @@ def run_rank(rank, world_size):
                 return loss
 
             optimiser.step(closure)
+            vp_record[freqs.index(cutoff_freq), epoch] = model().detach().cpu()
 
     # Plot
     if rank == 0:
+        d_path = 'deepwave/data'
+        
+        torch.save(vp_record, f'{d_path}/vp_record.pt')
+        torch.save(v_init, f'{d_path}/vp_init.pt')
+        torch.save(v_true, f'{d_path}/vp_true.pt')
+ 
         v = model()
         vmin = v_true.min()
         vmax = v_true.max()
+        cmap = 'gray'
         _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
                              sharey=True)
-        ax[0].imshow(v_init.cpu().T, aspect='auto', cmap='gray',
+        ax[0].imshow(v_init.cpu().T, aspect='auto', cmap=cmap,
                      vmin=vmin, vmax=vmax)
         ax[0].set_title("Initial")
-        ax[1].imshow(v.detach().cpu().T, aspect='auto', cmap='gray',
+        ax[1].imshow(v.detach().cpu().T, aspect='auto', cmap=cmap,
                      vmin=vmin, vmax=vmax)
         ax[1].set_title("Out")
-        ax[2].imshow(v_true.cpu().T, aspect='auto', cmap='gray',
+        ax[2].imshow(v_true.cpu().T, aspect='auto', cmap=cmap,
                      vmin=vmin, vmax=vmax)
         ax[2].set_title("True")
         plt.tight_layout()
-        plt.savefig('example_distributed_ddp.jpg')
+        plt.savefig('deepwave_ddp_final_inversion.jpg')
 
-        v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
+        for freq_idx,epoch in prod(
+            range(vp_record.shape[0]), 
+            range(vp_record.shape[1])
+        ):
+            plt.imshow(vp_record[freq,epoch].cpu().T, aspect='auto', cmap=cmap,
+                       vmin=vmin, vmax=vmax)
+            plt.title(f"Epoch {epoch}, cutoff freq {freqs[freq_idx]}")
+            plt.savefig(f'deepwave_ddp_{freq_idx}_{epoch}.jpg')
+        
+        cmd = (
+            f'convert -delay 100 -loop 0 '
+                f'(ls -tr {d_path}/deepwave_ddp_*.jpg)'
+                f' {d_path}/deepwave_ddp.gif'
+        )
+        os.system(cmd)
+        os.system(f'rm {d_path}/deepwave_ddp_*.jpg')
+
+        # v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
     cleanup()
 
 
