@@ -28,6 +28,7 @@ DIRECTIVES=(
     "PAUSE_PERF"
     "PAUSE_PERFORMANCE"
     "PAUSE_OVERKILL"
+    "PAUSE_DESIGN"
 )
 
 # Join array elements into a string pattern
