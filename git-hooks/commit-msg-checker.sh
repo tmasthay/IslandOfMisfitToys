@@ -3,6 +3,7 @@
 COMMIT_MSG_FILE="$1"
 
 # Define directives as an array
+# extraneous comment
 DIRECTIVES=(
     "BUG"
     "BUGFIX"
