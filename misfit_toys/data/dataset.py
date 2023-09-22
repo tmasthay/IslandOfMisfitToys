@@ -403,8 +403,8 @@ def get_data2(*, field, path=None, allow_none=False):
     fetch_and_convert_data(subset=subset, path=dummy_path)
     return torch.load(field_file)
 
-@auto_path(make_dir=False)
 def get_data3(*, field, path):
+    path = parse_path(path)
     return torch.load(os.path.join(path, f'{field}.pt'))
 
 @auto_path(make_dir=False)

@@ -1,3 +1,5 @@
+from misfit_toys.data.dataset import get_data3
+
 import os
 import torch
 from torchaudio.functional import biquad
@@ -69,8 +71,7 @@ def run_rank(rank, world_size):
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = torch.from_file('marmousi_vp.bin',
-                             size=ny*nx).reshape(ny, nx)
+    v_true = get_data3(field='vp_true', path='conda/data/marmousi/vp_true')
 
     # Select portion of model for inversion
     ny = 600
