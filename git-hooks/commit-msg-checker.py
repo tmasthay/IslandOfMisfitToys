@@ -56,6 +56,7 @@ def check_commit_msg(commit_msg_file):
 
         print("Example:")
         print(f"    {'FEATURE'.ljust(max_length)}: Add new feature")
+        print(f"    {'BUG'.ljust(max_length)}: Fix bug in feature")
         print("***COMMIT FAILED: SEE USAGE ABOVE***")
         exit(1)
 

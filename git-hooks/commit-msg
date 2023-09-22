@@ -5,5 +5,6 @@ if [ -z "$ISL" ]; then
    exit 1
 fi
 
-source "$ISL/git-hooks/commit-msg-checker.sh"
+#source the commit-msg-checker.sh script, which calls main py file
+python "$ISL/git-hooks/commit-msg-checker.py" "$1"
 
