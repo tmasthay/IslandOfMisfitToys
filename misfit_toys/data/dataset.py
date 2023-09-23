@@ -422,6 +422,23 @@ def get_data3(*, field, path):
     path = parse_path(path)
     return torch.load(os.path.join(path, f'{field}.pt'))
 
+def field_getter(path):
+    def helper(field):
+        return get_data3(field=field, path=path)
+    return helper
+
+def field_saver(path, verbose=True):
+    if( verbose ):
+        def helper(field):
+            print(f'Saving {field} to {path}', end='')
+            torch.save(field, os.path.join(path, f'{field}.pt'))
+            print('SUCCESS')
+        return helper
+    else:
+        def helper(field):
+            torch.save(field, os.path.join(path, f'{field}.pt'))
+        return helper
+
 def get_metadata(*, path):
     path = parse_path(path)
     return eval(open(f'{path}/metadata.json', 'r').read())
