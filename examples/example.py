@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import os
 import torch
 import torch.multiprocessing as mp
+import torch.distributed as dist
 import matplotlib.pyplot as plt
 from warnings import warn
 
@@ -14,7 +15,7 @@ class Example(ABC):
         self.fig_save = fig_save
         self.tensor_names = tensor_names
         self.output_files = {
-            e: os.path.join(data_save, f'{e}.pt') for e in tensor_names
+            e: os.path.join(data_save, f'{e}.pt') for e in self.tensor_names
         }
         self.verbose = verbose
         self.tensors = {}
@@ -151,7 +152,9 @@ class Example(ABC):
     def generate_data(self, rank, world_size):
         self.print(f"Running DDP on rank {rank} / {world_size}.", level=2)
         self._generate_data(rank, world_size)
-        self.save_all_tensors()
+        if rank == 0:
+            self.save_all_tensors()
+        torch.distributed.barrier()
 
     def plot_field(self, *, field, **kw):
         raise NotImplementedError(
@@ -188,15 +191,45 @@ class Example(ABC):
         if all(paths_exist):
             for name, f in self.output_files.items():
                 self.print(f'Load attempt {name} at {f}...', end='')
-                self.tensors[name] = torch.load(f)
+                try:
+                    self.tensors[name] = torch.load(f)
+                except Exception as e:
+                    Example.print_static(f'FAIL for {name} at {f}', level=0)
+                    raise e
                 self.print('SUCCESS')
         else:
             self.print('FAIL')
             self.tensors = None
 
+    def plot_loss(self, **kw):
+        style = ['-', '--', '-.', ':']
+        color = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        self.tensors['loss'] = self.tensors['loss'].to('cpu')
+        self.print(f'loss inside plot_loss: {self.tensors["loss"]}')
+        world_size = self.tensors['loss'].shape[0]
+        full_loss = self.tensors['loss'].sum(dim=0)
+        for r in range(world_size):
+            label = f'rank {r}'
+            plt.plot(
+                self.tensors['loss'][r],
+                label=label,
+                linestyle=style[r % len(style)],
+                color=color[r % len(color)],
+            )
+        plt.plot(
+            full_loss,
+            label='Full loss',
+            linestyle=style[world_size % len(style)],
+            color=color[world_size % len(color)],
+        )
+        plt.title('Loss')
+        plt.legend()
+        plt.savefig(f'{self.fig_save}/loss.jpg')
+
     def plot_fields(self, **kw):
         for fld, tnsr in self.tensors.items():
             self.plot_field(field=fld, tensor=tnsr, **kw)
+        self.plot_loss(**kw)
 
     def run_rank(self, rank, world_size):
         setup(rank, world_size)
@@ -228,6 +261,7 @@ class Example(ABC):
                 '\nFATAL: No GPUs detected, check your system.\n'
                 '    We currently do not support CPU-only training.'
             )
+        self.losses = torch.empty(world_size + 1)
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )

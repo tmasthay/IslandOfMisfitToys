@@ -187,8 +187,20 @@ class MultiscaleExample(Example):
             self.tensors['freqs'].shape[0], n_epochs, *v_true.shape
         )
 
+        self.tensors['loss'] = torch.zeros(
+            world_size + 1, self.tensors['freqs'].shape[0], self.n_epochs
+        )
+
         self.print(f'TRAIN BEGIN, Rank={rank}')
         freqs = self.tensors['freqs']
+        loss_local = torch.zeros(freqs.shape[0], n_epochs).to(rank)
+        if rank == 0:
+            gather_loss = [
+                torch.zeros_like(loss_local) for _ in range(world_size)
+            ]
+        else:
+            gather_loss = None
+
         for idx, cutoff_freq in enumerate(freqs):
             sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
             sos = [
@@ -216,7 +228,8 @@ class MultiscaleExample(Example):
                     out_filt = filt(taper(out[-1]))
                     loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                     if closure_calls == 1:
-                        epoch_loss = loss.item()
+                        loss_local[idx, epoch] = loss.item()
+                        epoch_loss = loss_local[idx, epoch]
                     loss.backward()
                     return loss
 
@@ -232,6 +245,19 @@ class MultiscaleExample(Example):
                     flush=True,
                 )
         self.print(f'TRAIN END, Rank={rank}')
+        self.print(loss_local)
+        torch.distributed.gather(
+            tensor=loss_local, gather_list=gather_loss, dst=0
+        )
+        if rank == 0:
+            self.print(f'GATHER BEGIN, Rank={rank}')
+            self.tensors['loss'] = (
+                torch.stack(gather_loss).reshape(world_size, -1).to('cpu')
+            )
+            self.print(
+                f'Gathered data: {self.tensors["loss"]} of shape'
+                f' {self.tensors["loss"].shape}'
+            )
 
     def plot_data(self, **kw):
         self.plot_inv_record_auto(
@@ -247,6 +273,7 @@ class MultiscaleExample(Example):
                 cmap='seismic',
             ),
         )
+        self.plot_loss()
 
 
 if __name__ == '__main__':
@@ -254,7 +281,7 @@ if __name__ == '__main__':
         data_save='deepwave/data',
         fig_save='deepwave/figs',
         verbose=2,
-        tensor_names=['vp_true', 'vp_init', 'vp_record', 'freqs'],
+        tensor_names=['vp_true', 'vp_init', 'vp_record', 'freqs', 'loss'],
     )
     me.n_epochs = 2
     me.run()
