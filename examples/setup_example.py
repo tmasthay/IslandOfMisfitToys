@@ -1,28 +1,20 @@
 import os
 import argparse
 
+
 def create_structure(path):
     # Structure definition
     structure = {
         path: {
-            'iomt_output': {
-                'figs': None,
-                'data': None
-            },
-            'deepwave': {
-                'figs': None,
-                'data': None
-            },
-            'compare': {
-                'figs': None,
-                'data': None
-            },
+            'iomt': {'figs': None, 'data': None},
+            'deepwave': {'figs': None, 'data': None},
+            'compare': {'figs': None, 'data': None},
             'pwd': [
                 'metadata.pydict',
                 f'{path}_iomt.py',
                 f'{path}_deepwave.py',
-                f'{path}_deepwave_original.py'
-            ]
+                f'{path}_deepwave_original.py',
+            ],
         }
     }
 
@@ -33,7 +25,7 @@ def create_structure(path):
                 print(f'Making "{full_path}"... ', end='')
                 os.makedirs(full_path, exist_ok=True)
                 print('SUCCESS')
-                if( v is None ):
+                if v is None:
                     print(f'    GITKEEP...', end='')
                     open(os.path.join(full_path, '.gitkeep'), 'a').close()
                     print('SUCCESS')
@@ -55,8 +47,11 @@ def create_structure(path):
 
     create_recursive('', structure)  # Start with an empty base path
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Setup directory structure for an example.")
+    parser = argparse.ArgumentParser(
+        description="Setup directory structure for an example."
+    )
     parser.add_argument("path", help="Base path for the directory structure.")
     args = parser.parse_args()
     create_structure(args.path)

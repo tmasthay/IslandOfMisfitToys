@@ -65,8 +65,8 @@ class Distribution:
 
         # self.prop.src_amp_y.p = pr_param(self.prop.src_amp_y.p)
         # self.prop.src_amp_x.p = pr_param(self.prop.src_amp_x.p)
-        # self.prop.src_amp_y = pr_tensor(self.prop.src_amp_y)
-        # self.prop.src_amp_x = pr_tensor(self.prop.src_amp_x)
+        self.prop.src_amp_y = pr_tensor(self.prop.src_amp_y)
+        self.prop.src_amp_x = pr_tensor(self.prop.src_amp_x)
 
         self.prop.vp = self.prop.vp.to(self.rank)
         if self.prop.vs is not None:

@@ -154,14 +154,30 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
-    def forward(self, *, amp_idx, **kw):
+    def forward(self, **kw):
         kw = {**self.extra_forward_args, **kw}
+        if 'amp_idx' in kw.keys():
+            amp_idx = kw['amp_idx']
+            del kw['amp_idx']
+        else:
+            amp_idx = torch.arange(self.src_amp_y.shape[0])
         # if( 'amp_idx' in kw.keys() ):
         #     amp_idx = kw['amp_idx']
         #     del kw['amp_idx']
         # else:
         #     amp_idx = torch.arange(self.src_amp_y.shape[0])
         if self.model == 'acoustic':
+            # print(f'source_amplitudes.shape={self.src_amp_y.shape}')
+            # print(
+            #     'source'
+            #     f' amplitudes[amp_idx].shape={self.src_amp_y[amp_idx].shape}'
+            # )
+            # print(f'source_locations.shape={self.src_loc_y.shape}')
+            # print(f'receiver_locations.shape={self.rec_loc_y.shape}')
+            # print(f'source_amp.device = {self.src_amp_y.device}')
+            # print(f'source_loc.device = {self.src_loc_y.device}')
+            # print(f'receiver_loc.device = {self.rec_loc_y.device}')
+            # print(f'vp.device = {self.vp().device}')
             return dw.scalar(
                 self.vp(),
                 self.dy,

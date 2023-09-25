@@ -7,12 +7,24 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 import matplotlib.pyplot as plt
 from warnings import warn
+import copy
+import pickle
 
 
 class Example(ABC):
-    def __init__(self, *, data_save, fig_save, tensor_names, verbose=1, **kw):
+    def __init__(
+        self,
+        *,
+        data_save,
+        fig_save,
+        pickle_save,
+        tensor_names,
+        verbose=1,
+        **kw,
+    ):
         self.data_save = data_save
         self.fig_save = fig_save
+        self.pickle_save = pickle_save
         self.tensor_names = tensor_names
         self.output_files = {
             e: os.path.join(data_save, f'{e}.pt') for e in self.tensor_names
@@ -208,8 +220,10 @@ class Example(ABC):
         self.print(f'loss inside plot_loss: {self.tensors["loss"]}')
         world_size = self.tensors['loss'].shape[0]
         full_loss = self.tensors['loss'].sum(dim=0)
+        plt.clf()
         for r in range(world_size):
             label = f'rank {r}'
+            print(f'label={label}')
             plt.plot(
                 self.tensors['loss'][r],
                 label=label,
@@ -225,6 +239,7 @@ class Example(ABC):
         plt.title('Loss')
         plt.legend()
         plt.savefig(f'{self.fig_save}/loss.jpg')
+        plt.clf()
 
     def plot_fields(self, **kw):
         for fld, tnsr in self.tensors.items():
@@ -252,6 +267,16 @@ class Example(ABC):
         torch.distributed.barrier()
         if rank == 0:
             self.plot_data()
+            with open(self.pickle_save, 'wb') as f:
+                self.print(
+                    (
+                        f'Saving pickle to {self.pickle_save}...'
+                        f'self.tensors.keys()=={self.tensors.keys()}'
+                    ),
+                    end='',
+                )
+                pickle.dump(self, f)
+                self.print('SUCCESS')
         cleanup()
 
     def run(self):
@@ -265,6 +290,75 @@ class Example(ABC):
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )
+        with open(self.pickle_save, 'rb') as f:
+            self.print(f'Loading pickle from {self.pickle_save}...', end='')
+            self = pickle.load(f)
+            self.print('SUCCESS')
+        return self
+
+
+class ExampleComparator:
+    def __init__(
+        self,
+        *examples,
+        data_save='compare/data',
+        fig_save='compare/figs',
+        protect=None,
+    ):
+        if len(examples) != 2:
+            raise ValueError(
+                'FATAL: ExampleComparator requires exactly 2 examples'
+            )
+        self.first = examples[0].run()
+        self.second = examples[1].run()
+
+        input(self.first.tensors.keys())
+
+        if set(self.first.tensor_names) != set(self.second.tensor_names):
+            raise ValueError(
+                'FATAL: tensor_names for both examples must match, got\n'
+                f'    (1) {self.first.tensor_names}\n'
+                f'    (2) {self.second.tensor_names}'
+            )
+        if protect is None:
+            self.protect = []
+        else:
+            self.protect = protect
+
+        self.data_save = data_save
+        self.fig_save = fig_save
+
+    def compare(self, **kw):
+        if (
+            self.first.tensors.keys() != self.second.tensors.keys()
+            or self.first.tensors.keys() != self.first.tensor_names
+            or self.second.tensors.keys() != self.second.tensor_names
+        ):
+            raise ValueError(
+                '\n\n\nFATAL: keys for both examples must match each other and'
+                ' their respective tensor_names attribute.\nNOTE:'
+                ' Example.self.tensors is initialized to an empty dict.\n   '
+                ' It is the responsibility of the user to populate it, usually'
+                ' within _generate_data concretization.\n    It is expected'
+                ' that by the time _generate_data is finished that'
+                ' self.tensors.keys() == self.tensor_names. Debugging info'
+                ' below\n    (1) self.first.tensors.keys():'
+                f' {self.first.tensors.keys()}\n    (2)'
+                f' self.second.tensors.keys(): {self.second.tensors.keys()}\n  '
+                f'  (3) self.first.tensor_names: {self.first.tensor_names}\n   '
+                f' (4) self.second.tensor_names: {self.second.tensor_names}\n'
+            )
+
+        self.first.data_save = self.data_save
+        self.first.fig_save = self.fig_save
+        for name in self.first.tensor_names:
+            if name not in self.protect:
+                self.first.tensors[name] = (
+                    self.first.tensors[name] - self.second.tensors[name]
+                )
+                self.first.tensors[name] = self.first.tensors[name].abs()
+        self.first.save_all_tensors()
+        self.first.plot_data(**kw)
 
 
 def define_names(*tensor_names):

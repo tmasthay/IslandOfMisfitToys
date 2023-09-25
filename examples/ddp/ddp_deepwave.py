@@ -64,6 +64,14 @@ class Prop(torch.nn.Module):
 
 class MultiscaleExample(Example):
     def _generate_data(self, rank, world_size):
+        print(f'self.address at top of _generate_data={id(self)}', flush=True)
+        print(
+            (
+                'self.tensors.keys() at top of '
+                f' _generate_data={self.tensors.keys()} with rank={rank}'
+            ),
+            flush=True,
+        )
         ny = 2301
         nx = 751
         dx = 4.0
@@ -187,8 +195,12 @@ class MultiscaleExample(Example):
             self.tensors['freqs'].shape[0], n_epochs, *v_true.shape
         )
 
-        self.tensors['loss'] = torch.zeros(
-            world_size + 1, self.tensors['freqs'].shape[0], self.n_epochs
+        self.tensors['loss'] = (
+            torch.zeros(
+                world_size + 1, self.tensors['freqs'].shape[0], self.n_epochs
+            )
+            .detach()
+            .cpu()
         )
 
         self.print(f'TRAIN BEGIN, Rank={rank}')
@@ -259,7 +271,24 @@ class MultiscaleExample(Example):
                 f' {self.tensors["loss"].shape}'
             )
 
+        print(
+            f'self.address at bottom of _generate_data={id(self)}', flush=True
+        )
+        print(
+            (
+                'self.tensors.keys at bottom of'
+                f' _generate_data={self.tensors.keys()} with rank={rank}'
+            ),
+            flush=True,
+        )
+
     def plot_data(self, **kw):
+        print(f'self.address top of plot_data={id(self)}', flush=True)
+        print(
+            f'self.tensors.keys() at top of plot_data={self.tensors.keys()}',
+            flush=True,
+        )
+        self.n_epochs = 2
         self.plot_inv_record_auto(
             name='vp',
             labels=[
@@ -274,14 +303,27 @@ class MultiscaleExample(Example):
             ),
         )
         self.plot_loss()
+        print(
+            f'self.address bottom of plot_data={id(self)}',
+            flush=True,
+        )
+        print(
+            f'self.tensors.keys() at bottom of plot_data={self.tensors.keys()}',
+            flush=True,
+        )
 
 
 if __name__ == '__main__':
     me = MultiscaleExample(
         data_save='deepwave/data',
         fig_save='deepwave/figs',
+        pickle_save='deepwave/pickle',
         verbose=2,
         tensor_names=['vp_true', 'vp_init', 'vp_record', 'freqs', 'loss'],
     )
     me.n_epochs = 2
-    me.run()
+    print(f'address Multiscale tensor keys: {me.tensors.keys()}')
+    print(f'Multiscale address before run()={id(me)}')
+    me = me.run()
+    print(f'address MultiScale tensor keys: {me.tensors.keys()}')
+    print(f'Multiscale address after run()={id(me)}')
