@@ -20,6 +20,7 @@ from time import time
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 
+# git config test -- ignore this commetn
 class Prop(torch.nn.Module):
     def __init__(self, model, dx, dt, freq):
         super().__init__()
