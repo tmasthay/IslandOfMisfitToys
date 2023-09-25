@@ -38,80 +38,81 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
     extra_forward_args: Ant[dict, 'Extra arguments to forward pass']
     metadata: Ant[dict, 'Metadata']
     custom: Ant[dict, 'Custom data']
-    
+
     @auto_path(make_dir=False)
     def __init__(
         self,
         *,
         path: Ant[str, 'Path to data'],
-        extra_forward_args: Opt[Ant[dict, 'Extra forward args']]=None,
-        obs_data: Ant[Union[str, torch.Tensor] , 'obs_data']=None,
-        src_amp_y: Ant[Union[str, torch.Tensor], 'Source amp. y']=None,
-        src_loc_y: Ant[Union[str, torch.Tensor], 'Source locations']=None,
-        rec_loc_y: Ant[Union[str, torch.Tensor], 'Receiver locations']=None,
+        extra_forward_args: Opt[Ant[dict, 'Extra forward args']] = None,
+        obs_data: Ant[Union[str, torch.Tensor], 'obs_data'] = None,
+        src_amp_y: Ant[Union[str, torch.Tensor], 'Source amp. y'] = None,
+        src_loc_y: Ant[Union[str, torch.Tensor], 'Source locations'] = None,
+        rec_loc_y: Ant[Union[str, torch.Tensor], 'Receiver locations'] = None,
         vp_init: Ant[
-            Union[str, torch.Tensor], 
-            'Initial P velocity model'
-        ]=None,
-        src_amp_x: Opt[Ant[Union[str, torch.Tensor], 'Source amp. x']]=None,
-        vs_init: Opt[Ant[Union[str, torch.Tensor], 'Init S vel']]=None,
-        rho_init: Opt[Ant[Union[str, torch.Tensor], 'Init density']]=None,
-        vp_true: Opt[Ant[Union[str, torch.Tensor], 'True P vel']]=None,
-        vs_true: Opt[Ant[Union[str, torch.Tensor], 'True S vel']]=None,
-        rho_true: Opt[Ant[Union[str, torch.Tensor], 'True density ']]=None,
+            Union[str, torch.Tensor], 'Initial P velocity model'
+        ] = None,
+        src_amp_x: Opt[Ant[Union[str, torch.Tensor], 'Source amp. x']] = None,
+        vs_init: Opt[Ant[Union[str, torch.Tensor], 'Init S vel']] = None,
+        rho_init: Opt[Ant[Union[str, torch.Tensor], 'Init density']] = None,
+        vp_true: Opt[Ant[Union[str, torch.Tensor], 'True P vel']] = None,
+        vs_true: Opt[Ant[Union[str, torch.Tensor], 'True S vel']] = None,
+        rho_true: Opt[Ant[Union[str, torch.Tensor], 'True density ']] = None,
         src_amp_y_true: Opt[
             Ant[Union[str, torch.Tensor], 'True source amp. y']
-        ]=None,
+        ] = None,
         src_amp_x_true: Opt[
             Ant[Union[str, torch.Tensor], 'True source amp. x']
-        ]=None,
-        vp_prmzt: Ant[Call[[torch.Tensor], Param], "Parameterized vp"] \
-            =Param.delay_init(requires_grad=True),
-        vs_prmzt: Ant[Call[[torch.Tensor], Param], "Parameterized vs"] \
-            =Param.delay_init(requires_grad=False),
-        rho_prmzt: Ant[Call[[torch.Tensor], Param], "Parameterized rho"] \
-            =Param.delay_init(requires_grad=False),
+        ] = None,
+        vp_prmzt: Ant[
+            Call[[torch.Tensor], Param], "Parameterized vp"
+        ] = Param.delay_init(requires_grad=True),
+        vs_prmzt: Ant[
+            Call[[torch.Tensor], Param], "Parameterized vs"
+        ] = Param.delay_init(requires_grad=False),
+        rho_prmzt: Ant[
+            Call[[torch.Tensor], Param], "Parameterized rho"
+        ] = Param.delay_init(requires_grad=False),
         src_amp_y_prmzt: Ant[
-            Call[[torch.Tensor], Param], 
-            "Parameterized src amp y"
-        ]=Param.delay_init(requires_grad=False),
+            Call[[torch.Tensor], Param], "Parameterized src amp y"
+        ] = Param.delay_init(requires_grad=False),
         src_amp_x_prmzt: Ant[
-            Call[[torch.Tensor], Param], 
-            "Parameterized src amp x"
-        ]=Param.delay_init(requires_grad=False)
+            Call[[torch.Tensor], Param], "Parameterized src amp x"
+        ] = Param.delay_init(requires_grad=False),
     ):
         super().__init__()
+
         def get(filename, default=None):
-            if( isinstance(filename, torch.Tensor) ):
+            if isinstance(filename, torch.Tensor):
                 return filename
-            elif( filename is not None ):
+            elif filename is not None:
                 return get_data2(field=filename, path=path)
-            elif( filename is None and default is not None ):
-                if( os.path.exists(f'{path}/{default}.pt') ):
+            elif filename is None and default is not None:
+                if os.path.exists(f'{path}/{default}.pt'):
                     return get_data2(field=default, path=path)
                 else:
                     return None
             else:
                 return None
-        
+
         def get_prmzt(filename, default=None, *, prmzt):
             tmp = get(filename, default=default)
-            if( tmp is None ):
+            if tmp is None:
                 return None
             else:
                 return prmzt(tmp)
-        
+
         self.vp = get_prmzt(vp_init, 'vp_init', prmzt=vp_prmzt)
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
         # self.src_amp_y = get_prmzt(
-        #     src_amp_y, 
-        #     'src_amp_y', 
+        #     src_amp_y,
+        #     'src_amp_y',
         #     prmzt=src_amp_y_prmzt
         # )
         # self.src_amp_x = get_prmzt(
-        #     src_amp_x, 
-        #     'src_amp_y', 
+        #     src_amp_x,
+        #     'src_amp_y',
         #     prmzt=src_amp_x_prmzt
         # )
 
@@ -134,33 +135,33 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.set_extra_forwards(extra_forward_args)
 
     def set_extra_forwards(self, extra_forward_args):
-        if( extra_forward_args is None ):
+        if extra_forward_args is None:
             self.extra_forward_args = {}
         else:
             self.extra_forward_args = extra_forward_args
-        if( isinstance(self.vp, ParamConstrained) ):
+        if isinstance(self.vp, ParamConstrained):
             maxv = self.vp.custom.maxv
-            if( isinstance(self.vs, ParamConstrained) ):
+            if isinstance(self.vs, ParamConstrained):
                 maxv = min(maxv, self.vs.custom.maxv)
             self.extra_forward_args.update({'max_vel': maxv})
-    
+
     def set_meta_fields(self):
         custom_dict = {}
-        for k,v in self.metadata.items():
-            if( k in self.__slots__ ):
+        for k, v in self.metadata.items():
+            if k in self.__slots__:
                 setattr(self, k, v)
             else:
                 custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
     def forward(self, *, amp_idx, **kw):
-        kw = { **self.extra_forward_args, **kw }
+        kw = {**self.extra_forward_args, **kw}
         # if( 'amp_idx' in kw.keys() ):
         #     amp_idx = kw['amp_idx']
         #     del kw['amp_idx']
         # else:
         #     amp_idx = torch.arange(self.src_amp_y.shape[0])
-        if( self.model == 'acoustic' ):
+        if self.model == 'acoustic':
             return dw.scalar(
                 self.vp(),
                 self.dy,
@@ -168,7 +169,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 source_amplitudes=self.src_amp_y[amp_idx],
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
-                **kw
+                **kw,
             )
         else:
             return dw.elastic(
@@ -178,6 +179,5 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 source_amplitudes_y=self.src_amp_y,
                 source_locations_y=self.src_loc_y,
                 receiver_locations_y=self.rec_loc_y,
-                **kw
+                **kw,
             )
-

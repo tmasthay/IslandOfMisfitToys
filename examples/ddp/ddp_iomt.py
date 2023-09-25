@@ -19,6 +19,7 @@ from time import time
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
+
 class Prop(torch.nn.Module):
     def __init__(self, model, dx, dt, freq):
         super().__init__()
@@ -27,11 +28,12 @@ class Prop(torch.nn.Module):
         self.dt = dt
         self.freq = freq
 
-    def forward(self, source_amplitudes, source_locations,
-                receiver_locations):
+    def forward(self, source_amplitudes, source_locations, receiver_locations):
         v = self.model()
         return scalar(
-            v, self.dx, self.dt,
+            v,
+            self.dx,
+            self.dt,
             source_amplitudes=source_amplitudes,
             source_locations=source_locations,
             receiver_locations=receiver_locations,
@@ -39,6 +41,7 @@ class Prop(torch.nn.Module):
             pml_freq=self.freq,
             time_pad_frac=0.2,
         )
+
 
 def run_rank(rank, world_size):
     path = 'conda/data/marmousi/deepwave_example/shots16'
@@ -52,7 +55,7 @@ def run_rank(rank, world_size):
     # v_init = get_data3(field='vp_init', path=path)
     # observed_data = taper(
     #     get_data3(
-    #         field='obs_data', 
+    #         field='obs_data',
     #         path='conda/data/marmousi/deepwave_example/shots16',
     #     ),
     #     tape_len
@@ -64,7 +67,7 @@ def run_rank(rank, world_size):
 
     # observed_data = \
     #     torch.chunk(observed_data, world_size)[rank].to(rank)
-    
+
     # source_amplitudes.p = torch.nn.Parameter(
     #     torch.chunk(source_amplitudes.p, world_size)[rank].to(rank),
     #     requires_grad=source_amplitudes.p.requires_grad
@@ -76,12 +79,10 @@ def run_rank(rank, world_size):
 
     propper = SeismicProp(
         path=path,
-        extra_forward_args={ 'time_pad_frac': 0.2 },
+        extra_forward_args={'time_pad_frac': 0.2},
         vp_prmzt=ParamConstrained.delay_init(
-            requires_grad=True,
-            minv=1000,
-            maxv=2500
-        )
+            requires_grad=True, minv=1000, maxv=2500
+        ),
     )
     v_init = propper.vp().detach().cpu()
 
@@ -98,8 +99,12 @@ def run_rank(rank, world_size):
     # prop = distribution.dist_prop.moduel
 
     propper.obs_data = torch.chunk(propper.obs_data, world_size)[rank].to(rank)
-    propper.src_loc_y = torch.chunk(propper.src_loc_y, world_size)[rank].to(rank)
-    propper.rec_loc_y = torch.chunk(propper.rec_loc_y, world_size)[rank].to(rank)
+    propper.src_loc_y = torch.chunk(propper.src_loc_y, world_size)[rank].to(
+        rank
+    )
+    propper.rec_loc_y = torch.chunk(propper.rec_loc_y, world_size)[rank].to(
+        rank
+    )
     propper.src_amp_y = propper.src_amp_y.to(rank)
     # propper.src_amp_y = torch.chunk(propper.src_amp_y, world_size)[rank].to(rank)
 
@@ -116,32 +121,37 @@ def run_rank(rank, world_size):
     amp_idx = torch.arange(begin_idx, end_idx).to(rank)
 
     for cutoff_freq in [10, 15, 20, 25, 30]:
-        sos = butter(6, cutoff_freq, fs=1/meta.dt, output='sos')
-        sos = [torch.tensor(sosi).to(prop.module.obs_data.dtype).to(rank)
-               for sosi in sos]
+        sos = butter(6, cutoff_freq, fs=1 / meta.dt, output='sos')
+        sos = [
+            torch.tensor(sosi).to(prop.module.obs_data.dtype).to(rank)
+            for sosi in sos
+        ]
 
         def filt(x):
-            return biquad(biquad(biquad(x, *sos[0]), *sos[1]),
-                          *sos[2])
+            return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+
         observed_data_filt = filt(prop.module.obs_data)
         optimiser = torch.optim.LBFGS(prop.module.parameters())
 
         for epoch in range(n_epochs):
             closure_calls = 0
+
             def closure():
                 nonlocal closure_calls
                 closure_calls += 1
                 optimiser.zero_grad()
                 out = prop(amp_idx=amp_idx)
                 out_filt = filt(taper(out[-1], tape_len))
-                loss = 1e6*loss_fn(out_filt, observed_data_filt)
-                if( closure_calls == 1):
+                loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+                if closure_calls == 1:
                     print(
-                        f'Loss={loss.item():.16f}, ' 
+                        (
+                            f'Loss={loss.item():.16f}, '
                             f'Freq={cutoff_freq}, '
                             f'Epoch={epoch}, '
-                            f'Rank={rank}',
-                        flush=True
+                            f'Rank={rank}'
+                        ),
+                        flush=True,
                     )
                 loss.backward()
 
@@ -153,16 +163,20 @@ def run_rank(rank, world_size):
         v = prop.module.vp().detach().cpu()
         vmin = prop.module.vp_true.min()
         vmax = prop.module.vp_true.max()
-        _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True,
-                             sharey=True)
-        ax[0].imshow(v_init.cpu().T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
+        _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
+        ax[0].imshow(
+            v_init.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        )
         ax[0].set_title("Initial")
-        ax[1].imshow(v.T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
+        ax[1].imshow(v.T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax)
         ax[1].set_title("Out")
-        ax[2].imshow(prop.module.vp_true.detach().cpu().T, aspect='auto', cmap='gray',
-                     vmin=vmin, vmax=vmax)
+        ax[2].imshow(
+            prop.module.vp_true.detach().cpu().T,
+            aspect='auto',
+            cmap='gray',
+            vmin=vmin,
+            vmax=vmax,
+        )
         ax[2].set_title("True")
         plt.tight_layout()
         plt.savefig('out_ddp_hybrid.jpg')
@@ -173,11 +187,7 @@ def run_rank(rank, world_size):
 
 
 def run(world_size):
-
-    mp.spawn(run_rank,
-             args=(world_size,),
-             nprocs=world_size,
-             join=True)
+    mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
 if __name__ == "__main__":
