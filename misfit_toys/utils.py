@@ -15,21 +15,24 @@ import deepwave as dw
 from warnings import warn
 import os
 
+
 class DotDict:
     def __init__(self, d):
-        for k,v in d.items():
+        for k, v in d.items():
             setattr(self, k, v)
 
+
 def parse_path(path):
-    if( path is None ):
+    if path is None:
         path = 'conda'
-    if( path.startswith('conda') ):
+    if path.startswith('conda'):
         path = path.replace('conda', os.environ['CONDA_PREFIX'])
-    elif( path.startswith('pwd') ):
+    elif path.startswith('pwd'):
         path = path.replace('pwd', os.getcwd())
     else:
         path = os.path.join(os.getcwd(), path)
     return path
+
 
 def auto_path(make_dir=False):
     def decorator(func):
@@ -37,25 +40,30 @@ def auto_path(make_dir=False):
             if 'path' in kwargs:
                 kwargs['path'] = parse_path(kwargs['path'])
                 if make_dir:
-                    os.makedirs(kwargs['path'], exist_ok=True) 
+                    os.makedirs(kwargs['path'], exist_ok=True)
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 def get_pydict(path, *, filename='metadata', as_class=True):
     path = parse_path(path)
     filename = filename.replace('.pydict', '') + '.pydict'
     full_path = os.path.join(path, filename)
     d = eval(open(full_path, 'r').read())
-    if( as_class ):
+    if as_class:
         return DotDict(d)
     else:
         return d
 
-def gpu_mem(msg='', color='red', print_protocol=print):
-    if( len(msg) > 0 and msg[-1] != '\n' ): msg += '\n'
 
-    if( type(color) == tuple ):
+def gpu_mem(msg='', color='red', print_protocol=print):
+    if len(msg) > 0 and msg[-1] != '\n':
+        msg += '\n'
+
+    if type(color) == tuple:
         color = [str(e) for e in color]
         color = 'rgb' + '_'.join(color)
     out = sco_bash('gpu_mem', color, split=True)
@@ -64,8 +72,9 @@ def gpu_mem(msg='', color='red', print_protocol=print):
     out = '\n'.join(out)
     print_protocol(f'{msg}{out}')
 
+
 def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
-    if( scale ):
+    if scale:
         scaling = torch.max(torch.abs(ref))
     else:
         scaling = 1.0
@@ -76,102 +85,123 @@ def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
     v = tmp.clone().requires_grad_()
     return v
 
+
 def verbosity_str_to_int(*, verbosity, levels):
-    if( type(verbosity) == int ): return verbosity
-    elif( type(verbosity) == str ):
+    if type(verbosity) == int:
+        return verbosity
+    elif type(verbosity) == str:
         verbosity = verbosity.lower()
-        for (level, level_names) in levels:
-            if( verbosity in level_names ): return level
+        for level, level_names in levels:
+            if verbosity in level_names:
+                return level
         raise ValueError(f'Verbose value {verbosity} not recognized')
     else:
-        raise ValueError(
-            f'Verbosity must be int or str, got {type(verbosity)}'
-        )
+        raise ValueError(f'Verbosity must be int or str, got {type(verbosity)}')
 
-def clean_levels(levels):  
-    if( levels is None ):
+
+def clean_levels(levels):
+    if levels is None:
         levels = []
         levels.append((0, ['none', 'silent']))
         levels.append((1, ['low', 'progress']))
         levels.append((2, ['medium', 'debug']))
         levels.append((np.inf, ['high', 'all']))
-    for (i,l) in enumerate(levels):
-        if( type(l) is int ):
+    for i, l in enumerate(levels):
+        if type(l) is int:
             levels[i] = (l, [str(l)])
-    for (i,l) in enumerate(levels):
-        if( type(l) not in [list, tuple] or len(l) != 2 ):
+    for i, l in enumerate(levels):
+        if type(l) not in [list, tuple] or len(l) != 2:
             raise ValueError('Levels must be list of pairs')
-        elif( type(l[1]) is not list ):
+        elif type(l[1]) is not list:
             raise ValueError(f'Level names must be list, got {type(l[1])}')
-        elif( str(l[0]) not in l[1] ):
+        elif str(l[0]) not in l[1]:
             l[1].append(str(l[0]))
-            if( l[0] is np.inf ):
+            if l[0] is np.inf:
                 l[1].append('infinity')
     levels = sorted(levels, key=lambda x: x[0])
     return levels
 
+
 def run_verbosity(*, verbosity, levels):
-    levels = clean_levels(levels)  
+    levels = clean_levels(levels)
     v2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
     verbosity_int = v2i(verbosity)
+
     def helper(f):
         def helper_inner(*args, _verbosity_, **kw):
             _verbosity_int = v2i(_verbosity_)
-            if( _verbosity_int <= verbosity_int ):
+            if _verbosity_int <= verbosity_int:
                 return f(*args, **kw)
             else:
                 return None
+
         return helper_inner
+
     return helper
+
 
 def mem_report(*args, precision=2, sep=', ', rep=None):
     filtered_args = []
-    if( rep is None ):
+    if rep is None:
         rep = []
     [rep.append('unknown') for _ in range(len(args) - len(rep))]
     add = lambda x, i: filtered_args.append(x + ' (' + rep[i] + ')')
-    for (i,arg) in enumerate(args):
-        if( 1e18 < arg ):
+    for i, arg in enumerate(args):
+        if 1e18 < arg:
             add(f'{arg/1e18:.{precision}f} EB', i)
-        elif( 1e15 < arg ):
+        elif 1e15 < arg:
             add(f'{arg/1e15:.{precision}f} PB', i)
-        elif( 1e12 < arg ):
+        elif 1e12 < arg:
             add(f'{arg/1e12:.{precision}f} TB', i)
-        elif( 1e9 < arg ):
+        elif 1e9 < arg:
             add(f'{arg/1e9:.{precision}f} GB', i)
-        elif( 1e6 < arg ):
+        elif 1e6 < arg:
             add(f'{arg/1e6:.{precision}f} MB', i)
-        elif( 1e3 < arg ):
+        elif 1e3 < arg:
             add(f'{arg/1e3:.{precision}f} KB', i)
         else:
             add(f'{arg:.{precision}f} B', i)
     return sep.join(filtered_args)
 
+
 def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
-    if( title is None ): title = ''
-    else: title = title + '\n    '
-    return title \
-        + mem_report(
-            *torch.cuda.mem_get_info(), 
-            precision=precision, 
-            sep=sep, 
-            rep=rep
-        )
+    if title is None:
+        title = ''
+    else:
+        title = title + '\n    '
+    return title + mem_report(
+        *torch.cuda.mem_get_info(), precision=precision, sep=sep, rep=rep
+    )
+
 
 def taper(x, length):
     return dw.common.cosine_taper_end(x, length)
 
+
 def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
+    stats = dict(dtype=tensor.dtype, shape=tensor.shape)
+    if tensor.dtype == torch.bool:
+        return str(stats)
+    elif tensor.dtype in [
+        torch.int8,
+        torch.int16,
+        torch.int32,
+        torch.int64,
+        torch.uint8,
+    ]:
+        tensor = tensor.float()
+
     # Compute various statistics
-    stats = {
-        'shape': tensor.shape,
-        'mean': torch.mean(tensor).item(),
-        'variance': torch.var(tensor).item(),
-        'median': torch.median(tensor).item(),
-        'min': torch.min(tensor).item(),
-        'max': torch.max(tensor).item(),
-        'stddev': torch.std(tensor).item()
-    }
+    stats.update(
+        dict(
+            mean=torch.mean(tensor).item(),
+            variance=torch.var(tensor).item(),
+            median=torch.median(tensor).item(),
+            min=torch.min(tensor).item(),
+            max=torch.max(tensor).item(),
+            stddev=torch.std(tensor).item(),
+        )
+    )
 
     # Prepare the summary string with the desired indentation
     indent = idt_str * idt_level
@@ -181,50 +211,49 @@ def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
 
     return '\n'.join(summary)
 
+
 def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
-    if( print_kwargs is None ):
+    if print_kwargs is None:
         print_kwargs = {'flush': True}
     print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
+
 
 class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
         try:
-            annotated_keys = list(
-                class_dict['__annotations__'].keys()
-            )
+            annotated_keys = list(class_dict['__annotations__'].keys())
         except KeyError:
             annotated_keys = []
-        
+
         # Find attributes that are not methods, not in special names and not already annotated
         non_annotated_attrs = [
-            key for key, value in class_dict.items() 
-                if not (
-                    callable(value) 
-                    or key.startswith('__') 
-                    or key in annotated_keys
-                )
+            key
+            for key, value in class_dict.items()
+            if not (
+                callable(value) or key.startswith('__') or key in annotated_keys
+            )
         ]
-        
+
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
             class_dict['__annotations__'][key] = Ant[Any, 'NOT ANNOTATED']
-            
-            # Optional: Remove the attributes as they'll be defined by __slots__ 
+
+            # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
 
         # Create the __slots__ attribute from updated annotationsi
         try:
-            class_dict['__slots__'] = list(
-                class_dict['__annotations__'].keys()
-            )
+            class_dict['__slots__'] = list(class_dict['__annotations__'].keys())
         except KeyError:
             class_dict['__slots__'] = []
-                
+
         return super().__new__(cls, name, bases, class_dict)
-    
+
+
 class CombinedMeta(SlotMeta, ABCMeta):
     pass
+
 
 # class AbstractParam(torch.nn.Module, metaclass=CombinedMeta):
 #     param: Ant[torch.nn.Parameter, 'Parameter']
@@ -236,19 +265,19 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #     @abstractmethod
 #     def forward(self, **kw):
 #         raise NotImplementedError('Forward not implemented')
-    
+
 # class Param(AbstractParam):
 #     def forward(self):
 #         return self.param
-    
+
 # class ConstrainedParam(AbstractParam):
 #     def __init__(
-#         self, 
-#         *, 
-#         param, 
-#         trainable, 
-#         device='cpu', 
-#         min_val, 
+#         self,
+#         *,
+#         param,
+#         trainable,
+#         device='cpu',
+#         min_val,
 #         max_val
 #     ):
 #         param = torch.logit((param - min_val) / (max_val - min_val))
@@ -259,7 +288,7 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #             min_val=min_val,
 #             max_val=max_val
 #         )
-    
+
 #     def forward(self, *, idx='all'):
 #         if( idx == 'all' ):
 #             return torch.sigmoid(self.param) \
@@ -276,11 +305,11 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #     custom: Ant[dict, 'Custom metadata']
 
 #     def __init__(
-#         self, 
-#         *, 
-#         initial, 
-#         setup=None, 
-#         forward=None, 
+#         self,
+#         *,
+#         initial,
+#         setup=None,
+#         forward=None,
 #         requires_grad=False,
 #         store_kw=False,
 #         **kw
@@ -314,7 +343,7 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #         pre_setups = {
 #             'identity': ((None, 'identity'), (None, 'identity')),
 #             'logit': (
-#                 (None, 'logit', 'constrained'), 
+#                 (None, 'logit', 'constrained'),
 #                 ('sigmoid', 'logit_inverse', 'constrained')
 #             )
 #         }
@@ -322,7 +351,7 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #             if( key == 'identity' ):
 #                 return lambda x: x, lambda x: x
 #             elif( key == 'logit' ):
-#                 try: 
+#                 try:
 #                     minv, maxv = kw['min_val'], kw['max_val']
 #                 except KeyError:
 #                     raise ValueError(
@@ -361,14 +390,14 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #         self.vs = vs
 #         self.rho = rho
 #         self.src_amp_x = src_amp_x
-    
+
 #     def forward(
-#         self, 
-#         *, 
+#         self,
+#         *,
 #         dx,
 #         dt,
-#         src_loc_y, 
-#         rec_loc_y, 
+#         src_loc_y,
+#         rec_loc_y,
 #         model='acoustic',
 #         **kw
 #     ):
@@ -396,20 +425,19 @@ class CombinedMeta(SlotMeta, ABCMeta):
 #             )[-2]
 #         else:
 #             raise ValueError(f'Unknown model {model}')
-        
 
 
 def idt_print(*args, levels=None, idt='    '):
-    if( levels is None ):
+    if levels is None:
         levels = [1 for _ in range(len(args))]
         levels[0] = 0
-    elif( type(levels) is int ):
+    elif type(levels) is int:
         tmp = levels
         levels = [tmp + 1 for _ in range(len(args))]
         levels[0] = tmp
 
     lines = args
     i = 0
-    for (arg, idt_level) in zip(args, levels):
+    for arg, idt_level in zip(args, levels):
         lines[i] = f'{idt * idt_level}{arg}'
     return '\n'.join(lines)

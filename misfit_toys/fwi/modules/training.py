@@ -68,7 +68,6 @@ class Training:
             flush=True,
         )
         for idx, cutoff_freq in enumerate(list(all_freqs)):
-            print(f'Rank={rank}, Freq={cutoff_freq}')
             sos = butter(
                 6,
                 cutoff_freq,

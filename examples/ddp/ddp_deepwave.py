@@ -22,6 +22,8 @@ from itertools import product as prod
 # from ..example import Example, define_names
 from example import Example, define_names
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 
 class Model(torch.nn.Module):
     def __init__(self, initial, min_vel, max_vel):
@@ -100,7 +102,7 @@ class MultiscaleExample(Example):
 
         # Smooth to use as starting model
         v_init = torch.tensor(1 / gaussian_filter(1 / v_true.numpy(), 40))
-        self.tensors['vp_init'] = v_init
+        self.tensors['vp_init_raw'] = v_init.detach().cpu()
 
         n_shots = 115
 
@@ -167,6 +169,11 @@ class MultiscaleExample(Example):
             deepwave.wavelets.ricker(freq, nt, dt, peak_time)
         ).repeat(n_shots, n_sources_per_shot, 1)
 
+        self.tensors['src_loc_y'] = source_locations
+        self.tensors['rec_loc_y'] = receiver_locations
+        self.tensors['src_amp_y'] = source_amplitudes
+        self.tensors['obs_data'] = observed_data
+
         print(f'Rank={rank}, id={id(observed_data)}', flush=True)
         observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
         source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
@@ -180,6 +187,7 @@ class MultiscaleExample(Example):
         ].to(rank)
 
         model = Model(v_init, 1000, 2500)
+        self.tensors['vp_init'] = model().detach().cpu()
         prop = Prop(model, dx, dt, freq).to(rank)
         prop = DDP(prop, device_ids=[rank])
 
@@ -197,7 +205,7 @@ class MultiscaleExample(Example):
 
         self.tensors['loss'] = (
             torch.zeros(
-                world_size + 1, self.tensors['freqs'].shape[0], self.n_epochs
+                world_size, self.tensors['freqs'].shape[0], self.n_epochs
             )
             .detach()
             .cpu()
@@ -263,9 +271,7 @@ class MultiscaleExample(Example):
         )
         if rank == 0:
             self.print(f'GATHER BEGIN, Rank={rank}')
-            self.tensors['loss'] = (
-                torch.stack(gather_loss).reshape(world_size, -1).to('cpu')
-            )
+            self.tensors['loss'] = torch.stack(gather_loss).to('cpu')
             self.print(
                 f'Gathered data: {self.tensors["loss"]} of shape'
                 f' {self.tensors["loss"].shape}'
@@ -319,7 +325,17 @@ if __name__ == '__main__':
         fig_save='deepwave/figs',
         pickle_save='deepwave/pickle',
         verbose=2,
-        tensor_names=['vp_true', 'vp_init', 'vp_record', 'freqs', 'loss'],
+        tensor_names=[
+            'vp_true',
+            'vp_init',
+            'vp_record',
+            'freqs',
+            'loss',
+            'src_amp_y',
+            'src_loc_y',
+            'rec_loc_y',
+            'obs_data',
+        ],
     )
     me.n_epochs = 2
     print(f'address Multiscale tensor keys: {me.tensors.keys()}')

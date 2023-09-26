@@ -1,4 +1,5 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
+from misfit_toys.utils import summarize_tensor
 
 from abc import ABC, abstractmethod
 import os
@@ -17,9 +18,11 @@ class Example(ABC):
         *,
         data_save,
         fig_save,
-        pickle_save,
+        pickle_save=None,
         tensor_names,
         verbose=1,
+        subplot_args={},
+        plot_args={},
         **kw,
     ):
         self.data_save = data_save
@@ -31,12 +34,32 @@ class Example(ABC):
         }
         self.verbose = verbose
         self.tensors = {}
+        self.subplot_args = subplot_args
+        self.plot_args = plot_args
         if 'output_files' in kw.keys():
             raise ValueError(
                 'output_files is generated from tensor_names'
                 'and thus should be treated like a reserved keyword'
             )
         self.__dict__.update(kw)
+
+        if self.pickle_save is None:
+            random_int = torch.randint(0, 1000000, (1,)).item()
+            curr_prop = f'/tmp/pickle_{random_int}.pkl'
+            num_tries = 10
+            curr_try = 0
+            while os.path.exists(curr_prop) and curr_try < num_tries:
+                curr_prop = f'/tmp/pickle_{random_int}.pkl'
+                curr_try += 1
+                if curr_try == num_tries:
+                    raise ValueError(
+                        'FATAL: Tried to instantiate Example with pickle '
+                        f'path {curr_prop} with no success after {num_tries} '
+                        'tries. Clean up your /tmp directory and try again.'
+                    )
+            self.pickle_save = curr_prop
+
+        self.debug_save = f'{self.data_save}/debug'
 
     @abstractmethod
     def _generate_data(self, rank, world_size):
@@ -100,7 +123,7 @@ class Example(ABC):
             reshaped_record = reshaped_record.transpose(1, 2)
             del plot_args['transpose']
 
-        _, ax = plt.subplots(3, **subplot_args)
+        fig, ax = plt.subplots(3, **subplot_args)
         Example.print_static(
             f'Plotting final results {name} at {fig_save}/final_{name}.jpg...',
             end='',
@@ -108,11 +131,8 @@ class Example(ABC):
         )
         ax[0].imshow(init, **plot_args)
         ax[0].set_title(f'{name} Initial')
-        ax[1].imshow(reshaped_record[-1], **plot_args)
-        ax[1].set_title(f'{name} Final')
         ax[2].imshow(true, **plot_args)
         ax[2].set_title(f'{name} Ground Truth')
-        ax[1].cla()
         Example.print_static('SUCCESS', verbose=verbose)
         for i, curr in enumerate(reshaped_record):
             save_file_name = f'{fig_save}/{name}_{i}.jpg'
@@ -120,11 +140,16 @@ class Example(ABC):
                 f'Plotting {save_file_name} with params={subtitle(i)}...',
                 end='',
             )
-            ax[1].imshow(curr, **plot_args)
+            curr_ax1 = ax[1].imshow(curr, **plot_args)
             ax[1].set_title(f'{name} {subtitle(i)}')
+            fig.colorbar(
+                curr_ax1, ax=ax.ravel().tolist(), orientation='vertical'
+            )
             plt.tight_layout()
             plt.savefig(save_file_name)
             ax[1].cla()
+            if len(fig.axes) > 3:
+                fig.delaxes(fig.axes[-1])
             Example.print_static('SUCCESS', verbose=verbose)
         plt.close()
         Example.print_static(
@@ -147,8 +172,10 @@ class Example(ABC):
         Example.print_static('SUCCESS', verbose=verbose)
 
     def plot_inv_record_auto(
-        self, *, name, labels, subplot_args=None, plot_args=None
+        self, *, name, labels, subplot_args={}, plot_args={}
     ):
+        subplot_args = {**self.subplot_args, **subplot_args}
+        plot_args = {**self.plot_args, **plot_args}
         Example.plot_inv_record(
             fig_save=self.fig_save,
             init=self.tensors[f'{name}_init'],
@@ -177,15 +204,40 @@ class Example(ABC):
     def print(self, *args, level=1, **kw):
         Example.print_static(*args, level=level, verbose=self.verbose, **kw)
 
+    def add_info(self, *, s, name, **kw):
+        return s
+
+    def info_tensor(self, name, **kw):
+        s = summarize_tensor(self.tensors[name], heading=name)
+        return self.add_info(s=s, name=name, **kw)
+
     def save_tensor(self, name):
+        self.print(f'Saving {name} at {self.output_files[name]}...', end='')
         torch.save(self.tensors[name], self.output_files[name])
+        txt_path = self.output_files[name].replace('.pt', '.tensor_summary')
+        with open(txt_path, 'w') as f:
+            f.write(self.info_tensor(name))
+        self.print(f'SUCCESS', level=1)
 
     def save_all_tensors(self):
         if set(self.tensors.keys()) != set(self.tensor_names):
+            in_key_not_in_names = set(self.tensors.keys()) - set(
+                self.tensor_names
+            )
+            in_names_not_in_key = set(self.tensor_names) - set(
+                self.tensors.keys()
+            )
             raise ValueError(
-                'FATAL: tensor_names and self.tensors.keys() do not match.\n'
-                f'    tensor_names: {self.tensor_names}\n'
-                f'    self.tensors.keys(): {self.tensors.keys()}'
+                '\nFATAL: tensor_names and self.tensors.keys() do not match.\n'
+                '    It is the responsibility of the user to ensure that by\n'
+                '        the end of calls to your overload of the abstract\n'
+                '        `_generate_data function` that all tensor_names keys\n'
+                '        are set in Example.self.tensors.\n'
+                f'    Debugging info below{""}:\n'
+                f'    tensor_names: {set(self.tensor_names)}\n'
+                f'    self.tensors.keys(): {set(self.tensors.keys())}\n'
+                f'    in_key_not_in_names: {in_key_not_in_names}\n'
+                f'    in_names_not_in_key: {in_names_not_in_key}'
             )
 
         for name in self.tensors.keys():
@@ -219,13 +271,14 @@ class Example(ABC):
         self.tensors['loss'] = self.tensors['loss'].to('cpu')
         self.print(f'loss inside plot_loss: {self.tensors["loss"]}')
         world_size = self.tensors['loss'].shape[0]
-        full_loss = self.tensors['loss'].sum(dim=0)
+        reshaped_loss = self.tensors['loss'].view(world_size, -1)
+        full_loss = reshaped_loss.sum(dim=0)
         plt.clf()
         for r in range(world_size):
             label = f'rank {r}'
             print(f'label={label}')
             plt.plot(
-                self.tensors['loss'][r],
+                reshaped_loss[r],
                 label=label,
                 linestyle=style[r % len(style)],
                 color=color[r % len(color)],
@@ -293,6 +346,11 @@ class Example(ABC):
         with open(self.pickle_save, 'rb') as f:
             self.print(f'Loading pickle from {self.pickle_save}...', end='')
             self = pickle.load(f)
+            self.print(
+                f'SUCCESS...deleting self.pickle_save...={self.pickle_save}',
+                end='',
+            )
+            os.remove(self.pickle_save)
             self.print('SUCCESS')
         return self
 
@@ -304,6 +362,7 @@ class ExampleComparator:
         data_save='compare/data',
         fig_save='compare/figs',
         protect=None,
+        log=0,
     ):
         if len(examples) != 2:
             raise ValueError(
@@ -311,8 +370,6 @@ class ExampleComparator:
             )
         self.first = examples[0].run()
         self.second = examples[1].run()
-
-        input(self.first.tensors.keys())
 
         if set(self.first.tensor_names) != set(self.second.tensor_names):
             raise ValueError(
@@ -327,12 +384,26 @@ class ExampleComparator:
 
         self.data_save = data_save
         self.fig_save = fig_save
+        self.log = log
+
+        self.dummy_first_path()
+
+    def dummy_first_path(self):
+        self.first.old_data_save = self.first.data_save
+        self.first.old_fig_save = self.first.fig_save
+        self.first.old_output_files = self.first.output_files
+        self.first.data_save = self.data_save
+        self.first.fig_save = self.fig_save
+        self.first.output_files = {
+            e: os.path.join(self.data_save, f'{e}.pt')
+            for e in self.first.tensor_names
+        }
 
     def compare(self, **kw):
         if (
-            self.first.tensors.keys() != self.second.tensors.keys()
-            or self.first.tensors.keys() != self.first.tensor_names
-            or self.second.tensors.keys() != self.second.tensor_names
+            set(self.first.tensors.keys()) != set(self.second.tensors.keys())
+            or set(self.first.tensors.keys()) != set(self.first.tensor_names)
+            or set(self.second.tensors.keys()) != set(self.second.tensor_names)
         ):
             raise ValueError(
                 '\n\n\nFATAL: keys for both examples must match each other and'
@@ -357,6 +428,14 @@ class ExampleComparator:
                     self.first.tensors[name] - self.second.tensors[name]
                 )
                 self.first.tensors[name] = self.first.tensors[name].abs()
+                if self.log == 1:
+                    self.first.tensors[name] = torch.log(
+                        self.first.tensors[name]
+                    )
+                elif self.log == 2:
+                    self.first.tensors[name] = torch.log(
+                        1.0 + self.first.tensors[name]
+                    )
         self.first.save_all_tensors()
         self.first.plot_data(**kw)
 
