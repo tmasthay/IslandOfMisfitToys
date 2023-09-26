@@ -18,6 +18,9 @@ class Factory(DataFactoryMeta):
             ' and be cleaned up by the garbage collector and thus benign.'
         )
         d = DotDict(data)
+
+        ###NOTE: THIS IS THE DIFFERENCE! HE'S DOING FILTERING AFTER DOWNSAMPLING###
+        ###MAKE SURE TO RECOMPUTE V_INIT FOR EACH OF THE DOWNSAMPLED CASES!###
         v_init = torch.tensor(1 / gaussian_filter(1 / d.vp_true.numpy(), 40))
         vp = d.vp_true.to(self.device)
 
