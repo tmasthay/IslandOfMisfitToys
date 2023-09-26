@@ -1,12 +1,12 @@
 __all__ = [
-    "visual",
-    "models",
     "distribution",
+    "visual",
     "seismic_data",
+    "models",
     "training"
 ]
-from .visual import *
-from .models import *
 from .distribution import *
+from .visual import *
 from .seismic_data import *
+from .models import *
 from .training import *
