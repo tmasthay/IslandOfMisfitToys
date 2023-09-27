@@ -1,6 +1,7 @@
 import re
 import argparse
 
+
 def check_commit_msg(commit_msg_file):
     # Define directives as a dictionary
     directives = {
@@ -19,19 +20,26 @@ def check_commit_msg(commit_msg_file):
         "DEPRECATE": "Deprecated feature/code",
         "UPDATE": "General update",
         "PERFORMANCE": "Performance optimization",
-        "PERF": "Performance change",
+        "PERF": "Same as PERFORMANCE",
         "DROP": "Dropped code/feature",
         "REQUEST": "Request-based change",
         "FOLLOW": "Follow-up to previous commit",
         "REMOVE": "Removed code, feature or file",
         "RM": "Removed code, feature or file",
+        "BUGRESURFACED": "Bug resurfaced, implies previous BUGFIX insufficient",
+        "BUGSURF": "Same as BUGRESURFACED",
+        "BUGAGAIN": "Same as BUGRESURFACED",
+        "MERGE": "Commit involving a merge operation",
         "PAUSE_BUG": "Pausing due to a bug",
         "PAUSE_DOCS": "Pausing doc changes",
         "PAUSE_FEATURE": "Pausing feature work",
         "PAUSE_PERF": "Pausing performance work",
         "PAUSE_OVERKILL": "Pausing due to overkill",
         "PAUSE_DESIGN": "Pausing for design reasons",
-        "BUGREV": "Reverted bugfix; bug found again"
+        "WAIT_MERGE": (
+            "Next commit should be merge, please specify sub-branch in commit"
+            " message"
+        ),
     }
 
     # Extract directive names
@@ -47,7 +55,10 @@ def check_commit_msg(commit_msg_file):
     # Check if the commit message matches the pattern
     if not re.match(pattern, commit_msg):
         print("Error: Commit message does not follow the required format.")
-        print("Please start your commit message with one of the following directives followed by a colon and a description:")
+        print(
+            "Please start your commit message with one of the following"
+            " directives followed by a colon and a description:"
+        )
 
         # Determine the length of the longest directive for alignment
         max_length = max(len(name) for name in directive_names)
@@ -62,10 +73,14 @@ def check_commit_msg(commit_msg_file):
         print("***COMMIT FAILED: SEE USAGE ABOVE***")
         exit(1)
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Check the format of a git commit message.")
-    parser.add_argument('commit_msg_file', type=str, help="Path to the commit message file.")
+    parser = argparse.ArgumentParser(
+        description="Check the format of a git commit message."
+    )
+    parser.add_argument(
+        'commit_msg_file', type=str, help="Path to the commit message file."
+    )
 
     args = parser.parse_args()
     check_commit_msg(args.commit_msg_file)
-
