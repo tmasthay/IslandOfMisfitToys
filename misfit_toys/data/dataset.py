@@ -619,11 +619,28 @@ class DataFactory(ABC):
 
     @staticmethod
     def manufacture_all(*, root, root_out_path):
+        exclusions = ['__pycache__']
+        root_out_path = parse_path(root_out_path)
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
-                DataFactoryTree.deploy_factory(
-                    root=root, root_out=root_out_path, src_path=dir_path
-                )
+                valid_path = True
+                for e in exclusions:
+                    if e in dir_path:
+                        valid_path = False
+                        break
+                if valid_path:
+                    DataFactoryTree.deploy_factory(
+                        root=root,
+                        root_out_path=root_out_path,
+                        src_path=dir_path,
+                    )
+
+    @staticmethod
+    def create_database(*, storage):
+        root_out_dir = parse_path(storage)
+        os.makedirs(root_out_dir, exist_ok=True)
+        root = os.path.dirname(__file__)
+        DataFactory.manufacture_all(root=root, root_out_path=root_out_dir)
 
     @staticmethod
     def deploy_factory(*, root, root_out_path, src_path):

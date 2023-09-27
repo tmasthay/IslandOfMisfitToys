@@ -1,7 +1,8 @@
-from ..dataset import DataFactoryMeta
+from ..dataset import DataFactory
 from ...utils import DotDict
 
-class Factory(DataFactoryMeta):
-    def generate_derived_data(self, *, data):
-        d = DotDict(data)
+
+class Factory(DataFactory):
+    def _manufacture_data(self):
+        d = DotDict(self.process_web_data())
         return d
