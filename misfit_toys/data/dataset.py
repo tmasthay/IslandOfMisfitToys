@@ -17,7 +17,8 @@ from importlib import import_module
 from ..utils import auto_path, parse_path, get_pydict
 import copy
 from warnings import warn
-from ..swiffer import iraise
+from ..swiffer import iraise, ireraise
+from masthay_helpers import prettify_dict
 
 
 def fetch_warn():
@@ -203,29 +204,6 @@ def check_data_installation(path):
         except:
             print(f'FAILURE "{file}"')
             res['failure'].append(file)
-    return res
-
-
-def prettify_dict(d, jsonify=True):
-    s = str(d)
-    s = re.sub(r'<function (\w+) at 0x[\da-f]+>', r'\1', s)
-    s = s.replace('{', '{\n')
-    s = s.replace('}', '\n}')
-    s = s.replace(', ', ',\n')
-    lines = s.split('\n')
-    idt = 4 * ' '
-    idt_level = 0
-    for i, l in enumerate(lines):
-        if l in ['}', '},', ',']:
-            idt_level -= 1
-            if idt_level < 0:
-                idt_level = 0
-        lines[i] = idt_level * idt + l
-        if l[-1] == '{':
-            idt_level += 1
-    res = '\n'.join(lines)
-    if jsonify:
-        res = res.replace("'", '"')
     return res
 
 
@@ -607,31 +585,78 @@ class DataFactoryMeta(DataFactory):
         return derived
 
 
-class DataFactoryRecurse(DataFactoryMeta):
+class DataFactoryTree(DataFactoryMeta):
     """data: Stores all data, with tensors being evaluated now + all the metadata"""
 
     def generate_derived_data(self, *, data, **kw):
-        src_path = os.abspath(__file__)
-        src_dir = os.path.dirname(src_path)
+        root = os.path.dirname(os.abspath(__file__))
+        for dir_path, dir_names, file_names in os.walk(root):
+            if dir_path != root:
+                DataFactoryTree.deploy_factory(dir_path)
 
-        pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
-        py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
-        if not py_exists:
-            if not pydict_exists:
-                raise FileNotFoundError(
-                    'FATAL: Either metadata.pydict or metadata.py must exist'
-                    f' in\n    {src_dir}\n'
+        # src_dir = os.path.dirname(src_path)
+
+        # pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
+        # py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
+        # if not py_exists:
+        #     if not pydict_exists:
+        #         raise FileNotFoundError(
+        #             'FATAL: Either metadata.pydict or metadata.py must exist'
+        #             f' in\n    {src_dir}\n'
+        #         )
+        #     else:
+        #         metadata = get_pydict(src_dir)
+        # else:
+        #     metadata = fetch_meta(obj=self)
+        # if not os.path.exists(os.path.join(src_dir, 'factory.py')):
+        #     iraise(
+        #         ValueError,
+        #         f'FATAL: factory.py must exist in directory {src_dir}',
+        #     )
+        # else:
+        #     factory = import_module('.factory', package=self.__module__)
+        #     factory_main = getattr(factory, 'main')
+        #     factory_main()
+
+    @staticmethod
+    def deploy_factory(src_path):
+        if not os.path.exists(
+            f'{src_path}/metadata.pydict'
+        ) and not os.path.exists(f'{src_path}/metadata.py'):
+            iraise(FileNotFoundError, f'No metadata found in {src_path}')
+        if not os.path.exists(f'{src_path}/factory.py'):
+            iraise(FileNotFoundError, f'No factory.py found in {src_path}')
+
+        try:
+            os.system(f'python {src_path}/factory.py')
+        except Exception as e:
+            msg = str(e)
+            iraise(type(e), f'Error in {src_path}/factory.py:\n', msg)
+
+    @staticmethod
+    def get_parent_meta(curr_abs_path):
+        parent_abs_path = '/'.join(curr_abs_path.split('/')[:-1])
+        pydict_exists = os.path.exists(
+            os.path.join(parent_abs_path, 'metadata.pydict')
+        )
+        py_exists = os.path.exists(os.path.join(parent_abs_path, 'metadata.py'))
+
+        if pydict_exists and not py_exists:
+            try:
+                return get_pydict(parent_abs_path)
+            except Exception as e:
+                ireraise(
+                    e,
+                    f'Error in {parent_abs_path}/metadata.pydict\n',
+                    f'IOMT USER RESPONSIBILTY: "python {parent_abs_path}',
+                    f'/metadata.py" should create a file at {parent_abs_path}',
+                    '/metadata.pydict that is a valid python dictionary.',
                 )
-            else:
-                metadata = get_pydict(src_dir)
+        elif py_exists:
+            os.system(f'python {parent_abs_path}/metadata.py')
+            return get_pydict(parent_abs_path)
         else:
-            metadata = fetch_meta(obj=self)
-        if not os.path.exists(os.path.join(src_dir, 'factory.py')):
             iraise(
-                ValueError,
-                f'FATAL: factory.py must exist in directory {src_dir}',
+                FileNotFoundError,
+                f'No metadata found in {parent_abs_path}',
             )
-        else:
-            factory = import_module('.factory', package=self.__module__)
-            factory_main = getattr(factory, 'main')
-            factory_main()

@@ -109,3 +109,18 @@ def iprint(*args, idt_level=0, idt_str='    ', cpl=80, **kw):
 
 def iraise(error_type, *args, idt_level=0, idt_str='    ', cpl=80):
     raise error_type(istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl))
+
+
+def ireraise(e, *args, idt_level=0, idt_str='    ', cpl=80, idt_further=True):
+    msg = str(e) + '\n'
+    exception_type = type(e)
+    full = istr(msg, idt_level=idt_level, idt_str=idt_str, cpl=cpl)
+    if idt_further:
+        idt_level += 1
+    full += (
+        '\n'
+        + cpl * '*'
+        + istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl)
+        + cpl * '*'
+    )
+    raise exception_type(full)

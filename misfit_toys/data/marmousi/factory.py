@@ -161,3 +161,7 @@ class Factory(DataFactoryMeta):
 def main():
     f = Factory(os.abspath(__file__))
     f.manufacture_data()
+
+
+if __name__ == "__main__":
+    main()

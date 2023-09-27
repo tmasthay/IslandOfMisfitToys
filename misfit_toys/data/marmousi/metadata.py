@@ -1,7 +1,8 @@
 def metadata():
     return {
-        'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/'
-        + 'GEOMODELS/Marmousi',
+        'url': (
+            'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/GEOMODELS/Marmousi'
+        ),
         'ext': 'bin',
         'ny': 2301,
         'nx': 751,
@@ -35,3 +36,13 @@ def metadata():
             }
         },
     }
+
+
+if __name__ == "__main__":
+    meta = metadata()
+    import os
+    from masthay_helpers import prettify_dict
+
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    with open('metadata.pydict', 'w') as f:
+        f.write(str(meta))
