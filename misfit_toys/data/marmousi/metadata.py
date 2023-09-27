@@ -1,3 +1,7 @@
+from masthay_helpers.global_helpers import save_metadata
+
+
+@save_metadata
 def metadata():
     return {
         'url': (
@@ -39,10 +43,4 @@ def metadata():
 
 
 if __name__ == "__main__":
-    meta = metadata()
-    import os
-    from masthay_helpers import prettify_dict
-
-    curr_dir = os.path.dirname(os.path.abspath(__file__))
-    with open('metadata.pydict', 'w') as f:
-        f.write(str(meta))
+    metadata()

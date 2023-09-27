@@ -538,17 +538,8 @@ class DataFactory(ABC):
 
         return d
 
-    def _manufacture_data(self, metadata, **kw):
-        return self.generate_derived_data(
-            data=self.process_web_data(metadata=metadata, **kw), **kw
-        )
-
     @abstractmethod
-    def generate_derived_data(self, *, data, **kw):
-        pass
-
-    @abstractmethod
-    def manufacture_data(self):
+    def manufacture_data(self, **kw):
         pass
 
 
@@ -565,11 +556,11 @@ class DataFactoryMeta(DataFactory):
         # self.metadata = metadata_func()
         self.metadata = fetch_meta(obj=self)
 
-    def manufacture_data(self):
-        d = self._manufacture_data(metadata=self.metadata)
-        with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
-            f.write(prettify_dict(self.metadata))
-        return d
+    # def manufacture_data(self):
+    #     d = self._manufacture_data(metadata=self.metadata)
+    #     with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
+    #         f.write(prettify_dict(self.metadata))
+    #     return d
 
     @staticmethod
     def get_derived_meta(*, meta):
@@ -586,9 +577,11 @@ class DataFactoryMeta(DataFactory):
 
 
 class DataFactoryTree(DataFactoryMeta):
-    """data: Stores all data, with tensors being evaluated now + all the metadata"""
+    """
+    data: Stores all data, with tensors being evaluated now + all the metadata
+    """
 
-    def generate_derived_data(self, *, data, **kw):
+    def manufacture_data(self):
         root = os.path.dirname(os.abspath(__file__))
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
@@ -633,9 +626,8 @@ class DataFactoryTree(DataFactoryMeta):
             msg = str(e)
             iraise(type(e), f'Error in {src_path}/factory.py:\n', msg)
 
-    @staticmethod
-    def get_parent_meta(curr_abs_path):
-        parent_abs_path = '/'.join(curr_abs_path.split('/')[:-1])
+    def get_parent_meta(self):
+        parent_abs_path = '/'.join(self.path.split('/')[:-1])
         pydict_exists = os.path.exists(
             os.path.join(parent_abs_path, 'metadata.pydict')
         )
