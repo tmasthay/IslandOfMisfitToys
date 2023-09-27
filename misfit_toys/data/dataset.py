@@ -14,11 +14,12 @@ from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path, get_pydict
+from ..utils import auto_path, parse_path, get_pydict, DotDict
 import copy
 from warnings import warn
 from ..swiffer import iraise, ireraise
 from masthay_helpers import prettify_dict
+import argparse
 
 
 def fetch_warn():
@@ -482,11 +483,53 @@ def fetch_meta(*, obj):
 
 class DataFactory(ABC):
     @auto_path(make_dir=False)
-    def __init__(self, *, path):
-        self.path = path
+    def __init__(self, *, device=None, src_path, root_out_path, root_path):
+        if device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = device
+        self.src_path = src_path
+        self.parent_path = os.path.dirname(self.src_path)
+        self.root_out_path = root_out_path
+        self.root_path = root_path
+        self.append_path = os.path.relpath(self.path, self.root_path)
+        self.out_path = os.path.join(self.root_out_path, self.append_path)
+        self.tensors = DotDict(dict())
 
-    def process_web_data(self, *, metadata, **kw):
-        d = copy.deepcopy(metadata)
+        py_exists = os.path.exists(f'{self.src_path}/metadata.py')
+        pydict_exists = os.path.exists(f'{self.src_path}/metadata.pydict')
+        if py_exists:
+            cmd = f'python {self.src_path}/metadata.py'
+            try:
+                os.system(cmd)
+            except Exception as e:
+                ireraise(
+                    e, f'DataFactory Constructor: Error in execution of {cmd}'
+                )
+        elif not py_exists and not pydict_exists:
+            iraise(
+                FileNotFoundError,
+                f'\n\nNo metadata found in {self.src_path}\n.',
+                f'For directories "X" without metadata.py, we populate ',
+                'X/metadata.pydict with the metadata from the parent ',
+                'prior to generating a DataFactory object',
+            )
+        self.metadata = get_pydict(self.src_path)
+
+    @abstractmethod
+    def _manufacture_data(self, **kw):
+        pass
+
+    def manufacture_data(self, **kw):
+        self._manufacture_data(**kw)
+        self.save_all_tensors()
+        self.broadcast_meta()
+        self.clear_all_tensors()
+        if 'cuda' in self.device:
+            torch.cuda.empty_cache()
+
+    def process_web_data(self, **kw):
+        d = copy.deepcopy(self.metadata)
 
         if os.path.exists(self.path):
             print(
@@ -538,29 +581,28 @@ class DataFactory(ABC):
 
         return d
 
-    @abstractmethod
-    def manufacture_data(self, **kw):
-        pass
+    def save_tensor(self, key):
+        path = os.path.join(self.out_path, f'{key}.pt')
+        torch.save(getattr(self.tensors, key), path)
 
+    def save_all_tensors(self):
+        for k in self.tensors.__dict__.keys():
+            self.save_tensor(k)
 
-class DataFactoryMeta(DataFactory):
-    def __init__(self, *, path, device=None):
-        super().__init__(path=path)
-        if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        else:
-            self.device = device
-        # parent_module = '.'.join(self.__module__.split('.')[:-1])
-        # metadata_module = import_module('.metadata', package=parent_module)
-        # metadata_func = getattr(metadata_module, 'metadata')
-        # self.metadata = metadata_func()
-        self.metadata = fetch_meta(obj=self)
+    def clear_tensor(self, key):
+        delattr(self.tensors, key)
 
-    # def manufacture_data(self):
-    #     d = self._manufacture_data(metadata=self.metadata)
-    #     with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
-    #         f.write(prettify_dict(self.metadata))
-    #     return d
+    def clear_all_tensors(self):
+        delattr(self, 'tensors')
+
+    def broadcast_meta(self):
+        submeta = DataFactory.get_derived_meta(meta=self.metadata)
+        if submeta is None:
+            return None
+        for k, v in submeta.items():
+            os.makedirs(f'{self.src_path}/{k}', exist_ok=True)
+            with open(f'{self.src_path}', 'w') as f:
+                f.write(prettify_dict(v))
 
     @staticmethod
     def get_derived_meta(*, meta):
@@ -575,44 +617,16 @@ class DataFactoryMeta(DataFactory):
             derived[k] = {**common, **v}
         return derived
 
-
-class DataFactoryTree(DataFactoryMeta):
-    """
-    data: Stores all data, with tensors being evaluated now + all the metadata
-    """
-
-    def manufacture_data(self):
-        root = os.path.dirname(os.abspath(__file__))
+    @staticmethod
+    def manufacture_all(*, root, root_out_path):
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
-                DataFactoryTree.deploy_factory(dir_path)
-
-        # src_dir = os.path.dirname(src_path)
-
-        # pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
-        # py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
-        # if not py_exists:
-        #     if not pydict_exists:
-        #         raise FileNotFoundError(
-        #             'FATAL: Either metadata.pydict or metadata.py must exist'
-        #             f' in\n    {src_dir}\n'
-        #         )
-        #     else:
-        #         metadata = get_pydict(src_dir)
-        # else:
-        #     metadata = fetch_meta(obj=self)
-        # if not os.path.exists(os.path.join(src_dir, 'factory.py')):
-        #     iraise(
-        #         ValueError,
-        #         f'FATAL: factory.py must exist in directory {src_dir}',
-        #     )
-        # else:
-        #     factory = import_module('.factory', package=self.__module__)
-        #     factory_main = getattr(factory, 'main')
-        #     factory_main()
+                DataFactoryTree.deploy_factory(
+                    root=root, root_out=root_out_path, src_path=dir_path
+                )
 
     @staticmethod
-    def deploy_factory(src_path):
+    def deploy_factory(*, root, root_out_path, src_path):
         if not os.path.exists(
             f'{src_path}/metadata.pydict'
         ) and not os.path.exists(f'{src_path}/metadata.py'):
@@ -620,14 +634,95 @@ class DataFactoryTree(DataFactoryMeta):
         if not os.path.exists(f'{src_path}/factory.py'):
             iraise(FileNotFoundError, f'No factory.py found in {src_path}')
 
+        cmd = (
+            f'python {src_path}/factory.py --root {root} --root_out'
+            f' {root_out_path}'
+        )
         try:
-            os.system(f'python {src_path}/factory.py')
+            os.system(cmd)
         except Exception as e:
             msg = str(e)
-            iraise(type(e), f'Error in {src_path}/factory.py:\n', msg)
+            iraise(type(e), f'Error in execution of {cmd}', msg)
+
+    @classmethod
+    def cli_construct(cls, *, device=None, src_path, **kw):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--root', type=str, required=True)
+        parser.add_argument('--root_out', type=str, required=True)
+        args = parser.parse_args()
+        return cls(
+            device=device,
+            src_path=src_path,
+            root_out_path=args.root_out,
+            root_path=args.root,
+            **kw,
+        )
+
+
+# class DataFactoryMeta(DataFactory):
+#     def __init__(self, *, path, device=None):
+#         super().__init__(path=path)
+#         if device is None:
+#             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#         else:
+#             self.device = device
+#         # parent_module = '.'.join(self.__module__.split('.')[:-1])
+#         # metadata_module = import_module('.metadata', package=parent_module)
+#         # metadata_func = getattr(metadata_module, 'metadata')
+#         # self.metadata = metadata_func()
+#         self.metadata = fetch_meta(obj=self)
+
+#     # def manufacture_data(self):
+#     #     d = self._manufacture_data(metadata=self.metadata)
+#     #     with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
+#     #         f.write(prettify_dict(self.metadata))
+#     #     return d
+
+#     @staticmethod
+#     def get_derived_meta(*, meta):
+#         if 'derived' not in meta:
+#             return None
+#         base_items = {k: v for k, v in meta.items() if type(v) != dict}
+#         derived = meta['derived']
+#         common = {**base_items, **derived.get('common', {})}
+#         if 'common' in derived:
+#             del derived['common']
+#         for k, v in derived.items():
+#             derived[k] = {**common, **v}
+#         return derived
+
+
+class DataFactoryTree(DataFactory):
+    """
+    data: Stores all data, with tensors being evaluated now + all the metadata
+    """
+
+    # src_dir = os.path.dirname(src_path)
+
+    # pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
+    # py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
+    # if not py_exists:
+    #     if not pydict_exists:
+    #         raise FileNotFoundError(
+    #             'FATAL: Either metadata.pydict or metadata.py must exist'
+    #             f' in\n    {src_dir}\n'
+    #         )
+    #     else:
+    #         metadata = get_pydict(src_dir)
+    # else:
+    #     metadata = fetch_meta(obj=self)
+    # if not os.path.exists(os.path.join(src_dir, 'factory.py')):
+    #     iraise(
+    #         ValueError,
+    #         f'FATAL: factory.py must exist in directory {src_dir}',
+    #     )
+    # else:
+    #     factory = import_module('.factory', package=self.__module__)
+    #     factory_main = getattr(factory, 'main')
+    #     factory_main()
 
     def get_parent_meta(self):
-        parent_abs_path = '/'.join(self.path.split('/')[:-1])
+        parent_abs_path = '/'.join(self.fpath.split('/')[:-1])
         pydict_exists = os.path.exists(
             os.path.join(parent_abs_path, 'metadata.pydict')
         )
@@ -652,3 +747,14 @@ class DataFactoryTree(DataFactoryMeta):
                 FileNotFoundError,
                 f'No metadata found in {parent_abs_path}',
             )
+
+    class LocalFactory(DataFactory):
+        def __init__(
+            self, *, path, device=None, src_path, root_out_path, root_path
+        ):
+            super().__init__(path=path, device=device)
+            self.src_path = src_path
+            self.root_out_path = root_out_path
+            self.root_path = root_path
+            self.append_path = os.path.relpath(self.path, self.root_path)
+            self.out_path = os.path.join(self.root_out_path, self.append_path)
