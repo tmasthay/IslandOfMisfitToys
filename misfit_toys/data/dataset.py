@@ -17,6 +17,7 @@ from importlib import import_module
 from ..utils import auto_path, parse_path, get_pydict
 import copy
 from warnings import warn
+from ..swiffer import iraise
 
 
 def fetch_warn():
@@ -580,10 +581,11 @@ class DataFactoryMeta(DataFactory):
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         else:
             self.device = device
-        parent_module = '.'.join(self.__module__.split('.')[:-1])
-        metadata_module = import_module('.metadata', package=parent_module)
-        metadata_func = getattr(metadata_module, 'metadata')
-        self.metadata = metadata_func()
+        # parent_module = '.'.join(self.__module__.split('.')[:-1])
+        # metadata_module = import_module('.metadata', package=parent_module)
+        # metadata_func = getattr(metadata_module, 'metadata')
+        # self.metadata = metadata_func()
+        self.metadata = fetch_meta(obj=self)
 
     def manufacture_data(self):
         d = self._manufacture_data(metadata=self.metadata)
@@ -616,16 +618,20 @@ class DataFactoryRecurse(DataFactoryMeta):
         py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
         if not py_exists:
             if not pydict_exists:
-                raise ValueError(
+                raise FileNotFoundError(
                     'FATAL: Either metadata.pydict or metadata.py must exist'
                     f' in\n    {src_dir}\n'
                 )
-        if os.path.exists(os.path.join(src_dir, 'metadata.pydict')):
-            warn(
-                f'metadata.pydict already exists in {src_dir}.\n'
-                '    Not overwriting.\n'
-                f'    To overwrite, rerun {src_dir}/metadata.py'
+            else:
+                metadata = get_pydict(src_dir)
+        else:
+            metadata = fetch_meta(obj=self)
+        if not os.path.exists(os.path.join(src_dir, 'factory.py')):
+            iraise(
+                ValueError,
+                f'FATAL: factory.py must exist in directory {src_dir}',
             )
         else:
-            if os.path.exists(os.path.join(src_dir, 'metadata.py')):
-                metadata = fetch_meta(obj=self)
+            factory = import_module('.factory', package=self.__module__)
+            factory_main = getattr(factory, 'main')
+            factory_main()

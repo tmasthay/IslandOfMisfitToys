@@ -105,3 +105,7 @@ def istr(*args, idt_level=0, idt_str='    ', cpl=80):
 
 def iprint(*args, idt_level=0, idt_str='    ', cpl=80, **kw):
     print(istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl), **kw)
+
+
+def iraise(error_type, *args, idt_level=0, idt_str='    ', cpl=80):
+    raise error_type(istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl))
