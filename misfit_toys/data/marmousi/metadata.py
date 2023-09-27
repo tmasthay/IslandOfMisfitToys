@@ -1,7 +1,7 @@
 def metadata():
     return {
-        'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/' + 
-            'GEOMODELS/Marmousi',
+        'url': 'https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/'
+        + 'GEOMODELS/Marmousi',
         'ext': 'bin',
         'ny': 2301,
         'nx': 751,
@@ -22,8 +22,8 @@ def metadata():
         'freq': 25,
         'peak_time': 1.5 / 25,
         'accuracy': 8,
-        'vp_true': { 'filename': 'vp' },
-        'rho_true': { 'filename': 'rho' },
+        'vp_true': {'filename': 'vp'},
+        'rho_true': {'filename': 'rho'},
         'derived': {
             'deepwave_example': {
                 'ny': 600,
@@ -31,11 +31,7 @@ def metadata():
                 'nt': 300,
                 'n_shots': 20,
                 'rec_per_shot': 100,
-                'derived': {
-                    'shots16': {
-                        'n_shots': 16
-                    }
-                }
+                'derived': {'shots16': {'n_shots': 16}},
             }
-        }
+        },
     }

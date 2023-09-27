@@ -14,7 +14,7 @@ from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path
+from ..utils import auto_path, parse_path, get_pydict
 import copy
 from warnings import warn
 
@@ -494,12 +494,19 @@ def downsample_tensor(tensor, axis, ratio):
     return tensor[tuple(slices)]
 
 
+def fetch_meta(*, obj):
+    parent_module = '.'.join(obj.__module__.split('.')[:-1])
+    metadata_module = import_module('.metadata', package=parent_module)
+    metadata_func = getattr(metadata_module, 'metadata')
+    return metadata_func()
+
+
 class DataFactory(ABC):
     @auto_path(make_dir=False)
     def __init__(self, *, path):
         self.path = path
 
-    def _manufacture_data(self, *, metadata, **kw):
+    def process_web_data(self, *, metadata, **kw):
         d = copy.deepcopy(metadata)
 
         if os.path.exists(self.path):
@@ -550,10 +557,19 @@ class DataFactory(ABC):
             os.system(f'rm {web_data_file}')
             d[k] = torch.load(final_data_file)
 
-        return self.generate_derived_data(data=d, **kw)
+        return d
+
+    def _manufacture_data(self, metadata, **kw):
+        return self.generate_derived_data(
+            data=self.process_web_data(metadata=metadata, **kw), **kw
+        )
 
     @abstractmethod
     def generate_derived_data(self, *, data, **kw):
+        pass
+
+    @abstractmethod
+    def manufacture_data(self):
         pass
 
 
@@ -587,3 +603,29 @@ class DataFactoryMeta(DataFactory):
         for k, v in derived.items():
             derived[k] = {**common, **v}
         return derived
+
+
+class DataFactoryRecurse(DataFactoryMeta):
+    """data: Stores all data, with tensors being evaluated now + all the metadata"""
+
+    def generate_derived_data(self, *, data, **kw):
+        src_path = os.abspath(__file__)
+        src_dir = os.path.dirname(src_path)
+
+        pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
+        py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
+        if not py_exists:
+            if not pydict_exists:
+                raise ValueError(
+                    'FATAL: Either metadata.pydict or metadata.py must exist'
+                    f' in\n    {src_dir}\n'
+                )
+        if os.path.exists(os.path.join(src_dir, 'metadata.pydict')):
+            warn(
+                f'metadata.pydict already exists in {src_dir}.\n'
+                '    Not overwriting.\n'
+                f'    To overwrite, rerun {src_dir}/metadata.py'
+            )
+        else:
+            if os.path.exists(os.path.join(src_dir, 'metadata.py')):
+                metadata = fetch_meta(obj=self)

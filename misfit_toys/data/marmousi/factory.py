@@ -156,3 +156,8 @@ class Factory(DataFactoryMeta):
                 vp=vp,
                 out=out,
             )
+
+
+def main():
+    f = Factory(os.abspath(__file__))
+    f.manufacture_data()
