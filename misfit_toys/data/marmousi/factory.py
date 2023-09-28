@@ -17,14 +17,20 @@ from misfit_toys.utils import DotDict
 class Factory(DataFactory):
     def _manufacture_data(self):
         d = DotDict(self.process_web_data())
-        if d.has('obs_data'):
-            print('obs_data already exists. Skipping manufacture.')
-            return
-        else:
-            print('obs_data not found...manufacturing tensors from web data.')
+
+        if self.installed(
+            'vp_true',
+            'rho_true',
+            'src_loc_y',
+            'rec_loc_y',
+            'obs_data',
+        ):
+            return d
+
+        input('mamrousi')
 
         self.tensors.v_init = torch.tensor(
-            1 / gaussian_filter(1 / d.vp_true.numpy(), 40)
+            1 / gaussian_filter(1 / d.vp_true.cpu().numpy(), 40)
         )
         self.tensors.vp = d.vp_true.to(self.device)
 

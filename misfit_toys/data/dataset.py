@@ -8,7 +8,7 @@ import os
 import time
 import sys
 import torch
-from ..swiffer import sco, istr, iraise, ireraise
+from ..swiffer import sco, istr, iraise, ireraise, iprint
 import re
 from warnings import warn
 import deepwave as dw
@@ -543,6 +543,7 @@ class DataFactory(ABC):
 
     def manufacture_data(self, **kw):
         self._manufacture_data(**kw)
+        self.place_tensors(device='cpu')
         self.save_all_tensors()
         self.broadcast_meta()
         self.clear_all_tensors()
@@ -559,7 +560,9 @@ class DataFactory(ABC):
             if 'filename' not in v:
                 v['filename'] = k
 
-        torch_files = sco(f'find {self.out_path} -name "*.pt"')
+        torch_files = sco(
+            f'find {self.out_path} -maxdepth 1 -mindepth 1 -name "*.pt"'
+        )
         if os.path.exists(self.out_path) and len(torch_files) > 0:
             print(
                 f'{self.out_path} already has pytorch files in it...ignoring.\n'
@@ -654,7 +657,7 @@ class DataFactory(ABC):
             with open(f'{self.out_path}/{k}/metadata.pydict', 'w') as f:
                 f.write(prettify_dict(v))
 
-    def get_parent_tensors(self):
+    def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, '..')
         pt_files = sco(f'find {parent_out_path} -name "*.pt"')
         if len(pt_files) == 0:
@@ -668,7 +671,33 @@ class DataFactory(ABC):
         for pt_file in pt_files:
             name = pt_file.split('/')[-1].split('.')[0]
             tensors.set(name, torch.load(pt_file))
+        if place:
+            self.place_tensors(device=self.device, tensors=tensors)
         return tensors
+
+    def place_tensors(self, *, tensors=None, device):
+        if tensors is None:
+            for k, v in self.tensors.items():
+                self.tensors.set(k, v.to(device))
+            return self.tensors
+        else:
+            for k, v in tensors.items():
+                tensors.set(k, v.to(device))
+            return tensors
+
+    def _installed(self, *keys):
+        return all([os.path.exists(f'{self.out_path}/{k}.pt') for k in keys])
+
+    def installed(self, *keys):
+        if self._installed(*keys):
+            iprint(
+                f'{self.append_path} data already generated...skipping'
+                ' tensor manufacturing.'
+            )
+            return True
+        else:
+            iprint(f'{self.append_path} data not found...manufacturing tensors')
+            return False
 
     @staticmethod
     def get_derived_meta(*, meta):

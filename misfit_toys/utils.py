@@ -40,6 +40,14 @@ class DotDict:
     def has(self, k):
         return hasattr(self, k)
 
+    def has_all(self, *keys):
+        return all([self.has(k) for k in keys])
+
+    def has_all_type(self, *keys, lcl_type=None):
+        return all(
+            [self.has(k) and type(self.get(k)) is lcl_type for k in keys]
+        )
+
 
 def parse_path(path):
     if path is None:

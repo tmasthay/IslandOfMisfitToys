@@ -8,6 +8,9 @@ from misfit_toys.utils import DotDict
 
 class Factory(DataFactory):
     def _manufacture_data(self):
+        if self.installed('geophone_curtin', 'das_curtin'):
+            return None
+
         d = DotDict(self.process_web_data())
         return d
 

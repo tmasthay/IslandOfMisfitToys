@@ -13,15 +13,20 @@ from misfit_toys.utils import DotDict
 class Factory(DataFactory):
     def _manufacture_data(self):
         d = DotDict(self.process_web_data())
-        if d.has('obs_data'):
-            print('obs_data already exists. Skipping manufacture.')
-            return
-        else:
-            print('obs_data not found...manufacturing tensors from web data.')
 
-        self.tensors.vp_true = d.vp_true.to(self.device)
-        self.tensors.vs_true = d.vs_true.to(self.device)
-        self.tensors.rho_true = d.rho_true.to(self.device)
+        if self.installed(
+            'vp_true',
+            'vs_true',
+            'rho_true',
+            'src_loc_y',
+            'rec_loc_y',
+            'src_amp_y',
+        ):
+            return d
+
+        self.tensors.vp_true = d.vp_true
+        self.tensors.vs_true = d.vs_true
+        self.tensors.rho_true = d.rho_true
         d.ny, d.nx = self.tensors.vp_true.shape
 
         self.tensors.src_loc_y = towed_src(
@@ -31,7 +36,7 @@ class Factory(DataFactory):
             fst_src=d.fst_src,
             src_depth=d.src_depth,
             d_intra_shot=d.d_intra_shot,
-        ).to(self.device)
+        )
 
         self.tensors.rec_loc_y = fixed_rec(
             n_shots=d.n_shots,
@@ -39,14 +44,12 @@ class Factory(DataFactory):
             d_rec=d.d_rec,
             fst_rec=d.fst_rec,
             rec_depth=d.rec_depth,
-        ).to(self.device)
+        )
 
         # source_amplitudes
-        self.tensors.src_amp_y = (
-            dw.wavelets.ricker(d.freq, d.nt, d.dt, d.peak_time)
-            .repeat(d.n_shots, d.src_per_shot, 1)
-            .to(self.device)
-        )
+        self.tensors.src_amp_y = dw.wavelets.ricker(
+            d.freq, d.nt, d.dt, d.peak_time
+        ).repeat(d.n_shots, d.src_per_shot, 1)
 
         return d
 
