@@ -20,6 +20,9 @@ from warnings import warn
 from ..swiffer import iraise, ireraise
 from masthay_helpers import prettify_dict
 import argparse
+from rich.traceback import install
+
+install(width=200, show_locals=True)
 
 
 def fetch_warn():
@@ -492,8 +495,10 @@ class DataFactory(ABC):
         self.parent_path = os.path.dirname(self.src_path)
         self.root_out_path = root_out_path
         self.root_path = root_path
-        self.append_path = os.path.relpath(self.path, self.root_path)
-        self.out_path = os.path.join(self.root_out_path, self.append_path)
+        self.append_path = os.path.relpath(self.src_path, self.root_path)
+        self.out_path = parse_path(
+            os.path.join(self.root_out_path, self.append_path)
+        )
         self.tensors = DotDict(dict())
 
         py_exists = os.path.exists(f'{self.src_path}/metadata.py')
@@ -644,10 +649,20 @@ class DataFactory(ABC):
 
     @staticmethod
     def deploy_factory(*, root, root_out_path, src_path):
-        if not os.path.exists(
-            f'{src_path}/metadata.pydict'
-        ) and not os.path.exists(f'{src_path}/metadata.py'):
-            iraise(FileNotFoundError, f'No metadata found in {src_path}')
+        rel_path = os.path.relpath(src_path, root)
+        out_path = os.path.join(root_out_path, rel_path)
+        if not os.path.exists(f'{src_path}/metadata.pydict'):
+            if not os.path.exists(f'{src_path}/metadata.py'):
+                iraise(FileNotFoundError, f'No metadata found in {src_path}')
+            cmd = f'python {src_path}/metadata.py --store_path {out_path}'
+            try:
+                os.system(cmd)
+            except:
+                iraise(
+                    ValueError,
+                    f'Error in execution of {cmd}\n',
+                    'This is likely due to an error in metadata.py',
+                )
         if not os.path.exists(f'{src_path}/factory.py'):
             iraise(FileNotFoundError, f'No factory.py found in {src_path}')
 
