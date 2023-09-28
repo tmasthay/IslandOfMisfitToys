@@ -8,3 +8,4 @@ tqdm
 torchsummary
 obspy
 requests
+rich
