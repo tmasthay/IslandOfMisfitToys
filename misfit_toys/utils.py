@@ -35,13 +35,13 @@ def parse_path(path):
     return path
 
 
-def auto_path(make_dir=False):
+def auto_path(kw_path='path', make_dir=False):
     def decorator(func):
         def wrapper(*args, **kwargs):
-            if 'path' in kwargs:
-                kwargs['path'] = parse_path(kwargs['path'])
+            if kw_path in kwargs:
+                kwargs[kw_path] = parse_path(kwargs[kw_path])
                 if make_dir:
-                    os.makedirs(kwargs['path'], exist_ok=True)
+                    os.makedirs(kwargs[kwargs[kw_path]], exist_ok=True)
             return func(*args, **kwargs)
 
         return wrapper
@@ -49,7 +49,7 @@ def auto_path(make_dir=False):
     return decorator
 
 
-def get_pydict(path, *, filename='metadata', as_class=True):
+def get_pydict(path, *, filename='metadata', as_class=False):
     path = parse_path(path)
     filename = filename.replace('.pydict', '') + '.pydict'
     full_path = os.path.join(path, filename)

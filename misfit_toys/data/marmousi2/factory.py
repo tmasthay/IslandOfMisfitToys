@@ -9,7 +9,7 @@ import deepwave as dw
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        d = DotDict(self.process_web_data())
+        d = self.process_web_data()
         self.tensors.vp = torch.load(os.path.join(self.src_path, 'vp.pt'))
         d.ny, d.nx = self.tensors.vp.shape
 

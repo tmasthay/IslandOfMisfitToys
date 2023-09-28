@@ -485,7 +485,6 @@ def fetch_meta(*, obj):
 
 
 class DataFactory(ABC):
-    @auto_path(make_dir=False)
     def __init__(self, *, device=None, src_path, root_out_path, root_path):
         if device is None:
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -504,13 +503,21 @@ class DataFactory(ABC):
         py_exists = os.path.exists(f'{self.src_path}/metadata.py')
         pydict_exists = os.path.exists(f'{self.src_path}/metadata.pydict')
         if py_exists:
-            cmd = f'python {self.src_path}/metadata.py'
-            try:
-                os.system(cmd)
-            except Exception as e:
-                ireraise(
-                    e, f'DataFactory Constructor: Error in execution of {cmd}'
+            cmd = (
+                f'python -W ignore {self.src_path}/metadata.py --store_path'
+                f' {self.out_path}'
+            )
+            print(f'Evaluating "{cmd}"...', end='')
+            exit_code = os.system(cmd)
+            if exit_code != 0:
+                iraise(
+                    RuntimeError,
+                    (
+                        f'\n\nDataFactory constructor: {cmd} failed with exit'
+                        f' code {exit_code}\n'
+                    ),
                 )
+            print('SUCCESS')
         elif not py_exists and not pydict_exists:
             iraise(
                 FileNotFoundError,
@@ -519,7 +526,7 @@ class DataFactory(ABC):
                 'X/metadata.pydict with the metadata from the parent ',
                 'prior to generating a DataFactory object',
             )
-        self.metadata = get_pydict(self.src_path)
+        self.metadata = get_pydict(self.out_path)
 
     @abstractmethod
     def _manufacture_data(self, **kw):
@@ -536,21 +543,24 @@ class DataFactory(ABC):
     def process_web_data(self, **kw):
         d = copy.deepcopy(self.metadata)
 
-        if os.path.exists(self.path):
-            print(
-                f'{self.path} already exists...ignoring.'
-                'If you want to regenerate data, delete this folder '
-                'or specify a different path.'
-            )
-            return
-        os.makedirs(self.path, exist_ok=False)
-
         fields = {
             k: v for k, v in d.items() if type(v) == dict and k != 'derived'
         }
         for k, v in fields.items():
             if 'filename' not in v:
                 v['filename'] = k
+
+        if os.path.exists(self.out_path) and len(os.listdir(self.out_path)) > 1:
+            print(
+                f'{self.out_path} already exists...ignoring.'
+                'If you want to regenerate data, delete this folder '
+                'or specify a different path.'
+            )
+            for k, v in fields.items():
+                pt_path = os.path.join(self.out_path, f"{v['filename']}.pt")
+                d[k] = torch.load(pt_path)
+            return d
+        os.makedirs(self.out_path, exist_ok=True)
 
         def field_url(x):
             url_path = os.path.join(d['url'], fields[x]['filename'])
@@ -560,11 +570,11 @@ class DataFactory(ABC):
                 return url_path
 
         for k, v in fields.items():
-            web_data_file = os.path.join(self.path, k) + '.' + d['ext']
+            web_data_file = os.path.join(self.out_path, k) + '.' + d['ext']
             url = field_url(k)
             if url.endswith('.gz'):
                 web_data_file += '.gz'
-            final_data_file = os.path.join(self.path, k) + '.pt'
+            final_data_file = os.path.join(self.out_path, k) + '.pt'
             cmd = f'curl {field_url(k)} --output {web_data_file}'
             header = f'ATTEMPT DOWNLOAD: {cmd}'
             stars = len(header) * '*'
@@ -606,7 +616,7 @@ class DataFactory(ABC):
             return None
         for k, v in submeta.items():
             os.makedirs(f'{self.src_path}/{k}', exist_ok=True)
-            with open(f'{self.src_path}', 'w') as f:
+            with open(f'{self.src_path}/{k}/metadata.pydict', 'w') as f:
                 f.write(prettify_dict(v))
 
     @staticmethod
@@ -634,7 +644,7 @@ class DataFactory(ABC):
                         valid_path = False
                         break
                 if valid_path:
-                    DataFactoryTree.deploy_factory(
+                    DataFactory.deploy_factory(
                         root=root,
                         root_out_path=root_out_path,
                         src_path=dir_path,
@@ -654,7 +664,10 @@ class DataFactory(ABC):
         if not os.path.exists(f'{src_path}/metadata.pydict'):
             if not os.path.exists(f'{src_path}/metadata.py'):
                 iraise(FileNotFoundError, f'No metadata found in {src_path}')
-            cmd = f'python {src_path}/metadata.py --store_path {out_path}'
+            cmd = (
+                f'python -W ignore {src_path}/metadata.py --store_path'
+                f' {out_path}'
+            )
             try:
                 os.system(cmd)
             except:
@@ -667,7 +680,7 @@ class DataFactory(ABC):
             iraise(FileNotFoundError, f'No factory.py found in {src_path}')
 
         cmd = (
-            f'python {src_path}/factory.py --root {root} --root_out'
+            f'python -W ignore {src_path}/factory.py --root {root} --root_out'
             f' {root_out_path}'
         )
         try:
