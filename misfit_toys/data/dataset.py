@@ -8,7 +8,7 @@ import os
 import time
 import sys
 import torch
-from ..swiffer import sco
+from ..swiffer import sco, istr, iraise, ireraise
 import re
 from warnings import warn
 import deepwave as dw
@@ -22,7 +22,7 @@ from masthay_helpers.global_helpers import prettify_dict, path_up
 import argparse
 from rich.traceback import install
 
-install(width=200, show_locals=True)
+# install(width=200, show_locals=True)
 
 
 def fetch_warn():
@@ -516,6 +516,15 @@ class DataFactory(ABC):
                         f'\n\nDataFactory constructor: {cmd} failed with exit'
                         f' code {exit_code}\n'
                     ),
+                )
+            pydict_exists = os.path.exists(f'{self.out_path}/metadata.pydict')
+            if not pydict_exists:
+                iraise(
+                    RuntimeError,
+                    f'"{cmd}" failed to create metadata.pydict in',
+                    f' {self.out_path}\n',
+                    'USER RESPONSIBILITY: self.src_path/metadata.py should ',
+                    'generate a metadata.pydict file in self.out_path',
                 )
             print('SUCCESS')
         elif not py_exists and not pydict_exists:

@@ -1,10 +1,14 @@
+from masthay_helpers.global_helpers import save_metadata
+
+
+@save_metadata(cli=True)
 def metadata():
     return {
         'url': 'http://www.agl.uh.edu/downloads/',
         'ext': 'segy',
         'unzip': True,
-        'ny': 2301,
-        'nx': 751,
+        'ny': 13601,
+        'nx': 2801,
         'nt': 750,
         'dy': 4.0,
         'dx': 4.0,
@@ -21,8 +25,25 @@ def metadata():
         'd_intra_shot': 0,
         'freq': 25,
         'peak_time': 1.5 / 25,
-        'accuracy': 8,
-        'vp': {'filename': 'vp_marmousi-ii.segy.gz'},
-        'vs': {'filename': 'vs_marmousi-ii.segy.gz'},
-        'rho': {'filename': 'density_marmousi-ii.segy.gz'}
+        'accuracy': 4,
+        'vp_true': {'filename': 'vp_marmousi-ii.segy.gz'},
+        'vs_true': {'filename': 'vs_marmousi-ii.segy.gz'},
+        'rho_true': {'filename': 'density_marmousi-ii.segy.gz'},
+        'derived': {
+            'tiny': {
+                'ny': 600,
+                'nx': 250,
+                'nt': 300,
+                'n_shots': 20,
+                'rec_per_shot': 100,
+            },
+            'medium': {
+                'ny': 2301,
+                'nx': 751,
+            },
+        },
     }
+
+
+if __name__ == "__main__":
+    metadata()

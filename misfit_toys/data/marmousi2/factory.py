@@ -1,19 +1,30 @@
-from ..dataset import towed_src, fixed_rec, DataFactory
-from ...utils import DotDict
-from .metadata import metadata
 import os
 import torch
 from warnings import warn
 import deepwave as dw
+from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
+from masthay_helpers import add_root_package_path
+
+add_root_package_path(path=os.path.dirname(__file__), pkg='misfit_toys')
+from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
+from misfit_toys.utils import DotDict
 
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        d = self.process_web_data()
-        self.tensors.vp = torch.load(os.path.join(self.src_path, 'vp.pt'))
-        d.ny, d.nx = self.tensors.vp.shape
+        d = DotDict(self.process_web_data())
+        if d.has('obs_data'):
+            print('obs_data already exists. Skipping manufacture.')
+            return
+        else:
+            print('obs_data not found...manufacturing tensors from web data.')
 
-        self.src_loc_y = towed_src(
+        self.tensors.vp_true = d.vp_true.to(self.device)
+        self.tensors.vs_true = d.vs_true.to(self.device)
+        self.tensors.rho_true = d.rho_true.to(self.device)
+        d.ny, d.nx = self.tensors.vp_true.shape
+
+        self.tensors.src_loc_y = towed_src(
             n_shots=d.n_shots,
             src_per_shot=d.src_per_shot,
             d_src=d.d_src,
@@ -37,18 +48,15 @@ class Factory(DataFactory):
             .to(self.device)
         )
 
-        print('Building obs_data')
-
-        # TODO: Update to elastic case
-        self.tensors.out = dw.scalar(
-            self.tensors.vp,
-            d.dx,
-            d.dt,
-            source_amplitudes=self.tensors.src_amp,
-            source_locations=self.tensors.src_loc,
-            receiver_locations=self.tensors.rec_loc_y,
-            pml_freq=d.freq,
-            accuracy=d.accuracy,
-        )[-1].to('cpu')
-
         return d
+
+
+def main():
+    f = Factory.cli_construct(
+        device='cuda:0', src_path=os.path.dirname(__file__)
+    )
+    f.manufacture_data()
+
+
+if __name__ == "__main__":
+    main()
