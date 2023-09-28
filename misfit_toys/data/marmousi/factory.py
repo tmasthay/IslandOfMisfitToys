@@ -17,6 +17,12 @@ from misfit_toys.utils import DotDict
 class Factory(DataFactory):
     def _manufacture_data(self):
         d = DotDict(self.process_web_data())
+        if d.has('obs_data'):
+            print('obs_data already exists. Skipping manufacture.')
+            return
+        else:
+            print('obs_data not found...manufacturing tensors from web data.')
+
         self.tensors.v_init = torch.tensor(
             1 / gaussian_filter(1 / d.vp_true.numpy(), 40)
         )
@@ -49,7 +55,7 @@ class Factory(DataFactory):
         )
 
         print(f'Building obs_data in {self.out_path}...', end='', flush=True)
-        self.tensors.out = dw.scalar(
+        self.tensors.obs_data = dw.scalar(
             self.tensors.vp,
             d.dy,
             d.dt,

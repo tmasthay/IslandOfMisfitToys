@@ -14,11 +14,11 @@ from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path, get_pydict, DotDict
+from ..utils import auto_path, parse_path, get_pydict, DotDict, downsample_any
 import copy
 from warnings import warn
 from ..swiffer import iraise, ireraise
-from masthay_helpers import prettify_dict
+from masthay_helpers.global_helpers import prettify_dict, path_up
 import argparse
 from rich.traceback import install
 
@@ -501,7 +501,7 @@ class DataFactory(ABC):
         self.tensors = DotDict(dict())
 
         py_exists = os.path.exists(f'{self.src_path}/metadata.py')
-        pydict_exists = os.path.exists(f'{self.src_path}/metadata.pydict')
+        pydict_exists = os.path.exists(f'{self.out_path}/metadata.pydict')
         if py_exists:
             cmd = (
                 f'python -W ignore {self.src_path}/metadata.py --store_path'
@@ -550,15 +550,16 @@ class DataFactory(ABC):
             if 'filename' not in v:
                 v['filename'] = k
 
-        if os.path.exists(self.out_path) and len(os.listdir(self.out_path)) > 1:
+        torch_files = sco(f'find {self.out_path} -name "*.pt"')
+        if os.path.exists(self.out_path) and len(torch_files) > 0:
             print(
-                f'{self.out_path} already exists...ignoring.'
+                f'{self.out_path} already has pytorch files in it...ignoring.\n'
                 'If you want to regenerate data, delete this folder '
                 'or specify a different path.'
             )
-            for k, v in fields.items():
-                pt_path = os.path.join(self.out_path, f"{v['filename']}.pt")
-                d[k] = torch.load(pt_path)
+            for name in torch_files:
+                k = name.split('/')[-1].split('.')[0]
+                d[k] = torch.load(name)
             return d
         os.makedirs(self.out_path, exist_ok=True)
 
@@ -610,14 +611,55 @@ class DataFactory(ABC):
     def clear_all_tensors(self):
         delattr(self, 'tensors')
 
+    def downsample_tensor(self, *, key, axes):
+        if key in self.tensors.keys() and self.tensors.get(key) is not None:
+            self.tensors.set(
+                key,
+                downsample_any(getattr(self.tensors, key), axes),
+            )
+
+    def downsample_subset_tensors(self, *, keys, axes):
+        for k in keys:
+            self.downsample_tensor(k, axes)
+
+    def downsample_all_tensors(self, *, axes):
+        self.downsample_subset_tensors(keys=self.tensors.keys(), axes=axes)
+
+    def slice_tensor(self, *slices, key):
+        if key in self.tensors.keys() and self.tensors.get(key) is not None:
+            self.tensors.set(key, self.tensors.get(key)[slices])
+
+    def slice_subset_tensors(self, *slices, keys):
+        for k in keys:
+            self.slice_tensor(*slices, key=k)
+
+    def slice_all_tensors(self, *slices):
+        self.slice_subset_tensors(*slices, keys=self.tensors.keys())
+
     def broadcast_meta(self):
         submeta = DataFactory.get_derived_meta(meta=self.metadata)
         if submeta is None:
             return None
         for k, v in submeta.items():
-            os.makedirs(f'{self.src_path}/{k}', exist_ok=True)
-            with open(f'{self.src_path}/{k}/metadata.pydict', 'w') as f:
+            os.makedirs(f'{self.out_path}/{k}', exist_ok=True)
+            with open(f'{self.out_path}/{k}/metadata.pydict', 'w') as f:
                 f.write(prettify_dict(v))
+
+    def get_parent_tensors(self):
+        parent_out_path = os.path.join(self.out_path, '..')
+        pt_files = sco(f'find {parent_out_path} -name "*.pt"')
+        if len(pt_files) == 0:
+            iraise(
+                FileNotFoundError,
+                f'No .pt files found in {parent_out_path}.',
+                'Only call get parent_tensors() if parent pytorch tensors',
+                ' have already been generated.',
+            )
+        tensors = DotDict(dict())
+        for pt_file in pt_files:
+            name = pt_file.split('/')[-1].split('.')[0]
+            tensors.set(name, torch.load(pt_file))
+        return tensors
 
     @staticmethod
     def get_derived_meta(*, meta):
@@ -661,7 +703,7 @@ class DataFactory(ABC):
     def deploy_factory(*, root, root_out_path, src_path):
         rel_path = os.path.relpath(src_path, root)
         out_path = os.path.join(root_out_path, rel_path)
-        if not os.path.exists(f'{src_path}/metadata.pydict'):
+        if not os.path.exists(f'{out_path}/metadata.pydict'):
             if not os.path.exists(f'{src_path}/metadata.py'):
                 iraise(FileNotFoundError, f'No metadata found in {src_path}')
             cmd = (
@@ -688,6 +730,25 @@ class DataFactory(ABC):
         except Exception as e:
             msg = str(e)
             iraise(type(e), f'Error in execution of {cmd}', msg)
+
+    @staticmethod
+    def get_slices(metadata):
+        if type(metadata) is dict:
+            d = DotDict(metadata)
+        else:
+            d = metadata
+        v_slice = (slice(None, d.ny, None), slice(None, d.nx, None))
+        src_slice = (
+            slice(None, d.n_shots, None),
+            slice(None, d.src_per_shot, None),
+            slice(None, d.nt, None),
+        )
+        rec_slice = (
+            slice(None, d.n_shots, None),
+            slice(None, d.rec_per_shot, None),
+            slice(None, d.nt, None),
+        )
+        return v_slice, src_slice, rec_slice
 
     @classmethod
     def cli_construct(cls, *, device=None, src_path, **kw):

@@ -22,6 +22,24 @@ class DotDict:
         for k, v in d.items():
             setattr(self, k, v)
 
+    def set(self, k, v):
+        setattr(self, k, v)
+
+    def get(self, k):
+        return getattr(self, k)
+
+    def keys(self):
+        return self.__dict__.keys()
+
+    def items(self):
+        return self.__dict__.items()
+
+    def values(self):
+        return self.__dict__.values()
+
+    def has(self, k):
+        return hasattr(self, k)
+
 
 def parse_path(path):
     if path is None:
@@ -217,6 +235,19 @@ def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
     if print_kwargs is None:
         print_kwargs = {'flush': True}
     print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
+
+
+def downsample_any(u, ratios):
+    assert len(ratios) == len(u.shape), (
+        f'downsample_any: len(ratios)={len(ratios)} !='
+        f' len(u.shape)={len(u.shape)}'
+    )
+    assert all(
+        [r > 0 and type(r) is int for r in ratios]
+    ), f'downsample_any: ratios={ratios} must be positive ints'
+
+    slices = [slice(None, None, r) for r in ratios]
+    return u[tuple(slices)]
 
 
 class SlotMeta(type):
