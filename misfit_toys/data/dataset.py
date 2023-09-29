@@ -400,7 +400,12 @@ def data_path(path):
 
 def get_data3(*, field, path):
     path = parse_path(path)
-    return torch.load(os.path.join(path, f'{field}.pt'))
+    print(
+        f'   Loading {os.path.join(path, f"{field}.pt")}...', end='', flush=True
+    )
+    u = torch.load(os.path.join(path, f'{field}.pt'))
+    print(f'{u.shape}', flush=True)
+    return u
 
 
 def field_getter(path):
@@ -713,8 +718,10 @@ class DataFactory(ABC):
         return derived
 
     @staticmethod
-    def manufacture_all(*, root, root_out_path):
-        exclusions = ['__pycache__']
+    def manufacture_all(*, root, root_out_path, exclusions=None):
+        if exclusions is None:
+            exclusions = []
+        exclusions = exclusions + ['__pycache__']
         root_out_path = parse_path(root_out_path)
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
@@ -731,11 +738,13 @@ class DataFactory(ABC):
                     )
 
     @staticmethod
-    def create_database(*, storage):
+    def create_database(*, storage, exclusions=None):
         root_out_dir = parse_path(storage)
         os.makedirs(root_out_dir, exist_ok=True)
         root = os.path.dirname(__file__)
-        DataFactory.manufacture_all(root=root, root_out_path=root_out_dir)
+        DataFactory.manufacture_all(
+            root=root, root_out_path=root_out_dir, exclusions=exclusions
+        )
 
     @staticmethod
     def deploy_factory(*, root, root_out_path, src_path):

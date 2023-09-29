@@ -27,8 +27,6 @@ class Factory(DataFactory):
         ):
             return d
 
-        input('mamrousi')
-
         self.tensors.vp_init = torch.tensor(
             1 / gaussian_filter(1 / d.vp_true.cpu().numpy(), 40)
         )

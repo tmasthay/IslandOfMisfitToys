@@ -83,15 +83,26 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         super().__init__()
 
         def get(filename, default=None):
+            print(f'filename={filename}, path={path}', flush=True)
             if isinstance(filename, torch.Tensor):
                 return filename
             elif filename is not None:
-                return get_data2(field=filename, path=path)
+                u = get_data3(field=filename, path=path)
+                print(f'    shape={u.shape}', flush=True)
+                return u
             elif filename is None and default is not None:
+                print(
+                    f'    Attempt: {path}/{default}.pt...', flush=True, end=''
+                )
                 if os.path.exists(f'{path}/{default}.pt'):
-                    return get_data2(field=default, path=path)
+                    u = get_data3(field=default, path=path)
                 else:
-                    return None
+                    u = None
+                if u is not None:
+                    print(f'{u.shape}', flush=True)
+                else:
+                    print('FAILED', flush=True)
+                return u
             else:
                 return None
 
