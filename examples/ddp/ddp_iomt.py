@@ -85,7 +85,7 @@ def run_rank(rank, world_size):
             requires_grad=True, minv=1000, maxv=2500
         ),
     )
-    v_init = propper.vp().detach().cpu()
+    propper.obs_data = taper(propper.obs_data, tape_len)
 
     # model = ParamConstrained(
     #     p=v_init,

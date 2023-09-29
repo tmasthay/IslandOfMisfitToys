@@ -101,7 +101,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 if u is not None:
                     print(f'{u.shape}', flush=True)
                 else:
-                    print('FAILED', flush=True)
+                    print('FAILED...returning None', flush=True)
                 return u
             else:
                 return None
@@ -114,6 +114,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 return prmzt(tmp)
 
         self.vp = get_prmzt(vp_init, 'vp_init', prmzt=vp_prmzt)
+        self.vp_init = self.vp().detach().cpu()
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
         # self.src_amp_y = get_prmzt(
@@ -137,6 +138,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.rho_true = get(rho_true, 'rho_true')
         self.src_amp_y_true = get(src_amp_y_true, 'src_amp_y_true')
         self.src_amp_x_true = get(src_amp_x_true, 'src_amp_x_true')
+        self.vp_init_raw = get(vp_init, 'vp_init').detach().cpu()
 
         self.model = 'acoustic' if self.vs is None else 'elastic'
 
