@@ -16,8 +16,6 @@ from misfit_toys.utils import DotDict
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        d = DotDict(self.process_web_data())
-
         if self.installed(
             'vp_true',
             'rho_true',
@@ -25,7 +23,9 @@ class Factory(DataFactory):
             'rec_loc_y',
             'obs_data',
         ):
-            return d
+            return
+
+        d = DotDict(self.process_web_data())
 
         self.tensors.vp_init = torch.tensor(
             1 / gaussian_filter(1 / d.vp_true.cpu().numpy(), 40)

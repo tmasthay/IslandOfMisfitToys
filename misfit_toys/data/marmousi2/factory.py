@@ -12,8 +12,6 @@ from misfit_toys.utils import DotDict
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        d = DotDict(self.process_web_data())
-
         if self.installed(
             'vp_true',
             'vs_true',
@@ -22,7 +20,9 @@ class Factory(DataFactory):
             'rec_loc_y',
             'src_amp_y',
         ):
-            return d
+            return
+
+        d = DotDict(self.process_web_data())
 
         self.tensors.vp_true = d.vp_true
         self.tensors.vs_true = d.vs_true
