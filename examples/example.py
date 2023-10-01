@@ -195,10 +195,93 @@ class Example(ABC):
             self.save_all_tensors()
         torch.distributed.barrier()
 
-    def plot_field(self, *, field, **kw):
-        raise NotImplementedError(
-            'plot_field not implemented, please override in subclass if you'
-            ' intend to use it'
+    def plot_field(
+        self,
+        *,
+        field,
+        title=None,
+        aspect='auto',
+        cmap='seismic',
+        cbar='uniform',
+        transpose=False,
+        **kw,
+    ):
+        self.plot_field_default(
+            field=field,
+            title=title,
+            aspect=aspect,
+            cmap=cmap,
+            cbar=cbar,
+            transpose=transpose,
+            **kw,
+        )
+
+    @staticmethod
+    def static_plot_field_default(
+        *,
+        field,
+        tensor,
+        fig_save,
+        title=None,
+        aspect='auto',
+        cmap='seismic',
+        cbar='uniform',
+        transpose=False,
+        **kw,
+    ):
+        u = tensor.detach().cpu()
+        title = field if title is None else title
+        if len(u.shape) not in [2, 3]:
+            raise NotImplementedError(
+                'Only support 2,3 dimensional tensors, got shape={u.shape}'
+            )
+        if len(u.shape) == 2:
+            u = u.unsqueeze(0)
+
+        if transpose:
+            u = torch.transpose(u, 1, 2)
+
+        vmin = u.min()
+        vmax = u.max()
+        full_kw = kw
+        full_kw.update(dict(vmin=vmin, vmax=vmax, cmap=cmap, aspect=aspect))
+        for i, curr in enumerate(u):
+            plt.clf()
+            if cbar == 'variable' or cbar == 'dynamic':
+                vmin, vmax = curr.min(), curr.max()
+                full_kw.update(dict(vmin=vmin, vmax=vmax))
+            plt.imshow(curr, **full_kw)
+            plt.title(f'{title} {i}')
+            if cbar:
+                plt.colorbar()
+            plt.savefig(f'{fig_save}/{field}_{i}.jpg')
+            plt.clf()
+        os.system(
+            'convert -delay 100 -loop 0 '
+            f'$(ls -tr {fig_save}/{field}_*.jpg) '
+            f'{fig_save}/{field}.gif'
+        )
+        os.system(f'rm {fig_save}/{field}_*.jpg')
+
+    def plot_field_default(
+        self,
+        *,
+        field,
+        title=None,
+        aspect='auto',
+        cmap='seismic',
+        cbar='uniform',
+        **kw,
+    ):
+        Example.static_plot_field_default(
+            field=field,
+            tensor=self.tensors[field],
+            fig_save=self.fig_save,
+            title=title,
+            aspect=aspect,
+            cmap=cmap,
+            cbar=cbar,
+            **kw,
         )
 
     def print(self, *args, level=1, **kw):

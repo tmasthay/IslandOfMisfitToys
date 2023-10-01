@@ -174,6 +174,10 @@ class MultiscaleExample(Example):
         self.tensors['src_amp_y'] = source_amplitudes
         self.tensors['obs_data'] = observed_data
 
+        torch.save(
+            self.tensors['obs_data'].detach().cpu(), '/home/tyler/obs_data.pt'
+        )
+
         print(f'Rank={rank}, id={id(observed_data)}', flush=True)
         observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
         source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
