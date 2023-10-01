@@ -23,7 +23,7 @@ def check_commit_msg(commit_msg_file):
         "PERF": "Same as PERFORMANCE",
         "DROP": "Dropped code/feature",
         "REQUEST": "Request-based change",
-        "FOLLOW": "Follow-up to previous commit",
+        "EMPTY_FOLLOW": "Follow-up to previous commit to provide more info",
         "REMOVE": "Removed code, feature or file",
         "RM": "Removed code, feature or file",
         "BUGRESURFACED": "Bug resurfaced, implies previous BUGFIX insufficient",
@@ -36,6 +36,7 @@ def check_commit_msg(commit_msg_file):
         "PAUSE_PERF": "Pausing performance work",
         "PAUSE_OVERKILL": "Pausing due to overkill",
         "PAUSE_DESIGN": "Pausing for design reasons",
+        "EMPTY_NOTE": "Empty commit -- should only be used for important notes",
         "WAIT_MERGE": (
             "Next commit should be merge, please specify sub-branch in commit"
             " message"
