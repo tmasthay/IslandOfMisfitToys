@@ -19,8 +19,6 @@ from deepwave import scalar
 from time import time
 from example import Example
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 
 class ExampleIOMT(Example):
     def _generate_data(self, rank, world_size):

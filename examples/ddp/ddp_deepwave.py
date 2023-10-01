@@ -22,8 +22,6 @@ from itertools import product as prod
 # from ..example import Example, define_names
 from example import Example, define_names
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 
 class Model(torch.nn.Module):
     def __init__(self, initial, min_vel, max_vel):
