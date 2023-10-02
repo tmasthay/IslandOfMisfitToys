@@ -18,6 +18,7 @@ import deepwave
 from deepwave import scalar
 from warnings import warn
 from itertools import product as prod
+import pickle
 
 # from ..example import Example, define_names
 from example import Example, define_names
@@ -100,7 +101,6 @@ class MultiscaleExample(Example):
 
         # Smooth to use as starting model
         v_init = torch.tensor(1 / gaussian_filter(1 / v_true.numpy(), 40))
-        self.tensors['vp_init_raw'] = v_init.detach().cpu()
 
         n_shots = 115
 

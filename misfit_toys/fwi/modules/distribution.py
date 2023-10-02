@@ -5,6 +5,7 @@ import os
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+import pickle
 
 
 def setup(rank, world_size):

@@ -169,11 +169,13 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
     def forward(self, **kw):
         kw = {**self.extra_forward_args, **kw}
+
         if 'amp_idx' in kw.keys():
             amp_idx = kw['amp_idx']
             del kw['amp_idx']
-        else:
-            amp_idx = torch.arange(self.src_amp_y.shape[0])
+        # else:
+        #     amp_idx = torch.arange(self.src_amp_y.shape[0])
+
         # if( 'amp_idx' in kw.keys() ):
         #     amp_idx = kw['amp_idx']
         #     del kw['amp_idx']
@@ -191,11 +193,13 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
             # print(f'source_loc.device = {self.src_loc_y.device}')
             # print(f'receiver_loc.device = {self.rec_loc_y.device}')
             # print(f'vp.device = {self.vp().device}')
+            # print(self.src_amp_y.device, flush=True)
+            # print(self.src_amp_y.shape, flush=True)
             return dw.scalar(
                 self.vp(),
                 self.dy,
                 self.dt,
-                source_amplitudes=self.src_amp_y[amp_idx],
+                source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
                 **kw,
