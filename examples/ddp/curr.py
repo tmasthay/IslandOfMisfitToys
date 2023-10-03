@@ -87,6 +87,9 @@ class ExampleIOMT(Example):
                 self.dx = dx
                 self.dt = dt
                 self.freq = freq
+                self.src_amp_y = prop.src_amp_y
+                self.src_loc_y = prop.src_loc_y
+                self.rec_loc_y = prop.rec_loc_y
 
             # def forward(
             #     self, source_amplitudes, source_locations, receiver_locations
@@ -109,19 +112,19 @@ class ExampleIOMT(Example):
                     v,
                     self.dx,
                     self.dt,
-                    source_amplitudes=prop.src_amp_y,
-                    source_locations=prop.src_loc_y,
-                    receiver_locations=prop.rec_loc_y,
+                    source_amplitudes=self.src_amp_y,
+                    source_locations=self.src_loc_y,
+                    receiver_locations=self.rec_loc_y,
                     max_vel=2500,
                     pml_freq=self.freq,
                     time_pad_frac=0.2,
                 )
 
         prop.vp.p.data = prop.vp.p.data.to(rank)
-        prop_dummy = Prop(model=prop.vp, dx=4.0, dt=0.004, freq=25)
+        # prop_dummy = Prop(model=prop.vp, dx=4.0, dt=0.004, freq=25)
         # prop.vp.p.data = place_rank(prop.vp.p.data, rank, world_size)
 
-        prop_dummy = DDP(prop_dummy, device_ids=[rank])
+        prop_dummy = DDP(prop, device_ids=[rank])
 
         # trainer = Training(distribution=dstrb)
         # (
@@ -184,7 +187,7 @@ class ExampleIOMT(Example):
 
                 optimiser.step(closure)
                 self.tensors['vp_record'][idx, epoch] = (
-                    prop_dummy.module.model().detach().cpu()
+                    prop_dummy.module.vp().detach().cpu()
                 )
                 print(
                     (

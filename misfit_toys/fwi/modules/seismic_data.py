@@ -167,12 +167,12 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
-    def forward(self, **kw):
-        kw = {**self.extra_forward_args, **kw}
+    def forward(self, x):
+        # kw = {**self.extra_forward_args, **kw}
 
-        if 'amp_idx' in kw.keys():
-            amp_idx = kw['amp_idx']
-            del kw['amp_idx']
+        # if 'amp_idx' in kw.keys():
+        #     amp_idx = kw['amp_idx']
+        #     del kw['amp_idx']
         # else:
         #     amp_idx = torch.arange(self.src_amp_y.shape[0])
 
@@ -197,12 +197,14 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
             # print(self.src_amp_y.shape, flush=True)
             return dw.scalar(
                 self.vp(),
-                self.dy,
-                self.dt,
+                4.0,
+                0.004,
                 source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
-                **kw,
+                max_vel=2500,
+                pml_freq=25,
+                time_pad_frac=0.2,
             )
         else:
             return dw.elastic(
