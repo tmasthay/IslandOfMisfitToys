@@ -34,8 +34,11 @@ def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
 
 
 class Training:
-    def __init__(self, *, distribution):
-        self.distribution = distribution
+    def __init__(self, *, prop):
+        self.prop = prop
+
+    def run_rank(self, rank, world_size):
+        self.prop.split_to(rank)
 
     def train(self, **kw):
         rank = self.distribution.rank

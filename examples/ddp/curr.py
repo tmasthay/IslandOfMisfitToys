@@ -80,48 +80,11 @@ class ExampleIOMT(Example):
         prop.src_amp_y = place_rank(prop.src_amp_y, rank, world_size)
         prop.src_amp_x = place_rank(prop.src_amp_x, rank, world_size)
 
-        class Prop(torch.nn.Module):
-            def __init__(self, model, dx, dt, freq):
-                super().__init__()
-                self.model = model
-                self.dx = dx
-                self.dt = dt
-                self.freq = freq
-
-            # def forward(
-            #     self, source_amplitudes, source_locations, receiver_locations
-            # ):
-            #     v = self.model()
-            #     return scalar(
-            #         v,
-            #         self.dx,
-            #         self.dt,
-            #         source_amplitudes=source_amplitudes,
-            #         source_locations=source_locations,
-            #         receiver_locations=receiver_locations,
-            #         max_vel=2500,
-            #         pml_freq=self.freq,
-            #         time_pad_frac=0.2,
-            #     )
-            def forward(self, x):
-                v = self.model()
-                return scalar(
-                    v,
-                    self.dx,
-                    self.dt,
-                    source_amplitudes=prop.src_amp_y,
-                    source_locations=prop.src_loc_y,
-                    receiver_locations=prop.rec_loc_y,
-                    max_vel=2500,
-                    pml_freq=self.freq,
-                    time_pad_frac=0.2,
-                )
-
         prop.vp.p.data = prop.vp.p.data.to(rank)
-        prop_dummy = Prop(model=prop.vp, dx=4.0, dt=0.004, freq=25)
+        # prop_dummy = Prop(model=prop.vp, dx=4.0, dt=0.004, freq=25)
         # prop.vp.p.data = place_rank(prop.vp.p.data, rank, world_size)
 
-        prop_dummy = DDP(prop_dummy, device_ids=[rank])
+        prop_dummy = DDP(prop, device_ids=[rank])
 
         # trainer = Training(distribution=dstrb)
         # (
@@ -184,7 +147,7 @@ class ExampleIOMT(Example):
 
                 optimiser.step(closure)
                 self.tensors['vp_record'][idx, epoch] = (
-                    prop_dummy.module.model().detach().cpu()
+                    prop_dummy.module.vp().detach().cpu()
                 )
                 print(
                     (

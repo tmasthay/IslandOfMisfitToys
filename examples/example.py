@@ -191,9 +191,9 @@ class Example(ABC):
     def generate_data(self, rank, world_size):
         self.print(f"Running DDP on rank {rank} / {world_size}.", level=2)
         self._generate_data(rank, world_size)
+        torch.distributed.barrier()
         if rank == 0:
             self.save_all_tensors()
-        torch.distributed.barrier()
 
     def plot_field(
         self,

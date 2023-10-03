@@ -114,31 +114,31 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 return prmzt(tmp)
 
         self.vp = get_prmzt(vp_init, 'vp_init', prmzt=vp_prmzt)
-        self.vp_init = self.vp().detach().cpu()
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
-        # self.src_amp_y = get_prmzt(
-        #     src_amp_y,
-        #     'src_amp_y',
-        #     prmzt=src_amp_y_prmzt
-        # )
-        # self.src_amp_x = get_prmzt(
-        #     src_amp_x,
-        #     'src_amp_y',
-        #     prmzt=src_amp_x_prmzt
-        # )
 
-        self.src_amp_y = get(src_amp_y, 'src_amp_y')
-        self.src_amp_x = get(src_amp_x, 'src_amp_x')
-        self.obs_data = get(obs_data, 'obs_data')
-        self.src_loc_y = get(src_loc_y, 'src_loc_y')
-        self.rec_loc_y = get(rec_loc_y, 'rec_loc_y')
+        self.src_amp_y = torch.nn.Parameter(
+            get(src_amp_y, 'src_amp_y'), requires_grad=False
+        )
+        self.src_amp_x = torch.nn.Parameter(
+            get(src_amp_x, 'src_amp_x'), requires_grad=False
+        )
+        self.obs_data = torch.nn.Parameter(
+            get(obs_data, 'obs_data'), requires_grad=False
+        )
+        self.src_loc_y = torch.nn.Parameter(
+            get(src_loc_y, 'src_loc_y'), requires_grad=False
+        )
+        self.rec_loc_y = torch.nn.Parameter(
+            get(rec_loc_y, 'rec_loc_y'), requires_grad=False
+        )
+
+        # raw tensors
         self.vp_true = get(vp_true, 'vp_true')
         self.vs_true = get(vs_true, 'vs_true')
         self.rho_true = get(rho_true, 'rho_true')
         self.src_amp_y_true = get(src_amp_y_true, 'src_amp_y_true')
         self.src_amp_x_true = get(src_amp_x_true, 'src_amp_x_true')
-        self.vp_init_raw = get(vp_init, 'vp_init').detach().cpu()
 
         self.model = 'acoustic' if self.vs is None else 'elastic'
 
@@ -167,7 +167,34 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
-    def forward(self, **kw):
+    def chunk_to(
+        self, *, rank, world_size, split_exclude=None, device_exclude=None
+    ):
+        split_exclude = [] if split_exclude is None else split_exclude
+        device_exclude = [] if device_exclude is None else device_exclude
+        new_params = {}
+        for name, param in self.named_parameters():
+            if name in split_exclude:
+                new_params[name] = param
+            else:
+                chunk = torch.chunk(param, world_size)[rank]
+                new_params[name] = chunk
+
+        for name, param in self.named_parameters():
+            param.data = new_params[name]
+
+        for name, param in self.named_parameters():
+            if name not in device_exclude:
+                param.data = param.data.to(rank)
+
+        return self
+
+    def report_param_attr(self, attr):
+        for name, p in self.named_parameters():
+            v = getattr(p, attr)
+            print(f'self.{name}.{attr} = {v}', flush=True)
+
+    def forward(self, x, **kw):
         kw = {**self.extra_forward_args, **kw}
 
         if 'amp_idx' in kw.keys():
