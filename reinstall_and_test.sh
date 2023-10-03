@@ -12,6 +12,7 @@ RUN_PYTHON_COMMANDS=${1:-0}
 REDOWNLOAD_DATA=${2:-0}
 
 python update_imports.py
+pip uninstall -y masthay_helpers
 pip uninstall -y IslandOfMisfitToys
 pip install .
 
