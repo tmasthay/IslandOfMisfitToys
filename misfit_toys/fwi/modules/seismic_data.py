@@ -167,6 +167,30 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
+    def chunk(self, rank, world_size):
+        def cnk(x):
+            if x is None:
+                return None
+            elif isinstance(x, torch.Tensor):
+                return torch.chunk(x, world_size)[rank]
+            else:
+                raise TypeError(f'Expected torch.Tensor, got {type(x)}')
+
+        self.obs_data = cnk(self.obs_data)
+        self.src_loc_y = cnk(self.src_loc_y)
+        self.rec_loc_y = cnk(self.rec_loc_y)
+        self.src_amp_y = cnk(self.src_amp_y)
+
+        return self
+
+    def to(self, device):
+        super().to(device)
+        self.obs_data = self.obs_data.to(device)
+        self.src_loc_y = self.src_loc_y.to(device)
+        self.rec_loc_y = self.rec_loc_y.to(device)
+        self.src_amp_y = self.src_amp_y.to(device)
+        return self
+
     def forward(self, x):
         # kw = {**self.extra_forward_args, **kw}
 

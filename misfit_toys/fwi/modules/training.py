@@ -5,6 +5,8 @@ from ...utils import taper
 import numpy as np
 import torch.distributed as dist
 
+from .distribution import cleanup
+
 
 def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
     # Compute various statistics
@@ -34,12 +36,12 @@ def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
 
 
 class Training:
-    def __init__(self, *, distribution):
-        self.distribution = distribution
+    def __init__(self, *, dist_prop, rank, world_size):
+        self.dist_prop = dist_prop
+        self.rank = rank
+        self.world_size = world_size
 
     def train(self, **kw):
-        rank = self.distribution.rank
-
         # Setup optimiser to perform inversion
         loss_fn = torch.nn.MSELoss()
 
@@ -48,20 +50,11 @@ class Training:
 
         all_freqs = torch.Tensor([10, 15, 20, 25, 30])
         n_freqs = all_freqs.shape[0]
-        world_size = self.distribution.world_size
         freqs = all_freqs
-        loss_local = torch.zeros(freqs.shape[0], n_epochs).to(rank)
-
+        loss_local = torch.zeros(freqs.shape[0], n_epochs).to(self.rank)
         vp_record = torch.Tensor(
-            n_freqs, n_epochs, *self.distribution.prop.vp().shape
+            n_freqs, n_epochs, *self.dist_prop.module.vp.p.shape
         )
-
-        if rank == 0:
-            gather_loss = [
-                torch.zeros_like(loss_local) for _ in range(world_size)
-            ]
-        else:
-            gather_loss = None
 
         print(
             f'enumerate(all_freq)={[e for e in enumerate(all_freqs)]}',
@@ -71,13 +64,13 @@ class Training:
             sos = butter(
                 6,
                 cutoff_freq,
-                fs=1.0 / self.distribution.dist_prop.module.dt,
+                fs=1.0 / self.dist_prop.module.dt,
                 output='sos',
             )
             sos = [
                 torch.tensor(sosi)
-                .to(self.distribution.dist_prop.module.obs_data.dtype)
-                .to(rank)
+                .to(self.dist_prop.module.obs_data.dtype)
+                .to(self.rank)
                 for sosi in sos
             ]
             # input(sos)
@@ -85,13 +78,9 @@ class Training:
             def filt(x):
                 return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
-            observed_data_filt = filt(
-                self.distribution.dist_prop.module.obs_data
-            )
+            observed_data_filt = filt(self.dist_prop.module.obs_data)
 
-            optimiser = torch.optim.LBFGS(
-                self.distribution.dist_prop.module.parameters()
-            )
+            optimiser = torch.optim.LBFGS(self.dist_prop.module.parameters())
 
             # print_tensor(observed_data_filt, print_fn=input)
 
@@ -102,7 +91,8 @@ class Training:
                     nonlocal closure_calls, loss_local
                     closure_calls += 1
                     optimiser.zero_grad()
-                    out = self.distribution.dist_prop.module(**kw)
+                    # out = self.distribution.dist_prop.module(**kw)
+                    out = self.dist_prop(1, **kw)
                     out_filt = filt(taper(out[-1], 100))
                     loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                     if closure_calls == 1:
@@ -111,7 +101,7 @@ class Training:
                                 f'Loss={loss.item():.16f}, '
                                 f'Freq={cutoff_freq}, '
                                 f'Epoch={epoch}, '
-                                f'Rank={rank}'
+                                f'Rank={self.rank}'
                             ),
                             flush=True,
                         )
@@ -121,7 +111,7 @@ class Training:
 
                 optimiser.step(closure)
                 vp_record[idx, epoch] = (
-                    self.distribution.dist_prop.module.vp().detach().cpu()
+                    self.dist_prop.module.vp().detach().cpu()
                 )
                 # print_tensor(
                 #     self.distribution.dist_prop.module.vp(),
@@ -141,12 +131,6 @@ class Training:
                 #         f'''Param=src_amp_y'''
                 #     ),
                 # )
-        if rank == 0:
-            dist.gather(
-                loss_local,
-                gather_loss,
-                dst=0,
-            )
-            final = torch.stack(gather_loss, dim=0).detach().cpu()
-            # input(f'Final shape={final.shape}')
-            return final, freqs.detach().cpu(), vp_record.detach().cpu()
+        torch.save(loss_local.detach().cpu(), f'loss_local_{self.rank}.pt')
+        torch.save(vp_record.detach().cpu(), f'vp_record_{self.rank}.pt')
+        torch.save(freqs.detach().cpu(), f'freqs_{self.rank}.pt')

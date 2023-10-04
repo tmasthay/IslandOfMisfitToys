@@ -74,102 +74,144 @@ class ExampleIOMT(Example):
         #     f'BEFORE TRAIN={dstrb.dist_prop.module.src_amp_y.device}',
         #     flush=True,
         # )
-        prop.obs_data = place_rank(prop.obs_data, rank, world_size)
-        prop.src_loc_y = place_rank(prop.src_loc_y, rank, world_size)
-        prop.rec_loc_y = place_rank(prop.rec_loc_y, rank, world_size)
-        prop.src_amp_y = place_rank(prop.src_amp_y, rank, world_size)
-        prop.src_amp_x = place_rank(prop.src_amp_x, rank, world_size)
+        # prop.obs_data = place_rank(prop.obs_data, rank, world_size)
+        # prop.src_loc_y = place_rank(prop.src_loc_y, rank, world_size)
+        # prop.rec_loc_y = place_rank(prop.rec_loc_y, rank, world_size)
+        # prop.src_amp_y = place_rank(prop.src_amp_y, rank, world_size)
+        # prop.src_amp_x = place_rank(prop.src_amp_x, rank, world_size)
 
-        prop.vp.p.data = prop.vp.p.data.to(rank)
+        # class Prop(torch.nn.Module):
+        #     def __init__(self, model, dx, dt, freq):
+        #         super().__init__()
+        #         self.model = model
+        #         self.dx = dx
+        #         self.dt = dt
+        #         self.freq = freq
+        #         self.src_amp_y = prop.src_amp_y
+        #         self.src_loc_y = prop.src_loc_y
+        #         self.rec_loc_y = prop.rec_loc_y
+
+        #     # def forward(
+        #     #     self, source_amplitudes, source_locations, receiver_locations
+        #     # ):
+        #     #     v = self.model()
+        #     #     return scalar(
+        #     #         v,
+        #     #         self.dx,
+        #     #         self.dt,
+        #     #         source_amplitudes=source_amplitudes,
+        #     #         source_locations=source_locations,
+        #     #         receiver_locations=receiver_locations,
+        #     #         max_vel=2500,
+        #     #         pml_freq=self.freq,
+        #     #         time_pad_frac=0.2,
+        #     #     )
+        #     def forward(self, x):
+        #         v = self.model()
+        #         return scalar(
+        #             v,
+        #             self.dx,
+        #             self.dt,
+        #             source_amplitudes=self.src_amp_y,
+        #             source_locations=self.src_loc_y,
+        #             receiver_locations=self.rec_loc_y,
+        #             max_vel=2500,
+        #             pml_freq=self.freq,
+        #             time_pad_frac=0.2,
+        #         )
+
+        # prop.vp.p.data = prop.vp.p.data.to(rank)
         # prop_dummy = Prop(model=prop.vp, dx=4.0, dt=0.004, freq=25)
         # prop.vp.p.data = place_rank(prop.vp.p.data, rank, world_size)
 
-        prop_dummy = DDP(prop, device_ids=[rank])
+        # prop_dummy = DDP(prop, device_ids=[rank])
+        # prop_dist = Distribution(rank=rank, world_size=world_size, prop=prop)
 
-        # trainer = Training(distribution=dstrb)
-        # (
-        #     self.tensors['loss'],
-        #     self.tensors['freqs'],
-        #     self.tensors['vp_record'],
-        # ) = trainer.train()
-
-        loss_fn = torch.nn.MSELoss()
-        n_epochs = 2
-        freqs = torch.Tensor([10, 15, 20, 25, 30]).detach().cpu()
-        n_freqs = freqs.shape[0]
-
-        self.tensors['vp_record'] = (
-            torch.zeros(n_freqs, n_epochs, *prop.vp().shape).detach().cpu()
+        prop = prop.chunk(rank, world_size)
+        prop = prop.to(rank)
+        dist_prop = DDP(prop, device_ids=[rank])
+        trainer = Training(
+            dist_prop=dist_prop, rank=rank, world_size=world_size
         )
+        trainer.train()
 
-        self.tensors['loss'] = torch.zeros(n_freqs, n_epochs).detach().cpu()
-        self.tensors['freqs'] = freqs
+        # loss_fn = torch.nn.MSELoss()
+        # n_epochs = 2
+        # freqs = torch.Tensor([10, 15, 20, 25, 30]).detach().cpu()
+        # n_freqs = freqs.shape[0]
 
-        loss_local = torch.zeros(freqs.shape[0], n_epochs).to(rank)
-        if rank == 0:
-            gather_loss = [
-                torch.zeros_like(loss_local) for _ in range(world_size)
-            ]
-        else:
-            gather_loss = None
+        # self.tensors['vp_record'] = (
+        #     torch.zeros(n_freqs, n_epochs, *prop.vp().shape).detach().cpu()
+        # )
 
-        dt = 0.004
-        tape_len = 100
-        for idx, cutoff_freq in enumerate(list(freqs)):
-            sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
-            sos = [
-                torch.tensor(sosi).to(prop.obs_data.dtype).to(rank)
-                for sosi in sos
-            ]
+        # self.tensors['loss'] = torch.zeros(n_freqs, n_epochs).detach().cpu()
+        # self.tensors['freqs'] = freqs
 
-            def filt(x):
-                return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+        # loss_local = torch.zeros(freqs.shape[0], n_epochs).to(rank)
+        # if rank == 0:
+        #     gather_loss = [
+        #         torch.zeros_like(loss_local) for _ in range(world_size)
+        #     ]
+        # else:
+        #     gather_loss = None
 
-            observed_data_filt = filt(prop.obs_data)
-            optimiser = torch.optim.LBFGS(prop_dummy.parameters())
+        # dt = 0.004
+        # tape_len = 100
+        # for idx, cutoff_freq in enumerate(list(freqs)):
+        #     sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
+        #     sos = [
+        #         torch.tensor(sosi).to(prop.obs_data.dtype).to(rank)
+        #         for sosi in sos
+        #     ]
 
-            for epoch in range(n_epochs):
-                epoch_loss = 0.0
-                closure_calls = 0
+        #     def filt(x):
+        #         return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
-                def closure():
-                    nonlocal closure_calls, epoch_loss
-                    closure_calls += 1
-                    optimiser.zero_grad()
-                    out = prop_dummy(1)
-                    out_filt = filt(taper(out[-1], tape_len))
-                    loss = 1e6 * loss_fn(out_filt, observed_data_filt)
-                    if closure_calls == 1:
-                        loss_local[idx, epoch] = loss.item()
-                        epoch_loss = loss_local[idx, epoch]
-                    loss.backward()
-                    return loss
+        #     observed_data_filt = filt(prop.obs_data)
+        #     optimiser = torch.optim.LBFGS(prop_dummy.parameters())
 
-                optimiser.step(closure)
-                self.tensors['vp_record'][idx, epoch] = (
-                    prop_dummy.module.vp().detach().cpu()
-                )
-                print(
-                    (
-                        f'Loss={epoch_loss:.16f}, '
-                        f'Freq={cutoff_freq}, '
-                        f'Epoch={epoch}, '
-                        f'Rank={rank}'
-                    ),
-                    flush=True,
-                )
-        self.print(f'TRAIN END, Rank={rank}')
-        self.print(loss_local)
-        torch.distributed.gather(
-            tensor=loss_local, gather_list=gather_loss, dst=0
-        )
-        if rank == 0:
-            self.print(f'GATHER BEGIN, Rank={rank}')
-            self.tensors['loss'] = torch.stack(gather_loss).to('cpu')
-            self.print(
-                f'Gathered data: {self.tensors["loss"]} of shape'
-                f' {self.tensors["loss"].shape}'
-            )
+        #     for epoch in range(n_epochs):
+        #         epoch_loss = 0.0
+        #         closure_calls = 0
+
+        #         def closure():
+        #             nonlocal closure_calls, epoch_loss
+        #             closure_calls += 1
+        #             optimiser.zero_grad()
+        #             out = prop_dummy(1)
+        #             out_filt = filt(taper(out[-1], tape_len))
+        #             loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+        #             if closure_calls == 1:
+        #                 loss_local[idx, epoch] = loss.item()
+        #                 epoch_loss = loss_local[idx, epoch]
+        #             loss.backward()
+        #             return loss
+
+        #         optimiser.step(closure)
+        #         self.tensors['vp_record'][idx, epoch] = (
+        #             prop_dummy.module.vp().detach().cpu()
+        #         )
+        #         print(
+        #             (
+        #                 f'Loss={epoch_loss:.16f}, '
+        #                 f'Freq={cutoff_freq}, '
+        #                 f'Epoch={epoch}, '
+        #                 f'Rank={rank}'
+        #             ),
+        #             flush=True,
+        #         )
+        # self.print(f'TRAIN END, Rank={rank}')
+        # self.print(loss_local)
+        # torch.distributed.gather(
+        #     tensor=loss_local, gather_list=gather_loss, dst=0
+        # )
+        # if rank == 0:
+        #     self.print(f'GATHER BEGIN, Rank={rank}')
+        #     self.tensors['loss'] = torch.stack(gather_loss).to('cpu')
+        #     self.print(
+        #         f'Gathered data: {self.tensors["loss"]} of shape'
+        #         f' {self.tensors["loss"].shape}'
+        #     )
 
     def plot_data(self, **kw):
         self.n_epochs = 2
