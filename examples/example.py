@@ -26,8 +26,8 @@ class Example(ABC):
         plot_args={},
         **kw,
     ):
-        self.data_save = data_save
-        self.fig_save = fig_save
+        self.data_save = os.path.abspath(data_save)
+        self.fig_save = os.path.abspath(fig_save)
         self.pickle_save = pickle_save
         self.tensor_names = tensor_names
         self.output_files = {
@@ -200,12 +200,13 @@ class Example(ABC):
 
     def postprocess(self, world_size, reduce=None):
         os.makedirs(f'{self.data_save}/tmp', exist_ok=True)
+        tmp_path = os.path.join(self.data_save, 'tmp')
         unresolved_keys = set(self.tensor_names) - set(self.tensors.keys())
         for k in unresolved_keys:
             self.print('k=', k)
             curr = []
             for i in range(world_size):
-                filename = f'{self.data_save}/{k}_{i}.pt'
+                filename = f'{tmp_path}/{k}_{i}.pt'
                 if not os.path.exists(filename):
                     iraise(
                         ValueError,

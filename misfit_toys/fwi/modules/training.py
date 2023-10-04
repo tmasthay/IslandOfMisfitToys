@@ -7,6 +7,8 @@ import torch.distributed as dist
 
 from .distribution import cleanup
 
+import os
+
 
 def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
     # Compute various statistics
@@ -41,7 +43,7 @@ class Training:
         self.rank = rank
         self.world_size = world_size
 
-    def train(self, **kw):
+    def train(self, *, path, **kw):
         # Setup optimiser to perform inversion
         loss_fn = torch.nn.MSELoss()
 
@@ -131,6 +133,15 @@ class Training:
                 #         f'''Param=src_amp_y'''
                 #     ),
                 # )
-        torch.save(loss_local.detach().cpu(), f'loss_local_{self.rank}.pt')
-        torch.save(vp_record.detach().cpu(), f'vp_record_{self.rank}.pt')
-        torch.save(freqs.detach().cpu(), f'freqs_{self.rank}.pt')
+        os.makedirs(path, exist_ok=True)
+
+        def save(k, v):
+            u = v.detach().cpu()
+            lcl_path = os.path.join(path, f'{k}_{self.rank}.pt')
+            print(f'Saving to {lcl_path}...', flush=True, end='')
+            torch.save(u, lcl_path)
+            print('SUCCESS', flush=True)
+
+        save('loss', loss_local)
+        save('freqs', freqs)
+        save('vp_record', vp_record)

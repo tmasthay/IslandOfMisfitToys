@@ -133,7 +133,8 @@ class ExampleIOMT(Example):
         trainer = Training(
             dist_prop=dist_prop, rank=rank, world_size=world_size
         )
-        trainer.train()
+        tmp_path = os.path.abspath(os.path.join(self.data_save, 'tmp'))
+        trainer.train(path=tmp_path)
 
         # loss_fn = torch.nn.MSELoss()
         # n_epochs = 2
