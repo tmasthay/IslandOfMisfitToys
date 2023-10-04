@@ -1,5 +1,6 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
 from misfit_toys.utils import summarize_tensor
+from misfit_toys.swiffer import iraise, istr
 
 from abc import ABC, abstractmethod
 import os
@@ -191,9 +192,65 @@ class Example(ABC):
     def generate_data(self, rank, world_size):
         self.print(f"Running DDP on rank {rank} / {world_size}.", level=2)
         self._generate_data(rank, world_size)
+        torch.distributed.barrier()
         if rank == 0:
+            self.postprocess(world_size)
             self.save_all_tensors()
         torch.distributed.barrier()
+
+    def postprocess(self, world_size, reduce=None):
+        os.makedirs(f'{self.data_save}/tmp', exist_ok=True)
+        unresolved_keys = set(self.tensor_names) - set(self.tensors.keys())
+        for k in unresolved_keys:
+            self.print('k=', k)
+            curr = []
+            for i in range(world_size):
+                filename = f'{self.data_save}/{k}_{i}.pt'
+                if not os.path.exists(filename):
+                    iraise(
+                        ValueError,
+                        f'FATAL: Could not find {filename} in postprocess.\n',
+                        istr(
+                            'Debug info below:\n',
+                            f'self.tensor_names={self.tensor_names}',
+                            f'self.tensors.keys()={self.tensors.keys()}',
+                            f'unresolved_keys={unresolved_keys}',
+                        ),
+                        istr(
+                            'USER RESPONSIBILITY\n',
+                            'Any unresolved tensor names in self.tensor_names',
+                            'need to be set in one of two ways in abstract ',
+                            'self._generate_data method.',
+                            istr(
+                                '\n',
+                                '(1) Explicitly set (params synced by DDP)\n',
+                                (
+                                    '(2) Implicitly set by saving to'
+                                    ' f"{self.data_save}/{key}_{rank}.pt" for'
+                                    ' each rank (unsynced metadata, e.g. loss'
+                                    ' history)'
+                                ),
+                            ),
+                        ),
+                    )
+                curr.append(torch.load(filename))
+            if reduce is None or reduce[k] is None:
+                self.tensors[k] = curr[0]
+            elif reduce[k] == 'stack':
+                self.tensors[k] = torch.stack(curr)
+            elif reduce[k] == 'sum':
+                self.tensors[k] = torch.stack(curr).sum(dim=0)
+            elif reduce[k] == 'mean':
+                self.tensors[k] = torch.stack(curr).mean(dim=0)
+            else:
+                self.tensors[k] = reduce[k](curr)
+        assert set(self.tensor_names) == set(self.tensors.keys()), istr(
+            f'FATAL',
+            f'self.tensor_names={self.tensor_names}\n',
+            f'self.tensors.keys()={self.tensors.keys()}\n',
+            f'This assertion should never occur!\n',
+            'Please report this bug to the IslandOfMisfitToys developers!\n',
+        )
 
     def plot_field(
         self,
@@ -383,6 +440,24 @@ class Example(ABC):
         self.plot_loss(**kw)
 
     def run_rank(self, rank, world_size):
+        """
+        TODO: generate_data(rank, world_size) really is 'run_rank'. This should all be refactored.
+        You should do
+
+        def run():
+            self.load_all_tensors()
+            if( self.tensors is None ):
+                self.tensors = {}
+                mp.spawn(self.generate_data, args=(world_size,), nprocs=world_size, join=True)
+                self.load_all_tensors()
+                if self.tensors is None: raise ValueError(...)
+            else:
+                self.print('skipping data gen')
+            self.plot_data()...
+        HOWEVER: maybe there is some reason why you need this with the pickling.
+        Don't be overconfidetn...we will keep this structure for now so as to not
+        break anything even though it's a bit clumsy from a design standpoint.
+        """
         setup(rank, world_size)
         self.load_all_tensors()
         if self.tensors is None:
