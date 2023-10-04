@@ -191,6 +191,31 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.src_amp_y = self.src_amp_y.to(device)
         return self
 
+    def get_detached_tensors(self, d):
+        u = {}
+        for k, v in d.items():
+            if isinstance(v, torch.Tensor):
+                u[k] = v.detach().cpu()
+            else:
+                iraise(
+                    ValueError,
+                    f'FATAL: Expected {k} to be a torch.Tensor, ',
+                    f'got {type(v)} instead.',
+                )
+        return u
+
+    def get_tensors(self):
+        get = lambda x: None if x is None else x.detach().cpu()
+        return dict(
+            vp_init=get(self.vp()),
+            src_amp_y=get(self.src_amp_y),
+            src_amp_x=get(self.src_amp_x),
+            obs_data=get(self.obs_data),
+            src_loc_y=get(self.src_loc_y),
+            rec_loc_y=get(self.rec_loc_y),
+            vp_true=get(self.vp_true),
+        )
+
     def forward(self, x):
         # kw = {**self.extra_forward_args, **kw}
 

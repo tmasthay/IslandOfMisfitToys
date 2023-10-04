@@ -201,7 +201,10 @@ class Example(ABC):
     def postprocess(self, world_size, reduce=None):
         os.makedirs(f'{self.data_save}/tmp', exist_ok=True)
         tmp_path = os.path.join(self.data_save, 'tmp')
-        unresolved_keys = set(self.tensor_names) - set(self.tensors.keys())
+        st = set(self.tensor_names)
+        stk = set(self.tensors.keys())
+        unresolved_keys = st - stk
+        assert not (stk - st), f'tensors.keys() - tensor_names = {stk - st}'
         for k in unresolved_keys:
             self.print('k=', k)
             curr = []
@@ -245,12 +248,19 @@ class Example(ABC):
                 self.tensors[k] = torch.stack(curr).mean(dim=0)
             else:
                 self.tensors[k] = reduce[k](curr)
-        assert set(self.tensor_names) == set(self.tensors.keys()), istr(
+
+        stk = set(self.tensors.keys())
+        assert st == stk, istr(
             f'FATAL',
             f'self.tensor_names={self.tensor_names}\n',
             f'self.tensors.keys()={self.tensors.keys()}\n',
             f'This assertion should never occur!\n',
             'Please report this bug to the IslandOfMisfitToys developers!\n',
+            'Debug info below\n',
+            f'tensor_names={st}\n',
+            f'tensors.keys()={stk}\n',
+            f'tensor_names - tensors.keys()={st - stk}\n',
+            f'tensors.keys() - tensor_names={stk - st}\n',
         )
 
     def plot_field(
