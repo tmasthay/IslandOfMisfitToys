@@ -1,4 +1,4 @@
-from ...utils import auto_path, get_pydict, SlotMeta, DotDict
+from ...utils import auto_path, get_pydict, SlotMeta, DotDict, iraise
 from ...data.dataset import *
 from .models import Param, ParamConstrained
 
@@ -9,6 +9,8 @@ from typing import Annotated as Ant, Optional as Opt, Union, Callable as Call
 from scipy.ndimage import gaussian_filter
 from dataclasses import dataclass, field
 import json
+
+from masthay_helpers import printj
 
 
 class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
@@ -117,31 +119,27 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
 
-        self.src_amp_y = torch.nn.Parameter(
-            get(src_amp_y, 'src_amp_y'), requires_grad=False
-        )
-        self.src_amp_x = torch.nn.Parameter(
-            get(src_amp_x, 'src_amp_x'), requires_grad=False
-        )
-        self.obs_data = torch.nn.Parameter(
-            get(obs_data, 'obs_data'), requires_grad=False
-        )
-        self.src_loc_y = torch.nn.Parameter(
-            get(src_loc_y, 'src_loc_y'), requires_grad=False
-        )
-        self.rec_loc_y = torch.nn.Parameter(
-            get(rec_loc_y, 'rec_loc_y'), requires_grad=False
-        )
+        # self.src_amp_y = torch.nn.Parameter(
+        #     get(src_amp_y, 'src_amp_y'), requires_grad=False
+        # )
+        # self.src_amp_x = torch.nn.Parameter(
+        #     get(src_amp_x, 'src_amp_x'), requires_grad=False
+        # )
 
-        # raw tensors
-        self.vp_true = get(vp_true, 'vp_true')
-        self.vs_true = get(vs_true, 'vs_true')
-        self.rho_true = get(rho_true, 'rho_true')
-        self.src_amp_y_true = get(src_amp_y_true, 'src_amp_y_true')
-        self.src_amp_x_true = get(src_amp_x_true, 'src_amp_x_true')
+        self.tensors = dict(
+            src_amp_y=get(src_amp_y, 'src_amp_y'),
+            src_amp_x=get(src_amp_x, 'src_amp_x'),
+            src_loc_y=get(src_loc_y, 'src_loc_y'),
+            rec_loc_y=get(rec_loc_y, 'rec_loc_y'),
+            obs_data=get(obs_data, 'obs_data'),
+            vp_true=get(vp_true, 'vp_true'),
+            vs_true=get(vs_true, 'vs_true'),
+            rho_true=get(rho_true, 'rho_true'),
+            src_amp_y_true=get(src_amp_y_true, 'src_amp_y_true'),
+            src_amp_x_true=get(src_amp_x_true, 'src_amp_x_true'),
+        )
 
         self.model = 'acoustic' if self.vs is None else 'elastic'
-
         self.metadata = get_pydict(path, as_class=False)
 
         self.set_meta_fields()
@@ -168,13 +166,13 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.custom = DotDict(custom_dict)
 
     def chunk_to(
-        self, *, rank, world_size, split_exclude=None, device_exclude=None
+        self, *, rank, world_size, chunk_exclude=None, device_exclude=None
     ):
-        split_exclude = [] if split_exclude is None else split_exclude
+        chunk_exclude = [] if chunk_exclude is None else chunk_exclude
         device_exclude = [] if device_exclude is None else device_exclude
         new_params = {}
         for name, param in self.named_parameters():
-            if name in split_exclude:
+            if name in chunk_exclude:
                 new_params[name] = param
             else:
                 chunk = torch.chunk(param, world_size)[rank]
@@ -189,10 +187,161 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
         return self
 
-    def report_param_attr(self, attr):
-        for name, p in self.named_parameters():
-            v = getattr(p, attr)
-            print(f'self.{name}.{attr} = {v}', flush=True)
+    def report_info(self):
+        lines = ['NAME & TYPE & SHAPE & DEVICE & GRAD REQ']
+        for name, param in self.named_parameters():
+            lines.append(
+                ' & '.join(
+                    [
+                        name,
+                        'PARAM',
+                        str(param.shape),
+                        str(param.device),
+                        str(param.requires_grad),
+                    ]
+                )
+            )
+        for name, tensor in self.tensors.items():
+            lines.append(
+                ' & '.join(
+                    [
+                        name,
+                        'TENSOR',
+                        str(None if tensor is None else tensor.shape),
+                        str(None if tensor is None else tensor.device),
+                        'N/A',
+                    ]
+                )
+            )
+        printj(lines, extra_space=5, flush=True)
+
+    def param_map(
+        self,
+        *,
+        fn,
+        mode,
+        suffix,
+        exclude=None,
+        forward_args=None,
+        forward_kwargs=None,
+    ):
+        exclude = [] if exclude is None else exclude
+        forward_args = {} if forward_args is None else forward_args
+        forward_kwargs = {} if forward_kwargs is None else forward_kwargs
+        suffix = '' if not suffix else f'_{suffix.replace("_", "")}'
+
+        if mode == 'Parameter':
+            d = self.named_param_dict()
+            rename = {k: f"{k.replace('.p', '')}{suffix}" for k in d.keys()}
+        elif mode == 'Tensor':
+            d = self.tensors
+            rename = {k: f'{k}{suffix}' for k in d.keys()}
+        else:
+            raise ValueError(
+                f'Unknown mode: {mode}, expected Parameter or Tensor'
+            )
+
+        for k, v in d.items():
+            if k not in exclude:
+                d[k] = fn(v, *forward_args, **forward_kwargs)
+            elif mode == 'Parameter':
+                d[k] = v.data
+            else:
+                d[k] = v
+
+        res = {}
+        for k, v in d.items():
+            if k in rename.keys():
+                res[rename[k]] = v
+            else:
+                res[k] = v
+        return res
+
+    def full_map(
+        self,
+        *,
+        param_func,
+        tensor_func,
+        suffix,
+        param_exclude=None,
+        tensor_exclude=None,
+        param_args=None,
+        param_kwargs=None,
+        tensor_args=None,
+        tensor_kwargs=None,
+    ):
+        noner = lambda x, t: t() if x is None else x
+        param_exclude = noner(param_exclude, list)
+        tensor_exclude = noner(tensor_exclude, list)
+        param_args = noner(param_args, list)
+        param_kwargs = noner(param_kwargs, dict)
+        tensor_args = noner(tensor_args, list)
+        tensor_kwargs = noner(tensor_kwargs, dict)
+        suffix = '' if not suffix else f'_{suffix.replace("_", "")}'
+        d_param = self.param_map(
+            fn=param_func,
+            mode='Parameter',
+            suffix=suffix,
+            exclude=param_exclude,
+            forward_args=param_args,
+            forward_kwargs=param_kwargs,
+        )
+        d_tensor = self.param_map(
+            fn=tensor_func,
+            mode='Tensor',
+            suffix=suffix,
+            exclude=tensor_exclude,
+            forward_args=tensor_args,
+            forward_kwargs=tensor_kwargs,
+        )
+        return d_param, d_tensor
+
+    def chunk2_to(
+        self, *, rank, world_size, chunk_exclude=None, device_exclude=None
+    ):
+        def chunk_param(x):
+            if x is None:
+                return None
+            else:
+                return torch.nn.Parameter(torch.chunk(x, world_size)[rank])
+
+        def chunk_tensor(x):
+            if x is None:
+                return None
+            else:
+                return torch.chunk(x, world_size)[rank].to(rank)
+
+        d_param, d_tensor = self.full_map(
+            param_func=chunk_param,
+            tensor_func=chunk_tensor,
+            suffix='',
+            param_exclude=chunk_exclude,
+            tensor_exclude=chunk_exclude,
+        )
+        for k, v in self.named_parameters():
+            v.data = d_param[k.replace('.p', '')].data
+        for k, v in self.tensors.items():
+            v = d_tensor[k]
+
+        def to_handler(x):
+            return x.to(rank) if x is not None else None
+
+        d_param, d_tensor = self.full_map(
+            param_func=to_handler,
+            tensor_func=to_handler,
+            suffix='',
+            param_exclude=device_exclude,
+            tensor_exclude=device_exclude,
+        )
+        for k, v in self.named_parameters():
+            v.data = d_param[k.replace('.p', '')].data
+        for k, v in self.tensors.items():
+            v = d_tensor[k]
+
+        return self
+
+    def named_param_dict(self):
+        return {k: v for k, v in self.named_parameters()}
 
     def forward(self, x, **kw):
         kw = {**self.extra_forward_args, **kw}
@@ -224,12 +373,14 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
             # print(self.src_amp_y.shape, flush=True)
             return dw.scalar(
                 self.vp(),
-                self.dy,
-                self.dt,
+                4.0,
+                0.004,
                 source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
-                **kw,
+                pml_freq=25,
+                time_pad_frac=0.2,
+                max_vel=2500,
             )
         else:
             return dw.elastic(
