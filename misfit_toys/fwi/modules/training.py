@@ -115,24 +115,6 @@ class Training:
                 vp_record[idx, epoch] = (
                     self.dist_prop.module.vp().detach().cpu()
                 )
-                # print_tensor(
-                #     self.distribution.dist_prop.module.vp(),
-                #     heading=(
-                #         f'Freq={cutoff_freq}, '
-                #         f'Epoch={epoch}, '
-                #         f'Rank={rank}, '
-                #         'Param=vp'
-                #     ),
-                # )
-                # print_tensor(
-                #     self.distribution.dist_prop.module.src_amp_y,
-                #     heading=(
-                #         f'Freq={cutoff_freq}, '
-                #         f'Epoch={epoch}, '
-                #         f'Rank={rank}, '
-                #         f'''Param=src_amp_y'''
-                #     ),
-                # )
         os.makedirs(path, exist_ok=True)
 
         def save(k, v):

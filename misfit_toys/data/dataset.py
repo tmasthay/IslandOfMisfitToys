@@ -20,9 +20,6 @@ from warnings import warn
 from ..swiffer import iraise, ireraise
 from masthay_helpers.global_helpers import prettify_dict, path_up
 import argparse
-from rich.traceback import install
-
-# install(width=200, show_locals=True)
 
 
 def fetch_warn():
@@ -812,67 +809,10 @@ class DataFactory(ABC):
         )
 
 
-# class DataFactoryMeta(DataFactory):
-#     def __init__(self, *, path, device=None):
-#         super().__init__(path=path)
-#         if device is None:
-#             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-#         else:
-#             self.device = device
-#         # parent_module = '.'.join(self.__module__.split('.')[:-1])
-#         # metadata_module = import_module('.metadata', package=parent_module)
-#         # metadata_func = getattr(metadata_module, 'metadata')
-#         # self.metadata = metadata_func()
-#         self.metadata = fetch_meta(obj=self)
-
-#     # def manufacture_data(self):
-#     #     d = self._manufacture_data(metadata=self.metadata)
-#     #     with open(os.path.join(self.path, 'metadata.pydict'), 'w') as f:
-#     #         f.write(prettify_dict(self.metadata))
-#     #     return d
-
-#     @staticmethod
-#     def get_derived_meta(*, meta):
-#         if 'derived' not in meta:
-#             return None
-#         base_items = {k: v for k, v in meta.items() if type(v) != dict}
-#         derived = meta['derived']
-#         common = {**base_items, **derived.get('common', {})}
-#         if 'common' in derived:
-#             del derived['common']
-#         for k, v in derived.items():
-#             derived[k] = {**common, **v}
-#         return derived
-
-
 class DataFactoryTree(DataFactory):
     """
     data: Stores all data, with tensors being evaluated now + all the metadata
     """
-
-    # src_dir = os.path.dirname(src_path)
-
-    # pydict_exists = os.path.exists(os.path.join(src_dir, 'metadata.pydict'))
-    # py_exists = os.path.exists(os.path.join(src_dir, 'metadata.py'))
-    # if not py_exists:
-    #     if not pydict_exists:
-    #         raise FileNotFoundError(
-    #             'FATAL: Either metadata.pydict or metadata.py must exist'
-    #             f' in\n    {src_dir}\n'
-    #         )
-    #     else:
-    #         metadata = get_pydict(src_dir)
-    # else:
-    #     metadata = fetch_meta(obj=self)
-    # if not os.path.exists(os.path.join(src_dir, 'factory.py')):
-    #     iraise(
-    #         ValueError,
-    #         f'FATAL: factory.py must exist in directory {src_dir}',
-    #     )
-    # else:
-    #     factory = import_module('.factory', package=self.__module__)
-    #     factory_main = getattr(factory, 'main')
-    #     factory_main()
 
     def get_parent_meta(self):
         parent_abs_path = '/'.join(self.fpath.split('/')[:-1])

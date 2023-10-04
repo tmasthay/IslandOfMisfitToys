@@ -117,16 +117,6 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         self.vp_init = self.vp().detach().cpu()
         self.vs = get_prmzt(vs_init, 'vs_init', prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, 'rho_init', prmzt=rho_prmzt)
-        # self.src_amp_y = get_prmzt(
-        #     src_amp_y,
-        #     'src_amp_y',
-        #     prmzt=src_amp_y_prmzt
-        # )
-        # self.src_amp_x = get_prmzt(
-        #     src_amp_x,
-        #     'src_amp_y',
-        #     prmzt=src_amp_x_prmzt
-        # )
 
         self.src_amp_y = get(src_amp_y, 'src_amp_y')
         self.src_amp_x = get(src_amp_x, 'src_amp_x')
@@ -217,33 +207,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         )
 
     def forward(self, x):
-        # kw = {**self.extra_forward_args, **kw}
-
-        # if 'amp_idx' in kw.keys():
-        #     amp_idx = kw['amp_idx']
-        #     del kw['amp_idx']
-        # else:
-        #     amp_idx = torch.arange(self.src_amp_y.shape[0])
-
-        # if( 'amp_idx' in kw.keys() ):
-        #     amp_idx = kw['amp_idx']
-        #     del kw['amp_idx']
-        # else:
-        #     amp_idx = torch.arange(self.src_amp_y.shape[0])
         if self.model == 'acoustic':
-            # print(f'source_amplitudes.shape={self.src_amp_y.shape}')
-            # print(
-            #     'source'
-            #     f' amplitudes[amp_idx].shape={self.src_amp_y[amp_idx].shape}'
-            # )
-            # print(f'source_locations.shape={self.src_loc_y.shape}')
-            # print(f'receiver_locations.shape={self.rec_loc_y.shape}')
-            # print(f'source_amp.device = {self.src_amp_y.device}')
-            # print(f'source_loc.device = {self.src_loc_y.device}')
-            # print(f'receiver_loc.device = {self.rec_loc_y.device}')
-            # print(f'vp.device = {self.vp().device}')
-            # print(self.src_amp_y.device, flush=True)
-            # print(self.src_amp_y.shape, flush=True)
             return dw.scalar(
                 self.vp(),
                 4.0,
