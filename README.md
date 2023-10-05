@@ -26,7 +26,7 @@ git clone https://github.com/tmasthay/IslandOfMisfitToys.git
 cd IslandOfMisfitToys
 ```
 
-## Misfit Functions (currently supported)
+## Misfit Functions (roadmap for future)
 
 (1) One-dimensional $W_1$ and $W_2$ (trace-by-trace) 
   - [Yang et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Application+of+optimal+transport+and+the+quadratic+Wasserstein+metric+to+full-waveform+inversion&btnG=)
@@ -41,20 +41,18 @@ cd IslandOfMisfitToys
 
   - [Zhu et al. 2021](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Implicit+regularization+effects+of+the+Sobolev+norms+in+image+processing&btnG=)
 
-## Misfit Functions (roadmap for future)
-
-(1) Fisher-Rao metric
+(5) Fisher-Rao metric
 
   - [Zhou et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=The+Wasserstein-Fisher-Rao+metric+for+waveform+based+earthquake+location&btnG=)
 
-(2) Graph-space OT
+(6) Graph-space OT
 
   - [Metivier et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Optimal+transport+for+mitigating+cycle+skipping+in+full-waveform+inversion%3A+A+graph-space+transform+approach&btnG=)
 
-(3) Entropic regularization OT
+(7) Entropic regularization OT
 
   - [Cuturi 2013](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Sinkhorn+distances%3A+Lightspeed+computation+of+optimal+transport&btnG=)
 
-(4) Misfits based on reduced-order models
+(8) Misfits based on reduced-order models
 
   - [Borcea et al. 2023](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Waveform+inversion+via+reduced+order+modeling+borcea&btnG=)
