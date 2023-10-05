@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 
 setup(
     name='IslandOfMisfitToys',
-    version='0.3.4',
+    version='0.3.5',
     description='A suite of misfit functions to test FWI',  # Provide a short description here
     author='Tyler Masthay and Yiran Shen',
     author_email='tyler@ices.utexas.edu',
