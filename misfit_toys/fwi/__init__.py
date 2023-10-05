@@ -1,10 +1,8 @@
 __all__ = [
     "custom_losses",
     "postprocess",
-    "modules",
-    "config"
+    "modules"
 ]
 from .custom_losses import *
 from .postprocess import *
 from .modules import *
-from .config import *
