@@ -18,7 +18,7 @@ pip install .
 
 if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     rm -rf $CONDA_PREFIX/data
-    python -W ignore $(pwd)/misfit_toys/examples/download_data.py
+    python -W ignore -c "from misfit_toys.examples.download_data import main; main()"
 fi
 
 cd

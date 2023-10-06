@@ -2,7 +2,7 @@ deepwave>=0.0.19
 numpy>=1.19   
 scipy
 pytest
-masthay_helpers>=0.2.16
+masthay_helpers>=0.2.29
 imageio
 tqdm
 torchsummary
