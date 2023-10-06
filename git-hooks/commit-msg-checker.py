@@ -80,7 +80,7 @@ if __name__ == "__main__":
         description="Check the format of a git commit message."
     )
     parser.add_argument(
-        'commit_msg_file', type=str, help="Path to the commit message file."
+        "commit_msg_file", type=str, help="Path to the commit message file."
     )
 
     args = parser.parse_args()

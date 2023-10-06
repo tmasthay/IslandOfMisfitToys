@@ -9,8 +9,8 @@ import pickle
 
 
 def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
 
     # initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
@@ -28,8 +28,8 @@ def place_rank(tensor, rank, world_size):
     elif not isinstance(tensor, torch.Tensor):
         raise TypeError(
             idt_print(
-                'misfit_toys.fwi.modules.distribution.place_rank',
-                f'Expected tensor, got {type(tensor).__name__}',
+                "misfit_toys.fwi.modules.distribution.place_rank",
+                f"Expected tensor, got {type(tensor).__name__}",
                 levels=1,
             )
         )

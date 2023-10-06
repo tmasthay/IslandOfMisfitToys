@@ -5,7 +5,7 @@ import deepwave as dw
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from masthay_helpers import add_root_package_path
 
-add_root_package_path(path=os.path.dirname(__file__), pkg='misfit_toys')
+add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
 from misfit_toys.utils import DotDict
 
@@ -13,12 +13,12 @@ from misfit_toys.utils import DotDict
 class Factory(DataFactory):
     def _manufacture_data(self):
         if self.installed(
-            'vp_true',
-            'vs_true',
-            'rho_true',
-            'src_loc_y',
-            'rec_loc_y',
-            'src_amp_y',
+            "vp_true",
+            "vs_true",
+            "rho_true",
+            "src_loc_y",
+            "rec_loc_y",
+            "src_amp_y",
         ):
             return
 
@@ -55,9 +55,7 @@ class Factory(DataFactory):
 
 
 def main():
-    f = Factory.cli_construct(
-        device='cuda:0', src_path=os.path.dirname(__file__)
-    )
+    f = Factory.cli_construct(device="cuda:0", src_path=os.path.dirname(__file__))
     f.manufacture_data()
 
 

@@ -9,14 +9,14 @@ import copy
 import sys
 from masthay_helpers.global_helpers import add_root_package_path
 
-add_root_package_path(path=os.path.dirname(__file__), pkg='misfit_toys')
+add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
 from misfit_toys.utils import DotDict
 
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        if self.installed('vp_true', 'src_loc_y', 'rec_loc_y', 'obs_data'):
+        if self.installed("vp_true", "src_loc_y", "rec_loc_y", "obs_data"):
             return
 
         self.tensors = self.get_parent_tensors()
@@ -24,22 +24,20 @@ class Factory(DataFactory):
 
         v_slice, src_slice, rec_slice = DataFactory.get_slices(d)
 
-        print('Slicing shots16 tensors...', end='', flush=True)
+        print("Slicing shots16 tensors...", end="", flush=True)
         self.slice_subset_tensors(
             *src_slice,
-            keys=['src_loc_y', 'src_amp_y', 'src_loc_x', 'src_amp_x'],
+            keys=["src_loc_y", "src_amp_y", "src_loc_x", "src_amp_x"],
         )
         self.slice_subset_tensors(
-            *rec_slice, keys=['rec_loc_y', 'rec_loc_x', 'obs_data']
+            *rec_slice, keys=["rec_loc_y", "rec_loc_x", "obs_data"]
         )
 
-        print('SUCCESS!')
+        print("SUCCESS!")
 
 
 def main():
-    f = Factory.cli_construct(
-        device='cuda:0', src_path=os.path.dirname(__file__)
-    )
+    f = Factory.cli_construct(device="cuda:0", src_path=os.path.dirname(__file__))
     f.manufacture_data()
 
 

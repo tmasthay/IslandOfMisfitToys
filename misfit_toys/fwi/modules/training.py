@@ -10,16 +10,16 @@ from .distribution import cleanup
 import os
 
 
-def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
+def summarize_tensor(tensor, *, idt_level=0, idt_str="    ", heading="Tensor"):
     # Compute various statistics
     stats = {
-        'shape': tensor.shape,
-        'mean': torch.mean(tensor).item(),
-        'variance': torch.var(tensor).item(),
-        'median': torch.median(tensor).item(),
-        'min': torch.min(tensor).item(),
-        'max': torch.max(tensor).item(),
-        'stddev': torch.std(tensor).item(),
+        "shape": tensor.shape,
+        "mean": torch.mean(tensor).item(),
+        "variance": torch.var(tensor).item(),
+        "median": torch.median(tensor).item(),
+        "min": torch.min(tensor).item(),
+        "max": torch.max(tensor).item(),
+        "stddev": torch.std(tensor).item(),
     }
 
     # Prepare the summary string with the desired indentation
@@ -28,12 +28,12 @@ def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
     for key, value in stats.items():
         summary.append(f"{indent}{idt_str}{key} = {value}")
 
-    return '\n'.join(summary)
+    return "\n".join(summary)
 
 
 def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
     if print_kwargs is None:
-        print_kwargs = {'flush': True}
+        print_kwargs = {"flush": True}
     print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
 
 
@@ -54,12 +54,10 @@ class Training:
         n_freqs = all_freqs.shape[0]
         freqs = all_freqs
         loss_local = torch.zeros(freqs.shape[0], n_epochs).to(self.rank)
-        vp_record = torch.Tensor(
-            n_freqs, n_epochs, *self.dist_prop.module.vp.p.shape
-        )
+        vp_record = torch.Tensor(n_freqs, n_epochs, *self.dist_prop.module.vp.p.shape)
 
         print(
-            f'enumerate(all_freq)={[e for e in enumerate(all_freqs)]}',
+            f"enumerate(all_freq)={[e for e in enumerate(all_freqs)]}",
             flush=True,
         )
         for idx, cutoff_freq in enumerate(list(all_freqs)):
@@ -67,7 +65,7 @@ class Training:
                 6,
                 cutoff_freq,
                 fs=1.0 / self.dist_prop.module.dt,
-                output='sos',
+                output="sos",
             )
             sos = [
                 torch.tensor(sosi)
@@ -100,10 +98,10 @@ class Training:
                     if closure_calls == 1:
                         print(
                             (
-                                f'Loss={loss.item():.16f}, '
-                                f'Freq={cutoff_freq}, '
-                                f'Epoch={epoch}, '
-                                f'Rank={self.rank}'
+                                f"Loss={loss.item():.16f}, "
+                                f"Freq={cutoff_freq}, "
+                                f"Epoch={epoch}, "
+                                f"Rank={self.rank}"
                             ),
                             flush=True,
                         )
@@ -112,18 +110,16 @@ class Training:
                     return loss
 
                 optimiser.step(closure)
-                vp_record[idx, epoch] = (
-                    self.dist_prop.module.vp().detach().cpu()
-                )
+                vp_record[idx, epoch] = self.dist_prop.module.vp().detach().cpu()
         os.makedirs(path, exist_ok=True)
 
         def save(k, v):
             u = v.detach().cpu()
-            lcl_path = os.path.join(path, f'{k}_{self.rank}.pt')
-            print(f'Saving to {lcl_path}...', flush=True, end='')
+            lcl_path = os.path.join(path, f"{k}_{self.rank}.pt")
+            print(f"Saving to {lcl_path}...", flush=True, end="")
             torch.save(u, lcl_path)
-            print('SUCCESS', flush=True)
+            print("SUCCESS", flush=True)
 
-        save('loss', loss_local)
-        save('freqs', freqs)
-        save('vp_record', vp_record)
+        save("loss", loss_local)
+        save("freqs", freqs)
+        save("vp_record", vp_record)

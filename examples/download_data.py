@@ -8,8 +8,8 @@ def download_data(storage, exclusions):
 
 
 if __name__ == "__main__":
-    print('Redownloading data...', end='')
-    storage = 'conda/data'
-    exclusions = ['das_curtin']
+    print("Redownloading data...", end="")
+    storage = "conda/data"
+    exclusions = ["das_curtin"]
     download_data(storage, exclusions)
-    print('SUCCESS')
+    print("SUCCESS")

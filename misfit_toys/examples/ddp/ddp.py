@@ -23,19 +23,19 @@ from misfit_toys.examples.example import Example
 
 class ExampleIOMT(Example):
     def _generate_data(self, rank, world_size):
-        path = 'conda/data/marmousi/deepwave_example/shots16'
+        path = "conda/data/marmousi/deepwave_example/shots16"
         meta = get_pydict(path, as_class=True)
         chunk_size = meta.n_shots // world_size
         amp_idx = torch.arange(
             rank * chunk_size, (rank + 1) * chunk_size, dtype=torch.long
         )
         prop = SeismicProp(
-            path='conda/data/marmousi/deepwave_example/shots16',
+            path="conda/data/marmousi/deepwave_example/shots16",
             extra_forward_args={
-                'max_vel': 2500,
-                'time_pad_frac': 0.2,
-                'pml_freq': meta.freq,
-                'amp_idx': amp_idx,
+                "max_vel": 2500,
+                "time_pad_frac": 0.2,
+                "pml_freq": meta.freq,
+                "amp_idx": amp_idx,
             },
             vp_prmzt=ParamConstrained.delay_init(
                 requires_grad=True, minv=1000, maxv=2500
@@ -50,50 +50,48 @@ class ExampleIOMT(Example):
         prop = prop.chunk(rank, world_size)
         prop = prop.to(rank)
         dist_prop = DDP(prop, device_ids=[rank])
-        trainer = Training(
-            dist_prop=dist_prop, rank=rank, world_size=world_size
-        )
-        tmp_path = os.path.abspath(os.path.join(self.data_save, 'tmp'))
+        trainer = Training(dist_prop=dist_prop, rank=rank, world_size=world_size)
+        tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
 
     def plot_data(self, **kw):
         self.n_epochs = 2
         self.plot_inv_record_auto(
-            name='vp',
+            name="vp",
             labels=[
-                ('Freq', self.tensors['freqs']),
-                ('Epoch', range(self.n_epochs)),
+                ("Freq", self.tensors["freqs"]),
+                ("Epoch", range(self.n_epochs)),
             ],
             plot_args=dict(
                 transpose=True,
-                vmin=self.tensors['vp_true'].min(),
-                vmax=self.tensors['vp_true'].max(),
-                cmap='seismic',
+                vmin=self.tensors["vp_true"].min(),
+                vmax=self.tensors["vp_true"].max(),
+                cmap="seismic",
             ),
         )
         self.plot_loss()
-        self.plot_field(field='obs_data', transpose=True, cbar='dynamic')
+        self.plot_field(field="obs_data", transpose=True, cbar="dynamic")
 
 
 def main():
     iomt_example = ExampleIOMT(
-        data_save='iomt/data',
-        fig_save='iomt/figs',
+        data_save="iomt/data",
+        fig_save="iomt/figs",
         tensor_names=[
-            'vp_true',
-            'vp_record',
-            'vp_init',
-            'freqs',
-            'loss',
-            'src_amp_y',
-            'obs_data',
-            'rec_loc_y',
-            'src_loc_y',
+            "vp_true",
+            "vp_record",
+            "vp_init",
+            "freqs",
+            "loss",
+            "src_amp_y",
+            "obs_data",
+            "rec_loc_y",
+            "src_loc_y",
         ],
         verbose=2,
     )
     iomt_example.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
