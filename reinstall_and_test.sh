@@ -13,11 +13,12 @@ REDOWNLOAD_DATA=${2:-0}
 
 python update_imports.py
 pip uninstall -y IslandOfMisfitToys
+pip uninstall -y masthay_helpers
 pip install .
 
 if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     rm -rf $CONDA_PREFIX/data
-    cd examples; python data_fetching.py; cd ..
+    python -W ignore $(pwd)/misfit_toys/examples/download_data.py
 fi
 
 cd
