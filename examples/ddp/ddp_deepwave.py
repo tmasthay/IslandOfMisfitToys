@@ -21,7 +21,7 @@ from itertools import product as prod
 import pickle
 
 # from ..example import Example, define_names
-from example import Example, define_names
+from misfit_toys.examples.example import Example, define_names
 
 
 class Model(torch.nn.Module):

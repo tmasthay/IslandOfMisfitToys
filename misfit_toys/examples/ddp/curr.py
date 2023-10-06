@@ -18,21 +18,7 @@ import matplotlib.pyplot as plt
 import deepwave
 from deepwave import scalar
 from time import time
-from example import Example
-
-
-# def place_rank(tensor, rank, world_size):
-#     if tensor is None:
-#         return None
-#     elif not isinstance(tensor, torch.Tensor):
-#         raise TypeError(
-#             idt_print(
-#                 'misfit_toys.fwi.modules.distribution.place_rank',
-#                 f'Expected tensor, got {type(tensor)}',
-#                 levels=1,
-#             )
-#         )
-#     return torch.chunk(tensor, world_size)[rank].to(rank)
+from misfit_toys.examples.example import Example
 
 
 class ExampleIOMT(Example):
