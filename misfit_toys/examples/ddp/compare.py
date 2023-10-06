@@ -34,7 +34,7 @@ def main():
     cmp = ExampleComparator(
         iomt_example,
         deepwave_example,
-        protect=['freqs'],
+        protect=["freqs"],
     )
 
     cmp.compare()
