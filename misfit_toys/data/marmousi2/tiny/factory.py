@@ -27,7 +27,9 @@ class Factory(DataFactory):
         d = DotDict(self.metadata)
 
         v_slice, src_slice, rec_slice = DataFactory.get_slices(d)
-        self.slice_subset_tensors(*v_slice, keys=["vp_true", "vs_true", "rho_true"])
+        self.slice_subset_tensors(
+            *v_slice, keys=["vp_true", "vs_true", "rho_true"]
+        )
         self.slice_subset_tensors(
             *src_slice,
             keys=["src_loc_y", "src_amp_y", "src_loc_x", "src_amp_x"],
@@ -53,7 +55,9 @@ class Factory(DataFactory):
 
 
 def main():
-    f = Factory.cli_construct(device="cuda:0", src_path=os.path.dirname(__file__))
+    f = Factory.cli_construct(
+        device="cuda:0", src_path=os.path.dirname(__file__)
+    )
     f.manufacture_data()
 
 

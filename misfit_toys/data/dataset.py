@@ -160,9 +160,9 @@ def fetch_data(d, *, path, unzip=True):
             os.system(f"curl {url} --output {file_path}")
             if unzip and meta["filename"].endswith(".gz"):
                 os.system(f"gunzip {file_path}")
-                d[folder][file]["filename"] = d[folder][file]["filename"].replace(
-                    ".gz", ""
-                )
+                d[folder][file]["filename"] = d[folder][file][
+                    "filename"
+                ].replace(".gz", "")
             for k, v in meta.items():
                 if type(v) == tuple:
                     func = v[0]
@@ -183,7 +183,8 @@ def convert_data(d, *, path, calls=None):
                 **meta,
             )
         os.system(
-            "rm %s/*.%s" % (curr, f" {curr}/*.".join(["bin", "sgy", "segy", "gz"]))
+            "rm %s/*.%s"
+            % (curr, f" {curr}/*.".join(["bin", "sgy", "segy", "gz"]))
         )
     for call in calls:
         call()
@@ -231,7 +232,9 @@ def store_metadata(*, path, metadata):
 
 
 # Extraneous comment
-def towed_src(*, n_shots, src_per_shot, fst_src, d_src, src_depth, d_intra_shot):
+def towed_src(
+    *, n_shots, src_per_shot, fst_src, d_src, src_depth, d_intra_shot
+):
     res = torch.zeros(n_shots, src_per_shot, 2, dtype=torch.long)
     res[:, :, 1] = src_depth
     for i in range(n_shots):
@@ -243,7 +246,9 @@ def towed_src(*, n_shots, src_per_shot, fst_src, d_src, src_depth, d_intra_shot)
 def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
     res = torch.zeros(n_shots, rec_per_shot, 2)
     res[:, :, 1] = rec_depth
-    res[:, :, 0] = (torch.arange(rec_per_shot) * d_rec + fst_rec).repeat(n_shots, 1)
+    res[:, :, 0] = (torch.arange(rec_per_shot) * d_rec + fst_rec).repeat(
+        n_shots, 1
+    )
     return res
 
 
@@ -283,7 +288,9 @@ def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
             "url": "https://ddfe.curtin.edu.au/7h0e-d392/",
             "ext": "sgy",
             "das_curtin": {"filename": "2020_GeoLab_WVSP_DAS_wgm.sgy"},
-            "geophone_curtin": {"filename": "2020_GeoLab_WVSP_geophone_wgm.sgy"},
+            "geophone_curtin": {
+                "filename": "2020_GeoLab_WVSP_geophone_wgm.sgy"
+            },
         },
     }
     datasets = expand_metadata(datasets)
@@ -390,7 +397,9 @@ def data_path(path):
 
 def get_data3(*, field, path):
     path = parse_path(path)
-    print(f'   Loading {os.path.join(path, f"{field}.pt")}...', end="", flush=True)
+    print(
+        f'   Loading {os.path.join(path, f"{field}.pt")}...', end="", flush=True
+    )
     u = torch.load(os.path.join(path, f"{field}.pt"))
     print(f"{u.shape}", flush=True)
     return u
@@ -488,7 +497,9 @@ class DataFactory(ABC):
         self.root_out_path = root_out_path
         self.root_path = root_path
         self.append_path = os.path.relpath(self.src_path, self.root_path)
-        self.out_path = parse_path(os.path.join(self.root_out_path, self.append_path))
+        self.out_path = parse_path(
+            os.path.join(self.root_out_path, self.append_path)
+        )
         self.tensors = DotDict(dict())
 
         py_exists = os.path.exists(f"{self.src_path}/metadata.py")
@@ -544,12 +555,16 @@ class DataFactory(ABC):
     def process_web_data(self, **kw):
         d = copy.deepcopy(self.metadata)
 
-        fields = {k: v for k, v in d.items() if type(v) == dict and k != "derived"}
+        fields = {
+            k: v for k, v in d.items() if type(v) == dict and k != "derived"
+        }
         for k, v in fields.items():
             if "filename" not in v:
                 v["filename"] = k
 
-        torch_files = sco(f'find {self.out_path} -maxdepth 1 -mindepth 1 -name "*.pt"')
+        torch_files = sco(
+            f'find {self.out_path} -maxdepth 1 -mindepth 1 -name "*.pt"'
+        )
         if os.path.exists(self.out_path) and len(torch_files) > 0:
             print(
                 f"{self.out_path} already has pytorch files in it...ignoring.\n"
@@ -735,7 +750,10 @@ class DataFactory(ABC):
         if not os.path.exists(f"{out_path}/metadata.pydict"):
             if not os.path.exists(f"{src_path}/metadata.py"):
                 iraise(FileNotFoundError, f"No metadata found in {src_path}")
-            cmd = f"python -W ignore {src_path}/metadata.py --store_path" f" {out_path}"
+            cmd = (
+                f"python -W ignore {src_path}/metadata.py --store_path"
+                f" {out_path}"
+            )
             try:
                 os.system(cmd)
             except:
@@ -798,7 +816,9 @@ class DataFactoryTree(DataFactory):
 
     def get_parent_meta(self):
         parent_abs_path = "/".join(self.fpath.split("/")[:-1])
-        pydict_exists = os.path.exists(os.path.join(parent_abs_path, "metadata.pydict"))
+        pydict_exists = os.path.exists(
+            os.path.join(parent_abs_path, "metadata.pydict")
+        )
         py_exists = os.path.exists(os.path.join(parent_abs_path, "metadata.py"))
 
         if pydict_exists and not py_exists:
@@ -822,7 +842,9 @@ class DataFactoryTree(DataFactory):
             )
 
     class LocalFactory(DataFactory):
-        def __init__(self, *, path, device=None, src_path, root_out_path, root_path):
+        def __init__(
+            self, *, path, device=None, src_path, root_out_path, root_path
+        ):
             super().__init__(path=path, device=device)
             self.src_path = src_path
             self.root_out_path = root_out_path

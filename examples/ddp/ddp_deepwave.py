@@ -34,7 +34,10 @@ class Model(torch.nn.Module):
         )
 
     def forward(self):
-        return torch.sigmoid(self.model) * (self.max_vel - self.min_vel) + self.min_vel
+        return (
+            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
+            + self.min_vel
+        )
 
 
 class Prop(torch.nn.Module):
@@ -76,7 +79,9 @@ class MultiscaleExample(Example):
 
         has_vp_bin = True
         try:
-            v_true = torch.from_file("marmousi_vp.bin", size=ny * nx).reshape(ny, nx)
+            v_true = torch.from_file("marmousi_vp.bin", size=ny * nx).reshape(
+                ny, nx
+            )
         except:
             self.print("v_true from_file upload failed!")
             v_true = None
@@ -135,12 +140,18 @@ class MultiscaleExample(Example):
         n_shots = 16
         n_receivers_per_shot = 100
         nt = 300
-        observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
+        observed_data = taper(
+            observed_data[:n_shots, :n_receivers_per_shot, :nt]
+        )
 
         # source_locations
-        source_locations = torch.zeros(n_shots, n_sources_per_shot, 2, dtype=torch.long)
+        source_locations = torch.zeros(
+            n_shots, n_sources_per_shot, 2, dtype=torch.long
+        )
         source_locations[..., 1] = source_depth
-        source_locations[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
+        source_locations[:, 0, 0] = (
+            torch.arange(n_shots) * d_source + first_source
+        )
 
         # receiver_locations
         receiver_locations = torch.zeros(
@@ -152,22 +163,30 @@ class MultiscaleExample(Example):
         ).repeat(n_shots, 1)
 
         # source_amplitudes
-        source_amplitudes = (deepwave.wavelets.ricker(freq, nt, dt, peak_time)).repeat(
-            n_shots, n_sources_per_shot, 1
-        )
+        source_amplitudes = (
+            deepwave.wavelets.ricker(freq, nt, dt, peak_time)
+        ).repeat(n_shots, n_sources_per_shot, 1)
 
         self.tensors["src_loc_y"] = source_locations
         self.tensors["rec_loc_y"] = receiver_locations
         self.tensors["src_amp_y"] = source_amplitudes
         self.tensors["obs_data"] = observed_data
 
-        torch.save(self.tensors["obs_data"].detach().cpu(), "/home/tyler/obs_data.pt")
+        torch.save(
+            self.tensors["obs_data"].detach().cpu(), "/home/tyler/obs_data.pt"
+        )
 
         print(f"Rank={rank}, id={id(observed_data)}", flush=True)
         observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
-        source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(rank)
-        source_locations = torch.chunk(source_locations, world_size)[rank].to(rank)
-        receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(rank)
+        source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
+            rank
+        )
+        source_locations = torch.chunk(source_locations, world_size)[rank].to(
+            rank
+        )
+        receiver_locations = torch.chunk(receiver_locations, world_size)[
+            rank
+        ].to(rank)
 
         model = Model(v_init, 1000, 2500)
         self.tensors["vp_init"] = model().detach().cpu()
@@ -187,7 +206,9 @@ class MultiscaleExample(Example):
         )
 
         self.tensors["loss"] = (
-            torch.zeros(world_size, self.tensors["freqs"].shape[0], self.n_epochs)
+            torch.zeros(
+                world_size, self.tensors["freqs"].shape[0], self.n_epochs
+            )
             .detach()
             .cpu()
         )
@@ -196,13 +217,18 @@ class MultiscaleExample(Example):
         freqs = self.tensors["freqs"]
         loss_local = torch.zeros(freqs.shape[0], n_epochs).to(rank)
         if rank == 0:
-            gather_loss = [torch.zeros_like(loss_local) for _ in range(world_size)]
+            gather_loss = [
+                torch.zeros_like(loss_local) for _ in range(world_size)
+            ]
         else:
             gather_loss = None
 
         for idx, cutoff_freq in enumerate(freqs):
             sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
-            sos = [torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos]
+            sos = [
+                torch.tensor(sosi).to(observed_data.dtype).to(rank)
+                for sosi in sos
+            ]
 
             def filt(x):
                 return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
@@ -218,7 +244,9 @@ class MultiscaleExample(Example):
                     nonlocal closure_calls, epoch_loss
                     closure_calls += 1
                     optimiser.zero_grad()
-                    out = prop(source_amplitudes, source_locations, receiver_locations)
+                    out = prop(
+                        source_amplitudes, source_locations, receiver_locations
+                    )
                     out_filt = filt(taper(out[-1]))
                     loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                     if closure_calls == 1:
@@ -240,7 +268,9 @@ class MultiscaleExample(Example):
                 )
         self.print(f"TRAIN END, Rank={rank}")
         self.print(loss_local)
-        torch.distributed.gather(tensor=loss_local, gather_list=gather_loss, dst=0)
+        torch.distributed.gather(
+            tensor=loss_local, gather_list=gather_loss, dst=0
+        )
         if rank == 0:
             self.print(f"GATHER BEGIN, Rank={rank}")
             self.tensors["loss"] = torch.stack(gather_loss).to("cpu")
@@ -249,7 +279,9 @@ class MultiscaleExample(Example):
                 f' {self.tensors["loss"].shape}'
             )
 
-        print(f"self.address at bottom of _generate_data={id(self)}", flush=True)
+        print(
+            f"self.address at bottom of _generate_data={id(self)}", flush=True
+        )
         print(
             (
                 "self.tensors.keys at bottom of"

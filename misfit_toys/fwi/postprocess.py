@@ -38,7 +38,9 @@ def show_sources(step_size):
     for ix in range(res.shape[0]):
         for iy in range(res.shape[1]):
             for it in range(0, res.shape[-1], step_size):
-                plt.imshow(res[ix, iy, 0, :, :, it], cmap="seismic", aspect="auto")
+                plt.imshow(
+                    res[ix, iy, 0, :, :, it], cmap="seismic", aspect="auto"
+                )
                 plt.title("Receiver Data")
                 plt.xlabel("Receiver No")
                 plt.ylabel("Time (s)")

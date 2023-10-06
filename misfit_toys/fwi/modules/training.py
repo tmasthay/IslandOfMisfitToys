@@ -54,7 +54,9 @@ class Training:
         n_freqs = all_freqs.shape[0]
         freqs = all_freqs
         loss_local = torch.zeros(freqs.shape[0], n_epochs).to(self.rank)
-        vp_record = torch.Tensor(n_freqs, n_epochs, *self.dist_prop.module.vp.p.shape)
+        vp_record = torch.Tensor(
+            n_freqs, n_epochs, *self.dist_prop.module.vp.p.shape
+        )
 
         print(
             f"enumerate(all_freq)={[e for e in enumerate(all_freqs)]}",
@@ -110,7 +112,9 @@ class Training:
                     return loss
 
                 optimiser.step(closure)
-                vp_record[idx, epoch] = self.dist_prop.module.vp().detach().cpu()
+                vp_record[idx, epoch] = (
+                    self.dist_prop.module.vp().detach().cpu()
+                )
         os.makedirs(path, exist_ok=True)
 
         def save(k, v):

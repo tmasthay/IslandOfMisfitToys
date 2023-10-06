@@ -81,7 +81,9 @@ def run_rank(rank, world_size):
     propper = SeismicProp(
         path=path,
         extra_forward_args={"time_pad_frac": 0.2},
-        vp_prmzt=ParamConstrained.delay_init(requires_grad=True, minv=1000, maxv=2500),
+        vp_prmzt=ParamConstrained.delay_init(
+            requires_grad=True, minv=1000, maxv=2500
+        ),
     )
     propper.obs_data = taper(propper.obs_data, tape_len)
 
@@ -98,8 +100,12 @@ def run_rank(rank, world_size):
     # prop = distribution.dist_prop.moduel
 
     propper.obs_data = torch.chunk(propper.obs_data, world_size)[rank].to(rank)
-    propper.src_loc_y = torch.chunk(propper.src_loc_y, world_size)[rank].to(rank)
-    propper.rec_loc_y = torch.chunk(propper.rec_loc_y, world_size)[rank].to(rank)
+    propper.src_loc_y = torch.chunk(propper.src_loc_y, world_size)[rank].to(
+        rank
+    )
+    propper.rec_loc_y = torch.chunk(propper.rec_loc_y, world_size)[rank].to(
+        rank
+    )
     propper.src_amp_y = propper.src_amp_y.to(rank)
     # propper.src_amp_y = torch.chunk(propper.src_amp_y, world_size)[rank].to(rank)
 
@@ -118,7 +124,8 @@ def run_rank(rank, world_size):
     for cutoff_freq in [10, 15, 20, 25, 30]:
         sos = butter(6, cutoff_freq, fs=1 / meta.dt, output="sos")
         sos = [
-            torch.tensor(sosi).to(prop.module.obs_data.dtype).to(rank) for sosi in sos
+            torch.tensor(sosi).to(prop.module.obs_data.dtype).to(rank)
+            for sosi in sos
         ]
 
         def filt(x):
@@ -158,7 +165,9 @@ def run_rank(rank, world_size):
         vmin = prop.module.vp_true.min()
         vmax = prop.module.vp_true.max()
         _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
-        ax[0].imshow(v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax)
+        ax[0].imshow(
+            v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
+        )
         ax[0].set_title("Initial")
         ax[1].imshow(v.T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax)
         ax[1].set_title("Out")

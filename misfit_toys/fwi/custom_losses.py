@@ -61,7 +61,9 @@ class Huber(torch.nn.Module):
 
         # Apply the Huber loss function to each difference value
         square_h = 0.5 * (y_pred - y_true) ** 2
-        linear_h = self.delta * torch.abs(y_pred - y_true) - 0.5 * self.delta**2
+        linear_h = (
+            self.delta * torch.abs(y_pred - y_true) - 0.5 * self.delta**2
+        )
         h = torch.where(diff <= self.delta, square_h, linear_h)
 
         # Average over all elements in the images
@@ -116,7 +118,9 @@ class GSOT(torch.nn.Module):
                     loss
                     + (
                         self.eta
-                        * torch.tensor((row_ind - col_ind) ** 2, device=y_pred.device)
+                        * torch.tensor(
+                            (row_ind - col_ind) ** 2, device=y_pred.device
+                        )
                         + (y_pred[s, r] - y_sigma) ** 2
                     ).sum()
                 )

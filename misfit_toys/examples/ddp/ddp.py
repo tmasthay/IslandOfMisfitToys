@@ -50,7 +50,9 @@ class ExampleIOMT(Example):
         prop = prop.chunk(rank, world_size)
         prop = prop.to(rank)
         dist_prop = DDP(prop, device_ids=[rank])
-        trainer = Training(dist_prop=dist_prop, rank=rank, world_size=world_size)
+        trainer = Training(
+            dist_prop=dist_prop, rank=rank, world_size=world_size
+        )
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
 

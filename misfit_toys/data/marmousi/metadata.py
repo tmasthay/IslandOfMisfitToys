@@ -4,7 +4,9 @@ from masthay_helpers.global_helpers import save_metadata
 @save_metadata(cli=True)
 def metadata():
     return {
-        "url": ("https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/GEOMODELS/Marmousi"),
+        "url": (
+            "https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/GEOMODELS/Marmousi"
+        ),
         "ext": "bin",
         "ny": 2301,
         "nx": 751,

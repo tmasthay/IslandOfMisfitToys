@@ -44,7 +44,9 @@ class DotDict:
         return all([self.has(k) for k in keys])
 
     def has_all_type(self, *keys, lcl_type=None):
-        return all([self.has(k) and type(self.get(k)) is lcl_type for k in keys])
+        return all(
+            [self.has(k) and type(self.get(k)) is lcl_type for k in keys]
+        )
 
 
 def parse_path(path):
@@ -245,7 +247,8 @@ def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
 
 def downsample_any(u, ratios):
     assert len(ratios) == len(u.shape), (
-        f"downsample_any: len(ratios)={len(ratios)} !=" f" len(u.shape)={len(u.shape)}"
+        f"downsample_any: len(ratios)={len(ratios)} !="
+        f" len(u.shape)={len(u.shape)}"
     )
     assert all(
         [r > 0 and type(r) is int for r in ratios]
@@ -267,7 +270,9 @@ class SlotMeta(type):
         non_annotated_attrs = [
             key
             for key, value in class_dict.items()
-            if not (callable(value) or key.startswith("__") or key in annotated_keys)
+            if not (
+                callable(value) or key.startswith("__") or key in annotated_keys
+            )
         ]
 
         # Add the default annotations for non-annotated attributes

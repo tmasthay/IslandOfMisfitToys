@@ -49,15 +49,21 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
         src_amp_y: Ant[Union[str, torch.Tensor], "Source amp. y"] = None,
         src_loc_y: Ant[Union[str, torch.Tensor], "Source locations"] = None,
         rec_loc_y: Ant[Union[str, torch.Tensor], "Receiver locations"] = None,
-        vp_init: Ant[Union[str, torch.Tensor], "Initial P velocity model"] = None,
+        vp_init: Ant[
+            Union[str, torch.Tensor], "Initial P velocity model"
+        ] = None,
         src_amp_x: Opt[Ant[Union[str, torch.Tensor], "Source amp. x"]] = None,
         vs_init: Opt[Ant[Union[str, torch.Tensor], "Init S vel"]] = None,
         rho_init: Opt[Ant[Union[str, torch.Tensor], "Init density"]] = None,
         vp_true: Opt[Ant[Union[str, torch.Tensor], "True P vel"]] = None,
         vs_true: Opt[Ant[Union[str, torch.Tensor], "True S vel"]] = None,
         rho_true: Opt[Ant[Union[str, torch.Tensor], "True density "]] = None,
-        src_amp_y_true: Opt[Ant[Union[str, torch.Tensor], "True source amp. y"]] = None,
-        src_amp_x_true: Opt[Ant[Union[str, torch.Tensor], "True source amp. x"]] = None,
+        src_amp_y_true: Opt[
+            Ant[Union[str, torch.Tensor], "True source amp. y"]
+        ] = None,
+        src_amp_x_true: Opt[
+            Ant[Union[str, torch.Tensor], "True source amp. x"]
+        ] = None,
         vp_prmzt: Ant[
             Call[[torch.Tensor], Param], "Parameterized vp"
         ] = Param.delay_init(requires_grad=True),
@@ -85,7 +91,9 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 print(f"    shape={u.shape}", flush=True)
                 return u
             elif filename is None and default is not None:
-                print(f"    Attempt: {path}/{default}.pt...", flush=True, end="")
+                print(
+                    f"    Attempt: {path}/{default}.pt...", flush=True, end=""
+                )
                 if os.path.exists(f"{path}/{default}.pt"):
                     u = get_data3(field=default, path=path)
                 else:

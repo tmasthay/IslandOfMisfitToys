@@ -147,7 +147,9 @@ class Example(ABC):
             )
             curr_ax1 = ax[1].imshow(curr, **plot_args)
             ax[1].set_title(f"{name} {subtitle(i)}")
-            fig.colorbar(curr_ax1, ax=ax.ravel().tolist(), orientation="vertical")
+            fig.colorbar(
+                curr_ax1, ax=ax.ravel().tolist(), orientation="vertical"
+            )
             plt.tight_layout()
             plt.savefig(save_file_name)
             ax[1].cla()
@@ -169,10 +171,14 @@ class Example(ABC):
             f"cleaning up {fig_save}/{name}_*.jpg...", end="", verbose=verbose
         )
         os.system(f"rm $(ls -t {fig_save}/{name}_*.jpg | tail -n +2)")
-        os.system(f"mv $(ls {fig_save}/{name}_[0-9]*.jpg) {fig_save}/{name}_final.jpg")
+        os.system(
+            f"mv $(ls {fig_save}/{name}_[0-9]*.jpg) {fig_save}/{name}_final.jpg"
+        )
         Example.print_static("SUCCESS", verbose=verbose)
 
-    def plot_inv_record_auto(self, *, name, labels, subplot_args={}, plot_args={}):
+    def plot_inv_record_auto(
+        self, *, name, labels, subplot_args={}, plot_args={}
+    ):
         subplot_args = {**self.subplot_args, **subplot_args}
         plot_args = {**self.plot_args, **plot_args}
         Example.plot_inv_record(
@@ -370,8 +376,12 @@ class Example(ABC):
 
     def save_all_tensors(self):
         if set(self.tensors.keys()) != set(self.tensor_names):
-            in_key_not_in_names = set(self.tensors.keys()) - set(self.tensor_names)
-            in_names_not_in_key = set(self.tensor_names) - set(self.tensors.keys())
+            in_key_not_in_names = set(self.tensors.keys()) - set(
+                self.tensor_names
+            )
+            in_names_not_in_key = set(self.tensor_names) - set(
+                self.tensors.keys()
+            )
             raise ValueError(
                 "\nFATAL: tensor_names and self.tensors.keys() do not match.\n"
                 "    It is the responsibility of the user to ensure that by\n"
@@ -390,7 +400,10 @@ class Example(ABC):
 
     def load_all_tensors(self):
         assert all(
-            [a == b for a, b in zip(self.tensor_names, self.output_files.keys())]
+            [
+                a == b
+                for a, b in zip(self.tensor_names, self.output_files.keys())
+            ]
         )
         self.tensors = {}
         paths_exist = [os.path.exists(f) for f in self.output_files.values()]
@@ -467,7 +480,9 @@ class Example(ABC):
             self.generate_data(rank, world_size)
             self.load_all_tensors()
             if self.tensors is None:
-                raise ValueError("FATAL: Data generation failed, check your code")
+                raise ValueError(
+                    "FATAL: Data generation failed, check your code"
+                )
         else:
             if rank == 0:
                 self.print(
@@ -498,7 +513,9 @@ class Example(ABC):
                 "    We currently do not support CPU-only training."
             )
         self.losses = torch.empty(world_size + 1)
-        mp.spawn(self.run_rank, args=(world_size,), nprocs=world_size, join=True)
+        mp.spawn(
+            self.run_rank, args=(world_size,), nprocs=world_size, join=True
+        )
         with open(self.pickle_save, "rb") as f:
             self.print(f"Loading pickle from {self.pickle_save}...", end="")
             self = pickle.load(f)
@@ -521,7 +538,9 @@ class ExampleComparator:
         log=0,
     ):
         if len(examples) != 2:
-            raise ValueError("FATAL: ExampleComparator requires exactly 2 examples")
+            raise ValueError(
+                "FATAL: ExampleComparator requires exactly 2 examples"
+            )
         self.first = examples[0].run()
         self.second = examples[1].run()
 
@@ -549,7 +568,8 @@ class ExampleComparator:
         self.first.data_save = self.data_save
         self.first.fig_save = self.fig_save
         self.first.output_files = {
-            e: os.path.join(self.data_save, f"{e}.pt") for e in self.first.tensor_names
+            e: os.path.join(self.data_save, f"{e}.pt")
+            for e in self.first.tensor_names
         }
 
     def compare(self, **kw):
@@ -582,9 +602,13 @@ class ExampleComparator:
                 )
                 self.first.tensors[name] = self.first.tensors[name].abs()
                 if self.log == 1:
-                    self.first.tensors[name] = torch.log(self.first.tensors[name])
+                    self.first.tensors[name] = torch.log(
+                        self.first.tensors[name]
+                    )
                 elif self.log == 2:
-                    self.first.tensors[name] = torch.log(1.0 + self.first.tensors[name])
+                    self.first.tensors[name] = torch.log(
+                        1.0 + self.first.tensors[name]
+                    )
         self.first.save_all_tensors()
         self.first.plot_data(**kw)
 
