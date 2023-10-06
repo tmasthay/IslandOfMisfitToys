@@ -7,7 +7,7 @@ def create_structure(path):
     structure = {
         path: {
             "iomt": {"figs": None, "data": None},
-            "deepwave": {"figs": None, "data": None},
+            "dw": {"figs": None, "data": None},
             "compare": {"figs": None, "data": None},
             "pwd": [
                 "metadata.pydict",
