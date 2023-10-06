@@ -21,12 +21,14 @@ if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     python -W ignore -c "from misfit_toys.examples.download_data import main; main()"
 fi
 
-cd
+mkdir -p $CONDA_PREFIX/IOMT_VALIDATION
+cd $CONDA_PREFIX/IOMT_VALIDATION
 
 if [[ $RUN_PYTHON_COMMANDS -ne 0 ]]; then
-    #python -W ignore -c "from misfit_toys.fwi.driver import main; main()"
-    python -W ignore -c "from misfit_toys.fwi.dist_parallel import main; main()"
+    python -W ignore -c "from misfit_toys.examples.ddp.ddp import main; main()"
 fi
 
 cd $CURR
+
+echo "Test data stored in $CONDA_PREFIX/IOMT_VALIDATION"
 

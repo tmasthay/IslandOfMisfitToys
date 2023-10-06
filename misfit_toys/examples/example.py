@@ -29,6 +29,10 @@ class Example(ABC):
         self.data_save = os.path.abspath(data_save)
         self.fig_save = os.path.abspath(fig_save)
         self.pickle_save = pickle_save
+
+        os.makedirs(f'{self.data_save}/tmp', exist_ok=True)
+        os.makedirs(self.fig_save, exist_ok=True)
+
         self.tensor_names = tensor_names
         self.output_files = {
             e: os.path.join(data_save, f'{e}.pt') for e in self.tensor_names

@@ -89,7 +89,7 @@ class ExampleIOMT(Example):
         self.plot_field(field='obs_data', transpose=True, cbar='dynamic')
 
 
-if __name__ == '__main__':
+def main():
     iomt_example = ExampleIOMT(
         data_save='iomt/data',
         fig_save='iomt/figs',
@@ -107,3 +107,7 @@ if __name__ == '__main__':
         verbose=2,
     )
     iomt_example.run()
+
+
+if __name__ == '__main__':
+    main()
