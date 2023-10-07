@@ -23,9 +23,9 @@ def main():
         verbose=verbosity,
     )
     deepwave_example = MultiscaleExample(
-        data_save="deepwave/data",
-        fig_save="deepwave/figs",
-        pickle_save="deepwave/pickle",
+        data_save="dw/data",
+        fig_save="dw/figs",
+        pickle_save="dw/pickle",
         verbose=verbosity,
         tensor_names=common_tensors_names,
     )

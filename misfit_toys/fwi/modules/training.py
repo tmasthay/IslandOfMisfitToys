@@ -1,43 +1,28 @@
 import torch
 from scipy.signal import butter
 from torchaudio.functional import biquad
-from ...utils import taper
+from ...utils import taper, summarize_tensor, print_tensor
 import numpy as np
 import torch.distributed as dist
 
 from .distribution import cleanup
 
 import os
+from abc import ABC, abstractmethod
 
 
-def summarize_tensor(tensor, *, idt_level=0, idt_str="    ", heading="Tensor"):
-    # Compute various statistics
-    stats = {
-        "shape": tensor.shape,
-        "mean": torch.mean(tensor).item(),
-        "variance": torch.var(tensor).item(),
-        "median": torch.median(tensor).item(),
-        "min": torch.min(tensor).item(),
-        "max": torch.max(tensor).item(),
-        "stddev": torch.std(tensor).item(),
-    }
+class Training(ABC):
+    def __init__(self, *, dist_prop, rank, world_size):
+        self.dist_prop = dist_prop
+        self.rank = rank
+        self.world_size = world_size
 
-    # Prepare the summary string with the desired indentation
-    indent = idt_str * idt_level
-    summary = [f"{heading}:"]
-    for key, value in stats.items():
-        summary.append(f"{indent}{idt_str}{key} = {value}")
-
-    return "\n".join(summary)
+    @abstractmethod
+    def train(self, *, path, **kw):
+        pass
 
 
-def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
-    if print_kwargs is None:
-        print_kwargs = {"flush": True}
-    print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
-
-
-class Training:
+class TrainingMultiscale(Training):
     def __init__(self, *, dist_prop, rank, world_size):
         self.dist_prop = dist_prop
         self.rank = rank

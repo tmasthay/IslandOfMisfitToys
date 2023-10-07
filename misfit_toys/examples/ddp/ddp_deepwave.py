@@ -323,9 +323,9 @@ class MultiscaleExample(Example):
 
 if __name__ == "__main__":
     me = MultiscaleExample(
-        data_save="deepwave/data",
-        fig_save="deepwave/figs",
-        pickle_save="deepwave/pickle",
+        data_save="dw/data",
+        fig_save="dw/figs",
+        pickle_save="dw/pickle",
         verbose=2,
         tensor_names=[
             "vp_true",
