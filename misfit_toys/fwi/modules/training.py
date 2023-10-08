@@ -4,14 +4,16 @@ from torchaudio.functional import biquad
 from ...utils import taper, summarize_tensor, print_tensor
 import numpy as np
 import torch.distributed as dist
+from masthay_helpers import call_counter
 
 from .distribution import cleanup
 
 import os
 from abc import ABC, abstractmethod
+from itertools import product
 
 
-class Training(ABC):
+class TrainingDummy(ABC):
     def __init__(self, *, dist_prop, rank, world_size):
         self.dist_prop = dist_prop
         self.rank = rank
@@ -22,7 +24,7 @@ class Training(ABC):
         pass
 
 
-class TrainingMultiscale(Training):
+class TrainingMultiscale(TrainingDummy):
     def __init__(self, *, dist_prop, rank, world_size):
         self.dist_prop = dist_prop
         self.rank = rank
@@ -112,3 +114,71 @@ class TrainingMultiscale(Training):
         save("loss", loss_local)
         save("freqs", freqs)
         save("vp_record", vp_record)
+
+
+class Training(ABC):
+    def __init__(self, *, dist_prop, rank, world_size, verbose=1):
+        self.dist_prop = dist_prop
+        self.rank = rank
+        self.world_size = world_size
+        self.print = self.get_print(verbose)
+
+    def train(self, *, path, epoch_idx, **kw):
+        self.pre_train(path=path, **kw)
+        self._train(path=path, epoch_idx=epoch_idx, **kw)
+        self.post_train(path=path, **kw)
+
+    @staticmethod
+    def get_print(_verbose):
+        def print_fn(*args, verbose, **kw):
+            if verbose <= _verbose:
+                kw["flush"] = True
+                print(*args, **kw)
+
+        return print_fn
+
+    def pre_train(self, *, path, **kw):
+        pass
+
+    def _train(self, *, path, **kw):
+        epoch_groups = kw["epoch_groups"]
+        epoch_values = [e["values"] for e in epoch_groups]
+        epoch_names = [e["name"] for e in epoch_groups]
+
+        for combo in product(*epoch_groups):
+            msgs = [f'{e["name"]}={e["value"]}' for e in combo]
+            preprocess_vals = [
+                e["preprocess"](obj=self, path=path, **kw) for e in combo
+            ]
+            train_vals = self.step(
+                path=path, preprocess_vals=preprocess_vals, **kw
+            )
+            postprocess_vals = [
+                e["postprocess"](path=path, train_vals=train_vals, **kw)
+                for e in combo
+            ]
+        return train_vals, postprocess_vals
+
+    def step(self, path, preprocess_vals=None, **kw):
+        loss = 0.0
+
+        @call_counter(_verbose=1)
+        def closure():
+            nonlocal loss
+            self.optimizer.zero_grad()
+            loss_local = self._step(
+                path=path, preprocess_vals=preprocess_vals, **kw
+            )
+            if closure.calls == 1:
+                loss = loss_local
+                self.print(f"Loss={loss:.16f}", verbose=closure.verbose)
+            loss_local.backward()
+            return loss_local
+
+        self.optimizer.step(closure)
+        self.scheduler.step()
+        return loss
+
+    @abstractmethod
+    def _step(self, path, preprocess_vals=None, **kw):
+        pass
