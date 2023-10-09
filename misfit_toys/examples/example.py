@@ -1,5 +1,5 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
-from misfit_toys.utils import summarize_tensor
+from masthay_helpers.global_helpers import summarize_tensor
 from misfit_toys.swiffer import iraise, istr
 
 from masthay_helpers import peel_final

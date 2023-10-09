@@ -1,7 +1,7 @@
 import torch
 from scipy.signal import butter
 from torchaudio.functional import biquad
-from ...utils import taper, summarize_tensor, print_tensor, canonical_tensors
+from ...utils import taper, canonical_tensors
 import numpy as np
 import torch.distributed as dist
 from masthay_helpers.global_helpers import (
@@ -11,6 +11,8 @@ from masthay_helpers.global_helpers import (
     DotDict,
     iraise,
     get_print,
+    summarize_tensor,
+    print_tensor,
 )
 
 from .distribution import cleanup
