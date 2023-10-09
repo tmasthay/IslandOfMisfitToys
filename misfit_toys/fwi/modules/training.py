@@ -4,7 +4,14 @@ from torchaudio.functional import biquad
 from ...utils import taper, summarize_tensor, print_tensor, canonical_tensors
 import numpy as np
 import torch.distributed as dist
-from masthay_helpers import call_counter, iprint, printj, DotDict, iraise
+from masthay_helpers.global_helpers import (
+    call_counter,
+    iprint,
+    printj,
+    DotDict,
+    iraise,
+    get_print,
+)
 
 from .distribution import cleanup
 
@@ -141,7 +148,7 @@ class Training(ABC):
         self.dist_prop = dist_prop
         self.rank = rank
         self.world_size = world_size
-        self.print, self.printj = self.get_print(verbose)
+        self.print, self.printj = get_print(verbose=verbose)
         self.prec = prec
         self.reduce = reduce
 
@@ -208,43 +215,6 @@ class Training(ABC):
         self.custom.loss = []
         self.custom.step_info = []
 
-    def getc(self, key):
-        return self.custom.get(key)
-
-    def setc(self, key, val):
-        self.custom.set(key, val)
-
-    @staticmethod
-    def get_print(
-        _verbose,
-        l=0,
-        idt_str="    ",
-        cpl=80,
-        sep="\n",
-        mode="auto",
-        demarcator="&",
-        align="ljust",
-        extra_space=0,
-    ):
-        def print_fn(*args, verbose=1, **kw):
-            if verbose <= _verbose:
-                kw["flush"] = True
-                iprint(*args, l=l, idt_str=idt_str, cpl=cpl, sep=sep, **kw)
-
-        def print_col_fn(*args, verbose=1, **kw):
-            if verbose <= _verbose:
-                kw["flush"] = True
-                printj(
-                    args,
-                    demarcator=demarcator,
-                    align=align,
-                    extra_space=extra_space,
-                    **kw,
-                )
-            return print
-
-        return print_fn, print_col_fn
-
     def pre_train(self, *, path, **kw):
         pass
 
@@ -306,7 +276,17 @@ class Training(ABC):
             if calls == 1:
                 loss = loss_local
                 self.custom.loss.append(loss.detach().cpu())
-                self.custom.step_info.append(other_info)
+                if other_info is not None:
+                    if (
+                        not "step_info" not in self.custom.keys()
+                        or not self.custom.step_info
+                    ):
+                        self.custom.step_info = {
+                            k: [v] for k, v in other_info.items()
+                        }
+                    else:
+                        for k, v in other_info.items():
+                            self.custom.step_info[k].append(v)
             loss_local.backward()
             return loss_local
 

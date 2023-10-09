@@ -77,7 +77,7 @@ class ExampleIOMT(Example):
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
 
-        self.tensors.update(trainer.custom.__dict__)
+        # self.tensors.update(trainer.custom.__dict__)
 
     def plot_data(self, **kw):
         self.n_epochs = 2

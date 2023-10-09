@@ -17,38 +17,6 @@ import os
 import textwrap
 
 
-class DotDict:
-    def __init__(self, d):
-        for k, v in d.items():
-            setattr(self, k, v)
-
-    def set(self, k, v):
-        setattr(self, k, v)
-
-    def get(self, k):
-        return getattr(self, k)
-
-    def keys(self):
-        return self.__dict__.keys()
-
-    def items(self):
-        return self.__dict__.items()
-
-    def values(self):
-        return self.__dict__.values()
-
-    def has(self, k):
-        return hasattr(self, k)
-
-    def has_all(self, *keys):
-        return all([self.has(k) for k in keys])
-
-    def has_all_type(self, *keys, lcl_type=None):
-        return all(
-            [self.has(k) and type(self.get(k)) is lcl_type for k in keys]
-        )
-
-
 def parse_path(path):
     if path is None:
         path = "conda"
@@ -203,46 +171,6 @@ def full_mem_report(precision=2, sep=", ", rep=("free", "total"), title=None):
 
 def taper(x, length):
     return dw.common.cosine_taper_end(x, length)
-
-
-def summarize_tensor(tensor, *, idt_level=0, idt_str="    ", heading="Tensor"):
-    stats = dict(dtype=tensor.dtype, shape=tensor.shape)
-    if tensor.dtype == torch.bool:
-        return str(stats)
-    elif tensor.dtype in [
-        torch.int8,
-        torch.int16,
-        torch.int32,
-        torch.int64,
-        torch.uint8,
-    ]:
-        tensor = tensor.float()
-
-    # Compute various statistics
-    stats.update(
-        dict(
-            mean=torch.mean(tensor).item(),
-            variance=torch.var(tensor).item(),
-            median=torch.median(tensor).item(),
-            min=torch.min(tensor).item(),
-            max=torch.max(tensor).item(),
-            stddev=torch.std(tensor).item(),
-        )
-    )
-
-    # Prepare the summary string with the desired indentation
-    indent = idt_str * idt_level
-    summary = [f"{heading}:"]
-    for key, value in stats.items():
-        summary.append(f"{indent}{idt_str}{key} = {value}")
-
-    return "\n".join(summary)
-
-
-def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
-    if print_kwargs is None:
-        print_kwargs = {"flush": True}
-    print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
 
 
 def downsample_any(u, ratios):

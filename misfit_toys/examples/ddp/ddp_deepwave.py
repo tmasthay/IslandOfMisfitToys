@@ -196,15 +196,17 @@ class MultiscaleExample(Example):
         prop = DDP(prop, device_ids=[rank])
 
         # Setup optimiser to perform inversion
-        loss_fn = torch.nn.MSELoss()
-        # loss_fn = W1(lambda x: x**2)
+        # loss_fn = torch.nn.MSELoss()
+        loss_fn = W1(lambda x: x**2)
 
         # Run optimisation/inversion
         # n_epochs = 2
         n_epochs = 2
         self.n_epochs = n_epochs
 
-        self.tensors["freqs"] = torch.Tensor([10, 15, 20, 25, 30])
+        self.tensors["freqs"] = torch.Tensor(
+            [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30]
+        )
         self.tensors["vp_record"] = torch.zeros(
             self.tensors["freqs"].shape[0], n_epochs, *v_true.shape
         )
@@ -330,22 +332,24 @@ class MultiscaleExample(Example):
 
 
 if __name__ == "__main__":
+    tensor_names = [
+        "vp_true",
+        "vp_init",
+        "vp_record",
+        "freqs",
+        "loss",
+        "src_amp_y",
+        "src_loc_y",
+        "rec_loc_y",
+        "obs_data",
+    ]
+    reduce = {k: None for k in tensor_names}
     me = MultiscaleExample(
         data_save="dw/data",
         fig_save="dw/figs",
         pickle_save="dw/pickle",
         verbose=2,
-        tensor_names=[
-            "vp_true",
-            "vp_init",
-            "vp_record",
-            "freqs",
-            "loss",
-            "src_amp_y",
-            "src_loc_y",
-            "rec_loc_y",
-            "obs_data",
-        ],
+        reduce=reduce,
     )
     me.n_epochs = 2
     print(f"address Multiscale tensor keys: {me.tensors.keys()}")
