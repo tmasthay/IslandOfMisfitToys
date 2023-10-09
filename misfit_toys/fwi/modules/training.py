@@ -1,7 +1,7 @@
 import torch
 from scipy.signal import butter
 from torchaudio.functional import biquad
-from ...utils import taper, summarize_tensor, print_tensor
+from ...utils import taper, summarize_tensor, print_tensor, canonical_tensors
 import numpy as np
 import torch.distributed as dist
 from masthay_helpers import call_counter, iprint, printj, DotDict, iraise
@@ -134,6 +134,7 @@ class Training(ABC):
         scheduler,
         loss,
         epoch_groups,
+        reduce,
         prec=".16f",
         **kw,
     ):
@@ -142,6 +143,7 @@ class Training(ABC):
         self.world_size = world_size
         self.print, self.printj = self.get_print(verbose)
         self.prec = prec
+        self.reduce = reduce
 
         # NOTE: if something goes wrong, this is the first place to check
         #     for a bug. In previous version, the optimizer was created
@@ -320,7 +322,10 @@ class Training(ABC):
             self.custom.set(k, [])
         for e in self.custom.step_info:
             for k, v in e.items():
-                self.custom.get(k).append(v)
+                self.custom.get(k).append(v.detach().cpu())
+        for k in self.custom.step_info[0]:
+            self.custom.set(k, torch.stack(self.custom.get(k), dim=0))
+            self.custom.set(k, self.custom.get(k).detach().cpu())
         del self.custom.step_info
 
     @abstractmethod
@@ -331,17 +336,18 @@ class Training(ABC):
         for k in keys:
             if k not in self.custom.keys():
                 raise ValueError(
-                    f"Key {k} not in self.custom.keys()={self.custom.keys()}"
+                    f"Key '{k}' not in self.custom.keys()={self.custom.keys()}"
                 )
             self.print(f"Saving {k}...", verbose=1, end="")
             torch.save(
-                self.custom.get(k), os.path.join(path, f"{k}_{self.rank}.pt")
+                self.custom.get(k),
+                os.path.join(path, f"{k}_{self.rank}.pt"),
             )
             self.print("SUCCESS", verbose=1)
 
     def post_train(self, *, path, **kw):
-        self._post_train(path=path, **kw)
         self.reduce_step_info()
+        self._post_train(path=path, **kw)
 
     def _post_train(self, *, path, **kw):
         pass
@@ -388,6 +394,8 @@ class TrainingMultiscale(Training):
                 self.custom.freqs = e["values"]
         self.custom.obs_data = self.dist_prop.module.obs_data
         self.custom.obs_data_filt_history = []
+        self.custom.out_history = []
+        self.custom.out_filt_history = []
 
     def _step(self, path, **kw):
         if "msg" in kw:
@@ -395,22 +403,39 @@ class TrainingMultiscale(Training):
         out = self.dist_prop(1, **kw)
         out_filt = self.custom.filt(taper(out[-1], 100))
         loss = 1e6 * self.loss(out_filt, self.custom.obs_data_filt)
-        return loss, {"out_history": out[-1], "out_filt_history": out_filt}
+        return loss, {
+            "out_history": out[-1].detach().cpu(),
+            "out_filt_history": out_filt.detach().cpu(),
+        }
 
-    def post_train(self, *, path):
+    def _post_train(self, *, path):
         self.custom.loss = torch.tensor(self.custom.loss).reshape(
             self.custom.loss_reshape
         )
-        self.save_customs(
-            path=path,
-            keys=[
-                "loss",
-                "vp_record",
-                "freqs",
-                "obs_data",
-                "obs_data_filt_history",
-            ],
+        self.custom.set(
+            "out_history_init", self.custom.out_history[0].detach().cpu()
         )
+        self.custom.set(
+            "out_history_true", self.custom.out_history[-1].detach().cpu()
+        )
+        self.custom.set(
+            "out_filt_history_init",
+            self.custom.out_filt_history[0].detach().cpu(),
+        )
+        self.custom.set(
+            "out_filt_history_true",
+            self.custom.out_filt_history[-1].detach().cpu(),
+        )
+        self.custom.set(
+            "obs_data_filt_history_init",
+            self.custom.obs_data_filt_history[0].detach().cpu(),
+        )
+        self.custom.set(
+            "obs_data_filt_history_true",
+            self.custom.obs_data_filt_history[-1].detach().cpu(),
+        )
+        keys = list(self.reduce.keys())
+        self.save_customs(path=path, keys=keys)
 
     def build_epoch_groups(self, *, freqs, n_epochs):
         def freq_preprocess(*, obj, path, combos, combo_num, field_num):
@@ -435,7 +460,10 @@ class TrainingMultiscale(Training):
             obj.custom.obs_data_filt = obj.custom.filt(
                 obj.dist_prop.module.obs_data
             )
-            obj.custom.obs_data_filt_history.append(self.custom.obs_data_filt)
+
+            obj.custom.obs_data_filt_history.append(
+                self.custom.obs_data_filt.detach().cpu()
+            )
 
             # s = summarize_tensor(obj.custom.obs_data_filt)
             # self.print(f"obs_data_filt={s}", verbose=1)

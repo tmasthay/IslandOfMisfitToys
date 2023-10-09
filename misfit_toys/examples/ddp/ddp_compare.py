@@ -1,25 +1,16 @@
 from .ddp_driver import ExampleIOMT
 from .ddp_deepwave import MultiscaleExample
 from misfit_toys.examples.example import ExampleComparator
+from misfit_toys.utils import canonical_reduce
 
 
 def main():
-    common_tensors_names = [
-        "vp_true",
-        "vp_init",
-        "vp_record",
-        "freqs",
-        "loss",
-        "src_amp_y",
-        "src_loc_y",
-        "rec_loc_y",
-        "obs_data",
-    ]
+    reduce = canonical_reduce(exclude=["src_amp_y", "rec_loc_y", "src_loc_y"])
     verbosity = 2
     iomt_example = ExampleIOMT(
         data_save="iomt/data",
         fig_save="iomt/figs",
-        tensor_names=common_tensors_names,
+        reduce=reduce,
         verbose=verbosity,
     )
     deepwave_example = MultiscaleExample(
@@ -27,7 +18,7 @@ def main():
         fig_save="dw/figs",
         pickle_save="dw/pickle",
         verbose=verbosity,
-        tensor_names=common_tensors_names,
+        reduce=reduce,
     )
     deepwave_example.n_epochs = 2
 

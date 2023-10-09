@@ -1,7 +1,13 @@
 from misfit_toys.data.dataset import get_data3
 from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
-from misfit_toys.utils import print_tensor, taper, get_pydict, DotDict
+from misfit_toys.utils import (
+    print_tensor,
+    taper,
+    get_pydict,
+    DotDict,
+    canonical_reduce,
+)
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
 from misfit_toys.fwi.modules.training import (
     TrainingMultiscale,
@@ -63,6 +69,7 @@ class ExampleIOMT(Example):
             verbose=1,
             freqs=[10.0, 15.0, 20, 25, 30],
             n_epochs=2,
+            reduce=self.reduce,
         )
         # trainer = TrainingMultiscaleLegacy(
         #     dist_prop=dist_prop, rank=rank, world_size=world_size
@@ -70,40 +77,49 @@ class ExampleIOMT(Example):
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
 
+        self.tensors.update(trainer.custom.__dict__)
+
     def plot_data(self, **kw):
         self.n_epochs = 2
-        self.plot_inv_record_auto(
-            name="vp",
-            labels=[
-                ("Freq", self.tensors["freqs"]),
-                ("Epoch", range(self.n_epochs)),
-            ],
-            plot_args=dict(
-                transpose=True,
-                vmin=self.tensors["vp_true"].min(),
-                vmax=self.tensors["vp_true"].max(),
-                cmap="seismic",
-            ),
+        labels = [
+            ("Freq", self.tensors["freqs"]),
+            ("Epoch", range(self.n_epochs)),
+        ]
+        plot_args = dict(
+            transpose=True,
+            vmin=self.tensors["vp_true"].min(),
+            vmax=self.tensors["vp_true"].max(),
+            cmap="seismic",
         )
+        movie = lambda x: self.plot_inv_record_auto(
+            name=x, labels=labels, plot_args=plot_args
+        )
+
         self.plot_loss()
         self.plot_field(field="obs_data", transpose=True, cbar="dynamic")
 
+        movie("vp_record")
+        movie("out_history")
+        movie("out_filt_history")
+        movie("obs_data_filt")
+
+        # note that as of right now "random" does not give you much
+        # ... each call will give you a different random subset and thus
+        # comparison would be impossible.
+        # Maybe you set a seed, but this is then nonrandom.
+        idx = ("uniform", 20)
+        # self.plot1d(field="out_history", idx=idx)
+        # self.plot1d(field="out_filt_history", idx=idx)
+        # self.plot1d(field)
+
 
 def main():
+    reduce = canonical_reduce(exclude=["src_amp_y"])
+
     iomt_example = ExampleIOMT(
         data_save="iomt/data",
         fig_save="iomt/figs",
-        tensor_names=[
-            "vp_true",
-            "vp_record",
-            "vp_init",
-            "freqs",
-            "loss",
-            "src_amp_y",
-            "obs_data",
-            "rec_loc_y",
-            "src_loc_y",
-        ],
+        reduce=reduce,
         verbose=2,
     )
     iomt_example.run()

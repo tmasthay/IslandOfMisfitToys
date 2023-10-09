@@ -309,3 +309,55 @@ def idt_print(*args, levels=None, idt="    "):
     for arg, idt_level in zip(args, levels):
         lines[i] = f"{idt * idt_level}{arg}"
     return "\n".join(lines)
+
+
+def canonical_tensors(exclude=None, extra=None):
+    exclude = exclude if exclude else []
+    extra = extra if extra else []
+    canon = []
+
+    def place(name, init=False):
+        if name not in exclude:
+            canon.append(name)
+            if init:
+                canon.append(f"{name}_init")
+                canon.append(f"{name}_true")
+
+    place("out_history", init=True)
+    place("out_filt_history", init=True)
+    place("obs_data_filt_history", init=True)
+    place("obs_data")
+    place("loss")
+    place("freqs")
+    place("src_amp_y")
+    place("rec_loc_y")
+    place("src_loc_y")
+    for e in extra:
+        if type(extra) is tuple:
+            place(e[0], init=e[1])
+        else:
+            place(e)
+    return canon
+
+
+def canonical_reduce(reduce=None, exclude=None, extra=None):
+    reduce = reduce if reduce else {}
+    extra = extra if extra else {}
+    exclude = exclude if exclude else []
+    canon = canonical_tensors(exclude=exclude, extra=extra)
+    default = dict()
+
+    for name in canon:
+        has_key = lambda *x: any([e in name for e in x])
+        if has_key("cat", "filt", "history"):
+            default[name] = "cat"
+        elif has_key("stack"):
+            default[name] = "stack"
+        elif has_key("mean"):
+            default[name] = "mean"
+        elif has_key("sum"):
+            default[name] = "sum"
+        else:
+            default[name] = None
+
+    return {**default, **reduce}

@@ -22,8 +22,8 @@ class Example(ABC):
         *,
         data_save,
         fig_save,
+        reduce,
         pickle_save=None,
-        tensor_names,
         verbose=1,
         subplot_args={},
         plot_args={},
@@ -36,7 +36,9 @@ class Example(ABC):
         os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
         os.makedirs(self.fig_save, exist_ok=True)
 
-        self.tensor_names = tensor_names
+        self.reduce = reduce
+        self.tensor_names = list(reduce.keys())
+
         self.output_files = {
             e: os.path.join(data_save, f"{e}.pt") for e in self.tensor_names
         }
@@ -205,8 +207,9 @@ class Example(ABC):
             self.save_all_tensors()
         torch.distributed.barrier()
 
-    def postprocess(self, world_size, reduce=None):
+    def postprocess(self, world_size):
         os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
+        reduce = self.reduce
         tmp_path = os.path.join(self.data_save, "tmp")
         st = set(self.tensor_names)
         stk = set(self.tensors.keys())
@@ -220,7 +223,7 @@ class Example(ABC):
                 if not os.path.exists(filename):
                     iraise(
                         ValueError,
-                        f"FATAL: Could not find {filename} in postprocess.\n",
+                        f"FATAL: Could not find '{filename}' in postprocess.\n",
                         istr(
                             "Debug info below:\n",
                             f"self.tensor_names={self.tensor_names}",
@@ -244,7 +247,7 @@ class Example(ABC):
                             ),
                         ),
                     )
-                curr.append(torch.load(filename))
+                curr.extend(torch.load(filename))
             if reduce is None or reduce[k] is None:
                 self.tensors[k] = curr[0]
             elif reduce[k] == "stack":
@@ -253,6 +256,10 @@ class Example(ABC):
                 self.tensors[k] = torch.stack(curr).sum(dim=0)
             elif reduce[k] == "mean":
                 self.tensors[k] = torch.stack(curr).mean(dim=0)
+            elif reduce[k] == "cat":
+                print(f"type(curr{k})= {type(curr)}")
+                print(f"type(curr{k}[0])= {type(curr[0])}", flush=True)
+                self.tensors[k] = torch.cat(curr, dim=0)
             else:
                 self.tensors[k] = reduce[k](curr)
 
