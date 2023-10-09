@@ -14,11 +14,11 @@ from warnings import warn
 import deepwave as dw
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path, get_pydict, DotDict, downsample_any
+from ..utils import auto_path, parse_path, get_pydict, downsample_any
 import copy
 from warnings import warn
 from ..swiffer import iraise, ireraise
-from masthay_helpers.global_helpers import prettify_dict, path_up
+from masthay_helpers.global_helpers import prettify_dict, path_up, DotDict
 import argparse
 
 

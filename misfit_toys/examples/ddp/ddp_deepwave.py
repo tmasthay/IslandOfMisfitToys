@@ -22,7 +22,7 @@ import pickle
 
 # from ..example import Example, define_names
 from misfit_toys.examples.example import Example, define_names
-from misfit_toys.utils import summarize_tensor
+from masthay_helpers.global_helpers import summarize_tensor
 from misfit_toys.fwi.custom_losses import W1
 
 

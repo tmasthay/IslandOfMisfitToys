@@ -1,4 +1,5 @@
-from ...utils import DotDict, SlotMeta
+from ...utils import SlotMeta
+from masthay_helpers import DotDict
 
 import torch
 import deepwave as dw

@@ -167,55 +167,45 @@ class Training(ABC):
         self.combos = self.__build_combos()
 
         self.custom = DotDict(kw)
-        self.__build_special_customs()
+        self.report = DotDict({"loss": []})
+        self.custom.loss_reshape = [len(e["values"]) for e in epoch_groups]
+
+    @abstractmethod
+    def _step(self, path, **kw):
+        pass
 
     def train(self, *, path, **kw):
         self.pre_train(path=path, **kw)
         self._train(path=path, **kw)
         self.post_train(path=path, **kw)
 
-    def __build_scheduler(self, scheduler):
-        if scheduler is None:
-            return None
-        schedule_list = []
-        for s in scheduler:
-            schedule_list.append(s[0](self.optimizer, **s[1]))
-        scheduler = torch.optim.lr_scheduler.ChainedScheduler(schedule_list)
-        return scheduler
-
-    def __build_epoch_groups(self, epoch_groups):
-        for i, e in enumerate(epoch_groups):
-            try:
-                epoch_groups[i]["values"] = torch.tensor(
-                    e["values"], dtype=type(e["values"][0])
-                )
-            except:
-                iraise(
-                    ValueError,
-                    f"Unknown type {type(e['values'])} passed to",
-                    f" epoch_groups[{i}]['values']. ",
-                    f"Must conform to torch.Tensor constructor.",
-                )
-        return epoch_groups
-
-    def __build_combos(self):
-        epoch_groups = self.epoch_groups
-        combos = dict(
-            values=tuple(product(*[e["values"] for e in epoch_groups])),
-            idx=tuple(
-                product(*[range(len(e["values"])) for e in epoch_groups])
-            ),
-            names=[e["name"] for e in epoch_groups],
-            preprocess=[e["preprocess"] for e in epoch_groups],
-            postprocess=[e["postprocess"] for e in epoch_groups],
-        )
-        return combos
-
-    def __build_special_customs(self):
-        self.custom.loss = []
-        self.custom.step_info = []
-
     def pre_train(self, *, path, **kw):
+        pass
+
+    def step(self, path, **kw):
+        loss = 0.0
+        calls = 0
+
+        def closure():
+            nonlocal loss, calls
+            calls += 1
+            self.optimizer.zero_grad()
+            loss_local = self._step(path=path, **kw)
+            if calls == 1:
+                self.__update_step_info(loss_local)
+            loss_local.backward()
+            return loss_local
+
+        self.optimizer.step(closure)
+        if self.scheduler is not None:
+            self.scheduler.step()
+        return loss
+
+    def post_train(self, *, path, **kw):
+        self.reduce_step_info()
+        self._post_train(path=path, **kw)
+
+    def _post_train(self, *, path, **kw):
         pass
 
     def _train(self, *, path, **kw):
@@ -259,78 +249,57 @@ class Training(ABC):
             self.printj(msg, verbose=1)
         return loss
 
-    def step(self, path, **kw):
-        loss = 0.0
-        calls = 0
+    def __build_scheduler(self, scheduler):
+        if scheduler is None:
+            return None
+        schedule_list = []
+        for s in scheduler:
+            schedule_list.append(s[0](self.optimizer, **s[1]))
+        scheduler = torch.optim.lr_scheduler.ChainedScheduler(schedule_list)
+        return scheduler
 
-        def closure():
-            nonlocal loss, calls
-            calls += 1
-            self.optimizer.zero_grad()
-            loss_local = self._step(path=path, **kw)
-            if type(loss_local) is tuple:
-                other_info = loss_local[1]
-                loss_local = loss_local[0]
-            else:
-                other_info = None
-            if calls == 1:
-                loss = loss_local
-                self.custom.loss.append(loss.detach().cpu())
-                if other_info is not None:
-                    if (
-                        not "step_info" not in self.custom.keys()
-                        or not self.custom.step_info
-                    ):
-                        self.custom.step_info = {
-                            k: [v] for k, v in other_info.items()
-                        }
-                    else:
-                        for k, v in other_info.items():
-                            self.custom.step_info[k].append(v)
-            loss_local.backward()
-            return loss_local
-
-        self.optimizer.step(closure)
-        if self.scheduler is not None:
-            self.scheduler.step()
-        return loss
-
-    def reduce_step_info(self):
-        if len(self.custom.step_info) == 0:
-            return
-        for k in self.custom.step_info[0]:
-            self.custom.set(k, [])
-        for e in self.custom.step_info:
-            for k, v in e.items():
-                self.custom.get(k).append(v.detach().cpu())
-        for k in self.custom.step_info[0]:
-            self.custom.set(k, torch.stack(self.custom.get(k), dim=0))
-            self.custom.set(k, self.custom.get(k).detach().cpu())
-        del self.custom.step_info
-
-    @abstractmethod
-    def _step(self, path, **kw):
-        pass
-
-    def save_customs(self, *, path, keys):
-        for k in keys:
-            if k not in self.custom.keys():
-                raise ValueError(
-                    f"Key '{k}' not in self.custom.keys()={self.custom.keys()}"
+    def __build_epoch_groups(self, epoch_groups):
+        for i, e in enumerate(epoch_groups):
+            try:
+                epoch_groups[i]["values"] = torch.tensor(
+                    e["values"], dtype=type(e["values"][0])
                 )
-            self.print(f"Saving {k}...", verbose=1, end="")
-            torch.save(
-                self.custom.get(k),
-                os.path.join(path, f"{k}_{self.rank}.pt"),
-            )
-            self.print("SUCCESS", verbose=1)
+            except:
+                iraise(
+                    ValueError,
+                    f"Unknown type {type(e['values'])} passed to",
+                    f" epoch_groups[{i}]['values']. ",
+                    f"Must conform to torch.Tensor constructor.",
+                )
+        return epoch_groups
 
-    def post_train(self, *, path, **kw):
-        self.reduce_step_info()
-        self._post_train(path=path, **kw)
+    def __build_combos(self):
+        epoch_groups = self.epoch_groups
+        combos = dict(
+            values=tuple(product(*[e["values"] for e in epoch_groups])),
+            idx=tuple(
+                product(*[range(len(e["values"])) for e in epoch_groups])
+            ),
+            names=[e["name"] for e in epoch_groups],
+            preprocess=[e["preprocess"] for e in epoch_groups],
+            postprocess=[e["postprocess"] for e in epoch_groups],
+        )
+        return combos
 
-    def _post_train(self, *, path, **kw):
-        pass
+    def __update_step_info(self, loss_local):
+        if type(loss_local) is tuple:
+            other_info = loss_local[1]
+            loss_local = loss_local[0]
+        else:
+            other_info = None
+        self.report.loss.append(loss_local.detach().cpu())
+        if not other_info:
+            return
+
+        for k, v in other_info.items():
+            if k not in self.report.keys():
+                self.report.set(k, [])
+            self.report.get(k).append(v.detach().cpu())
 
 
 class TrainingMultiscale(Training):
@@ -389,7 +358,7 @@ class TrainingMultiscale(Training):
         }
 
     def _post_train(self, *, path):
-        self.custom.loss = torch.tensor(self.custom.loss).reshape(
+        self.report.loss = torch.tensor(self.custom.loss).reshape(
             self.custom.loss_reshape
         )
         self.custom.set(
@@ -414,8 +383,6 @@ class TrainingMultiscale(Training):
             "obs_data_filt_history_true",
             self.custom.obs_data_filt_history[-1].detach().cpu(),
         )
-        keys = list(self.reduce.keys())
-        self.save_customs(path=path, keys=keys)
 
     def build_epoch_groups(self, *, freqs, n_epochs):
         def freq_preprocess(*, obj, path, combos, combo_num, field_num):
