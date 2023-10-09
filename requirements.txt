@@ -2,10 +2,11 @@ deepwave>=0.0.19
 numpy>=1.19   
 scipy
 pytest
-masthay_helpers>=0.2.29
+masthay_helpers>=0.2.37
 imageio
 tqdm
 torchsummary
 obspy
 requests
 rich
+black

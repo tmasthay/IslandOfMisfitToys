@@ -3,7 +3,10 @@ from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
 from misfit_toys.utils import print_tensor, taper, get_pydict, DotDict
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
-from misfit_toys.fwi.modules.training import TrainingMultiscale
+from misfit_toys.fwi.modules.training import (
+    TrainingMultiscale,
+    TrainingMultiscaleLegacy,
+)
 from misfit_toys.utils import idt_print
 
 import os
