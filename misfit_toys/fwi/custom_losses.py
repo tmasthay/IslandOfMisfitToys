@@ -5,26 +5,35 @@ import torch.nn.functional as F
 
 
 class W1(torch.nn.Module):
-    def __init__(self, renorm_func):
-        super(W1, self).__init__()
+    def __init__(self, renorm_func, eps=1.0):
+        super().__init__()
         self.renorm_func = renorm_func
+        self.eps = eps
 
-    def prep_data(self, y_true):
-        y_true = self.renorm_func(y_true)
-        y_true = torch.cumsum(y_true, dim=-1)
-        return y_true / y_true[:, -1].view(-1, 1)
+    def prep_data(self, y):
+        y = self.eps + self.renorm_func(y)
+        y = torch.cumulative_trapezoid(y, dim=-1)
+        return y / y[..., -1].unsqueeze(-1)
 
     def forward(self, y_pred, y_true):
         y_pred = self.prep_data(y_pred)
-        squared_diff = torch.abs(y_pred - y_true)
-        loss = torch.sum(torch.sum(torch.trapz(squared_diff, dim=-1)), dim=-1)
+
+        # Note that this is not necessary...should be a preprocessing step
+        y_true = self.prep_data(y_true)
+        abs_diff = torch.abs(y_pred - y_true)
+        loss = torch.trapz(abs_diff, dim=-1).mean()
         return loss
 
 
+# This is incorrect implementation of W2
 class W2(torch.nn.Module):
-    def __init__(self, renorm_func):
-        super(W2, self).__init__()
+    def __init__(self, renorm_func, eps=0.0):
+        super().__init__()
         self.renorm_func = renorm_func
+        self.eps = eps
+
+    def prep_data(self, y):
+        y = self.eps + self.renorm_func(y)
 
     def forward(self, y_pred, y_true):
         # Square the values

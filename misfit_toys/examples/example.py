@@ -2,6 +2,8 @@ from misfit_toys.fwi.modules.distribution import cleanup, setup
 from misfit_toys.utils import summarize_tensor
 from misfit_toys.swiffer import iraise, istr
 
+from masthay_helpers import peel_final
+
 from abc import ABC, abstractmethod
 import os
 import torch
@@ -11,6 +13,7 @@ import matplotlib.pyplot as plt
 from warnings import warn
 import copy
 import pickle
+import numpy as np
 
 
 class Example(ABC):
@@ -334,6 +337,69 @@ class Example(ABC):
             f"{fig_save}/{field}.gif"
         )
         os.system(f"rm {fig_save}/{field}_*.jpg")
+
+    @staticmethod
+    def static_plot1d(
+        *,
+        field,
+        tensor,
+        fig_save,
+        title=None,
+        idx=None,
+        **kw,
+    ):
+        u = tensor.detach().cpu()
+        title = field if title is None else title
+
+        umin = u.min()
+        umax = u.max()
+        full_kw = kw
+        full_kw.update(dict(ylim=(umin, umax)))
+        plt.clf()
+
+        v, unravel, _ = peel_final(u)
+
+        if idx is None:
+            idx = range(v.shape[0])
+        elif type(idx) is tuple:
+            if len(idx) != 2:
+                raise ValueError(f"idx={idx} must be a tuple of length 2")
+            if idx[0] == "random":
+                proportion = idx[1]
+                total = int(proportion * v.shape[0])
+                idx = torch.randperm(v.shape[0])[:total]
+                idx = idx.sort()[0]
+            elif idx[0] == "uniform":
+                stride = idx[1]
+                idx = torch.arange(0, v.shape[0], stride)
+            else:
+                raise ValueError(
+                    f'idx={idx} not understood. Expected "random" or "uniform"'
+                )
+        else:
+            raise ValueError(
+                f"idx={idx} not understood. Expected tuple or None"
+            )
+        for i in idx:
+            plt.plot(v[i], **full_kw)
+            plt.title(f"{title} {unravel(i)}")
+            plt.savefig(f"{fig_save}/{field}_{i}.jpg")
+            plt.clf()
+        os.system(
+            "convert -delay 100 -loop 0 "
+            f"$(ls -tr {fig_save}/{field}_*.jpg) "
+            f"{fig_save}/{field}.gif"
+        )
+        os.system(f"rm {fig_save}/{field}_*.jpg")
+
+    def plot1d(self, *, field, idx=None, **kw):
+        Example.static_plot1d(
+            field=field,
+            tensor=self.tensors[field],
+            fig_save=self.fig_save,
+            idx=idx,
+            **kw,
+        )
 
     def plot_field_default(
         self,

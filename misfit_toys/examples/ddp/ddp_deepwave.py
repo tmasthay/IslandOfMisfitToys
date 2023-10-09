@@ -23,6 +23,7 @@ import pickle
 # from ..example import Example, define_names
 from misfit_toys.examples.example import Example, define_names
 from misfit_toys.utils import summarize_tensor
+from misfit_toys.fwi.custom_losses import W1
 
 
 class Model(torch.nn.Module):
@@ -196,8 +197,10 @@ class MultiscaleExample(Example):
 
         # Setup optimiser to perform inversion
         loss_fn = torch.nn.MSELoss()
+        # loss_fn = W1(lambda x: x**2)
 
         # Run optimisation/inversion
+        # n_epochs = 2
         n_epochs = 2
         self.n_epochs = n_epochs
 
@@ -236,7 +239,7 @@ class MultiscaleExample(Example):
 
             observed_data_filt = filt(observed_data)
             s = summarize_tensor(observed_data_filt)
-            self.print(f"obs_data_filt={s}")
+            # self.print(f"obs_data_filt={s}")
             optimiser = torch.optim.LBFGS(prop.parameters())
 
             for epoch in range(n_epochs):
@@ -271,9 +274,11 @@ class MultiscaleExample(Example):
                 )
         self.print(f"TRAIN END, Rank={rank}")
         self.print(loss_local)
+        torch.distributed.barrier()
         torch.distributed.gather(
             tensor=loss_local, gather_list=gather_loss, dst=0
         )
+        torch.distributed.barrier()
         if rank == 0:
             self.print(f"GATHER BEGIN, Rank={rank}")
             self.tensors["loss"] = torch.stack(gather_loss).to("cpu")

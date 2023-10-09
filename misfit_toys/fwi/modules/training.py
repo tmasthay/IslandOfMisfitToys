@@ -12,6 +12,8 @@ import os
 from abc import ABC, abstractmethod
 from itertools import product
 
+from ..custom_losses import W1
+
 
 class TrainingDummy(ABC):
     def __init__(self, *, dist_prop, rank, world_size):
@@ -33,6 +35,7 @@ class TrainingMultiscaleLegacy(TrainingDummy):
     def train(self, *, path, **kw):
         # Setup optimiser to perform inversion
         loss_fn = torch.nn.MSELoss()
+        # loss_fn = W1(lambda x: x**2)
 
         # Run optimisation/inversion
         n_epochs = 2
@@ -155,7 +158,7 @@ class Training(ABC):
         self.combos = self.__build_combos()
 
         self.custom = DotDict(kw)
-        self.custom.loss = []
+        self.__build_special_customs()
 
     def train(self, *, path, **kw):
         self.pre_train(path=path, **kw)
@@ -198,6 +201,10 @@ class Training(ABC):
             postprocess=[e["postprocess"] for e in epoch_groups],
         )
         return combos
+
+    def __build_special_customs(self):
+        self.custom.loss = []
+        self.custom.step_info = []
 
     def getc(self, key):
         return self.custom.get(key)
@@ -289,9 +296,15 @@ class Training(ABC):
             calls += 1
             self.optimizer.zero_grad()
             loss_local = self._step(path=path, **kw)
+            if type(loss_local) is tuple:
+                other_info = loss_local[1]
+                loss_local = loss_local[0]
+            else:
+                other_info = None
             if calls == 1:
                 loss = loss_local
                 self.custom.loss.append(loss.detach().cpu())
+                self.custom.step_info.append(other_info)
             loss_local.backward()
             return loss_local
 
@@ -299,6 +312,16 @@ class Training(ABC):
         if self.scheduler is not None:
             self.scheduler.step()
         return loss
+
+    def reduce_step_info(self):
+        if len(self.custom.step_info) == 0:
+            return
+        for k in self.custom.step_info[0]:
+            self.custom.set(k, [])
+        for e in self.custom.step_info:
+            for k, v in e.items():
+                self.custom.get(k).append(v)
+        del self.custom.step_info
 
     @abstractmethod
     def _step(self, path, **kw):
@@ -317,6 +340,10 @@ class Training(ABC):
             self.print("SUCCESS", verbose=1)
 
     def post_train(self, *, path, **kw):
+        self._post_train(path=path, **kw)
+        self.reduce_step_info()
+
+    def _post_train(self, *, path, **kw):
         pass
 
 
@@ -359,6 +386,8 @@ class TrainingMultiscale(Training):
         for e in self.epoch_groups:
             if e["name"] == "Frequencies":
                 self.custom.freqs = e["values"]
+        self.custom.obs_data = self.dist_prop.module.obs_data
+        self.custom.obs_data_filt_history = []
 
     def _step(self, path, **kw):
         if "msg" in kw:
@@ -366,17 +395,26 @@ class TrainingMultiscale(Training):
         out = self.dist_prop(1, **kw)
         out_filt = self.custom.filt(taper(out[-1], 100))
         loss = 1e6 * self.loss(out_filt, self.custom.obs_data_filt)
-        return loss
+        return loss, {"out_history": out[-1], "out_filt_history": out_filt}
 
     def post_train(self, *, path):
         self.custom.loss = torch.tensor(self.custom.loss).reshape(
             self.custom.loss_reshape
         )
-        self.save_customs(path=path, keys=["loss", "vp_record", "freqs"])
+        self.save_customs(
+            path=path,
+            keys=[
+                "loss",
+                "vp_record",
+                "freqs",
+                "obs_data",
+                "obs_data_filt_history",
+            ],
+        )
 
     def build_epoch_groups(self, *, freqs, n_epochs):
         def freq_preprocess(*, obj, path, combos, combo_num, field_num):
-            self.print(f"freq_preprocess", verbose=1)
+            self.print(f"freq_preprocess", verbose=2)
             value = combos["values"][combo_num][field_num]
             sos = butter(
                 6,
@@ -397,9 +435,10 @@ class TrainingMultiscale(Training):
             obj.custom.obs_data_filt = obj.custom.filt(
                 obj.dist_prop.module.obs_data
             )
+            obj.custom.obs_data_filt_history.append(self.custom.obs_data_filt)
 
-            s = summarize_tensor(obj.custom.obs_data_filt)
-            self.print(f"obs_data_filt={s}", verbose=1)
+            # s = summarize_tensor(obj.custom.obs_data_filt)
+            # self.print(f"obs_data_filt={s}", verbose=1)
 
             # This is the point where we might need to reset the optimizer in
             #   case there is something I am missing!
@@ -414,11 +453,11 @@ class TrainingMultiscale(Training):
             # obj.custom.obs_data_filt = obj.custom.filt(
             #     obj.dist_prop.module.obs_data
             # )
-            self.print(f"epoch_preprocess", verbose=1)
+            self.print(f"epoch_preprocess", verbose=2)
             pass
 
         def epoch_postprocess(*, obj, path, combos, combo_num, field_num):
-            self.print(f"epoch_postprocess", verbose=1)
+            self.print(f"epoch_postprocess", verbose=2)
             idx = combos["idx"][combo_num]
             obj.custom.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
 
