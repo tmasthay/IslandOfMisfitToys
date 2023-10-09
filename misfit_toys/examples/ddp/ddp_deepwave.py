@@ -22,6 +22,7 @@ import pickle
 
 # from ..example import Example, define_names
 from misfit_toys.examples.example import Example, define_names
+from misfit_toys.utils import summarize_tensor
 
 
 class Model(torch.nn.Module):
@@ -234,6 +235,8 @@ class MultiscaleExample(Example):
                 return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
             observed_data_filt = filt(observed_data)
+            s = summarize_tensor(observed_data_filt)
+            self.print(f"obs_data_filt={s}")
             optimiser = torch.optim.LBFGS(prop.parameters())
 
             for epoch in range(n_epochs):

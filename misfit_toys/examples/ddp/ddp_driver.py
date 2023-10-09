@@ -54,8 +54,19 @@ class ExampleIOMT(Example):
         prop = prop.to(rank)
         dist_prop = DDP(prop, device_ids=[rank])
         trainer = TrainingMultiscale(
-            dist_prop=dist_prop, rank=rank, world_size=world_size
+            dist_prop=dist_prop,
+            rank=rank,
+            world_size=world_size,
+            optimizer=(torch.optim.LBFGS, dict()),
+            loss=torch.nn.MSELoss(),
+            scheduler=None,
+            verbose=1,
+            freqs=[10.0, 15.0, 20, 25, 30],
+            n_epochs=2,
         )
+        # trainer = TrainingMultiscaleLegacy(
+        #     dist_prop=dist_prop, rank=rank, world_size=world_size
+        # )
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
 
