@@ -1,5 +1,5 @@
-from ddp import ExampleIOMT
-from ddp_deepwave import MultiscaleExample
+from .ddp_driver import ExampleIOMT
+from .ddp_deepwave import MultiscaleExample
 from misfit_toys.examples.example import ExampleComparator
 
 

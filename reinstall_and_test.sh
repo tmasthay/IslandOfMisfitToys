@@ -25,7 +25,7 @@ mkdir -p $CONDA_PREFIX/IOMT_VALIDATION
 cd $CONDA_PREFIX/IOMT_VALIDATION
 
 if [[ $RUN_PYTHON_COMMANDS -ne 0 ]]; then
-    python -W ignore -c "from misfit_toys.examples.ddp.compare import main; main()"
+    python -W ignore -c "from misfit_toys.examples.ddp.ddp_compare import main; main()"
 fi
 
 cd $CURR

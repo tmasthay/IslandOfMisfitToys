@@ -388,7 +388,7 @@ class Example(ABC):
                 "        the end of calls to your overload of the abstract\n"
                 "        `_generate_data function` that all tensor_names keys\n"
                 "        are set in Example.self.tensors.\n"
-                f'    Debugging info below{""}:\n'
+                f"    Debugging info below{''}:\n"
                 f"    tensor_names: {set(self.tensor_names)}\n"
                 f"    self.tensors.keys(): {set(self.tensors.keys())}\n"
                 f"    in_key_not_in_names: {in_key_not_in_names}\n"
@@ -560,6 +560,9 @@ class ExampleComparator:
         self.log = log
 
         self.dummy_first_path()
+
+        os.makedirs(self.data_save, exist_ok=True)
+        os.makedirs(self.fig_save, exist_ok=True)
 
     def dummy_first_path(self):
         self.first.old_data_save = self.first.data_save
