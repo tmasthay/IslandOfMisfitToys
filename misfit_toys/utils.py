@@ -15,6 +15,7 @@ import deepwave as dw
 from warnings import warn
 import os
 import textwrap
+from masthay_helpers import DotDict
 
 
 def parse_path(path):
@@ -247,13 +248,14 @@ def canonical_tensors(exclude=None, extra=None):
     def place(name, init=False):
         if name not in exclude:
             canon.append(name)
+            name = name.replace("_record", "")
             if init:
                 canon.append(f"{name}_init")
                 canon.append(f"{name}_true")
 
-    place("out_history", init=True)
-    place("out_filt_history", init=True)
-    place("obs_data_filt_history", init=True)
+    place("out_record", init=True)
+    place("out_filt_record", init=True)
+    place("obs_data_filt_record", init=True)
     place("obs_data")
     place("loss")
     place("freqs")
@@ -277,7 +279,7 @@ def canonical_reduce(reduce=None, exclude=None, extra=None):
 
     for name in canon:
         has_key = lambda *x: any([e in name for e in x])
-        if has_key("cat", "filt", "history"):
+        if has_key("cat", "filt", "record"):
             default[name] = "cat"
         elif has_key("stack"):
             default[name] = "stack"

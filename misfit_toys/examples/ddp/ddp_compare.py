@@ -5,7 +5,10 @@ from misfit_toys.utils import canonical_reduce
 
 
 def main():
-    reduce = canonical_reduce(exclude=["src_amp_y", "rec_loc_y", "src_loc_y"])
+    reduce = canonical_reduce(
+        exclude=["src_amp_y", "rec_loc_y", "src_loc_y"],
+        extra=["vp_record", "vp_true", "vp_init"],
+    )
     verbosity = 2
     iomt_example = ExampleIOMT(
         data_save="iomt/data",

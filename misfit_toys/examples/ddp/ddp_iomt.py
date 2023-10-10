@@ -1,7 +1,7 @@
 from misfit_toys.data.dataset import get_data3
 from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
-from misfit_toys.utils import print_tensor, taper, get_pydict
+from misfit_toys.utils import taper, get_pydict
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
 
 import os
@@ -49,6 +49,7 @@ def run_rank(rank, world_size):
     tape_len = 100
     meta = get_pydict(path, as_class=True)
 
+    v_init = None
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 

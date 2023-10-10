@@ -2,10 +2,8 @@ from misfit_toys.data.dataset import get_data3
 from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
 from misfit_toys.utils import (
-    print_tensor,
     taper,
     get_pydict,
-    DotDict,
     canonical_reduce,
 )
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
@@ -76,6 +74,7 @@ class ExampleIOMT(Example):
         # )
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
+        self.tensors.update(trainer.report.dict())
 
         # self.tensors.update(trainer.custom.__dict__)
 
@@ -99,9 +98,9 @@ class ExampleIOMT(Example):
         self.plot_field(field="obs_data", transpose=True, cbar="dynamic")
 
         movie("vp_record")
-        movie("out_history")
-        movie("out_filt_history")
-        movie("obs_data_filt")
+        # movie("out_record")
+        # movie("out_filt_record")
+        # movie("obs_data_filt")
 
         # note that as of right now "random" does not give you much
         # ... each call will give you a different random subset and thus
@@ -114,7 +113,9 @@ class ExampleIOMT(Example):
 
 
 def main():
-    reduce = canonical_reduce(exclude=["src_amp_y"])
+    reduce = canonical_reduce(
+        exclude=["src_amp_y"], extra=["vp_record", "vp_true"]
+    )
 
     iomt_example = ExampleIOMT(
         data_save="iomt/data",

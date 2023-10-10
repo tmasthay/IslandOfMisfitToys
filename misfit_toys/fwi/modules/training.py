@@ -150,7 +150,7 @@ class Training(ABC):
         self.dist_prop = dist_prop
         self.rank = rank
         self.world_size = world_size
-        self.print, self.printj = get_print(verbose=verbose)
+        self.print, self.printj = get_print(_verbose=verbose)
         self.prec = prec
         self.reduce = reduce
 
@@ -192,9 +192,10 @@ class Training(ABC):
             nonlocal loss, calls
             calls += 1
             self.optimizer.zero_grad()
-            loss_local = self._step(path=path, **kw)
+            loss_local, other_info = self._step(path=path, **kw)
             if calls == 1:
-                self.__update_step_info(loss_local)
+                loss = loss_local
+                self.__update_step_info(loss_local, other_info)
             loss_local.backward()
             return loss_local
 
@@ -204,7 +205,6 @@ class Training(ABC):
         return loss
 
     def post_train(self, *, path, **kw):
-        self.reduce_step_info()
         self._post_train(path=path, **kw)
 
     def _post_train(self, *, path, **kw):
@@ -288,13 +288,9 @@ class Training(ABC):
         )
         return combos
 
-    def __update_step_info(self, loss_local):
-        if type(loss_local) is tuple:
-            other_info = loss_local[1]
-            loss_local = loss_local[0]
-        else:
-            other_info = None
+    def __update_step_info(self, loss_local, other_info):
         self.report.loss.append(loss_local.detach().cpu())
+
         if not other_info:
             return
 
@@ -330,61 +326,16 @@ class TrainingMultiscale(Training):
             **kw,
         )
 
-    def pre_train(self, *, path):
-        assert len(self.epoch_groups) == 2
-        self.custom.vp_record = torch.Tensor(
-            self.epoch_groups[0]["values"].shape[0],
-            self.epoch_groups[1]["values"].shape[0],
-            *self.dist_prop.module.vp.p.shape,
-        )
-        self.custom.loss_reshape = [
-            e["values"].shape[0] for e in self.epoch_groups
-        ]
-        for e in self.epoch_groups:
-            if e["name"] == "Frequencies":
-                self.custom.freqs = e["values"]
-        self.custom.obs_data = self.dist_prop.module.obs_data
-        self.custom.obs_data_filt_history = []
-        self.custom.out_history = []
-        self.custom.out_filt_history = []
+    def pre_train(self, *, path, **kw):
+        self.report.obs_data_filt_record = []
+        self.report.out_record = []
+        self.report.out_filt_record = []
 
-    def _step(self, path, **kw):
-        if "msg" in kw:
-            del kw["msg"]
-        out = self.dist_prop(1, **kw)
-        out_filt = self.custom.filt(taper(out[-1], 100))
-        loss = 1e6 * self.loss(out_filt, self.custom.obs_data_filt)
-        return loss, {
-            "out_history": out[-1].detach().cpu(),
-            "out_filt_history": out_filt.detach().cpu(),
-        }
+        self.report.vp_record = torch.zeros(
+            *self.custom.loss_reshape, *self.dist_prop.module.vp.p.shape
+        )
 
-    def _post_train(self, *, path):
-        self.report.loss = torch.tensor(self.custom.loss).reshape(
-            self.custom.loss_reshape
-        )
-        self.custom.set(
-            "out_history_init", self.custom.out_history[0].detach().cpu()
-        )
-        self.custom.set(
-            "out_history_true", self.custom.out_history[-1].detach().cpu()
-        )
-        self.custom.set(
-            "out_filt_history_init",
-            self.custom.out_filt_history[0].detach().cpu(),
-        )
-        self.custom.set(
-            "out_filt_history_true",
-            self.custom.out_filt_history[-1].detach().cpu(),
-        )
-        self.custom.set(
-            "obs_data_filt_history_init",
-            self.custom.obs_data_filt_history[0].detach().cpu(),
-        )
-        self.custom.set(
-            "obs_data_filt_history_true",
-            self.custom.obs_data_filt_history[-1].detach().cpu(),
-        )
+        self.report.obs_data = self.dist_prop.module.obs_data.detach().cpu()
 
     def build_epoch_groups(self, *, freqs, n_epochs):
         def freq_preprocess(*, obj, path, combos, combo_num, field_num):
@@ -410,7 +361,7 @@ class TrainingMultiscale(Training):
                 obj.dist_prop.module.obs_data
             )
 
-            obj.custom.obs_data_filt_history.append(
+            obj.report.obs_data_filt_record.append(
                 self.custom.obs_data_filt.detach().cpu()
             )
 
@@ -436,7 +387,7 @@ class TrainingMultiscale(Training):
         def epoch_postprocess(*, obj, path, combos, combo_num, field_num):
             self.print(f"epoch_postprocess", verbose=2)
             idx = combos["idx"][combo_num]
-            obj.custom.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
+            obj.report.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
 
         epoch_groups = []
         epoch_groups.append(
@@ -456,3 +407,44 @@ class TrainingMultiscale(Training):
             )
         )
         return epoch_groups
+
+    def _step(self, path, **kw):
+        if "msg" in kw:
+            del kw["msg"]
+        out = self.dist_prop(1, **kw)
+        out_filt = self.custom.filt(taper(out[-1], 100))
+        loss = 1e6 * self.loss(out_filt, self.custom.obs_data_filt)
+        return loss, {
+            "out_record": out[-1].detach().cpu(),
+            "out_filt_record": out_filt.detach().cpu(),
+        }
+
+    def _post_train(self, *, path):
+        self.report.out_init = self.report.out_record[0]
+        self.report.out_true = self.report.out_record[-1]
+        self.report.out_filt_init = self.report.out_filt_record[0]
+        self.report.out_filt_true = self.report.out_filt_record[-1]
+        self.report.obs_data_filt_init = self.report.obs_data_filt_record[0]
+        self.report.obs_data_filt_true = self.report.obs_data_filt_record[-1]
+
+        n_shots, n_rec, nt = self.dist_prop.module.obs_data.shape
+        self.report.loss = torch.tensor(self.report.loss).reshape(
+            self.custom.loss_reshape
+        )
+        self.report.obs_data_filt_record = torch.stack(
+            self.report.obs_data_filt_record
+        ).reshape(
+            n_shots,
+            n_rec,
+            nt,
+            *self.custom.loss_reshape,
+        )
+        self.report.out_record = torch.stack(self.report.out_record).reshape(
+            n_shots, n_rec, nt, *self.custom.loss_reshape
+        )
+        self.report.out_filt_record = torch.stack(
+            self.report.out_filt_record
+        ).reshape(n_shots, n_rec, nt, *self.custom.loss_reshape)
+
+        self.report.freqs = torch.Tensor([10, 15, 20, 25, 30])
+        self.report.vp_true = self.dist_prop.module.vp_true.detach().cpu()

@@ -186,6 +186,7 @@ class Example(ABC):
     ):
         subplot_args = {**self.subplot_args, **subplot_args}
         plot_args = {**self.plot_args, **plot_args}
+        name = name.replace("_record", "")
         Example.plot_inv_record(
             fig_save=self.fig_save,
             init=self.tensors[f"{name}_init"],
