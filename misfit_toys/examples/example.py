@@ -1,5 +1,5 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
-from masthay_helpers.global_helpers import summarize_tensor
+from masthay_helpers.global_helpers import summarize_tensor, DotDict
 from misfit_toys.swiffer import iraise, istr
 
 from masthay_helpers import peel_final
@@ -32,8 +32,7 @@ class Example(ABC):
         reduce,
         pickle_save=None,
         verbose=1,
-        subplot_args={},
-        plot_args={},
+        tmp=None,
         **kw,
     ):
         self.data_save = os.path.abspath(data_save)
@@ -51,32 +50,13 @@ class Example(ABC):
         }
         self.verbose = verbose
         self.tensors = {}
-        self.subplot_args = subplot_args
-        self.plot_args = plot_args
         if "output_files" in kw.keys():
             raise ValueError(
                 "output_files is generated from tensor_names"
                 "and thus should be treated like a reserved keyword"
             )
+        self.tmp = DotDict(tmp) if tmp is not None else {}
         self.__dict__.update(kw)
-
-        if self.pickle_save is None:
-            random_int = torch.randint(0, 1000000, (1,)).item()
-            curr_prop = f"/tmp/pickle_{random_int}.pkl"
-            num_tries = 10
-            curr_try = 0
-            while os.path.exists(curr_prop) and curr_try < num_tries:
-                curr_prop = f"/tmp/pickle_{random_int}.pkl"
-                curr_try += 1
-                if curr_try == num_tries:
-                    raise ValueError(
-                        "FATAL: Tried to instantiate Example with pickle "
-                        f"path {curr_prop} with no success after {num_tries} "
-                        "tries. Clean up your /tmp directory and try again."
-                    )
-            self.pickle_save = curr_prop
-
-        self.debug_save = f"{self.data_save}/debug"
 
     @abstractmethod
     def _generate_data(self, rank, world_size):
@@ -91,120 +71,8 @@ class Example(ABC):
         if verbose >= level:
             print(*args, **kw, flush=True)
 
-    @staticmethod
-    def plot_inv_record(
-        *,
-        fig_save,
-        init,
-        true,
-        record,
-        name,
-        labels,
-        subplot_args=None,
-        plot_args=None,
-        verbose=1,
-    ):
-        default_subplot = dict(figsize=(10.5, 10.5), sharex=True, sharey=True)
-        default_plot_keys = dict(cmap="gray", aspect="auto")
-
-        if subplot_args is None:
-            subplot_args = {}
-
-        if plot_args is None:
-            plot_args = {}
-
-        subplot_args = {**default_subplot, **subplot_args}
-        plot_args = {**default_plot_keys, **plot_args}
-
-        # Extract the shape of the tensor's dimensions prior to the last 2 dimensions
-        lengths = record.shape[:-2]
-
-        # Reshape the record tensor
-        reshaped_record = record.view(-1, *record.shape[-2:])
-
-        # Create the index map
-        indices = [torch.arange(length) for length in lengths]
-        grid = torch.meshgrid(*indices)
-        index_map = torch.stack(grid, dim=-1).view(-1, len(lengths))
-
-        def subtitle(i):
-            curr = [
-                f"{labels[j][0]}={labels[j][1][index_map[i, j]]}"
-                for j in range(len(lengths))
-            ]
-            return "(" + ", ".join(curr) + ")"
-
-        if plot_args.get("transpose", False):
-            init = init.T
-            true = true.T
-            reshaped_record = reshaped_record.transpose(1, 2)
-            del plot_args["transpose"]
-
-        fig, ax = plt.subplots(3, **subplot_args)
-        Example.print_static(
-            f"Plotting final results {name} at {fig_save}/final_{name}.jpg...",
-            end="",
-            verbose=verbose,
-        )
-        ax[0].imshow(init, **plot_args)
-        ax[0].set_title(f"{name} Initial")
-        ax[2].imshow(true, **plot_args)
-        ax[2].set_title(f"{name} Ground Truth")
-        Example.print_static("SUCCESS", verbose=verbose)
-        for i, curr in enumerate(reshaped_record):
-            save_file_name = f"{fig_save}/{name}_{i}.jpg"
-            Example.print_static(
-                f"Plotting {save_file_name} with params={subtitle(i)}...",
-                end="",
-            )
-            curr_ax1 = ax[1].imshow(curr, **plot_args)
-            ax[1].set_title(f"{name} {subtitle(i)}")
-            fig.colorbar(
-                curr_ax1, ax=ax.ravel().tolist(), orientation="vertical"
-            )
-            plt.tight_layout()
-            plt.savefig(save_file_name)
-            ax[1].cla()
-            if len(fig.axes) > 3:
-                fig.delaxes(fig.axes[-1])
-            Example.print_static("SUCCESS", verbose=verbose)
-        plt.close()
-        Example.print_static(
-            f"gif creation attempt for {name} at {fig_save}/{name}.gif...",
-            end="",
-        )
-        os.system(
-            "convert -delay 100 -loop 0 "
-            f"$(ls -tr {fig_save}/{name}_*.jpg) "
-            f"{fig_save}/{name}.gif"
-        )
-        Example.print_static("SUCCESS", verbose=verbose)
-        Example.print_static(
-            f"cleaning up {fig_save}/{name}_*.jpg...", end="", verbose=verbose
-        )
-        os.system(f"rm $(ls -t {fig_save}/{name}_*.jpg | tail -n +2)")
-        os.system(
-            f"mv $(ls {fig_save}/{name}_[0-9]*.jpg) {fig_save}/{name}_final.jpg"
-        )
-        Example.print_static("SUCCESS", verbose=verbose)
-
-    def plot_inv_record_auto(
-        self, *, name, labels, subplot_args={}, plot_args={}
-    ):
-        subplot_args = {**self.subplot_args, **subplot_args}
-        plot_args = {**self.plot_args, **plot_args}
-        name = name.replace("_record", "")
-        Example.plot_inv_record(
-            fig_save=self.fig_save,
-            init=self.tensors[f"{name}_init"],
-            true=self.tensors[f"{name}_true"],
-            record=self.tensors[f"{name}_record"],
-            name=name,
-            labels=labels,
-            subplot_args=subplot_args,
-            plot_args=plot_args,
-            verbose=self.verbose,
-        )
+    def print(self, *args, level=1, **kw):
+        Example.print_static(*args, level=level, verbose=self.verbose, **kw)
 
     def generate_data(self, rank, world_size):
         self.print(f"Running DDP on rank {rank} / {world_size}.", level=2)
@@ -222,223 +90,32 @@ class Example(ABC):
         st = set(self.tensor_names)
         stk = set(self.tensors.keys())
         unresolved_keys = st - stk
-        assert not (stk - st), f"tensors.keys() - tensor_names = {stk - st}"
+        if not stk.issubset(st):
+            raise Example.KeyException(
+                self,
+                msg=(
+                    f'Require self.tensors.keys() to be a subset of'
+                    f' self.tensor_names'
+                ),
+            )
         for k in unresolved_keys:
             self.print("k=", k)
             curr = []
             for i in range(world_size):
                 filename = f"{tmp_path}/{k}_{i}.pt"
                 if not os.path.exists(filename):
-                    iraise(
-                        ValueError,
-                        f"FATAL: Could not find '{filename}' in postprocess.\n",
-                        istr(
-                            "Debug info below:\n",
-                            f"self.tensor_names={self.tensor_names}",
-                            f"self.tensors.keys()={self.tensors.keys()}",
-                            f"unresolved_keys={unresolved_keys}",
-                        ),
-                        istr(
-                            "USER RESPONSIBILITY\n",
-                            "Any unresolved tensor names in self.tensor_names",
-                            "need to be set in one of two ways in abstract ",
-                            "self._generate_data method.",
-                            istr(
-                                "\n",
-                                "(1) Explicitly set (params synced by DDP)\n",
-                                (
-                                    "(2) Implicitly set by saving to"
-                                    ' f"{self.data_save}/{key}_{rank}.pt" for'
-                                    " each rank (unsynced metadata, e.g. loss"
-                                    " history)"
-                                ),
-                            ),
-                        ),
+                    raise Example.KeyException(
+                        self, msg=f"File {filename} does not exist. "
                     )
                 curr.extend(torch.load(filename))
             if reduce is None or reduce[k] is None:
-                self.tensors[k] = curr[0]
-            elif reduce[k] == "stack":
                 self.tensors[k] = torch.stack(curr)
-            elif reduce[k] == "sum":
-                self.tensors[k] = torch.stack(curr).sum(dim=0)
-            elif reduce[k] == "mean":
-                self.tensors[k] = torch.stack(curr).mean(dim=0)
-            elif reduce[k] == "cat":
-                print(f"type(curr{k})= {type(curr)}")
-                print(f"type(curr{k}[0])= {type(curr[0])}", flush=True)
-                self.tensors[k] = torch.cat(curr, dim=0)
             else:
                 self.tensors[k] = reduce[k](curr)
 
         stk = set(self.tensors.keys())
-        assert st == stk, istr(
-            f"FATAL",
-            f"self.tensor_names={self.tensor_names}\n",
-            f"self.tensors.keys()={self.tensors.keys()}\n",
-            f"This assertion should never occur!\n",
-            "Please report this bug to the IslandOfMisfitToys developers!\n",
-            "Debug info below\n",
-            f"tensor_names={st}\n",
-            f"tensors.keys()={stk}\n",
-            f"tensor_names - tensors.keys()={st - stk}\n",
-            f"tensors.keys() - tensor_names={stk - st}\n",
-        )
-
-    def plot_field(
-        self,
-        *,
-        field,
-        title=None,
-        aspect="auto",
-        cmap="seismic",
-        cbar="uniform",
-        transpose=False,
-        **kw,
-    ):
-        self.plot_field_default(
-            field=field,
-            title=title,
-            aspect=aspect,
-            cmap=cmap,
-            cbar=cbar,
-            transpose=transpose,
-            **kw,
-        )
-
-    @staticmethod
-    def static_plot_field_default(
-        *,
-        field,
-        tensor,
-        fig_save,
-        title=None,
-        aspect="auto",
-        cmap="seismic",
-        cbar="uniform",
-        transpose=False,
-        **kw,
-    ):
-        u = tensor.detach().cpu()
-        title = field if title is None else title
-        if len(u.shape) not in [2, 3]:
-            raise NotImplementedError(
-                "Only support 2,3 dimensional tensors, got shape={u.shape}"
-            )
-        if len(u.shape) == 2:
-            u = u.unsqueeze(0)
-
-        if transpose:
-            u = torch.transpose(u, 1, 2)
-
-        vmin = u.min()
-        vmax = u.max()
-        full_kw = kw
-        full_kw.update(dict(vmin=vmin, vmax=vmax, cmap=cmap, aspect=aspect))
-        for i, curr in enumerate(u):
-            plt.clf()
-            if cbar == "variable" or cbar == "dynamic":
-                vmin, vmax = curr.min(), curr.max()
-                full_kw.update(dict(vmin=vmin, vmax=vmax))
-            plt.imshow(curr, **full_kw)
-            plt.title(f"{title} {i}")
-            if cbar:
-                plt.colorbar()
-            plt.savefig(f"{fig_save}/{field}_{i}.jpg")
-            plt.clf()
-        os.system(
-            "convert -delay 100 -loop 0 "
-            f"$(ls -tr {fig_save}/{field}_*.jpg) "
-            f"{fig_save}/{field}.gif"
-        )
-        os.system(f"rm {fig_save}/{field}_*.jpg")
-
-    @staticmethod
-    def static_plot1d(
-        *,
-        field,
-        tensor,
-        fig_save,
-        title=None,
-        idx=None,
-        **kw,
-    ):
-        u = tensor.detach().cpu()
-        title = field if title is None else title
-
-        umin = u.min()
-        umax = u.max()
-        full_kw = kw
-        full_kw.update(dict(ylim=(umin, umax)))
-        plt.clf()
-
-        v, unravel, _ = peel_final(u)
-
-        if idx is None:
-            idx = range(v.shape[0])
-        elif type(idx) is tuple:
-            if len(idx) != 2:
-                raise ValueError(f"idx={idx} must be a tuple of length 2")
-            if idx[0] == "random":
-                proportion = idx[1]
-                total = int(proportion * v.shape[0])
-                idx = torch.randperm(v.shape[0])[:total]
-                idx = idx.sort()[0]
-            elif idx[0] == "uniform":
-                stride = idx[1]
-                idx = torch.arange(0, v.shape[0], stride)
-            else:
-                raise ValueError(
-                    f'idx={idx} not understood. Expected "random" or "uniform"'
-                )
-        else:
-            raise ValueError(
-                f"idx={idx} not understood. Expected tuple or None"
-            )
-        for i in idx:
-            plt.plot(v[i], **full_kw)
-            plt.title(f"{title} {unravel(i)}")
-            plt.savefig(f"{fig_save}/{field}_{i}.jpg")
-            plt.clf()
-        os.system(
-            "convert -delay 100 -loop 0 "
-            f"$(ls -tr {fig_save}/{field}_*.jpg) "
-            f"{fig_save}/{field}.gif"
-        )
-        os.system(f"rm {fig_save}/{field}_*.jpg")
-
-    def plot1d(self, *, field, idx=None, **kw):
-        Example.static_plot1d(
-            field=field,
-            tensor=self.tensors[field],
-            fig_save=self.fig_save,
-            idx=idx,
-            **kw,
-        )
-
-    def plot_field_default(
-        self,
-        *,
-        field,
-        title=None,
-        aspect="auto",
-        cmap="seismic",
-        cbar="uniform",
-        **kw,
-    ):
-        Example.static_plot_field_default(
-            field=field,
-            tensor=self.tensors[field],
-            fig_save=self.fig_save,
-            title=title,
-            aspect=aspect,
-            cmap=cmap,
-            cbar=cbar,
-            **kw,
-        )
-
-    def print(self, *args, level=1, **kw):
-        Example.print_static(*args, level=level, verbose=self.verbose, **kw)
+        if st != stk:
+            raise Example.KeyException(self)
 
     def add_info(self, *, s, name, **kw):
         return s
@@ -457,35 +134,12 @@ class Example(ABC):
 
     def save_all_tensors(self):
         if set(self.tensors.keys()) != set(self.tensor_names):
-            in_key_not_in_names = set(self.tensors.keys()) - set(
-                self.tensor_names
-            )
-            in_names_not_in_key = set(self.tensor_names) - set(
-                self.tensors.keys()
-            )
-            raise ValueError(
-                "\nFATAL: tensor_names and self.tensors.keys() do not match.\n"
-                "    It is the responsibility of the user to ensure that by\n"
-                "        the end of calls to your overload of the abstract\n"
-                "        `_generate_data function` that all tensor_names keys\n"
-                "        are set in Example.self.tensors.\n"
-                f"    Debugging info below{''}:\n"
-                f"    tensor_names: {set(self.tensor_names)}\n"
-                f"    self.tensors.keys(): {set(self.tensors.keys())}\n"
-                f"    in_key_not_in_names: {in_key_not_in_names}\n"
-                f"    in_names_not_in_key: {in_names_not_in_key}"
-            )
+            raise Example.KeyException(self)
 
         for name in self.tensors.keys():
             self.save_tensor(name)
 
     def load_all_tensors(self):
-        assert all(
-            [
-                a == b
-                for a, b in zip(self.tensor_names, self.output_files.keys())
-            ]
-        )
         self.tensors = {}
         paths_exist = [os.path.exists(f) for f in self.output_files.values()]
         if all(paths_exist):
@@ -500,40 +154,6 @@ class Example(ABC):
         else:
             self.print("FAIL")
             self.tensors = None
-
-    def plot_loss(self, **kw):
-        style = ["-", "--", "-.", ":"]
-        color = ["b", "g", "r", "c", "m", "y", "k"]
-        self.tensors["loss"] = self.tensors["loss"].to("cpu")
-        self.print(f'loss inside plot_loss: {self.tensors["loss"]}')
-        world_size = self.tensors["loss"].shape[0]
-        reshaped_loss = self.tensors["loss"].view(world_size, -1)
-        full_loss = reshaped_loss.sum(dim=0)
-        plt.clf()
-        for r in range(world_size):
-            label = f"rank {r}"
-            print(f"label={label}")
-            plt.plot(
-                reshaped_loss[r],
-                label=label,
-                linestyle=style[r % len(style)],
-                color=color[r % len(color)],
-            )
-        plt.plot(
-            full_loss,
-            label="Full loss",
-            linestyle=style[world_size % len(style)],
-            color=color[world_size % len(color)],
-        )
-        plt.title("Loss")
-        plt.legend()
-        plt.savefig(f"{self.fig_save}/loss.jpg")
-        plt.clf()
-
-    def plot_fields(self, **kw):
-        for fld, tnsr in self.tensors.items():
-            self.plot_field(field=fld, tensor=tnsr, **kw)
-        self.plot_loss(**kw)
 
     def run_rank(self, rank, world_size):
         """
@@ -572,18 +192,18 @@ class Example(ABC):
                     "regenerate"
                 )
         torch.distributed.barrier()
-        if rank == 0:
-            self.plot_data()
-            with open(self.pickle_save, "wb") as f:
-                self.print(
-                    (
-                        f"Saving pickle to {self.pickle_save}..."
-                        f"self.tensors.keys()=={self.tensors.keys()}"
-                    ),
-                    end="",
-                )
-                pickle.dump(self, f)
-                self.print("SUCCESS")
+        # if rank == 0:
+        #     self.plot_data()
+        #     with open(self.pickle_save, "wb") as f:
+        #         self.print(
+        #             (
+        #                  f"Saving pickle to {self.pickle_save}..."
+        #                 f"self.tensors.keys()=={self.tensors.keys()}"
+        #             ),
+        #             end="",
+        #         )
+        #         pickle.dump(self, f)
+        #         self.print("SUCCESS")
         cleanup()
 
     def run(self):
@@ -597,16 +217,53 @@ class Example(ABC):
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )
-        with open(self.pickle_save, "rb") as f:
-            self.print(f"Loading pickle from {self.pickle_save}...", end="")
-            self = pickle.load(f)
-            self.print(
-                f"SUCCESS...deleting self.pickle_save...={self.pickle_save}",
-                end="",
+        # with open(self.pickle_save, "rb") as f:
+        #     self.print(f"Loading pickle from {self.pickle_save}...", end="")
+        #     self = pickle.load(f)
+        #     self.print(
+        #         f"SUCCESS...deleting self.pickle_save...={self.pickle_save}",
+        #         end="",
+        #     )
+        #     os.remove(self.pickle_save)
+        #     self.print("SUCCESS")
+        # return self
+
+    class KeyException(Exception):
+        def __init__(self, ex, msg=None):
+            super().__init__(Example.KeyException.build_base_msg(ex, msg))
+
+        @staticmethod
+        def build_base_msg(ex, msg):
+            name_minus_keys = set(ex.tensor_names) - set(ex.tensors.keys())
+            keys_minus_name = set(ex.tensors.keys()) - set(ex.tensor_names)
+            msg = '' if msg is None else msg + '\n'
+            s = (
+                f"FATAL: self.tensors() != self.tensor_names\n{msg}",
+                istr(
+                    "Debug info below:\n",
+                    f"self.tensor_names={ex.tensor_names}",
+                    f"self.tensors.keys()={ex.tensors.keys()}",
+                    f"keys() - tensor_names={keys_minus_name}",
+                    f"tensor_names - keys()={name_minus_keys}",
+                ),
+                istr(
+                    "USER RESPONSIBILITY\n",
+                    "Any unresolved tensor names in self.tensor_names",
+                    "need to be set in one of two ways in abstract ",
+                    "self._generate_data method.",
+                    istr(
+                        "\n",
+                        "(1) Explicitly set (params synced by DDP)\n",
+                        (
+                            "(2) Implicitly set by saving to"
+                            " f\"{ex.data_save}/{key}_{rank}.pt\" for"
+                            " each rank (unsynced metadata, e.g. loss"
+                            " history)"
+                        ),
+                    ),
+                ),
             )
-            os.remove(self.pickle_save)
-            self.print("SUCCESS")
-        return self
+            return s
 
 
 class ExampleComparator:
