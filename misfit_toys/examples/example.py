@@ -16,6 +16,13 @@ import pickle
 import numpy as np
 
 
+def merge_tensors(*, path, tensor_dict, world_size):
+    d = {}
+    for k, v in tensor_dict.items():
+        d[k] = v([torch.load(f"{path}/{k}_{i}.pt") for i in range(world_size)])
+    return d
+
+
 class Example(ABC):
     def __init__(
         self,
