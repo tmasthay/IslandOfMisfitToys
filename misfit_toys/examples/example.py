@@ -25,19 +25,10 @@ def merge_tensors(*, path, tensor_dict, world_size):
 
 class Example(ABC):
     def __init__(
-        self,
-        *,
-        data_save,
-        fig_save,
-        reduce,
-        pickle_save=None,
-        verbose=1,
-        tmp=None,
-        **kw,
+        self, *, data_save, fig_save, reduce, verbose=1, tmp=None, **kw
     ):
         self.data_save = os.path.abspath(data_save)
         self.fig_save = os.path.abspath(fig_save)
-        self.pickle_save = pickle_save
 
         os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
         os.makedirs(self.fig_save, exist_ok=True)
@@ -50,12 +41,16 @@ class Example(ABC):
         }
         self.verbose = verbose
         self.tensors = {}
+        self.tmp = DotDict(tmp) if tmp is not None else {}
+
+        self.set_kw(kw)
+
+    def set_kw(self, kw):
         if "output_files" in kw.keys():
             raise ValueError(
                 "output_files is generated from tensor_names"
                 "and thus should be treated like a reserved keyword"
             )
-        self.tmp = DotDict(tmp) if tmp is not None else {}
         self.__dict__.update(kw)
 
     @abstractmethod
@@ -63,7 +58,7 @@ class Example(ABC):
         pass
 
     @abstractmethod
-    def plot_data(self, **kw):
+    def final_result(self, *args, **kw):
         pass
 
     @staticmethod
@@ -80,7 +75,6 @@ class Example(ABC):
         torch.distributed.barrier()
         if rank == 0:
             self.postprocess(world_size)
-            self.save_all_tensors()
         torch.distributed.barrier()
 
     def postprocess(self, world_size):
@@ -99,7 +93,7 @@ class Example(ABC):
                 ),
             )
         for k in unresolved_keys:
-            self.print("k=", k)
+            self.print("k=", k, level=2)
             curr = []
             for i in range(world_size):
                 filename = f"{tmp_path}/{k}_{i}.pt"
@@ -113,9 +107,7 @@ class Example(ABC):
             else:
                 self.tensors[k] = reduce[k](curr)
 
-        stk = set(self.tensors.keys())
-        if st != stk:
-            raise Example.KeyException(self)
+        self.save_all_tensors()
 
     def add_info(self, *, s, name, **kw):
         return s
@@ -127,7 +119,7 @@ class Example(ABC):
     def save_tensor(self, name):
         self.print(f"Saving {name} at {self.output_files[name]}...", end="")
         torch.save(self.tensors[name], self.output_files[name])
-        txt_path = self.output_files[name].replace(".pt", ".tensor_summary")
+        txt_path = self.output_files[name].replace(".pt", "_summary.txt")
         with open(txt_path, "w") as f:
             f.write(self.info_tensor(name))
         self.print(f"SUCCESS", level=1)
@@ -175,7 +167,6 @@ class Example(ABC):
         break anything even though it's a bit clumsy from a design standpoint.
         """
         setup(rank, world_size)
-        self.load_all_tensors()
         if self.tensors is None:
             self.tensors = {}
             self.generate_data(rank, world_size)
@@ -206,17 +197,20 @@ class Example(ABC):
         #         self.print("SUCCESS")
         cleanup()
 
-    def run(self):
+    def run(self, *args, **kw):
         world_size = torch.cuda.device_count()
         if world_size == 0:
             raise ValueError(
                 "\nFATAL: No GPUs detected, check your system.\n"
                 "    We currently do not support CPU-only training."
             )
-        self.losses = torch.empty(world_size + 1)
+        # self.losses = torch.empty(world_size + 1)
+        self.load_all_tensors()
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )
+        self.load_all_tensors()
+        return self.final_result(*args, **kw)
         # with open(self.pickle_save, "rb") as f:
         #     self.print(f"Loading pickle from {self.pickle_save}...", end="")
         #     self = pickle.load(f)
