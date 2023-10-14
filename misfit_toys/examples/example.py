@@ -79,7 +79,6 @@ class Example(ABC):
 
     def postprocess(self, world_size):
         os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
-        reduce = self.reduce
         tmp_path = os.path.join(self.data_save, "tmp")
         st = set(self.tensor_names)
         stk = set(self.tensors.keys())
@@ -102,10 +101,10 @@ class Example(ABC):
                         self, msg=f"File {filename} does not exist. "
                     )
                 curr.extend(torch.load(filename))
-            if reduce is None or reduce[k] is None:
+            if self.reduce is None or self.reduce[k] is None:
                 self.tensors[k] = torch.stack(curr)
             else:
-                self.tensors[k] = reduce[k](curr)
+                self.tensors[k] = self.reduce[k](curr)
 
         self.save_all_tensors()
 
@@ -146,6 +145,18 @@ class Example(ABC):
         else:
             self.print("FAIL")
             self.tensors = None
+
+    def update_tensors(
+        self, tensors, *, restrict=False, detach=False, device='cpu'
+    ):
+        if restrict:
+            tensors = {
+                k: v for k, v in tensors.items() if k in self.tensor_names
+            }
+        if detach:
+            tensors = {k: v.detach() for k, v in tensors.items()}
+        tensors = {k: v.to(device) for k, v in tensors.items()}
+        self.tensors.update(tensors)
 
     def run_rank(self, rank, world_size):
         """
@@ -346,20 +357,3 @@ class ExampleComparator:
                     )
         self.first.save_all_tensors()
         self.first.plot_data(**kw)
-
-
-def define_names(*tensor_names):
-    def decorator(cls):
-        def new_init(self, *, data_save, fig_save, verbose=1, **kw):
-            super(cls, self).__init__(
-                data_save=data_save,
-                fig_save=fig_save,
-                verbose=verbose,
-                tensor_names=list(tensor_names),
-                **kw,
-            )
-
-        cls.__init__ = new_init
-        return cls
-
-    return decorator
