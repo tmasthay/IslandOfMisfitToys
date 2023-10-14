@@ -85,9 +85,15 @@ class ExampleIOMT(Example):
 
 def main():
     reduce = {
-        'vp_record': lambda x: x,
-        'obs_data': lambda x: x,
-        'obs_data_filt': torch.stack,
+        'loss': torch.stack,
+        'obs_data_filt_record': torch.stack,
+        'out_record': torch.stack,
+        'out_filt_record': torch.stack,
+        'vp_record': lambda x: x[0],
+        'obs_data': lambda x: x[0],
+        'freqs': lambda x: x[0],
+        'vp_true': lambda x: x[0],
+        'vp_init': lambda x: x[0],
     }
 
     iomt_example = ExampleIOMT(

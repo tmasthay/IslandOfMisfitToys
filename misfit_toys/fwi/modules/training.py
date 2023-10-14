@@ -595,7 +595,7 @@ class Training1(ABC):
         return combos
 
     def __update_step_info(self, loss_local, other_info):
-        self.report.loss.append(loss_local.detach().cpu())
+        self.report.loss.append(loss_local.detach())
 
         if not other_info:
             return
@@ -603,7 +603,7 @@ class Training1(ABC):
         for k, v in other_info.items():
             if k not in self.report.keys():
                 self.report.set(k, [])
-            self.report.get(k).append(v.detach().cpu())
+            self.report.get(k).append(v.detach())
 
 
 class TrainingMultiscale(Training1):
@@ -650,12 +650,10 @@ class TrainingMultiscale(Training1):
                 *obj.custom.sos[2],
             )
             obj.custom.obs_data_filt = obj.custom.filt(
-                obj.dist_prop.module.obs_data
+                obj.dist_prop.module.obs_data.detach()
             )
 
-            obj.report.obs_data_filt_record.append(
-                self.custom.obs_data_filt.detach().cpu()
-            )
+            obj.report.obs_data_filt_record.append(self.custom.obs_data_filt)
 
             # s = summarize_tensor(obj.custom.obs_data_filt)
             # self.print(f"obs_data_filt={s}", verbose=1)
@@ -743,3 +741,4 @@ class TrainingMultiscale(Training1):
 
         self.report.freqs = torch.Tensor([10, 15, 20, 25, 30])
         self.report.vp_true = self.dist_prop.module.vp_true
+        self.report.vp_init = self.dist_prop.module.vp_init
