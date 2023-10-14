@@ -632,17 +632,6 @@ class TrainingMultiscale(Training1):
             **kw,
         )
 
-    def pre_train(self, *, path, **kw):
-        self.report.obs_data_filt_record = []
-        self.report.out_record = []
-        self.report.out_filt_record = []
-
-        self.report.vp_record = torch.zeros(
-            *self.custom.loss_reshape, *self.dist_prop.module.vp.p.shape
-        ).to(self.rank)
-
-        self.report.obs_data = self.dist_prop.module.obs_data
-
     def build_epoch_groups(self, *, freqs, n_epochs):
         def freq_preprocess(*, obj, path, combos, combo_num, field_num):
             self.print(f"freq_preprocess", verbose=2)
@@ -718,13 +707,19 @@ class TrainingMultiscale(Training1):
             "out_filt_record": out_filt.detach().cpu(),
         }
 
-    # all these guys should actually live on the GPU
-    #    you are only deciding to move them to the CPU once you are done
-    #    so it is is more efficient to pass them to the FWI object on GPU
-    #    and only then make decisions about which ones get kept and moved
-    #    to the CPU.
+    def pre_train(self, *, path, **kw):
+        self.report.obs_data_filt_record = []
+        self.report.out_record = []
+        self.report.out_filt_record = []
+
+        self.report.vp_record = torch.zeros(
+            *self.custom.loss_reshape, *self.dist_prop.module.vp.p.shape
+        ).to(self.rank)
+
     def _post_train(self, *, path):
-        n_shots, n_rec, nt = self.dist_prop.module.obs_data.shape
+        self.report.obs_data = self.dist_prop.module.obs_data
+        n_shots, n_rec, nt = self.report.obs_data.shape
+
         self.report.loss = (
             torch.tensor(self.report.loss)
             .reshape(self.custom.loss_reshape)
