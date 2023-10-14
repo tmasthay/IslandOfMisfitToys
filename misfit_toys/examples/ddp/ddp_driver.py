@@ -80,7 +80,7 @@ class ExampleIOMT(Example):
         )
 
     def final_result(self):
-        pass
+        return None
 
 
 def main():
@@ -99,7 +99,8 @@ def main():
     iomt_example = ExampleIOMT(
         data_save="iomt/data", fig_save="iomt/figs", reduce=reduce, verbose=2
     )
-    iomt_example.run()
+    obj = iomt_example.run()
+    print(f'Final result: {obj}')
 
 
 if __name__ == "__main__":
