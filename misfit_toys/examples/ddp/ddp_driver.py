@@ -89,11 +89,11 @@ def main():
         'obs_data_filt_record': torch.stack,
         'out_record': torch.stack,
         'out_filt_record': torch.stack,
-        'vp_record': lambda x: x[0],
-        'obs_data': lambda x: x[0],
-        'freqs': lambda x: x[0],
-        'vp_true': lambda x: x[0],
-        'vp_init': lambda x: x[0],
+        'vp_record': Example.first_elem,
+        'obs_data': torch.stack,
+        'freqs': Example.first_elem,
+        'vp_true': Example.first_elem,
+        'vp_init': Example.first_elem,
     }
 
     iomt_example = ExampleIOMT(

@@ -233,6 +233,10 @@ class Example(ABC):
         #     self.print("SUCCESS")
         # return self
 
+    @staticmethod
+    def first_elem(x):
+        return x[0]
+
     class KeyException(Exception):
         def __init__(self, ex, msg=None):
             super().__init__(Example.KeyException.build_base_msg(ex, msg))
