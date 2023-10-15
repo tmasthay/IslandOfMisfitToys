@@ -1,6 +1,7 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
-from masthay_helpers.global_helpers import summarize_tensor, DotDict
+from masthay_helpers.global_helpers import summarize_tensor, DotDict, subdict
 from misfit_toys.swiffer import iraise, istr
+from masthay_helpers.jupyter import iplot
 
 from masthay_helpers import peel_final
 
@@ -233,9 +234,44 @@ class Example(ABC):
         #     self.print("SUCCESS")
         # return self
 
+    def plot(
+        self,
+        *,
+        label_map,
+        column_names,
+        cols,
+        one,
+        two,
+        one_builder=None,
+        two_builder=None,
+        data_process=None,
+    ):
+        if type(label_map) is list:
+            label_map = {k: k for k in label_map}
+        data = torch.stack([self.tensors[k] for k in label_map.keys()])
+        if data_process is not None:
+            data = data_process(data)
+        one = (
+            one
+            if not one_builder
+            else one_builder(data=data, label_map=label_map, base=one)
+        )
+        two = (
+            two
+            if not two_builder
+            else two_builder(data=data, label_map=label_map, base=two)
+        )
+        return iplot(
+            data=data, column_names=column_names, cols=cols, one=one, two=two
+        )
+
     @staticmethod
     def first_elem(x):
         return x[0]
+
+    @staticmethod
+    def mean_reduce(x):
+        return torch.stack(x).mean(dim=0)
 
     class KeyException(Exception):
         def __init__(self, ex, msg=None):

@@ -22,6 +22,7 @@ import deepwave
 from deepwave import scalar
 from time import time
 from misfit_toys.examples.example import Example
+from masthay_helpers.jupyter import iplot
 
 
 class ExampleIOMT(Example):
@@ -80,12 +81,45 @@ class ExampleIOMT(Example):
         )
 
     def final_result(self):
-        return None
+        one = {
+            'ylabel': "Acoustic Amplitude",
+            'loop': {},
+            'width': 600,
+            'height': 600,
+        }
+        two = {'loop': {'colorbar': True}, 'width': 600, 'height': 600}
+
+        def one_builder(*, data, label_map, base):
+            base['ylim'] = (data.min().item(), data.max().item())
+            base['loop']['labels'] = list(label_map.values())
+            return base
+
+        def two_builder(*, data, label_map, base):
+            base['loop']['labels'] = list(label_map.values())
+            return base
+
+        def reshape(data):
+            return data.reshape(data.shape[0], 1, -1)
+
+        groups = {
+            'Loss': {
+                'label_map': {'loss': 'Loss'},
+                'column_names': ['Frequency', 'Epoch'],
+                'cols': 1,
+                'one': one,
+                'two': two,
+                'one_builder': one_builder,
+                'two_builder': two_builder,
+                'data_process': reshape,
+            }
+        }
+        plots = {k: self.plot(**v) for k, v in groups.items()}
+        return plots
 
 
 def main():
     reduce = {
-        'loss': torch.stack,
+        'loss': Example.mean_reduce,
         'obs_data_filt_record': torch.stack,
         'out_record': torch.stack,
         'out_filt_record': torch.stack,
@@ -99,9 +133,4 @@ def main():
     iomt_example = ExampleIOMT(
         data_save="iomt/data", fig_save="iomt/figs", reduce=reduce, verbose=2
     )
-    obj = iomt_example.run()
-    print(f'Final result: {obj}')
-
-
-if __name__ == "__main__":
-    main()
+    return iomt_example.run()
