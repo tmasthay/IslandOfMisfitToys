@@ -22,7 +22,8 @@ import deepwave
 from deepwave import scalar
 from time import time
 from misfit_toys.examples.example import Example
-from masthay_helpers.jupyter import iplot
+from masthay_helpers.jupyter import iplot_workhorse
+from masthay_helpers.global_helpers import dynamic_expand
 
 
 class ExampleIOMT(Example):
@@ -87,7 +88,7 @@ class ExampleIOMT(Example):
             'width': 600,
             'height': 600,
         }
-        two = {'loop': {'colorbar': True}, 'width': 600, 'height': 600}
+        two = {'loop': {}, 'width': 600, 'height': 600, 'colorbar': True}
 
         def one_builder(*, data, label_map, base):
             base['ylim'] = (data.min().item(), data.max().item())
@@ -98,8 +99,20 @@ class ExampleIOMT(Example):
             base['loop']['labels'] = list(label_map.values())
             return base
 
-        def reshape(data):
-            return data.reshape(data.shape[0], 1, -1)
+        def flatten(data):
+            data = [e.reshape(1, -1) for e in data]
+            return torch.stack(data, dim=0)
+
+        def extend(idx):
+            def process(data):
+                shape = data[idx].shape
+                for i in range(len(data)):
+                    if i != idx:
+                        data[i] = dynamic_expand(data[i], shape)
+                data = torch.stack(data, dim=0)
+                return data
+
+            return process
 
         groups = {
             'Loss': {
@@ -110,8 +123,65 @@ class ExampleIOMT(Example):
                 'two': two,
                 'one_builder': one_builder,
                 'two_builder': two_builder,
-                'data_process': reshape,
-            }
+                'data_process': flatten,
+            },
+            'Obs-Out Filtered': {
+                'label_map': {
+                    'obs_data_filt_record': 'Filtered Observed Data',
+                    'out_filt_record': 'Filtered Output',
+                },
+                'column_names': [
+                    'Shot',
+                    'Receiver',
+                    'Time Step',
+                    'Frequency',
+                    'Epoch',
+                ],
+                'cols': 2,
+                'one': one,
+                'two': two,
+                'one_builder': one_builder,
+                'two_builder': two_builder,
+                'data_process': None,
+            },
+            'Out-Out Filtered': {
+                'label_map': {
+                    'out_filt_record': 'Filtered Output',
+                    'out_record': 'Output',
+                },
+                'column_names': [
+                    'Shot',
+                    'Receiver',
+                    'Time Step',
+                    'Frequency',
+                    'Epoch',
+                ],
+                'cols': 2,
+                'one': one,
+                'two': two,
+                'one_builder': one_builder,
+                'two_builder': two_builder,
+                'data_process': None,
+            },
+            'Velocity': {
+                'label_map': {
+                    'vp_init': 'vp_init',
+                    'vp_record': 'vp_record',
+                    'vp_true': 'vp_true',
+                },
+                'column_names': [
+                    'Frequency',
+                    'Epoch',
+                    'Depth (km)',
+                    'Horizontal (km)',
+                ],
+                'cols': 2,
+                'one': one,
+                'two': two,
+                'one_builder': one_builder,
+                'two_builder': two_builder,
+                'data_process': extend(1),
+            },
         }
         plots = {k: self.plot(**v) for k, v in groups.items()}
         return plots

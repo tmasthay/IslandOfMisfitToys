@@ -248,9 +248,11 @@ class Example(ABC):
     ):
         if type(label_map) is list:
             label_map = {k: k for k in label_map}
-        data = torch.stack([self.tensors[k] for k in label_map.keys()])
+        data = [self.tensors[k] for k in label_map.keys()]
         if data_process is not None:
             data = data_process(data)
+        else:
+            data = torch.stack(data, dim=0)
         one = (
             one
             if not one_builder
