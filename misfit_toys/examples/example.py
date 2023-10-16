@@ -16,6 +16,8 @@ import copy
 import pickle
 import numpy as np
 
+from masthay_helpers.global_helpers import dynamic_expand
+
 
 def merge_tensors(*, path, tensor_dict, world_size):
     d = {}
@@ -58,9 +60,120 @@ class Example(ABC):
     def _generate_data(self, rank, world_size):
         pass
 
-    @abstractmethod
     def final_result(self, *args, **kw):
-        pass
+        return self._final_result(*args, **kw)
+
+    def _final_result(self, *args, **kw):
+        return {k: self.plot(**v) for k, v in self.base_final_dict().items()}
+
+    def base_final_dict(self, *args, **kw):
+        one = {
+            "ylabel": "Acoustic Amplitude",
+            "loop": {},
+            "width": 600,
+            "height": 600,
+        }
+        two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
+
+        def one_builder(*, data, label_map, base):
+            tmp = copy.deepcopy(base)
+            tmp["ylim"] = (data.min().item(), data.max().item())
+            tmp["loop"]["labels"] = list(label_map.values())
+            return tmp
+
+        def two_builder(*, data, label_map, base):
+            tmp = copy.deepcopy(base)
+            tmp["loop"]["labels"] = list(label_map.values())
+            return tmp
+
+        def flatten(data):
+            data = [e.reshape(1, -1) for e in data]
+            res = torch.stack(data, dim=0)
+            second = 2 if res.shape[1] == 1 else 1
+            res = res.repeat(1, second, 1)
+            return res
+
+        def extend(idx):
+            def process(data):
+                shape = data[idx].shape
+                for i in range(len(data)):
+                    if i != idx:
+                        data[i] = dynamic_expand(data[i], shape)
+                data = torch.stack(data, dim=0)
+                return data
+
+            return process
+
+        groups = {
+            "Loss": {
+                "label_map": {"loss": "Loss"},
+                "column_names": ["Frequency", "Epoch"],
+                "cols": 1,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": flatten,
+            },
+            "Obs-Out Filtered": {
+                "label_map": {
+                    "obs_data_filt_record": "Filtered Observed Data",
+                    "out_filt_record": "Filtered Output",
+                },
+                "column_names": [
+                    "Shot",
+                    "Receiver",
+                    "Time Step",
+                    "Frequency",
+                    "Epoch",
+                ],
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": None,
+            },
+            "Out-Out Filtered": {
+                "label_map": {
+                    "out_filt_record": "Filtered Output",
+                    "out_record": "Output",
+                },
+                "column_names": [
+                    "Shot",
+                    "Receiver",
+                    "Time Step",
+                    "Frequency",
+                    "Epoch",
+                ],
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": None,
+            },
+            "Velocity": {
+                "label_map": {
+                    "vp_init": r"Initial $v_p$",
+                    "vp_record": r"$v_p$",
+                    "vp_true": r"Ground Truth $v_p$",
+                },
+                "column_names": [
+                    "Frequency",
+                    "Epoch",
+                    "Depth (km)",
+                    "Horizontal (km)",
+                ],
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": extend(1),
+            },
+        }
+        return groups
 
     @staticmethod
     def print_static(*args, level=1, verbose=1, **kw):
