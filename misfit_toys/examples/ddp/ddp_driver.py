@@ -24,6 +24,7 @@ from time import time
 from misfit_toys.examples.example import Example
 from masthay_helpers.jupyter import iplot_workhorse
 from masthay_helpers.global_helpers import dynamic_expand
+import copy
 
 
 class ExampleIOMT(Example):
@@ -49,7 +50,7 @@ class ExampleIOMT(Example):
         )
         prop.obs_data = taper(prop.obs_data, 100)
         self.update_tensors(
-            prop.get_tensors(), restrict=True, detach=True, device='cpu'
+            prop.get_tensors(), restrict=True, detach=True, device="cpu"
         )
 
         prop = prop.chunk(rank, world_size)
@@ -78,30 +79,35 @@ class ExampleIOMT(Example):
         tmp_path = os.path.abspath(os.path.join(self.data_save, "tmp"))
         trainer.train(path=tmp_path)
         self.update_tensors(
-            trainer.report.dict(), restrict=True, device='cpu', detach=True
+            trainer.report.dict(), restrict=True, device="cpu", detach=True
         )
 
     def final_result(self):
         one = {
-            'ylabel': "Acoustic Amplitude",
-            'loop': {},
-            'width': 600,
-            'height': 600,
+            "ylabel": "Acoustic Amplitude",
+            "loop": {},
+            "width": 600,
+            "height": 600,
         }
-        two = {'loop': {}, 'width': 600, 'height': 600, 'colorbar': True}
+        two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
 
         def one_builder(*, data, label_map, base):
-            base['ylim'] = (data.min().item(), data.max().item())
-            base['loop']['labels'] = list(label_map.values())
-            return base
+            tmp = copy.deepcopy(base)
+            tmp["ylim"] = (data.min().item(), data.max().item())
+            tmp["loop"]["labels"] = list(label_map.values())
+            return tmp
 
         def two_builder(*, data, label_map, base):
-            base['loop']['labels'] = list(label_map.values())
-            return base
+            tmp = copy.deepcopy(base)
+            tmp["loop"]["labels"] = list(label_map.values())
+            return tmp
 
         def flatten(data):
             data = [e.reshape(1, -1) for e in data]
-            return torch.stack(data, dim=0)
+            res = torch.stack(data, dim=0)
+            second = 2 if res.shape[1] == 1 else 1
+            res = res.repeat(1, second, 1)
+            return res
 
         def extend(idx):
             def process(data):
@@ -115,72 +121,72 @@ class ExampleIOMT(Example):
             return process
 
         groups = {
-            'Loss': {
-                'label_map': {'loss': 'Loss'},
-                'column_names': ['Frequency', 'Epoch'],
-                'cols': 1,
-                'one': one,
-                'two': two,
-                'one_builder': one_builder,
-                'two_builder': two_builder,
-                'data_process': flatten,
+            "Loss": {
+                "label_map": {"loss": "Loss"},
+                "column_names": ["Frequency", "Epoch"],
+                "cols": 1,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": flatten,
             },
-            'Obs-Out Filtered': {
-                'label_map': {
-                    'obs_data_filt_record': 'Filtered Observed Data',
-                    'out_filt_record': 'Filtered Output',
+            "Obs-Out Filtered": {
+                "label_map": {
+                    "obs_data_filt_record": "Filtered Observed Data",
+                    "out_filt_record": "Filtered Output",
                 },
-                'column_names': [
-                    'Shot',
-                    'Receiver',
-                    'Time Step',
-                    'Frequency',
-                    'Epoch',
+                "column_names": [
+                    "Shot",
+                    "Receiver",
+                    "Time Step",
+                    "Frequency",
+                    "Epoch",
                 ],
-                'cols': 2,
-                'one': one,
-                'two': two,
-                'one_builder': one_builder,
-                'two_builder': two_builder,
-                'data_process': None,
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": None,
             },
-            'Out-Out Filtered': {
-                'label_map': {
-                    'out_filt_record': 'Filtered Output',
-                    'out_record': 'Output',
+            "Out-Out Filtered": {
+                "label_map": {
+                    "out_filt_record": "Filtered Output",
+                    "out_record": "Output",
                 },
-                'column_names': [
-                    'Shot',
-                    'Receiver',
-                    'Time Step',
-                    'Frequency',
-                    'Epoch',
+                "column_names": [
+                    "Shot",
+                    "Receiver",
+                    "Time Step",
+                    "Frequency",
+                    "Epoch",
                 ],
-                'cols': 2,
-                'one': one,
-                'two': two,
-                'one_builder': one_builder,
-                'two_builder': two_builder,
-                'data_process': None,
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": None,
             },
-            'Velocity': {
-                'label_map': {
-                    'vp_init': 'vp_init',
-                    'vp_record': 'vp_record',
-                    'vp_true': 'vp_true',
+            "Velocity": {
+                "label_map": {
+                    "vp_init": r"$v_{init}$",
+                    "vp_record": r"$vp_record",
+                    "vp_true": "vp_true",
                 },
-                'column_names': [
-                    'Frequency',
-                    'Epoch',
-                    'Depth (km)',
-                    'Horizontal (km)',
+                "column_names": [
+                    "Frequency",
+                    "Epoch",
+                    "Depth (km)",
+                    "Horizontal (km)",
                 ],
-                'cols': 2,
-                'one': one,
-                'two': two,
-                'one_builder': one_builder,
-                'two_builder': two_builder,
-                'data_process': extend(1),
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": extend(1),
             },
         }
         plots = {k: self.plot(**v) for k, v in groups.items()}
@@ -189,15 +195,15 @@ class ExampleIOMT(Example):
 
 def main():
     reduce = {
-        'loss': Example.mean_reduce,
-        'obs_data_filt_record': torch.stack,
-        'out_record': torch.stack,
-        'out_filt_record': torch.stack,
-        'vp_record': Example.first_elem,
-        'obs_data': torch.stack,
-        'freqs': Example.first_elem,
-        'vp_true': Example.first_elem,
-        'vp_init': Example.first_elem,
+        "loss": Example.mean_reduce,
+        "obs_data_filt_record": torch.stack,
+        "out_record": torch.stack,
+        "out_filt_record": torch.stack,
+        "vp_record": Example.first_elem,
+        "obs_data": torch.stack,
+        "freqs": Example.first_elem,
+        "vp_true": Example.first_elem,
+        "vp_init": Example.first_elem,
     }
 
     iomt_example = ExampleIOMT(

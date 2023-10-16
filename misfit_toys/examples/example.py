@@ -88,8 +88,8 @@ class Example(ABC):
             raise Example.KeyException(
                 self,
                 msg=(
-                    f'Require self.tensors.keys() to be a subset of'
-                    f' self.tensor_names'
+                    f"Require self.tensors.keys() to be a subset of"
+                    f" self.tensor_names"
                 ),
             )
         for k in unresolved_keys:
@@ -148,7 +148,7 @@ class Example(ABC):
             self.tensors = None
 
     def update_tensors(
-        self, tensors, *, restrict=False, detach=False, device='cpu'
+        self, tensors, *, restrict=False, detach=False, device="cpu"
     ):
         if restrict:
             tensors = {
@@ -283,7 +283,7 @@ class Example(ABC):
         def build_base_msg(ex, msg):
             name_minus_keys = set(ex.tensor_names) - set(ex.tensors.keys())
             keys_minus_name = set(ex.tensors.keys()) - set(ex.tensor_names)
-            msg = '' if msg is None else msg + '\n'
+            msg = "" if msg is None else msg + "\n"
             s = (
                 f"FATAL: self.tensors() != self.tensor_names\n{msg}",
                 istr(
@@ -303,7 +303,7 @@ class Example(ABC):
                         "(1) Explicitly set (params synced by DDP)\n",
                         (
                             "(2) Implicitly set by saving to"
-                            " f\"{ex.data_save}/{key}_{rank}.pt\" for"
+                            ' f"{ex.data_save}/{key}_{rank}.pt" for'
                             " each rank (unsynced metadata, e.g. loss"
                             " history)"
                         ),
