@@ -171,9 +171,9 @@ class ExampleIOMT(Example):
             },
             "Velocity": {
                 "label_map": {
-                    "vp_init": r"$v_{init}$",
-                    "vp_record": r"$vp_record",
-                    "vp_true": "vp_true",
+                    "vp_init": r"$v_0$",
+                    "vp_record": r"$v_p$",
+                    "vp_true": r"$v_f$",
                 },
                 "column_names": [
                     "Frequency",
