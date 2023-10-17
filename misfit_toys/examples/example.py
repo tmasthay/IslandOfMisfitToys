@@ -80,15 +80,18 @@ class Example(ABC):
         }
         two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
 
-        def one_builder(*, data, label_map, base):
+        def one_builder(*, data, label_map, column_names, base):
             tmp = copy.deepcopy(base)
             tmp["ylim"] = (data.min().item(), data.max().item())
+            tmp["logy"] = True
             tmp["loop"]["labels"] = list(label_map.values())
+            tmp["loop"]["xlabel"] = column_names
             return tmp
 
-        def two_builder(*, data, label_map, base):
+        def two_builder(*, data, label_map, column_names, base):
             tmp = copy.deepcopy(base)
             tmp["loop"]["labels"] = list(label_map.values())
+            tmp["loop"]["xlabel"] = column_names
             return tmp
 
         def flatten(data):
@@ -212,7 +215,7 @@ class Example(ABC):
         self._generate_data(rank, world_size)
         torch.distributed.barrier()
         if rank == 0:
-            self.postprocess(world_size)
+            self.postprobascess(world_size)
         torch.distributed.barrier()
 
     def postprocess(self, world_size):
@@ -393,12 +396,22 @@ class Example(ABC):
         one = (
             one
             if not one_builder
-            else one_builder(data=data, label_map=label_map, base=one)
+            else one_builder(
+                data=data,
+                label_map=label_map,
+                column_names=column_names,
+                base=one,
+            )
         )
         two = (
             two
             if not two_builder
-            else two_builder(data=data, label_map=label_map, base=two)
+            else two_builder(
+                data=data,
+                label_map=label_map,
+                column_names=column_names,
+                base=two,
+            )
         )
         return iplot(
             data=data, column_names=column_names, cols=cols, one=one, two=two
