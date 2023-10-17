@@ -16,7 +16,7 @@ import copy
 import pickle
 import numpy as np
 
-from masthay_helpers.global_helpers import dynamic_expand
+from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
 
 
 def merge_tensors(*, path, tensor_dict, world_size):
@@ -64,9 +64,14 @@ class Example(ABC):
         return self._final_result(*args, **kw)
 
     def _final_result(self, *args, **kw):
-        return {k: self.plot(**v) for k, v in self.base_final_dict().items()}
+        return {
+            k: self.plot(**v) for k, v in self._final_dict(*args, **kw).items()
+        }
 
-    def base_final_dict(self, *args, **kw):
+    def _final_dict(self, *args, **kw):
+        return self.base_final_dict()
+
+    def base_final_dict(self):
         one = {
             "ylabel": "Acoustic Amplitude",
             "loop": {},
@@ -152,6 +157,25 @@ class Example(ABC):
                 "one_builder": one_builder,
                 "two_builder": two_builder,
                 "data_process": None,
+            },
+            "Obs-Out": {
+                "label_map": {
+                    "obs_data": "Observed Data",
+                    "out_record": "Output",
+                },
+                "column_names": [
+                    "Shot",
+                    "Receiver",
+                    "Time Step",
+                    "Frequency",
+                    "Epoch",
+                ],
+                "cols": 2,
+                "one": one,
+                "two": two,
+                "one_builder": one_builder,
+                "two_builder": two_builder,
+                "data_process": extend(1),
             },
             "Velocity": {
                 "label_map": {

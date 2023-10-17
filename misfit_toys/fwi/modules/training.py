@@ -297,7 +297,7 @@ class Training1(ABC):
             self.report.get(k).append(v.detach().cpu())
 
 
-class TrainingMultiscale(Training1):
+class TrainingMultiscale1(Training1):
     def __init__(
         self,
         *,
@@ -439,7 +439,7 @@ class TrainingMultiscale(Training1):
         self.report.vp_true = self.dist_prop.module.vp_true.detach().cpu()
 
 
-class Training1(ABC):
+class Training(ABC):
     def __init__(
         self,
         *,
@@ -606,7 +606,7 @@ class Training1(ABC):
             self.report.get(k).append(v.detach())
 
 
-class TrainingMultiscale(Training1):
+class TrainingMultiscale(Training):
     def __init__(
         self,
         *,
@@ -740,5 +740,76 @@ class TrainingMultiscale(Training1):
         )
 
         self.report.freqs = torch.Tensor([10, 15, 20, 25, 30])
+        self.report.vp_true = self.dist_prop.module.vp_true
+        self.report.vp_init = self.dist_prop.module.vp_init
+
+
+class TrainingVanilla(Training):
+    def __init__(
+        self,
+        *,
+        dist_prop,
+        rank,
+        world_size,
+        optimizer,
+        scheduler,
+        loss,
+        n_epochs,
+        **kw,
+    ):
+        epoch_groups = self.build_epoch_groups(n_epochs=n_epochs)
+        super().__init__(
+            dist_prop=dist_prop,
+            rank=rank,
+            world_size=world_size,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            loss=loss,
+            epoch_groups=epoch_groups,
+            **kw,
+        )
+
+    def build_epoch_groups(self, *, n_epochs):
+        def epoch_preprocess(*, obj, path, combos, combo_num, field_num):
+            pass
+
+        def epoch_postprocess(*, obj, path, combos, combo_num, field_num):
+            idx = combos["idx"][combo_num]
+            obj.report.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
+
+        epoch_groups = [
+            dict(
+                name="Epochs",
+                values=range(n_epochs),
+                preprocess=epoch_preprocess,
+                postprocess=epoch_postprocess,
+            ),
+        ]
+        return epoch_groups
+
+    def _step(self, path, **kw):
+        if "msg" in kw:
+            del kw["msg"]
+        out = self.dist_prop(1, **kw)
+        loss = 1e6 * self.loss(out[-1], self.report.obs_data)
+        return loss, {
+            "out_record": out[-1].detach().cpu(),
+        }
+
+    def pre_train(self, *, path, **kw):
+        self.report.out_record = []
+
+        self.report.vp_record = torch.zeros(
+            *self.custom.loss_reshape, *self.dist_prop.module.vp.p.shape
+        ).to(self.rank)
+        self.report.obs_data = self.dist_prop.module.obs_data
+
+    def _post_train(self, *, path):
+        self.report.loss = torch.tensor(self.report.loss).to(self.rank)
+
+        self.report.out_record = torch.stack(self.report.out_record).to(
+            self.rank
+        )
+
         self.report.vp_true = self.dist_prop.module.vp_true
         self.report.vp_init = self.dist_prop.module.vp_init
