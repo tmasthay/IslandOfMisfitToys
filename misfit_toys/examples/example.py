@@ -64,6 +64,8 @@ class Example(ABC):
         return self._final_result(*args, **kw)
 
     def _final_result(self, *args, **kw):
+        input(args)
+        input(kw)
         return {
             k: self.plot(**v) for k, v in self._final_dict(*args, **kw).items()
         }
@@ -374,18 +376,7 @@ class Example(ABC):
         #     self.print("SUCCESS")
         # return self
 
-    def plot(
-        self,
-        *,
-        label_map,
-        column_names,
-        cols,
-        one,
-        two,
-        one_builder=None,
-        two_builder=None,
-        data_process=None,
-    ):
+    def plot(self, *, label_map, column_names, cols, rules, data_process=None):
         if type(label_map) is list:
             label_map = {k: k for k in label_map}
         data = [self.tensors[k] for k in label_map.keys()]
@@ -393,28 +384,8 @@ class Example(ABC):
             data = data_process(data)
         else:
             data = torch.stack(data, dim=0)
-        one = (
-            one
-            if not one_builder
-            else one_builder(
-                data=data,
-                label_map=label_map,
-                column_names=column_names,
-                base=one,
-            )
-        )
-        two = (
-            two
-            if not two_builder
-            else two_builder(
-                data=data,
-                label_map=label_map,
-                column_names=column_names,
-                base=two,
-            )
-        )
         return iplot(
-            data=data, column_names=column_names, cols=cols, one=one, two=two
+            data=data, column_names=column_names, cols=cols, rules=rules
         )
 
     @staticmethod
