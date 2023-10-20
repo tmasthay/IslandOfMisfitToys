@@ -4,6 +4,51 @@ from scipy.optimize import linear_sum_assignment
 import torch.nn.functional as F
 
 
+class Renorm:
+    @staticmethod
+    def square(x):
+        u = x**2
+        return u / u.sum()
+
+    @staticmethod
+    def shift(x):
+        u = x - x.min()
+        return u / u.sum()
+
+    # @staticmethod
+    # def exp(beta):
+    #     def helper(x):
+    #         u = torch.exp(beta * x)
+    #         return u / u.sum()
+
+    #     return helper
+    @staticmethod
+    def exp(x):
+        u = torch.exp(0.1 * x)
+        return u / u.sum()
+
+    @staticmethod
+    def get_options():
+        return {
+            k: v.__func__
+            for k, v in Renorm.__dict__.items()
+            if isinstance(v, staticmethod)
+        }
+
+    @staticmethod
+    def choose(s, *args, **kw):
+        options = Renorm.get_options()
+        if s not in options.keys():
+            raise ValueError(
+                f"Renorm option {s} not recognized...choose from"
+                f" {options.keys()}"
+            )
+        if len(args) == 0 and len(kw.keys()) == 0:
+            return options[s]
+        else:
+            return options[s](*args, **kw)
+
+
 class W1(torch.nn.Module):
     def __init__(self, renorm_func, eps=1.0):
         super().__init__()
@@ -22,6 +67,15 @@ class W1(torch.nn.Module):
         y_true = self.prep_data(y_true)
         abs_diff = torch.abs(y_pred - y_true)
         loss = torch.trapz(abs_diff, dim=-1).mean()
+        return loss
+
+
+class L2(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, y_pred, y_true):
+        loss = torch.mean((y_pred - y_true) ** 2)
         return loss
 
 

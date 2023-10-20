@@ -1,0 +1,12 @@
+Running DDP on rank 0 / 2.
+Rank=0, id=139731434543664
+Running DDP on rank 1 / 2.
+Rank=1, id=139655993777408
+TRAIN BEGIN, Rank=1
+TRAIN BEGIN, Rank=0
+Loss=107.2304611206054688, Freq=10, Epoch=0, Rank=0
+Loss=145.2099304199218750, Freq=10, Epoch=0, Rank=1
+Loss=0.7104999423027039, Freq=10, Epoch=1, Rank=0
+Loss=1.0195546150207520, Freq=10, Epoch=1, Rank=1
+Loss=0.9469537734985352, Freq=15, Epoch=0, Rank=0
+Loss=2.0662746429443359, Freq=15, Epoch=0, Rank=1
