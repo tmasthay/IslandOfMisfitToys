@@ -17,6 +17,7 @@ import pickle
 import numpy as np
 
 from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
+from masthay_helpers.jupyter import rules_one, rules_two
 
 
 def merge_tensors(*, path, tensor_dict, world_size):
@@ -64,8 +65,6 @@ class Example(ABC):
         return self._final_result(*args, **kw)
 
     def _final_result(self, *args, **kw):
-        input(args)
-        input(kw)
         return {
             k: self.plot(**v) for k, v in self._final_dict(*args, **kw).items()
         }
@@ -74,27 +73,32 @@ class Example(ABC):
         return self.base_final_dict()
 
     def base_final_dict(self):
-        one = {
-            "ylabel": "Acoustic Amplitude",
-            "loop": {},
-            "width": 600,
-            "height": 600,
-        }
-        two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
+        # one = {
+        #     "ylabel": "Acoustic Amplitude",
+        #     "loop": {},
+        #     "width": 600,
+        #     "height": 600,
+        # }
+        # two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
 
-        def one_builder(*, data, label_map, column_names, base):
-            tmp = copy.deepcopy(base)
-            tmp["ylim"] = (data.min().item(), data.max().item())
-            tmp["logy"] = True
-            tmp["loop"]["labels"] = list(label_map.values())
-            tmp["loop"]["xlabel"] = column_names
-            return tmp
+        # def one_builder(*, data, label_map, column_names, base):
+        #     tmp = copy.deepcopy(base)
+        #     tmp["ylim"] = (data.min().item(), data.max().item())
+        #     tmp["logy"] = True
+        #     tmp["loop"]["labels"] = list(label_map.values())
+        #     tmp["loop"]["xlabel"] = column_names
+        #     return tmp
 
-        def two_builder(*, data, label_map, column_names, base):
-            tmp = copy.deepcopy(base)
-            tmp["loop"]["labels"] = list(label_map.values())
-            tmp["loop"]["xlabel"] = column_names
-            return tmp
+        # def two_builder(*, data, label_map, column_names, base):
+        #     tmp = copy.deepcopy(base)
+        #     tmp["loop"]["labels"] = list(label_map.values())
+        #     tmp["loop"]["xlabel"] = column_names
+        #     return tmp
+        def rule_builder(*, opts_one, loop_one, opts_two, loop_two):
+            return {
+                "one": rules_one(opts_info=opts_one, loop_info=loop_one),
+                "two": rules_two(opts_info=opts_two, loop_info=loop_two),
+            }
 
         def flatten(data):
             data = [e.reshape(1, -1) for e in data]
@@ -103,6 +107,7 @@ class Example(ABC):
             res = res.repeat(1, second, 1)
             return res
 
+        # what does this function do? LOL
         def extend(idx):
             def process(data):
                 shape = data[idx].shape
@@ -116,20 +121,19 @@ class Example(ABC):
 
         groups = {
             "Loss": {
-                "label_map": {"loss": "Loss"},
+                "keys": ["loss"],
                 "column_names": ["Frequency", "Epoch"],
                 "cols": 1,
-                "one": one,
-                "two": two,
-                "one_builder": one_builder,
-                "two_builder": two_builder,
+                "rules": rule_builder(
+                    opts_one={"ylabel": "Loss"},
+                    loop_one={"labels": ["Loss"]},
+                    opts_two={},
+                    loop_two={"labels": ["Loss"]},
+                ),
                 "data_process": flatten,
             },
             "Obs-Out Filtered": {
-                "label_map": {
-                    "obs_data_filt_record": "Filtered Observed Data",
-                    "out_filt_record": "Filtered Output",
-                },
+                "keys": ["obs_data_filt_record", "out_filt_record"],
                 "column_names": [
                     "Shot",
                     "Receiver",
@@ -138,17 +142,16 @@ class Example(ABC):
                     "Epoch",
                 ],
                 "cols": 2,
-                "one": one,
-                "two": two,
-                "one_builder": one_builder,
-                "two_builder": two_builder,
+                "rules": rule_builder(
+                    opts_one={"ylabel": "Acoustic Amplitude"},
+                    loop_one={"labels": ["Observed Data", "Filtered Output"]},
+                    opts_two={},
+                    loop_two={"labels": ["Observed Data", "Filtered Output"]},
+                ),
                 "data_process": None,
             },
             "Out-Out Filtered": {
-                "label_map": {
-                    "out_filt_record": "Filtered Output",
-                    "out_record": "Output",
-                },
+                "keys": ["out_filt_record", "out_record"],
                 "column_names": [
                     "Shot",
                     "Receiver",
@@ -157,17 +160,16 @@ class Example(ABC):
                     "Epoch",
                 ],
                 "cols": 2,
-                "one": one,
-                "two": two,
-                "one_builder": one_builder,
-                "two_builder": two_builder,
+                "rules": rule_builder(
+                    opts_one={"ylabel": "Acoustic Amplitude"},
+                    loop_one={"labels": ["Filtered Output", "Output"]},
+                    opts_two={},
+                    loop_two={"labels": ["Filtered Output", "Output"]},
+                ),
                 "data_process": None,
             },
             "Obs-Out": {
-                "label_map": {
-                    "obs_data": "Observed Data",
-                    "out_record": "Output",
-                },
+                "keys": ["obs_data", "out_record"],
                 "column_names": [
                     "Shot",
                     "Receiver",
@@ -176,18 +178,16 @@ class Example(ABC):
                     "Epoch",
                 ],
                 "cols": 2,
-                "one": one,
-                "two": two,
-                "one_builder": one_builder,
-                "two_builder": two_builder,
+                "rules": rule_builder(
+                    opts_one={"ylabel": "Acoustic Amplitude"},
+                    loop_one={"labels": ["Observed Data", "Output"]},
+                    opts_two={},
+                    loop_two={"labels": ["Observed Data", "Output"]},
+                ),
                 "data_process": extend(1),
             },
             "Velocity": {
-                "label_map": {
-                    "vp_init": r"Initial $v_p$",
-                    "vp_record": r"$v_p$",
-                    "vp_true": r"Ground Truth $v_p$",
-                },
+                "keys": ["vp_init", "vp_record", "vp_true"],
                 "column_names": [
                     "Frequency",
                     "Epoch",
@@ -195,10 +195,16 @@ class Example(ABC):
                     "Horizontal (km)",
                 ],
                 "cols": 2,
-                "one": one,
-                "two": two,
-                "one_builder": one_builder,
-                "two_builder": two_builder,
+                "rules": rule_builder(
+                    opts_one={"ylabel": "Velocity"},
+                    loop_one={
+                        "labels": [r"$v_{init}$", r"$v_p$", r"$v_{true}$"]
+                    },
+                    opts_two={},
+                    loop_two={
+                        "labels": [r"$v_{init}$", r"$v_p$", r"$v_{true}$"]
+                    },
+                ),
                 "data_process": extend(1),
             },
         }
@@ -217,7 +223,7 @@ class Example(ABC):
         self._generate_data(rank, world_size)
         torch.distributed.barrier()
         if rank == 0:
-            self.postprobascess(world_size)
+            self.postprocess(world_size)
         torch.distributed.barrier()
 
     def postprocess(self, world_size):
@@ -376,10 +382,8 @@ class Example(ABC):
         #     self.print("SUCCESS")
         # return self
 
-    def plot(self, *, label_map, column_names, cols, rules, data_process=None):
-        if type(label_map) is list:
-            label_map = {k: k for k in label_map}
-        data = [self.tensors[k] for k in label_map.keys()]
+    def plot(self, *, keys, column_names, cols, rules, data_process=None):
+        data = [self.tensors[k] for k in keys]
         if data_process is not None:
             data = data_process(data)
         else:

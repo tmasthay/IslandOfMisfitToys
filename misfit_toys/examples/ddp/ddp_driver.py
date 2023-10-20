@@ -24,7 +24,7 @@ from deepwave import scalar
 from time import time
 from misfit_toys.examples.example import Example
 from masthay_helpers.jupyter import iplot_workhorse
-from masthay_helpers.global_helpers import dynamic_expand
+from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
 import copy
 from misfit_toys.fwi.custom_losses import W1, Renorm, L2
 
@@ -168,6 +168,7 @@ class ExampleGen(Example):
             "Time Step",
             "Epoch",
         ]
+        input(prettify_dict(u))
         return u
 
 
