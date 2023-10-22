@@ -77,7 +77,7 @@ class ExampleGen:
         self.__dict__.update(kw)
 
     def _pre_chunk(self, rank, world_size):
-        pass
+        return self.prop
 
     def _generate_data(self, rank, world_size):
         self.prop = self._pre_chunk(rank, world_size)
@@ -92,7 +92,7 @@ class ExampleGen:
         )
         self.trainer.train(path=os.path.join(self.data_save, "tmp"))
         self.update_tensors(
-            self.trainer.report.dict(), restrict=True, device="cpu", detach=True
+            self.trainer.report.dict(), restrict=True, device=rank, detach=True
         )
 
     def final_result(self, *args, **kw):
