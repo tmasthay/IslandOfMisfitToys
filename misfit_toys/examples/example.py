@@ -2,6 +2,7 @@ from misfit_toys.fwi.modules.distribution import cleanup, setup
 from masthay_helpers.global_helpers import summarize_tensor, DotDict, subdict
 from misfit_toys.swiffer import iraise, istr
 from masthay_helpers.jupyter import iplot
+from misfit_toys.fwi.modules.seismic_data import SeismicProp
 
 from masthay_helpers import peel_final
 
@@ -19,6 +20,8 @@ import numpy as np
 from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
 from masthay_helpers.jupyter import rules_one, rules_two
 
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 
 def merge_tensors(*, path, tensor_dict, world_size):
     d = {}
@@ -27,20 +30,23 @@ def merge_tensors(*, path, tensor_dict, world_size):
     return d
 
 
-class Example(ABC):
+class ExampleGen:
     def __init__(
         self,
         *,
-        data_save,
-        fig_save,
-        reduce,
-        verbose=1,
-        tmp=None,
-        metadata,
+        prop: SeismicProp,
+        training_class: type,
+        training_kwargs: dict,
+        save_dir: str,
+        reduce: dict,
+        verbose: int = 1,
+        tmp: dict = None,
         **kw,
     ):
-        self.data_save = os.path.abspath(data_save)
-        self.fig_save = os.path.abspath(fig_save)
+        self.prop = prop
+        self.save_dir = save_dir
+        self.data_save = os.path.abspath(self.save_dir, "data")
+        self.fig_save = os.path.abspath(self.save_dir, "figs")
 
         os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
         os.makedirs(self.fig_save, exist_ok=True)
@@ -49,12 +55,16 @@ class Example(ABC):
         self.tensor_names = list(reduce.keys())
 
         self.output_files = {
-            e: os.path.join(data_save, f"{e}.pt") for e in self.tensor_names
+            e: os.path.join(self.data_save, f"{e}.pt")
+            for e in self.tensor_names
         }
+
+        self.training_class = training_class
+        self.training_kwargs = training_kwargs
+
         self.verbose = verbose
         self.tensors = {}
-        self.metadata = metadata
-        self.tmp = DotDict(tmp) if tmp is not None else {}
+        self.tmp = DotDict(tmp) if tmp is not None else DotDict({})
 
         self.set_kw(kw)
 
@@ -66,9 +76,24 @@ class Example(ABC):
             )
         self.__dict__.update(kw)
 
-    @abstractmethod
-    def _generate_data(self, rank, world_size):
+    def _pre_chunk(self, rank, world_size):
         pass
+
+    def _generate_data(self, rank, world_size):
+        self.prop = self._pre_chunk(rank, world_size)
+        self.prop = self.prop.chunk(rank, world_size)
+        self.prop = self.prop.to(rank)
+        self.dist_prop = DDP(self.prop, device_ids=[rank])
+        self.trainer = self.training_class(
+            dist_prop=self.dist_prop,
+            rank=rank,
+            world_size=world_size,
+            **self.training_kwargs,
+        )
+        self.trainer.train(path=os.path.join(self.data_save, "tmp"))
+        self.update_tensors(
+            self.trainer.report.dict(), restrict=True, device="cpu", detach=True
+        )
 
     def final_result(self, *args, **kw):
         return self._final_result(*args, **kw)
@@ -424,6 +449,31 @@ class Example(ABC):
                 ),
             )
             return s
+
+
+class Example(ExampleGen):
+    def __init__(
+        self,
+        *,
+        prop_kwargs,
+        training_class: type,
+        training_kwargs: dict,
+        save_dir: str,
+        reduce: dict,
+        verbose: int = 1,
+        tmp: dict = None,
+        **kw,
+    ):
+        super().__init__(
+            prop=SeismicProp(**prop_kwargs),
+            training_class=training_class,
+            training_kwargs=training_kwargs,
+            save_dir=save_dir,
+            reduce=reduce,
+            verbose=verbose,
+            tmp=tmp,
+            **kw,
+        )
 
 
 class ExampleComparator:

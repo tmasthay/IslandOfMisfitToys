@@ -783,7 +783,7 @@ class TrainingVanilla(Training):
                 values=range(n_epochs),
                 preprocess=epoch_preprocess,
                 postprocess=epoch_postprocess,
-            ),
+            )
         ]
         return epoch_groups
 
@@ -792,9 +792,7 @@ class TrainingVanilla(Training):
             del kw["msg"]
         out = self.dist_prop(1, **kw)
         loss = 1e6 * self.loss(out[-1], self.report.obs_data)
-        return loss, {
-            "out_record": out[-1].detach().cpu(),
-        }
+        return loss, {"out_record": out[-1].detach().cpu()}
 
     def pre_train(self, *, path, **kw):
         self.report.out_record = []

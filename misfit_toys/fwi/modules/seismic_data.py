@@ -133,7 +133,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
         self.model = "acoustic" if self.vs is None else "elastic"
 
-        self.metadata = get_pydict(path, as_class=False)
+        self.metadata = get_pydict(path, as_class=True)
 
         self.set_meta_fields()
         self.set_extra_forwards(extra_forward_args)
@@ -209,6 +209,17 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
 
     def forward(self, x):
         if self.model == "acoustic":
+            # return dw.scalar(
+            #     self.vp(),
+            #     4.0,
+            #     0.004,
+            #     source_amplitudes=self.src_amp_y,
+            #     source_locations=self.src_loc_y,
+            #     receiver_locations=self.rec_loc_y,
+            #     max_vel=2500,
+            #     pml_freq=25,
+            #     time_pad_frac=0.2,
+            # )
             return dw.scalar(
                 self.vp(),
                 4.0,
@@ -216,9 +227,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
-                max_vel=2500,
-                pml_freq=25,
-                time_pad_frac=0.2,
+                **self.extra_forward_args,
             )
         else:
             return dw.elastic(
@@ -228,4 +237,5 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
                 source_amplitudes_y=self.src_amp_y,
                 source_locations_y=self.src_loc_y,
                 receiver_locations_y=self.rec_loc_y,
+                **self.extra_forward_args,
             )
