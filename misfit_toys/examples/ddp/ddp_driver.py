@@ -95,7 +95,8 @@ class ExampleGen(Example):
         data_save,
         fig_save,
         reduce,
-        verbose
+        verbose,
+        path
     ):
         super().__init__(
             loss=loss,
@@ -105,21 +106,21 @@ class ExampleGen(Example):
             fig_save=fig_save,
             reduce=reduce,
             verbose=verbose,
+            path=path,
         )
+        self.meta = get_pydict(path, as_class=True)
 
     def _generate_data(self, rank, world_size):
-        path = "conda/data/marmousi/deepwave_example/shots16"
-        meta = get_pydict(path, as_class=True)
-        chunk_size = meta.n_shots // world_size
+        chunk_size = self.meta.n_shots // world_size
         amp_idx = torch.arange(
             rank * chunk_size, (rank + 1) * chunk_size, dtype=torch.long
         )
         prop = SeismicProp(
-            path="conda/data/marmousi/deepwave_example/shots16",
+            path=self.path,
             extra_forward_args={
                 "max_vel": 2500,
                 "time_pad_frac": 0.2,
-                "pml_freq": meta.freq,
+                "pml_freq": self.meta.freq,
                 "amp_idx": amp_idx,
             },
             vp_prmzt=ParamConstrained.delay_init(
@@ -168,7 +169,6 @@ class ExampleGen(Example):
             "Time Step",
             "Epoch",
         ]
-        input(prettify_dict(u))
         return u
 
 
@@ -191,6 +191,7 @@ def main():
     )
 
     w1_example = ExampleGen(
+        path="conda/data/marmousi/deepwave_example/shots16",
         data_save="w2/data",
         fig_save="w2/figs",
         loss=W1(renorm_func=Renorm.choose("exp")),

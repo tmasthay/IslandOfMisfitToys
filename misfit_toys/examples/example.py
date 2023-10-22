@@ -29,7 +29,15 @@ def merge_tensors(*, path, tensor_dict, world_size):
 
 class Example(ABC):
     def __init__(
-        self, *, data_save, fig_save, reduce, verbose=1, tmp=None, **kw
+        self,
+        *,
+        data_save,
+        fig_save,
+        reduce,
+        verbose=1,
+        tmp=None,
+        metadata,
+        **kw,
     ):
         self.data_save = os.path.abspath(data_save)
         self.fig_save = os.path.abspath(fig_save)
@@ -45,6 +53,7 @@ class Example(ABC):
         }
         self.verbose = verbose
         self.tensors = {}
+        self.metadata = metadata
         self.tmp = DotDict(tmp) if tmp is not None else {}
 
         self.set_kw(kw)
@@ -73,27 +82,6 @@ class Example(ABC):
         return self.base_final_dict()
 
     def base_final_dict(self):
-        # one = {
-        #     "ylabel": "Acoustic Amplitude",
-        #     "loop": {},
-        #     "width": 600,
-        #     "height": 600,
-        # }
-        # two = {"loop": {}, "width": 600, "height": 600, "colorbar": True}
-
-        # def one_builder(*, data, label_map, column_names, base):
-        #     tmp = copy.deepcopy(base)
-        #     tmp["ylim"] = (data.min().item(), data.max().item())
-        #     tmp["logy"] = True
-        #     tmp["loop"]["labels"] = list(label_map.values())
-        #     tmp["loop"]["xlabel"] = column_names
-        #     return tmp
-
-        # def two_builder(*, data, label_map, column_names, base):
-        #     tmp = copy.deepcopy(base)
-        #     tmp["loop"]["labels"] = list(label_map.values())
-        #     tmp["loop"]["xlabel"] = column_names
-        #     return tmp
         def rule_builder(*, opts_one, loop_one, opts_two, loop_two):
             return {
                 "one": rules_one(opts_info=opts_one, loop_info=loop_one),
