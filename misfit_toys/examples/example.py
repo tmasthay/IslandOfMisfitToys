@@ -17,10 +17,11 @@ import copy
 import pickle
 import numpy as np
 
-from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
+from masthay_helpers.global_helpers import dynamic_expand, prettify_dict, bstr
 from masthay_helpers.jupyter import rules_one, rules_two
 
 from torch.nn.parallel import DistributedDataParallel as DDP
+from misfit_toys.utils import parse_path
 
 
 def merge_tensors(*, path, tensor_dict, world_size):
@@ -44,7 +45,7 @@ class ExampleGen:
         **kw,
     ):
         self.prop = prop
-        self.save_dir = save_dir
+        self.save_dir = parse_path(save_dir)
         self.data_save = os.path.abspath(os.path.join(self.save_dir, "data"))
         self.fig_save = os.path.abspath(os.path.join(self.save_dir, "figs"))
 
@@ -247,13 +248,15 @@ class ExampleGen:
         stk = set(self.tensors.keys())
         unresolved_keys = st - stk
         if not stk.issubset(st):
-            raise Example.KeyException(
+            e = Example.KeyException(
                 self,
                 msg=(
                     f"Require self.tensors.keys() to be a subset of"
                     f" self.tensor_names"
                 ),
             )
+            print(e, flush=True)
+            raise e
         for k in unresolved_keys:
             self.print("k=", k, level=2)
             curr = []
@@ -417,20 +420,21 @@ class ExampleGen:
     class KeyException(Exception):
         def __init__(self, ex, msg=None):
             super().__init__(Example.KeyException.build_base_msg(ex, msg))
+            print(self, flush=True)
 
         @staticmethod
         def build_base_msg(ex, msg):
             name_minus_keys = set(ex.tensor_names) - set(ex.tensors.keys())
             keys_minus_name = set(ex.tensors.keys()) - set(ex.tensor_names)
             msg = "" if msg is None else msg + "\n"
-            s = (
+            s = bstr(
                 f"FATAL: self.tensors() != self.tensor_names\n{msg}",
                 istr(
                     "Debug info below:\n",
                     f"self.tensor_names={ex.tensor_names}",
                     f"self.tensors.keys()={ex.tensors.keys()}",
                     f"keys() - tensor_names={keys_minus_name}",
-                    f"tensor_names - keys()={name_minus_keys}",
+                    f"tensor_names - keys()={name_minus_keys}\n",
                 ),
                 istr(
                     "USER RESPONSIBILITY\n",

@@ -5,7 +5,6 @@ from misfit_toys.utils import taper, get_pydict, canonical_reduce
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
 from misfit_toys.fwi.modules.training import (
     TrainingMultiscale,
-    TrainingMultiscaleLegacy,
     TrainingVanilla,
 )
 from misfit_toys.utils import idt_print

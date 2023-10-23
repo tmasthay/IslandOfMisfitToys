@@ -5,7 +5,6 @@ from misfit_toys.utils import taper, get_pydict, canonical_reduce
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
 from misfit_toys.fwi.modules.training import (
     TrainingMultiscale,
-    TrainingMultiscaleLegacy,
     TrainingVanilla,
 )
 from misfit_toys.utils import idt_print
@@ -24,9 +23,15 @@ from deepwave import scalar
 from time import time
 from misfit_toys.examples.example import Example
 from masthay_helpers.jupyter import iplot_workhorse
-from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
+from masthay_helpers.global_helpers import (
+    dynamic_expand,
+    prettify_dict,
+    extend_dict,
+)
 import copy
 from misfit_toys.fwi.custom_losses import W1, Renorm, L2
+from returns.curry import partial
+import holoviews as hv
 
 from rich.traceback import install
 
@@ -42,46 +47,82 @@ class ExampleIOMT(Example):
         return self.prop
 
 
+class Example2(ExampleIOMT):
+    def _final_dict(self):
+        u = extend_dict(
+            self.base_final_dict(), sub=["Obs-Out Filtered", "Out-Out Filtered"]
+        )
+        for k, v in u.items():
+            if "column_names" in v.keys():
+                u[k]["column_names"].remove("Frequency")
+            if len(u[k]["column_names"]) == 1:
+                u[k]["column_names"].append(u[k]["column_names"][0])
+        return u
+
+
 def main():
+    hv.extension("matplotlib")
     path = "conda/data/marmousi/deepwave_example/shots16"
     meta = get_pydict(path, as_class=True)
-    iomt_example = ExampleIOMT(
-        prop_kwargs={
-            "path": path,
-            "extra_forward_args": {
-                "max_vel": 2500,
-                "time_pad_frac": 0.2,
-                "pml_freq": meta.freq,
-            },
-            "vp_prmzt": ParamConstrained.delay_init(
-                requires_grad=True, minv=1000, maxv=2500
-            ),
-            "src_amp_y_prmzt": Param.delay_init(requires_grad=False),
+
+    prop_kwargs = {
+        "path": path,
+        "extra_forward_args": {
+            "max_vel": 2500,
+            "time_pad_frac": 0.2,
+            "pml_freq": meta.freq,
         },
+        "vp_prmzt": ParamConstrained.delay_init(
+            requires_grad=True, minv=1000, maxv=2500
+        ),
+        "src_amp_y_prmzt": Param.delay_init(requires_grad=False),
+    }
+    reduce = {
+        "loss": ExampleIOMT.mean_reduce,
+        "obs_data_filt_record": torch.stack,
+        "out_record": torch.stack,
+        "out_filt_record": torch.stack,
+        "vp_record": ExampleIOMT.first_elem,
+        "obs_data": torch.stack,
+        "freqs": ExampleIOMT.first_elem,
+        "vp_true": ExampleIOMT.first_elem,
+        "vp_init": ExampleIOMT.first_elem,
+    }
+    verbose = 2
+
+    iomt_example = ExampleIOMT(
+        prop_kwargs=prop_kwargs,
+        reduce=reduce,
+        verbose=verbose,
         training_class=TrainingMultiscale,
         training_kwargs={
             "loss": torch.nn.MSELoss(),
             "optimizer": (torch.optim.LBFGS, dict()),
             "scheduler": None,
-            "verbose": 1,
             "freqs": [10.0, 15.0, 20.0, 25.0, 30.0],
             "n_epochs": 2,
         },
-        reduce={
-            "loss": ExampleIOMT.mean_reduce,
-            "obs_data_filt_record": torch.stack,
-            "out_record": torch.stack,
-            "out_filt_record": torch.stack,
-            "vp_record": ExampleIOMT.first_elem,
-            "obs_data": torch.stack,
-            "freqs": ExampleIOMT.first_elem,
-            "vp_true": ExampleIOMT.first_elem,
-            "vp_init": ExampleIOMT.first_elem,
-        },
-        save_dir="/home/tyler",
-        verbose=2,
+        save_dir="conda/BENCHMARK/multiscale",
     )
-    return iomt_example.run()
+    example2 = Example2(
+        prop_kwargs=prop_kwargs,
+        reduce=extend_dict(
+            reduce, sub=(["freqs", "obs_data_filt_record", "out_filt_record"])
+        ),
+        verbose=verbose,
+        training_class=TrainingVanilla,
+        training_kwargs={
+            "loss": torch.nn.MSELoss(),
+            "optimizer": (torch.optim.LBFGS, dict()),
+            "scheduler": None,
+            "n_epochs": 10,
+        },
+        save_dir="conda/BENCHMARK/vanilla",
+    )
+    first = iomt_example.run()
+    second = example2.run()
+
+    return first, second
 
     # w1_example = ExampleGen(
     #     path="conda/data/marmousi/deepwave_example/shots16",
