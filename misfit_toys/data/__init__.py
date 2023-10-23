@@ -1,5 +1,5 @@
-__all__ = ["dataset", "das_curtin", "marmousi", "marmousi2"]
+__all__ = ["dataset", "marmousi", "marmousi2", "das_curtin"]
 from .dataset import *
-from .das_curtin import *
 from .marmousi import *
 from .marmousi2 import *
+from .das_curtin import *

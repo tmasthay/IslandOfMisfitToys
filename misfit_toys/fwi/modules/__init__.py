@@ -1,6 +1,6 @@
-__all__ = ["visual", "models", "distribution", "seismic_data", "training"]
-from .visual import *
-from .models import *
+__all__ = ["distribution", "visual", "seismic_data", "models", "training"]
 from .distribution import *
+from .visual import *
 from .seismic_data import *
+from .models import *
 from .training import *

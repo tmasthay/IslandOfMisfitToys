@@ -1,3 +1,3 @@
-__all__ = ["figs", "data"]
-from .figs import *
+__all__ = ["data", "figs"]
 from .data import *
+from .figs import *
