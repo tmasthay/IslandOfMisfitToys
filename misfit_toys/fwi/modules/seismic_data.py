@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 import json
 
 
-class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
+class SeismicProp(torch.nn.Module):
     obs_data: Ant[torch.Tensor, "Observed data"]
     src_amp_y: Ant[torch.Tensor, "Source amplitude, y component"]
     src_amp_x: Opt[Ant[torch.Tensor, "Source amplitude, x component"]]
@@ -152,10 +152,7 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
     def set_meta_fields(self):
         custom_dict = {}
         for k, v in self.metadata.items():
-            if k in self.__slots__:
-                setattr(self, k, v)
-            else:
-                custom_dict[k] = v
+            custom_dict[k] = v
         self.custom = DotDict(custom_dict)
 
     def chunk(self, rank, world_size):
@@ -222,8 +219,8 @@ class SeismicProp(torch.nn.Module, metaclass=SlotMeta):
             # )
             return dw.scalar(
                 self.vp(),
-                4.0,
-                0.004,
+                self.metadata.dx,
+                self.metadata.dt,
                 source_amplitudes=self.src_amp_y,
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,

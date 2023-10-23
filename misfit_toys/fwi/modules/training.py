@@ -637,7 +637,10 @@ class TrainingMultiscale(Training):
             self.print(f"freq_preprocess", verbose=2)
             value = combos["values"][combo_num][field_num]
             sos = butter(
-                6, value, fs=1.0 / self.dist_prop.module.dt, output="sos"
+                6,
+                value,
+                fs=1.0 / self.dist_prop.module.metadata.dt,
+                output="sos",
             )
             obj.custom.sos = [
                 torch.tensor(sosi)

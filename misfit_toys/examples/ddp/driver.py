@@ -28,6 +28,10 @@ from masthay_helpers.global_helpers import dynamic_expand, prettify_dict
 import copy
 from misfit_toys.fwi.custom_losses import W1, Renorm, L2
 
+from rich.traceback import install
+
+install(show_locals=True)
+
 
 class ExampleIOMT(Example):
     def _pre_chunk(self, rank, world_size):
@@ -35,6 +39,7 @@ class ExampleIOMT(Example):
         self.update_tensors(
             self.prop.get_tensors(), restrict=True, detach=True, device=rank
         )
+        return self.prop
 
 
 def main():
@@ -73,6 +78,7 @@ def main():
             "vp_true": ExampleIOMT.first_elem,
             "vp_init": ExampleIOMT.first_elem,
         },
+        save_dir="/home/tyler",
         verbose=2,
     )
     return iomt_example.run()
@@ -98,3 +104,7 @@ def main():
     # iomt_output = iomt_example.run()
     # w1_output = w1_example.run()
     # return iomt_output, w1_output
+
+
+if __name__ == "__main__":
+    main()

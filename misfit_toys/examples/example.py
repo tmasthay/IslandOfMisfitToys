@@ -45,10 +45,10 @@ class ExampleGen:
     ):
         self.prop = prop
         self.save_dir = save_dir
-        self.data_save = os.path.abspath(self.save_dir, "data")
-        self.fig_save = os.path.abspath(self.save_dir, "figs")
+        self.data_save = os.path.abspath(os.path.join(self.save_dir, "data"))
+        self.fig_save = os.path.abspath(os.path.join(self.save_dir, "figs"))
 
-        os.makedirs(f"{self.data_save}/tmp", exist_ok=True)
+        os.makedirs(os.path.join(self.data_save, "tmp"), exist_ok=True)
         os.makedirs(self.fig_save, exist_ok=True)
 
         self.reduce = reduce
@@ -237,6 +237,7 @@ class ExampleGen:
         torch.distributed.barrier()
         if rank == 0:
             self.postprocess(world_size)
+        torch.cuda.empty_cache()
         torch.distributed.barrier()
 
     def postprocess(self, world_size):
@@ -396,7 +397,7 @@ class ExampleGen:
         # return self
 
     def plot(self, *, keys, column_names, cols, rules, data_process=None):
-        data = [self.tensors[k] for k in keys]
+        data = [self.tensors[k].detach().cpu() for k in keys]
         if data_process is not None:
             data = data_process(data)
         else:
