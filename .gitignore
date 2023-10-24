@@ -4,3 +4,6 @@ __pycache__
 *.bin
 /build/
 /IslandOfMisfitToys.egg-info/
+*.txt
+*tmp*
+*.pt
