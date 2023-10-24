@@ -18,7 +18,7 @@ from ..utils import auto_path, parse_path, get_pydict, downsample_any
 import copy
 from warnings import warn
 from ..swiffer import iraise, ireraise
-from masthay_helpers.global_helpers import prettify_dict, path_up, DotDict
+from masthay_helpers.global_helpers import prettify_dict, path_up, DotDict, bstr
 import argparse
 
 
@@ -487,9 +487,11 @@ def fetch_meta(*, obj):
 
 
 class DataFactory(ABC):
-    def __init__(self, *, device=None, src_path, root_out_path, root_path):
+    def __init__(
+        self, *, device=None, src_path, root_out_path, root_path, **kw
+    ):
         if device is None:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         else:
             self.device = device
         self.src_path = src_path
@@ -538,6 +540,10 @@ class DataFactory(ABC):
                 "prior to generating a DataFactory object",
             )
         self.metadata = get_pydict(self.out_path)
+        self.__extend_init__(**kw)
+
+    def __extend_init__(self, **kw):
+        pass
 
     @abstractmethod
     def _manufacture_data(self, **kw):
@@ -628,8 +634,7 @@ class DataFactory(ABC):
     def downsample_tensor(self, *, key, axes):
         if key in self.tensors.keys() and self.tensors.get(key) is not None:
             self.tensors.set(
-                key,
-                downsample_any(getattr(self.tensors, key), axes),
+                key, downsample_any(getattr(self.tensors, key), axes)
             )
 
     def downsample_subset_tensors(self, *, keys, axes):
@@ -836,10 +841,7 @@ class DataFactoryTree(DataFactory):
             os.system(f"python {parent_abs_path}/metadata.py")
             return get_pydict(parent_abs_path)
         else:
-            iraise(
-                FileNotFoundError,
-                f"No metadata found in {parent_abs_path}",
-            )
+            iraise(FileNotFoundError, f"No metadata found in {parent_abs_path}")
 
     class LocalFactory(DataFactory):
         def __init__(
