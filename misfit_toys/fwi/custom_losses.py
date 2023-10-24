@@ -113,9 +113,9 @@ class W2(torch.nn.Module):
         return loss
 
 
-class Huber(torch.nn.Module):
+class HuberLegacy(torch.nn.Module):
     def __init__(self, delta=0.5):
-        super(Huber, self).__init__()
+        super().__init__()
         self.delta = delta
 
     def forward(self, y_pred, y_true):
@@ -133,6 +133,22 @@ class Huber(torch.nn.Module):
         loss = torch.sum(h) / torch.numel(y_pred)
 
         return loss
+
+
+class HuberLoss(torch.nn.Module):
+    def __init__(self, delta):
+        super(HuberLoss, self).__init__()
+        self.delta = torch.tensor(delta)
+
+    def forward(self, input, target):
+        error = input - target
+        abs_error = torch.abs(error)
+        quadratic = torch.minimum(abs_error, self.delta)
+        linear = abs_error - quadratic
+        loss = 0.5 * quadratic**2 + self.delta * linear
+        return (
+            loss.mean()
+        )  # Assuming you want to average the loss over all elements
 
 
 class Hybrid_norm(torch.nn.Module):

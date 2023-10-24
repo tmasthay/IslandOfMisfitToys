@@ -29,7 +29,7 @@ from masthay_helpers.global_helpers import (
     extend_dict,
 )
 import copy
-from misfit_toys.fwi.custom_losses import W1, Renorm, L2
+from misfit_toys.fwi.custom_losses import W1, Renorm, L2, HuberLoss
 from returns.curry import partial
 import holoviews as hv
 
@@ -96,7 +96,7 @@ def main():
         verbose=verbose,
         training_class=TrainingMultiscale,
         training_kwargs={
-            "loss": torch.nn.MSELoss(),
+            "loss": HuberLoss(delta=0.1),
             "optimizer": (torch.optim.LBFGS, dict()),
             "scheduler": None,
             "freqs": [10.0, 15.0, 20.0, 25.0, 30.0],

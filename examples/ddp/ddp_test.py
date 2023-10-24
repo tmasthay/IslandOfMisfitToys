@@ -190,6 +190,10 @@ class MultiscaleExample(Example):
         self.print(f"TRAIN BEGIN, Rank={rank}")
         freqs = self.tensors["freqs"]
         for idx, cutoff_freq in enumerate(freqs):
+            # Gradual deterioration if we are less aggressive?
+            # Check output? Tapering
+            # More receivers?
+            # Correct answer should be stable if passed initial
             sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
             sos = [
                 torch.tensor(sosi).to(observed_data.dtype).to(rank)

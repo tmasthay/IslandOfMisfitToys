@@ -122,6 +122,9 @@ class ExampleGen:
             return res
 
         # what does this function do? LOL
+        #     pretty sure that it makes the data conform to the shape of the
+        #     specified index (idx).
+        #     Input data is a list of torch tensors.
         def extend(idx):
             def process(data):
                 shape = data[idx].shape
