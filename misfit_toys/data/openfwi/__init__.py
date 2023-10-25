@@ -1,3 +1,4 @@
-__all__ = ["factory", "FlatVel_A"]
+__all__ = ["factory", "metadata", "FlatVel_A"]
 from .factory import *
+from .metadata import *
 from .FlatVel_A import *

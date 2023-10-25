@@ -744,6 +744,9 @@ class DataFactory(ABC):
         root_out_dir = parse_path(storage)
         os.makedirs(root_out_dir, exist_ok=True)
         root = os.path.dirname(__file__)
+        input(
+            f"DATABASE CREATION: root = {root}\nroot_out_dir = {root_out_dir}\n"
+        )
         DataFactory.manufacture_all(
             root=root, root_out_path=root_out_dir, exclusions=exclusions
         )
