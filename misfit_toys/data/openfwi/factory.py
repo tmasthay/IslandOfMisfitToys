@@ -68,6 +68,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.storage = parse_path(args.storage)
 
-    input(args)
+    # input(args)
 
     download_openfwi(storage=args.storage, exclusions=args.exclusions)

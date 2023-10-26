@@ -657,6 +657,11 @@ class DataFactory(ABC):
 
     def broadcast_meta(self):
         submeta = DataFactory.get_derived_meta(meta=self.metadata)
+        print(
+            f'meta = {prettify_dict(self.metadata)} -> \n   '
+            f' {prettify_dict(submeta)}'
+        )
+        input()
         if submeta is None:
             return None
         for k, v in submeta.items():
@@ -744,9 +749,9 @@ class DataFactory(ABC):
         root_out_dir = parse_path(storage)
         os.makedirs(root_out_dir, exist_ok=True)
         root = os.path.dirname(__file__)
-        input(
-            f"DATABASE CREATION: root = {root}\nroot_out_dir = {root_out_dir}\n"
-        )
+        # input(
+        #     f"DATABASE CREATION: root = {root}\nroot_out_dir = {root_out_dir}\n"
+        # )
         DataFactory.manufacture_all(
             root=root, root_out_path=root_out_dir, exclusions=exclusions
         )
