@@ -1,9 +1,10 @@
-# from ...utils import DotDict
-# from ..dataset import DataFactory, towed_src, fixed_rec
 import os
 import torch
+from warnings import warn
 import deepwave as dw
 from scipy.ndimage import gaussian_filter
+import copy
+import sys
 from masthay_helpers.global_helpers import add_root_package_path
 
 add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
@@ -58,23 +59,11 @@ class Factory(DataFactory):
         print(f"Building obs_data in {self.out_path}...", end="", flush=True)
         self.tensors.obs_data = dw.scalar(
             self.tensors.vp,
-            d.dy,
-            d.dt,
-            source_amplitudes=self.tensors.src_amp_y,
-            source_locations=self.tensors.src_loc_y,
-            receiver_locations=self.tensors.rec_loc_y,
-            pml_freq=d.freq,
+            self.tensors.src_loc_y,
+            self.tensors.rec_loc_y,
+            self.tensors.src_amp_y,
             accuracy=d.accuracy,
-        )[-1]
-        print("SUCCESS", flush=True)
+        ).to(self.device)
+        print("Done!")
 
-
-def main():
-    f = Factory.cli_construct(
-        device="cuda:0", src_path=os.path.dirname(__file__)
-    )
-    f.manufacture_data()
-
-
-if __name__ == "__main__":
-    main()
+        self.tensors.rho = d.rho
