@@ -590,6 +590,7 @@ class DataFactory(ABC):
             else:
                 return url_path
 
+        input(fields)
         for k, v in fields.items():
             web_data_file = os.path.join(self.out_path, k) + "." + d["ext"]
             url = field_url(k)
@@ -657,14 +658,14 @@ class DataFactory(ABC):
 
     def broadcast_meta(self):
         submeta = DataFactory.get_derived_meta(meta=self.metadata)
-        print(
-            f'meta = {prettify_dict(self.metadata)} -> \n   '
-            f' {prettify_dict(submeta)}'
-        )
-        input()
+        # print(
+        #     f'meta = {prettify_dict(self.metadata)} -> \n   '
+        #     f' {prettify_dict(submeta)}'
+        # )
         if submeta is None:
             return None
         for k, v in submeta.items():
+            # input(f"Broadcasting {k} to {self.out_path}")
             os.makedirs(f"{self.out_path}/{k}", exist_ok=True)
             with open(f"{self.out_path}/{k}/metadata.pydict", "w") as f:
                 f.write(prettify_dict(v))
@@ -767,14 +768,11 @@ class DataFactory(ABC):
                 f"python -W ignore {src_path}/metadata.py --store_path"
                 f" {out_path}"
             )
-            try:
-                os.system(cmd)
-            except:
-                iraise(
-                    ValueError,
-                    f"Error in execution of {cmd}\n",
-                    "This is likely due to an error in metadata.py",
-                )
+
+            if not os.system(cmd):
+                input('yoyoy')
+                iraise(RuntimeError, f"{cmd} failed")
+
         if not os.path.exists(f"{src_path}/factory.py"):
             iraise(FileNotFoundError, f"No factory.py found in {src_path}")
 

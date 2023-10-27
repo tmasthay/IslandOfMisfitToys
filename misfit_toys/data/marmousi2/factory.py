@@ -24,9 +24,14 @@ class Factory(DataFactory):
 
         d = DotDict(self.process_web_data())
 
+        input(self.tensors.keys())
+        input(d.__dict__)
+
         self.tensors.vp_true = d.vp_true
         self.tensors.vs_true = d.vs_true
         self.tensors.rho_true = d.rho_true
+
+        input(self.tensors.__dict__)
         d.ny, d.nx = self.tensors.vp_true.shape
 
         self.tensors.src_loc_y = towed_src(
