@@ -1,6 +1,14 @@
-__all__ = ["dataset", "das_curtin", "openfwi", "marmousi", "marmousi2"]
+__all__ = [
+    "dataset",
+    "marmousi",
+    "marmousi2",
+    "das_curtin",
+    "custom",
+    "openfwi",
+]
 from .dataset import *
-from .das_curtin import *
-from .openfwi import *
 from .marmousi import *
 from .marmousi2 import *
+from .das_curtin import *
+from .custom import *
+from .openfwi import *

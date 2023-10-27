@@ -1,4 +1,4 @@
-__all__ = ["factory", "metadata", "deepwave_example"]
-from .factory import *
+__all__ = ["metadata", "factory", "deepwave_example"]
 from .metadata import *
+from .factory import *
 from .deepwave_example import *

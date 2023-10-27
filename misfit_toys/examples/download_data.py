@@ -1,15 +1,7 @@
 from misfit_toys.data.dataset import DataFactory
 from masthay_helpers.global_helpers import iprint
-from rich.traceback import install
-import os
 
-install(
-    show_locals=True,
-    word_wrap=True,
-    width=1000,
-    locals_max_string=1000,
-    locals_max_length=1000,
-)
+import os
 
 
 def download_data(storage, exclusions):
