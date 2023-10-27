@@ -1,14 +1,14 @@
 __all__ = [
-    "legacy",
     "download_data",
     "example",
     "setup_example",
-    "jupyter",
     "ddp",
+    "jupyter",
+    "data",
 ]
-from .legacy import *
 from .download_data import *
 from .example import *
 from .setup_example import *
-from .jupyter import *
 from .ddp import *
+from .jupyter import *
+from .data import *

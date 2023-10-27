@@ -9,9 +9,9 @@ def sco(s, split=True):
     try:
         u = co(s, shell=True).decode("utf-8")
         if split:
-            return u.split("\n")[:-1]
+            return u.strip().split("\n")
         else:
-            return u
+            return u.strip()
     except CalledProcessError:
         return None
 

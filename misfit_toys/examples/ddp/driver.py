@@ -3,10 +3,7 @@ from misfit_toys.fwi.modules.models import Param, ParamConstrained
 from misfit_toys.fwi.modules.distribution import Distribution, setup, cleanup
 from misfit_toys.utils import taper, get_pydict, canonical_reduce
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
-from misfit_toys.fwi.modules.training import (
-    TrainingMultiscale,
-    TrainingVanilla,
-)
+from misfit_toys.fwi.modules.training import TrainingMultiscale, TrainingVanilla
 from misfit_toys.utils import idt_print
 
 import os
@@ -33,9 +30,9 @@ from misfit_toys.fwi.custom_losses import W1, Renorm, L2, HuberLoss
 from returns.curry import partial
 import holoviews as hv
 
-from rich.traceback import install
+# from rich.traceback import install
 
-install(show_locals=True)
+# install(show_locals=True)
 
 
 class ExampleIOMT(Example):
