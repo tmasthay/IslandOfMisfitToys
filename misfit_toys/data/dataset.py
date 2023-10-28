@@ -591,7 +591,6 @@ class DataFactory(ABC):
             else:
                 return url_path
 
-        input(fields)
         for k, v in fields.items():
             web_data_file = os.path.join(self.out_path, k) + "." + d["ext"]
             url = field_url(k)
@@ -771,7 +770,6 @@ class DataFactory(ABC):
             )
 
             if os.system(cmd):
-                input('yoyoy')
                 iraise(RuntimeError, f"{cmd} failed")
 
         if not os.path.exists(f"{src_path}/factory.py"):
