@@ -571,6 +571,7 @@ class DataFactory(ABC):
         torch_files = sco(
             f'find {self.out_path} -maxdepth 1 -mindepth 1 -name "*.pt"'
         )
+        torch_files = [e for e in torch_files if e]
         if os.path.exists(self.out_path) and len(torch_files) > 0:
             print(
                 f"{self.out_path} already has pytorch files in it...ignoring.\n"
@@ -769,7 +770,7 @@ class DataFactory(ABC):
                 f" {out_path}"
             )
 
-            if not os.system(cmd):
+            if os.system(cmd):
                 input('yoyoy')
                 iraise(RuntimeError, f"{cmd} failed")
 
