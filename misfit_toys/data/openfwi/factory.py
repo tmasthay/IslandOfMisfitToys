@@ -24,8 +24,17 @@ class Factory(DataFactory):
         ]
 
     def _manufacture_data(self):
+        num_urls = self.metadata.get("num_urls", None)
+        mode = self.metadata.get("mode", "front")
+        if num_urls is not None:
+            if mode == "front":
+                self.urls = self.urls[:num_urls]
+            elif mode == "back":
+                self.urls = self.urls[-num_urls:]
+            elif mode == "random":
+                self.urls = np.random.choice(self.urls, size=num_urls)
         for i, url in enumerate(self.urls):
-            filename = f"{self.out_dir}/data_{i}"
+            filename = os.path.join(self.out_dir, f'data{i}')
             download(url, f"{filename}.npy", quiet=False)
             tensor = torch.from_numpy(np.load(f"{filename}.npy"))
             torch.save(tensor, f"{filename}.pt")

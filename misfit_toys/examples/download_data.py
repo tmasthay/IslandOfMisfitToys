@@ -21,7 +21,7 @@ def download_data(storage, exclusions):
 
 def main():
     storage = "conda/data"
-    exclusions = ["das_curtin", 'openfwi']
+    exclusions = ["das_curtin"]
     download_data(storage, exclusions)
 
 
