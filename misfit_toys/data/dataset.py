@@ -658,10 +658,11 @@ class DataFactory(ABC):
 
     def broadcast_meta(self):
         submeta = DataFactory.get_derived_meta(meta=self.metadata)
-        # print(
-        #     f'meta = {prettify_dict(self.metadata)} -> \n   '
-        #     f' {prettify_dict(submeta)}'
-        # )
+        print(
+            f'meta = {prettify_dict(self.metadata)} -> \n   '
+            f' {prettify_dict(submeta)}'
+        )
+        input()
         if submeta is None:
             return None
         for k, v in submeta.items():

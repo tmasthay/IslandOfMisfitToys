@@ -66,17 +66,12 @@ class Factory(DataFactory):
         return u
 
 
-def download_openfwi(*, storage, exclusions):
-    Factory.create_database(storage=storage, exclusions=exclusions)
+def signal_children():
+    factory = DataFactory.cli_construct(
+        device="cuda:0", src_path=os.path.dirname(__file__)
+    )
+    factory.broadcast_meta()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--storage", default="conda/data")
-    parser.add_argument("exclusions", nargs="*", default=[])
-    args = parser.parse_args()
-    args.storage = parse_path(args.storage)
-
-    # input(args)
-
-    download_openfwi(storage=args.storage, exclusions=args.exclusions)
+    signal_children()
