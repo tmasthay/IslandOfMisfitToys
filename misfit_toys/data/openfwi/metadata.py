@@ -5,7 +5,7 @@ from masthay_helpers.global_helpers import save_metadata
 def metadata():
     return {
         'ext': 'npy',
-        'num_urls': 1,
+        'num_urls': 2,
         'mode': 'random',
         'derived': {'FlatVel_A': {}},
     }

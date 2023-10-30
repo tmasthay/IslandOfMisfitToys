@@ -16,24 +16,39 @@ from misfit_toys.utils import parse_path, get_pydict
 
 class Factory(DataFactory):
     def __extend_init__(self):
-        self.urls = get_pydict(self.src_path, "urls")
+        data_urls = get_pydict(self.src_path, filename="data_urls")
+        model_urls = get_pydict(self.src_path, filename="model_urls")
+        self.metadata['data_urls'] = data_urls
+        self.metadata['model_urls'] = model_urls
 
-    def _manufacture_data(self):
+    def download_instance(self, k):
+        input('yo')
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")
+        curr_urls = self.metadata[f'{k}_urls']
+
+        def choose(indices):
+            key = lambda i: f'{k}{i}'
+            return {key(i): curr_urls[key(i)] for i in indices}
+
         if num_urls is not None:
             if mode == "front":
-                self.urls = self.urls[:num_urls]
+                urls = choose(range(1, num_urls + 1))
             elif mode == "back":
-                self.urls = self.urls[-num_urls:]
+                urls = choose(range(len(curr_urls) - num_urls, len(curr_urls)))
             elif mode == "random":
-                self.urls = np.random.choice(self.urls, size=num_urls)
-        for basename, url in enumerate(self.urls):
+                urls = choose(np.random.choice(len(curr_urls), num_urls))
+
+        for basename, url in urls.items():
             filename = os.path.join(self.out_path, basename)
             download(url, f"{filename}.npy", quiet=False)
             tensor = torch.from_numpy(np.load(f"{filename}.npy"))
             torch.save(tensor, f"{filename}.pt")
             os.remove(f"{filename}.npy")
+
+    def _manufacture_data(self, **kw):
+        self.download_instance('data')
+        self.download_instance('model')
 
     @staticmethod
     def get_hashes(filename):
@@ -61,23 +76,20 @@ class Factory(DataFactory):
         return u
 
 
-class FactorySignalOnly(Factory):
+class FactorySignalOnly(DataFactory):
+    def __extend__init(self):
+        pass
+
     def _manufacture_data(self):
         pass
 
 
 def signal_children():
-    input('constructing')
     factory = FactorySignalOnly.cli_construct(
         device="cuda:0", src_path=os.path.dirname(__file__)
     )
-    input('constructed')
-    input('manufacturing')
     factory.manufacture_data()
-    input('manufactured')
 
 
 if __name__ == "__main__":
-    input('signalling')
     signal_children()
-    input('signalled')

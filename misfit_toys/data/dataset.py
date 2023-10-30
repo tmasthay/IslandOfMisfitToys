@@ -658,11 +658,6 @@ class DataFactory(ABC):
 
     def broadcast_meta(self):
         submeta = DataFactory.get_derived_meta(meta=self.metadata)
-        print(
-            f'meta = {prettify_dict(self.metadata)} -> \n   '
-            f' {prettify_dict(submeta)}'
-        )
-        input()
         if submeta is None:
             return None
         for k, v in submeta.items():
@@ -740,6 +735,7 @@ class DataFactory(ABC):
                         valid_path = False
                         break
                 if valid_path:
+                    print(f"Deploying {dir_path}")
                     DataFactory.deploy_factory(
                         root=root,
                         root_out_path=root_out_path,
@@ -763,8 +759,6 @@ class DataFactory(ABC):
         rel_path = os.path.relpath(src_path, root)
         out_path = os.path.join(root_out_path, rel_path)
         if not os.path.exists(f"{out_path}/metadata.pydict"):
-            print(f'rel_path = {rel_path} -> out_path = {out_path}')
-            input()
             if not os.path.exists(f"{src_path}/metadata.py"):
                 iraise(FileNotFoundError, f"No metadata found in {src_path}")
             cmd = (
@@ -813,7 +807,6 @@ class DataFactory(ABC):
         parser.add_argument("--root", type=str, required=True)
         parser.add_argument("--root_out", type=str, required=True)
         args = parser.parse_args()
-        input(args)
         return cls(
             device=device,
             src_path=src_path,

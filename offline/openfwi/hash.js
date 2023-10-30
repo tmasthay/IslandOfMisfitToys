@@ -14,7 +14,7 @@ function extract_hashes(marker) {
 
 function constructUrls(hashArray) {
     // Use the map() method to create a new array with URLs constructed from each hash
-    let urlArray = hashArray.map(extracted_hash => `https://drive.google.com/file/d/${extracted_hash}/view?usp=drive_link`);
+    let urlArray = hashArray.map(extracted_hash => `https://drive.google.com/uc?id=${extracted_hash}`);
     return urlArray;  // Return the new array of URLs
 }
 
