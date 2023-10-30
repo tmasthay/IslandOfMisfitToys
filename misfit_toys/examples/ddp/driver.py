@@ -34,8 +34,6 @@ import holoviews as hv
 
 # install(show_locals=True)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 
 class ExampleIOMT(Example):
     def _pre_chunk(self, rank, world_size):
@@ -61,8 +59,8 @@ class Example2(ExampleIOMT):
 
 def main():
     hv.extension("matplotlib")
-    path = "conda/data/marmousi/deepwave_example/shots16"
-    # path = 'conda/data/openfwi/FlatVel_A'
+    # path = "conda/data/marmousi/deepwave_example/shots16"
+    path = 'conda/data/openfwi/FlatVel_A'
     meta = get_pydict(path, as_class=True)
 
     extra_forward = {
@@ -75,7 +73,7 @@ def main():
     #     requires_grad=True, minv=1000, maxv=2500
     # )
     src_amp_y_prmzt = Param.delay_init(requires_grad=False)
-    extra_forward = {}
+    # extra_forward = {}
 
     prop_kwargs = {
         "path": path,
