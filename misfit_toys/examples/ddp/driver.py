@@ -68,10 +68,10 @@ def main():
         'time_pad_frac': 0.2,
         'pml_freq': meta.freq,
     }
-    vp_prmzt = Param.delay_init(requires_grad=True)
-    # vp_prmzt = ParamConstrained.delay_init(
-    #     requires_grad=True, minv=1000, maxv=2500
-    # )
+    # vp_prmzt = Param.delay_init(requires_grad=True)
+    vp_prmzt = ParamConstrained.delay_init(
+        requires_grad=True, minv=1000, maxv=2500
+    )
     src_amp_y_prmzt = Param.delay_init(requires_grad=False)
     # extra_forward = {}
 
