@@ -11,10 +11,13 @@ curr_dir = os.path.dirname(__file__)
 add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.swiffer import sco
 from misfit_toys.data.dataset import DataFactory
-from misfit_toys.utils import parse_path
+from misfit_toys.utils import parse_path, get_pydict
 
 
 class Factory(DataFactory):
+    def __extend_init__(self):
+        self.urls = get_pydict(self.src_path, "urls")
+
     def _manufacture_data(self):
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")

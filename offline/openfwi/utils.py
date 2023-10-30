@@ -39,8 +39,8 @@ def get_urls(filename):
 
 
 def save_urls(filename):
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    target_root = os.path.abspath(os.path.join(root, '../../misfit_toys/data'))
+    root = os.path.abspath(os.path.join(__file__, '../..'))
+    target_root = os.path.abspath(os.path.join(root, '../misfit_toys/data'))
     rel_path = os.path.relpath(os.path.dirname(filename), root)
     target_path = os.path.join(target_root, rel_path)
     urls = get_urls(filename)
