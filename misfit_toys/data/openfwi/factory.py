@@ -25,7 +25,6 @@ class Factory(DataFactory):
         self.metadata['model_urls'] = model_urls
 
     def _manufacture_data(self):
-        input('manufacture')
         if self.installed(
             "vp_true",
             "vp_init",
@@ -35,19 +34,19 @@ class Factory(DataFactory):
             "obs_data",
         ):
             return
-        input('continuing')
 
         self.download_all()
-        input('Dawg what?')
         d = DotDict(self.metadata)
         self.tensors.vp_true = torch.load(
             os.path.join(self.out_path, 'model1.pt')
         )[0].squeeze()
         self.tensors.vp = self.tensors.vp_true.to(self.device)
-        self.tensors.vp_init = torch.tensor(
-            1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
+        # self.tensors.vp_init = torch.tensor(
+        #     1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
+        # )
+        self.tensors.vp_init = self.tensors.vp_true.mean() * torch.ones_like(
+            self.tensors.vp_true
         )
-        input(self.tensors.vp_true.shape)
         d.ny, d.nx = self.tensors.vp_true.shape
         self.tensors.src_loc_y = towed_src(
             n_shots=d.n_shots,
