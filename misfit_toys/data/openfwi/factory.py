@@ -5,13 +5,16 @@ import numpy as np
 import torch
 import argparse
 
-from masthay_helpers.global_helpers import add_root_package_path
+from masthay_helpers.global_helpers import add_root_package_path, DotDict
 
 curr_dir = os.path.dirname(__file__)
 add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.swiffer import sco
-from misfit_toys.data.dataset import DataFactory
+from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
 from misfit_toys.utils import parse_path, get_pydict
+from scipy.ndimage import gaussian_filter
+import deepwave as dw
+from time import sleep
 
 
 class Factory(DataFactory):
@@ -20,6 +23,64 @@ class Factory(DataFactory):
         model_urls = get_pydict(self.src_path, filename="model_urls")
         self.metadata['data_urls'] = data_urls
         self.metadata['model_urls'] = model_urls
+
+    def _manufacture_data(self):
+        input('manufacture')
+        if self.installed(
+            "vp_true",
+            "vp_init",
+            "rho_true",
+            "src_loc_y",
+            "rec_loc_y",
+            "obs_data",
+        ):
+            return
+        input('continuing')
+
+        self.download_all()
+        input('Dawg what?')
+        d = DotDict(self.metadata)
+        self.tensors.vp_true = torch.load(
+            os.path.join(self.out_path, 'model1.pt')
+        )[0].squeeze()
+        self.tensors.vp_init = torch.tensor(
+            1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
+        )
+        input(self.tensors.vp_true.shape)
+        d.ny, d.nx = self.tensors.vp_true.shape
+        self.tensors.src_loc_y = towed_src(
+            n_shots=d.n_shots,
+            src_per_shot=d.src_per_shot,
+            d_src=d.d_src,
+            fst_src=d.fst_src,
+            src_depth=d.src_depth,
+            d_intra_shot=d.d_intra_shot,
+        ).to(self.device)
+        self.tensors.rec_loc_y = fixed_rec(
+            n_shots=d.n_shots,
+            rec_per_shot=d.rec_per_shot,
+            d_rec=d.d_rec,
+            fst_rec=d.fst_rec,
+            rec_depth=d.rec_depth,
+        ).to(self.device)
+        self.tensors.src_amp_y = (
+            dw.wavelets.ricker(d.freq, d.nt, d.dt, d.peak_time)
+            .repeat(d.n_shots, d.src_per_shot, 1)
+            .to(self.device)
+        )
+        print(f"Building obs_data in {self.out_path}...", end="", flush=True)
+        sleep(3)
+        self.tensors.obs_data = dw.scalar(
+            self.tensors.vp,
+            d.dy,
+            d.dt,
+            source_amplitudes=self.tensors.src_amp_y,
+            source_locations=self.tensors.src_loc_y,
+            receiver_locations=self.tensors.rec_loc_y,
+            pml_freq=d.freq,
+            accuracy=d.accuracy,
+        )[-1]
+        print("SUCCESS", flush=True)
 
     def download_instance(self, k, indices='all'):
         prev_res = [
@@ -38,13 +99,16 @@ class Factory(DataFactory):
             urls = {f'{k}{i+1}': urls[f'{k}{i+1}'] for i in indices}
 
         for basename, url in urls.items():
-            filename = os.path.join(self.out_path, basename)
-            download(url, f"{filename}.npy", quiet=False)
-            tensor = torch.from_numpy(np.load(f"{filename}.npy"))
-            torch.save(tensor, f"{filename}.pt")
-            os.remove(f"{filename}.npy")
+            try:
+                filename = os.path.join(self.out_path, basename)
+                download(url, f"{filename}.npy", quiet=False)
+                tensor = torch.from_numpy(np.load(f"{filename}.npy"))
+                torch.save(tensor, f"{filename}.pt")
+                os.remove(f"{filename}.npy")
+            except:
+                break
 
-    def _manufacture_data(self):
+    def download_all(self):
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")
         N = len(self.metadata['data_urls'].keys())
