@@ -69,7 +69,6 @@ class Factory(DataFactory):
             .to(self.device)
         )
         print(f"Building obs_data in {self.out_path}...", end="", flush=True)
-        sleep(3)
         self.tensors.obs_data = dw.scalar(
             self.tensors.vp,
             d.dy,
