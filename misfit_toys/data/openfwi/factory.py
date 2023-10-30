@@ -15,14 +15,6 @@ from misfit_toys.utils import parse_path
 
 
 class Factory(DataFactory):
-    def __extend_init__(self):
-        self.hashes = Factory.get_hashes(
-            os.path.join(self.src_path, "data.html")
-        )
-        self.urls = [
-            f"https://drive.google.com/uc?id={hash}" for hash in self.hashes
-        ]
-
     def _manufacture_data(self):
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")
@@ -33,8 +25,8 @@ class Factory(DataFactory):
                 self.urls = self.urls[-num_urls:]
             elif mode == "random":
                 self.urls = np.random.choice(self.urls, size=num_urls)
-        for i, url in enumerate(self.urls):
-            filename = os.path.join(self.out_dir, f'data{i}')
+        for basename, url in enumerate(self.urls):
+            filename = os.path.join(self.out_path, basename)
             download(url, f"{filename}.npy", quiet=False)
             tensor = torch.from_numpy(np.load(f"{filename}.npy"))
             torch.save(tensor, f"{filename}.pt")
