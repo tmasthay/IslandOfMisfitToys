@@ -21,7 +21,7 @@ class Factory(DataFactory):
         self.metadata['data_urls'] = data_urls
         self.metadata['model_urls'] = model_urls
 
-    def download_instance(self, k):
+    def download_instance(self, k, indices='all'):
         prev_res = [
             e
             for e in os.listdir(self.out_path)
@@ -33,21 +33,9 @@ class Factory(DataFactory):
                 f' {self.out_path}...skipping'
             )
             return
-        num_urls = self.metadata.get("num_urls", None)
-        mode = self.metadata.get("mode", "front")
-        curr_urls = self.metadata[f'{k}_urls']
-
-        def choose(indices):
-            key = lambda i: f'{k}{i}'
-            return {key(i): curr_urls[key(i)] for i in indices}
-
-        if num_urls is not None:
-            if mode == "front":
-                urls = choose(range(1, num_urls + 1))
-            elif mode == "back":
-                urls = choose(range(len(curr_urls) - num_urls, len(curr_urls)))
-            elif mode == "random":
-                urls = choose(np.random.choice(len(curr_urls), num_urls))
+        urls = self.metadata[f'{k}_urls']
+        if indices is not None:
+            urls = {f'{k}{i+1}': urls[f'{k}{i+1}'] for i in indices}
 
         for basename, url in urls.items():
             filename = os.path.join(self.out_path, basename)
@@ -56,9 +44,22 @@ class Factory(DataFactory):
             torch.save(tensor, f"{filename}.pt")
             os.remove(f"{filename}.npy")
 
-    def _manufacture_data(self, **kw):
-        self.download_instance('data')
-        self.download_instance('model')
+    def _manufacture_data(self):
+        num_urls = self.metadata.get("num_urls", None)
+        mode = self.metadata.get("mode", "front")
+        N = len(self.metadata['data_urls'].keys())
+        M = len(self.metadata['model_urls'].keys())
+        assert N == M, 'data and model urls must be the same size'
+        if mode == 'front':
+            indices = range(num_urls)
+        elif mode == 'back':
+            indices = range(N - num_urls, N)
+        elif mode == 'random':
+            indices = np.random.choice(range(N), size=num_urls)
+        else:
+            raise ValueError(f'Invalid mode: {mode}')
+        self.download_instance('data', indices)
+        self.download_instance('model', indices)
 
     @staticmethod
     def get_hashes(filename):
