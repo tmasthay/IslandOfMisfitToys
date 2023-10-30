@@ -22,7 +22,17 @@ class Factory(DataFactory):
         self.metadata['model_urls'] = model_urls
 
     def download_instance(self, k):
-        input('yo')
+        prev_res = [
+            e
+            for e in os.listdir(self.out_path)
+            if e.endswith('.pt') and e.startswith(k)
+        ]
+        if len(prev_res) > 0:
+            print(
+                f'Already downloaded {len(prev_res)} files in'
+                f' {self.out_path}...skipping'
+            )
+            return
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")
         curr_urls = self.metadata[f'{k}_urls']
