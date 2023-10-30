@@ -43,6 +43,7 @@ class Factory(DataFactory):
         self.tensors.vp_true = torch.load(
             os.path.join(self.out_path, 'model1.pt')
         )[0].squeeze()
+        self.tensors.vp = self.tensors.vp_true.to(self.device)
         self.tensors.vp_init = torch.tensor(
             1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
         )

@@ -11,6 +11,8 @@ def metadata():
         'nx': 70,
         'nt': 1000,
         'dt': 0.001,
+        'dy': 10.0,
+        'dx': 10.0,
         'n_shots': 5,
         'src_per_shot': 1,
         'd_src': 10,

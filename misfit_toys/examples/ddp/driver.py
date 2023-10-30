@@ -59,7 +59,8 @@ class Example2(ExampleIOMT):
 
 def main():
     hv.extension("matplotlib")
-    path = "conda/data/marmousi/deepwave_example/shots16"
+    # path = "conda/data/marmousi/deepwave_example/shots16"
+    path = 'conda/data/openfwi/'
     meta = get_pydict(path, as_class=True)
 
     prop_kwargs = {
