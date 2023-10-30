@@ -16,4 +16,3 @@ recursive-include misfit_toys *.html
 recursive-include misfit_toys *.ipynb
 recursive-include misfit_toys *.py
 recursive-include misfit_toys *.pydict
-prune misfit_toys/offline
