@@ -66,12 +66,23 @@ class Factory(DataFactory):
         return u
 
 
+class FactorySignalOnly(Factory):
+    def _manufacture_data(self):
+        pass
+
+
 def signal_children():
-    factory = DataFactory.cli_construct(
+    input('constructing')
+    factory = FactorySignalOnly.cli_construct(
         device="cuda:0", src_path=os.path.dirname(__file__)
     )
-    factory.broadcast_meta()
+    input('constructed')
+    input('manufacturing')
+    factory.manufacture_data()
+    input('manufactured')
 
 
 if __name__ == "__main__":
+    input('signalling')
     signal_children()
+    input('signalled')

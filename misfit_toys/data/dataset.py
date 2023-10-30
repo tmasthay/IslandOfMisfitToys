@@ -763,6 +763,8 @@ class DataFactory(ABC):
         rel_path = os.path.relpath(src_path, root)
         out_path = os.path.join(root_out_path, rel_path)
         if not os.path.exists(f"{out_path}/metadata.pydict"):
+            print(f'rel_path = {rel_path} -> out_path = {out_path}')
+            input()
             if not os.path.exists(f"{src_path}/metadata.py"):
                 iraise(FileNotFoundError, f"No metadata found in {src_path}")
             cmd = (
@@ -811,6 +813,7 @@ class DataFactory(ABC):
         parser.add_argument("--root", type=str, required=True)
         parser.add_argument("--root_out", type=str, required=True)
         args = parser.parse_args()
+        input(args)
         return cls(
             device=device,
             src_path=src_path,
