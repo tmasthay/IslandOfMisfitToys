@@ -39,6 +39,7 @@ def get_urls(filename):
 
 
 def save_urls(filename):
+    datatype = filename.split('/')[-1].split('.')[0]
     root = os.path.abspath(os.path.join(__file__, '../..'))
     target_root = os.path.abspath(os.path.join(root, '../misfit_toys/data'))
     rel_path = os.path.relpath(os.path.dirname(filename), root)
@@ -46,7 +47,7 @@ def save_urls(filename):
     urls = get_urls(filename)
     path = os.path.dirname(filename)
     s = prettify_dict(urls)
-    file_path = os.path.join(target_path, 'urls.pydict')
+    file_path = os.path.join(target_path, f'{datatype}_urls.pydict')
     with open(file_path, 'w') as f:
         f.write(s)
 
