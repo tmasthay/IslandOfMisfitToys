@@ -16,6 +16,8 @@ from warnings import warn
 import os
 import textwrap
 from masthay_helpers import DotDict
+from fnmatch import fnmatch
+from masthay_helpers.global_helpers import find_files
 
 
 def parse_path(path):
@@ -291,3 +293,17 @@ def canonical_reduce(reduce=None, exclude=None, extra=None):
             default[name] = None
 
     return {**default, **reduce}
+
+
+def see_data(path, cmap='nipy_spectral'):
+    path = os.path.abspath(parse_path(path))
+    for file in find_files(path, "*.pt"):
+        target = file.replace('.pt', '.jpg')
+        if not os.path.exists(target):
+            u = torch.load(file)
+            if len(u.shape) == 2:
+                plt.imshow(u, cmap=cmap)
+                plt.title(path.split('/')[-1])
+                plt.colorbar()
+                plt.savefig(file.replace('.pt', '.jpg'))
+                plt.clf()

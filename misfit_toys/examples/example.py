@@ -362,6 +362,7 @@ class ExampleGen:
                     f"{self.data_save} and re-run this script to "
                     "regenerate"
                 )
+        self.tensors['vp_init'] = self.tensors['vp_true']
         torch.distributed.barrier()
         # if rank == 0:
         #     self.plot_data()
@@ -449,7 +450,7 @@ class ExampleGen:
                         "(1) Explicitly set (params synced by DDP)\n",
                         (
                             "(2) Implicitly set by saving to"
-                            ' f"{ex.data_save}/{key}_{rank}.pt" for'
+                            " f\"{ex.data_save}/{key}_{rank}.pt\" for"
                             " each rank (unsynced metadata, e.g. loss"
                             " history)"
                         ),

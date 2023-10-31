@@ -59,8 +59,10 @@ class Example2(ExampleIOMT):
 
 def main():
     hv.extension("matplotlib")
-    # path = "conda/data/marmousi/deepwave_example/shots16"
-    path = 'conda/data/openfwi/FlatVel_A'
+    path = "conda/data/marmousi/deepwave_example/shots16"
+    input(path)
+    # path = 'conda/data/openfwi/FlatVel_A'
+    # path = 'conda/data/marmousi/deepwave_example/shots16/twolayer'
     meta = get_pydict(path, as_class=True)
 
     extra_forward = {
@@ -123,6 +125,7 @@ def main():
         },
         save_dir="conda/BENCHMARK/vanilla",
     )
+
     first = iomt_example.run()
     second = example2.run()
 
