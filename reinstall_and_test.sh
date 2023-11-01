@@ -16,7 +16,7 @@ pip uninstall -y IslandOfMisfitToys
 pip uninstall -y masthay_helpers
 cdr
 cd masthay_helpers
-./reinstall.sh
+source reinstall.sh
 cdi
 pip install .
 

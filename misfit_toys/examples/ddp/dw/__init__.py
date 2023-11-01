@@ -1,3 +1,2 @@
-__all__ = ["figs", "data"]
-from .figs import *
-from .data import *
+__all__ = ["tmp"]
+from .tmp import *

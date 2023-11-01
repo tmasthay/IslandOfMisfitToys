@@ -125,34 +125,10 @@ def main(path):
         save_dir="conda/BENCHMARK/vanilla",
     )
     return iomt_example, example2
-    # first = iomt_example.run()
-    # second = example2.run()
-
-    # return first, second
-
-    # w1_example = ExampleGen(
-    #     path="conda/data/marmousi/deepwave_example/shots16",
-    #     data_save="w2/data",
-    #     fig_save="w2/figs",
-    #     loss=W1(renorm_func=Renorm.choose("exp")),
-    #     optimizer=(torch.optim.LBFGS, dict()),
-    #     scheduler=None,
-    #     reduce={
-    #         "loss": Example.mean_reduce,
-    #         "out_record": torch.stack,
-    #         "vp_record": Example.first_elem,
-    #         "obs_data": torch.stack,
-    #         "vp_true": Example.first_elem,
-    #         "vp_init": Example.first_elem,
-    #     },
-    #     verbose=2,
-    # )
-
-    # iomt_output = iomt_example.run()
-    # w1_output = w1_example.run()
-    # return iomt_output, w1_output
 
 
 if __name__ == "__main__":
-    path = "conda/data/marmousi/deepwave_example/shots16/two_layer"
-    main(path)
+    path = "conda/data/marmousi/deepwave_example/shots16/twolayer"
+    ex1, ex2 = main(path)
+    ex1.run()
+    ex2.run()
