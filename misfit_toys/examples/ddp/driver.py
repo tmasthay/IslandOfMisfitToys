@@ -57,10 +57,9 @@ class Example2(ExampleIOMT):
         return u
 
 
-def main():
+def main(path):
     hv.extension("matplotlib")
-    path = "conda/data/marmousi/deepwave_example/shots16"
-    input(path)
+
     # path = 'conda/data/openfwi/FlatVel_A'
     # path = 'conda/data/marmousi/deepwave_example/shots16/twolayer'
     meta = get_pydict(path, as_class=True)
@@ -102,7 +101,7 @@ def main():
         verbose=verbose,
         training_class=TrainingMultiscale,
         training_kwargs={
-            "loss": HuberLoss(delta=0.1),
+            "loss": torch.nn.MSELoss(),
             "optimizer": (torch.optim.LBFGS, dict()),
             "scheduler": None,
             "freqs": [10.0, 15.0, 20.0, 25.0, 30.0],
@@ -125,11 +124,11 @@ def main():
         },
         save_dir="conda/BENCHMARK/vanilla",
     )
+    return iomt_example, example2
+    # first = iomt_example.run()
+    # second = example2.run()
 
-    first = iomt_example.run()
-    second = example2.run()
-
-    return first, second
+    # return first, second
 
     # w1_example = ExampleGen(
     #     path="conda/data/marmousi/deepwave_example/shots16",
@@ -155,4 +154,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    path = "conda/data/marmousi/deepwave_example/shots16/two_layer"
+    main(path)

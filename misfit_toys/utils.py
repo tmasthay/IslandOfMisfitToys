@@ -300,7 +300,7 @@ def see_data(path, cmap='nipy_spectral'):
     for file in find_files(path, "*.pt"):
         target = file.replace('.pt', '.jpg')
         if not os.path.exists(target):
-            u = torch.load(file)
+            u = torch.load(file).detach().cpu().numpy()
             if len(u.shape) == 2:
                 plt.imshow(u, cmap=cmap)
                 plt.title(path.split('/')[-1])
