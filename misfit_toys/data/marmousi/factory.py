@@ -24,8 +24,13 @@ class Factory(DataFactory):
 
         d = DotDict(self.process_web_data())
 
+        d.ny, d.nx = 2301, 751
+        d.vp_true = torch.from_file(
+            f'{os.environ["HOME"]}/protect/bins/marmousi_vp.bin',
+            size=d.ny * d.nx,
+        ).reshape(d.ny, d.nx)
         self.tensors.vp_init = torch.tensor(
-            1 / gaussian_filter(1 / d.vp_true.cpu().numpy(), 40)
+            1 / gaussian_filter(1 / d.vp_true.numpy(), 40)
         )
         self.tensors.vp = d.vp_true.to(self.device)
 

@@ -42,6 +42,7 @@ class ExampleGen:
         reduce: dict,
         verbose: int = 1,
         tmp: dict = None,
+        disk_device='cpu',
         **kw,
     ):
         self.prop = prop
@@ -66,6 +67,8 @@ class ExampleGen:
         self.verbose = verbose
         self.tensors = {}
         self.tmp = DotDict(tmp) if tmp is not None else DotDict({})
+
+        self.disk_device = disk_device
 
         self.set_kw(kw)
 
@@ -297,6 +300,8 @@ class ExampleGen:
             raise Example.KeyException(self)
 
         for name in self.tensors.keys():
+            if self.disk_device is not None:
+                self.tensors[name] = self.tensors[name].to(self.disk_device)
             self.save_tensor(name)
 
     def load_all_tensors(self):
@@ -362,7 +367,7 @@ class ExampleGen:
                     f"{self.data_save} and re-run this script to "
                     "regenerate"
                 )
-        self.tensors['vp_init'] = self.tensors['vp_true']
+        # self.tensors['vp_init'] = self.tensors['vp_true']
         torch.distributed.barrier()
         # if rank == 0:
         #     self.plot_data()

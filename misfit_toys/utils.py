@@ -17,7 +17,7 @@ import os
 import textwrap
 from masthay_helpers import DotDict
 from fnmatch import fnmatch
-from masthay_helpers.global_helpers import find_files
+from masthay_helpers.global_helpers import find_files, vco, ctab
 
 
 def parse_path(path):
@@ -307,3 +307,21 @@ def see_data(path, cmap='nipy_spectral'):
                 plt.colorbar()
                 plt.savefig(file.replace('.pt', '.jpg'))
                 plt.clf()
+
+
+def check_devices(root):
+    root = parse_path(root)
+    pt_path = vco(f'find {root} -type f -name "*.pt"').split('\n')
+    headers = ['FILE', 'DEVICE', 'ERROR MESSAGE']
+    colors = ['magenta', 'green', 'yellow']
+    data = []
+    for file in pt_path:
+        try:
+            u = torch.load(file)
+            data.append([file, str(u.device), ''])
+            del u
+        except Exception as e:
+            data.append([file, '', str(e)])
+            del u
+    s = ctab(data, headers=headers, colors=colors)
+    print(s)

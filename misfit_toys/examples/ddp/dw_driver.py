@@ -151,12 +151,12 @@ def run_rank(rank, world_size):
     prop = Prop(model, dx, dt, freq).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
-    torch.save(source_amplitudes, f'{protect}/tmp/src_amp_y_{rank}.pt')
-    torch.save(source_locations, f'{protect}/tmp/src_loc_y_{rank}.pt')
-    torch.save(receiver_locations, f'{protect}/tmp/rec_loc_y_{rank}.pt')
-    torch.save(observed_data, f'{protect}/tmp/obs_data_{rank}.pt')
-    torch.save(v_init.detach().cpu(), f'{protect}/vp_init.pt')
-    torch.save(v_true.detach().cpu(), f'{protect}/vp_true.pt')
+    torch.save(source_amplitudes.cpu(), f'{protect}/tmp/src_amp_y_{rank}.pt')
+    torch.save(source_locations.cpu(), f'{protect}/tmp/src_loc_y_{rank}.pt')
+    torch.save(receiver_locations.cpu(), f'{protect}/tmp/rec_loc_y_{rank}.pt')
+    torch.save(observed_data.cpu(), f'{protect}/tmp/obs_data_{rank}.pt')
+    torch.save(v_init.cpu(), f'{protect}/vp_init.pt')
+    torch.save(v_true.cpu(), f'{protect}/vp_true.pt')
 
     # Setup optimiser to perform inversion
     loss_fn = torch.nn.MSELoss()

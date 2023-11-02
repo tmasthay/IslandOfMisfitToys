@@ -128,7 +128,7 @@ def main(path):
 
 
 if __name__ == "__main__":
-    path = "conda/data/marmousi/deepwave_example/shots16/twolayer"
+    path = "conda/data/marmousi/deepwave_example/shots16"
     ex1, ex2 = main(path)
     ex1.run()
-    ex2.run()
+    # ex2.run()
