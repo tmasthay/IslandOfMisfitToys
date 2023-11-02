@@ -554,7 +554,8 @@ class DataFactory(ABC):
         self.place_tensors(device="cpu")
         self.save_all_tensors()
         self.broadcast_meta()
-        self.clear_all_tensors()
+        if kw.get('clear_tensors', True):
+            self.clear_all_tensors()
         if "cuda" in self.device:
             torch.cuda.empty_cache()
 

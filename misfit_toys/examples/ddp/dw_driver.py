@@ -148,6 +148,7 @@ def run_rank(rank, world_size):
     )
 
     model = Model(v_init, 1000, 2500)
+    v_init = model().detach().cpu()
     prop = Prop(model, dx, dt, freq).to(rank)
     prop = DDP(prop, device_ids=[rank])
 

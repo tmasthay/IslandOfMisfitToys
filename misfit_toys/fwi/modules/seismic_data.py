@@ -138,6 +138,14 @@ class SeismicProp(torch.nn.Module):
         self.set_meta_fields()
         self.set_extra_forwards(extra_forward_args)
 
+        print(path, flush=True)
+        u = '/home/tyler/anaconda3/envs/dw/BENCHMARK/multiscale/data/tmp'
+        os.makedirs(u, exist_ok=True)
+        torch.save(self.vp_init, f'{u}/vp_init.pt')
+        torch.save(self.vp_true, f'{u}/vp_true.pt')
+        print(f'Saved in {u}', flush=True)
+        sys.exit(-1)
+
     def set_extra_forwards(self, extra_forward_args):
         if extra_forward_args is None:
             self.extra_forward_args = {}

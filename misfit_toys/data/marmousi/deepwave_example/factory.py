@@ -7,9 +7,9 @@ import deepwave as dw
 from scipy.ndimage import gaussian_filter
 import copy
 import sys
-from masthay_helpers.global_helpers import add_root_package_path
+from masthay_helpers.global_helpers import summarize_tensor
 
-add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
+# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
 from masthay_helpers.global_helpers import DotDict
 
@@ -44,6 +44,18 @@ class Factory(DataFactory):
             1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
         )
         print("SUCCESS!")
+        # self.check('vp_init')
+        # self.check('vp_true')
+
+    def check(self, field):
+        protect_path = os.environ["HOME"] + "/protect"
+        ref = torch.load(f"{protect_path}/{field}.pt")
+        ours = self.tensors.get(field)
+        input(
+            summarize_tensor(
+                ref - ours.detach().cpu(), heading=f'Difference: {field}'
+            )
+        )
 
 
 def main():

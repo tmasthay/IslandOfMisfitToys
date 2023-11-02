@@ -4,15 +4,17 @@ import os
 import torch
 import deepwave as dw
 from scipy.ndimage import gaussian_filter
-from masthay_helpers.global_helpers import add_root_package_path
 
-add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
+# from masthay_helpers.global_helpers import add_root_package_path
+
+# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
 from masthay_helpers.global_helpers import DotDict
+from masthay_helpers.global_helpers import summarize_tensor
 
 
 class Factory(DataFactory):
-    def _manufacture_data(self):
+    def _manufacture_data(self, **kw):
         if self.installed(
             "vp_true",
             "rho_true",
@@ -32,6 +34,9 @@ class Factory(DataFactory):
         self.tensors.vp_init = torch.tensor(
             1 / gaussian_filter(1 / d.vp_true.numpy(), 40)
         )
+        # self.tensors.vp_init = torch.load(
+        #     f'{os.environ["HOME"]}/protect/vp_init.pt'
+        # )
         self.tensors.vp = d.vp_true.to(self.device)
 
         d.ny, d.nx = self.tensors.vp.shape
@@ -72,13 +77,20 @@ class Factory(DataFactory):
             accuracy=d.accuracy,
         )[-1]
         print("SUCCESS", flush=True)
+        # self.check_init()
+
+    def check_init(self):
+        u = torch.load(f'{os.environ["HOME"]}/protect/vp_init.pt')
+        diff = torch.abs(self.tensors.vp_init - u)
+        input(summarize_tensor(diff, heading="Difference"))
 
 
 def main():
     f = Factory.cli_construct(
         device="cuda:0", src_path=os.path.dirname(__file__)
     )
-    f.manufacture_data()
+    f.manufacture_data(clear_tensors=False)
+    # f.check_init()
 
 
 if __name__ == "__main__":

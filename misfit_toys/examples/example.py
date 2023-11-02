@@ -22,6 +22,7 @@ from masthay_helpers.jupyter import rules_one, rules_two
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 from misfit_toys.utils import parse_path
+import sys
 
 
 def merge_tensors(*, path, tensor_dict, world_size):
@@ -52,6 +53,10 @@ class ExampleGen:
 
         os.makedirs(os.path.join(self.data_save, "tmp"), exist_ok=True)
         os.makedirs(self.fig_save, exist_ok=True)
+
+        # torch.save(prop.vp_init, os.path.join(self.data_save, 'tmp/vp_init.pt'))
+        # torch.save(prop.vp_true, os.path.join(self.data_save, 'tmp/vp_true.pt'))
+        # sys.exit(-1)
 
         self.reduce = reduce
         self.tensor_names = list(reduce.keys())
