@@ -1,27 +1,17 @@
-import torch
-from scipy.signal import butter
-from torchaudio.functional import biquad
-from ...utils import taper, canonical_tensors
-import numpy as np
-import torch.distributed as dist
+from ...utils import taper
+
 from masthay_helpers.global_helpers import (
-    call_counter,
-    iprint,
-    printj,
     DotDict,
     iraise,
     get_print,
-    summarize_tensor,
-    print_tensor,
 )
 
-from .distribution import cleanup
-
-import os
 from abc import ABC, abstractmethod
 from itertools import product
-
-from ..custom_losses import W1
+import torch
+from scipy.signal import butter
+from torchaudio.functional import biquad
+import numpy as np
 
 
 class Training(ABC):
@@ -142,6 +132,17 @@ class Training(ABC):
             self.printj(msg, verbose=1)
         return loss
 
+    def record_trainables(self, idx):
+        params = {
+            k: v
+            for k, v in self.dist_prop.module.named_parameters()
+            if v.requires_grad
+        }
+        for k, v in params.items():
+            key = k.replace('.p', '')
+            data = getattr(self.dist_prop.module, key)().detach().cpu()
+            self.report.get(key)[idx] = data
+
     def __build_scheduler(self, scheduler):
         if scheduler is None:
             return None
@@ -189,6 +190,18 @@ class Training(ABC):
             if k not in self.report.keys():
                 self.report.set(k, [])
             self.report.get(k).append(v.detach())
+
+    def reset_optimizer(self):
+        opt_type = type(self.optimizer)
+        self.opt = opt_type(
+            self.dist_prop.module.parameters(), **self.opt.defaults
+        )
+
+    def __record_trainable_params(self, idx):
+        self.report.trainable_params = []
+        for p in self.dist_prop.module.parameters():
+            if p.requires_grad:
+                self.report.trainable_params.append(p.detach().cpu())
 
 
 class TrainingMultiscale(Training):
@@ -248,9 +261,7 @@ class TrainingMultiscale(Training):
 
             # This is the point where we might need to reset the optimizer in
             #   case there is something I am missing!
-            self.optimizer = torch.optim.LBFGS(
-                self.dist_prop.module.parameters()
-            )
+            self.reset_optimizer()
 
         def freq_postprocess(*, obj, path, combos, combo_num, field_num):
             pass
@@ -264,7 +275,8 @@ class TrainingMultiscale(Training):
         def epoch_postprocess(*, obj, path, combos, combo_num, field_num):
             self.print(f"epoch_postprocess", verbose=2)
             idx = combos["idx"][combo_num]
-            obj.report.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
+            # obj.report.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
+            obj.record_trainables(idx)
 
         epoch_groups = [
             dict(
