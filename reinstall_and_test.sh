@@ -12,13 +12,11 @@ RUN_PYTHON_COMMANDS=${1:-0}
 REDOWNLOAD_DATA=${2:-0}
 
 python update_imports.py
-pip uninstall -y IslandOfMisfitToys
-pip uninstall -y masthay_helpers
 cdr
 cd masthay_helpers
 source reinstall.sh
 cdi
-pip install .
+pip install --force-reinstall --no-deps -e .
 
 if [[ ! -z "$CONDA_PREFIX" && $REDOWNLOAD_DATA -ne 0 ]]; then
     rm -rf $CONDA_PREFIX/data

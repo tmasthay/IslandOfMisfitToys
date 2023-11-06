@@ -102,9 +102,9 @@ class FWI:
         }
 
     def _final_dict(self, *args, **kw):
-        return self.base_final_dict()
+        return self.base_final_dict(**kw)
 
-    def base_final_dict(self):
+    def base_final_dict(self, **kw):
         def rule_builder(*, opts_one, loop_one, opts_two, loop_two):
             return {
                 "one": rules_one(opts_info=opts_one, loop_info=loop_one),
@@ -133,12 +133,80 @@ class FWI:
 
             return process
 
+        all_keys = [
+            'Loss',
+            'Obs-Out Filtered',
+            'Out-Out Filtered',
+            'Obs-Out',
+            'Velocity',
+        ]
+        all_subkeys = ['keys', 'column_names', 'cols', 'rules', 'data_process']
+        for k in all_keys:
+            kw[k] = kw.get(k, {})
+            kw[k]['keys'] = kw[k].get('keys', [])
+            kw[k]['column_names'] = kw[k].get('column_names', [])
+            kw[k]['cols'] = kw[k].get('cols', 0)
+            kw[k]['rules'] = kw[k].get(
+                'rules',
+                {
+                    'opts_one': {},
+                    'loop_one': {},
+                    'opts_two': {},
+                    'loop_two': {},
+                },
+            )
+            kw[k]['data_process'] = kw[k].get('data_process', None)
+
+        def extend_group(
+            *, keys, column_names, cols, rules, data_process, name
+        ):
+            additions = kw.get(name, {})
+            keys = keys.extend(additions.get('keys', []))
+            column_names = column_names.extend(
+                additions.get('column_names', [])
+            )
+            cols = (
+                cols
+                if additions.get('cols', None) is None
+                else additions['cols']
+            )
+            rules = {
+                'opts_one': {
+                    **rules['opts_one'],
+                    **additions.get('opts_one', {}),
+                },
+                'loop_one': {
+                    **rules['loop_one'],
+                    **additions.get('loop_one', {}),
+                },
+                'opts_two': {
+                    **rules['opts_two'],
+                    **additions.get('opts_two', {}),
+                },
+                'loop_two': {
+                    **rules['loop_two'],
+                    **additions.get('loop_two', {}),
+                },
+            }
+            data_process = (
+                data_process
+                if additions.get('data_process', None) is None
+                else additions['data_process']
+            )
+            return {
+                'keys': keys,
+                'column_names': column_names,
+                'cols': cols,
+                'rules': rule_builder(rules),
+                'data_process': data_process,
+            }
+
         groups = {
             "Loss": {
-                "keys": ["loss"],
+                "keys": ["loss"].extend(kw['Loss']['keys']),
                 "column_names": ["Frequency", "Epoch"],
                 "cols": 1,
-                "rules": rule_builder(
+                "rules": dict(
                     opts_one={"ylabel": "Loss"},
                     loop_one={"labels": ["Loss"]},
                     opts_two={},
@@ -156,7 +224,7 @@ class FWI:
                     "Epoch",
                 ],
                 "cols": 2,
-                "rules": rule_builder(
+                "rules": dict(
                     opts_one={"ylabel": "Acoustic Amplitude"},
                     loop_one={"labels": ["Observed Data", "Filtered Output"]},
                     opts_two={},
@@ -174,7 +242,7 @@ class FWI:
                     "Epoch",
                 ],
                 "cols": 2,
-                "rules": rule_builder(
+                "rules": dict(
                     opts_one={"ylabel": "Acoustic Amplitude"},
                     loop_one={"labels": ["Filtered Output", "Output"]},
                     opts_two={},
@@ -192,7 +260,7 @@ class FWI:
                     "Epoch",
                 ],
                 "cols": 2,
-                "rules": rule_builder(
+                "rules": dict(
                     opts_one={"ylabel": "Acoustic Amplitude"},
                     loop_one={"labels": ["Observed Data", "Output"]},
                     opts_two={},
@@ -209,7 +277,7 @@ class FWI:
                     "Horizontal (km)",
                 ],
                 "cols": 2,
-                "rules": rule_builder(
+                "rules": dict(
                     opts_one={"ylabel": "Velocity"},
                     loop_one={
                         "labels": [r"$v_{init}$", r"$v_p$", r"$v_{true}$"]
@@ -222,6 +290,9 @@ class FWI:
                 "data_process": extend(1),
             },
         }
+        for k, v in groups.items():
+            groups[k] = extend_group(**v, name=k)
+
         return groups
 
     @staticmethod
