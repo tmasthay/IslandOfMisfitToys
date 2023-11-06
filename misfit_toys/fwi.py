@@ -1,27 +1,21 @@
 from misfit_toys.fwi.modules.distribution import cleanup, setup
-from masthay_helpers.global_helpers import summarize_tensor, DotDict, subdict
-from misfit_toys.swiffer import iraise, istr
-from masthay_helpers.jupyter import iplot
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
+from misfit_toys.utils import parse_path
+from misfit_toys.swiffer import istr
 
-from masthay_helpers import peel_final
+from masthay_helpers.global_helpers import (
+    summarize_tensor,
+    DotDict,
+    dynamic_expand,
+    bstr,
+)
+from masthay_helpers.jupyter import rules_one, rules_two
+from masthay_helpers.jupyter import iplot
 
-from abc import ABC, abstractmethod
 import os
 import torch
 import torch.multiprocessing as mp
-import torch.distributed as dist
-import matplotlib.pyplot as plt
-from warnings import warn
-import copy
-import pickle
-import numpy as np
-
-from masthay_helpers.global_helpers import dynamic_expand, prettify_dict, bstr
-from masthay_helpers.jupyter import rules_one, rules_two
-
 from torch.nn.parallel import DistributedDataParallel as DDP
-from misfit_toys.utils import parse_path
 
 
 def merge_tensors(*, path, tensor_dict, world_size):
@@ -31,7 +25,7 @@ def merge_tensors(*, path, tensor_dict, world_size):
     return d
 
 
-class ExampleGen:
+class FWI:
     def __init__(
         self,
         *,
@@ -236,7 +230,7 @@ class ExampleGen:
             print(*args, **kw, flush=True)
 
     def print(self, *args, level=1, **kw):
-        Example.print_static(*args, level=level, verbose=self.verbose, **kw)
+        FWI.print_static(*args, level=level, verbose=self.verbose, **kw)
 
     def generate_data(self, rank, world_size):
         self.print(f"Running DDP on rank {rank} / {world_size}.", level=2)
@@ -254,7 +248,7 @@ class ExampleGen:
         stk = set(self.tensors.keys())
         unresolved_keys = st - stk
         if not stk.issubset(st):
-            e = Example.KeyException(
+            e = FWI.KeyException(
                 self,
                 msg=(
                     f"Require self.tensors.keys() to be a subset of"
@@ -269,7 +263,7 @@ class ExampleGen:
             for i in range(world_size):
                 filename = f"{tmp_path}/{k}_{i}.pt"
                 if not os.path.exists(filename):
-                    raise Example.KeyException(
+                    raise FWI.KeyException(
                         self, msg=f"File {filename} does not exist. "
                     )
                 curr.extend(torch.load(filename))
@@ -297,7 +291,7 @@ class ExampleGen:
 
     def save_all_tensors(self):
         if set(self.tensors.keys()) != set(self.tensor_names):
-            raise Example.KeyException(self)
+            raise FWI.KeyException(self)
 
         for name in self.tensors.keys():
             if self.disk_device is not None:
@@ -313,7 +307,7 @@ class ExampleGen:
                 try:
                     self.tensors[name] = torch.load(f)
                 except Exception as e:
-                    Example.print_static(f"FAIL for {name} at {f}", level=0)
+                    FWI.print_static(f"FAIL for {name} at {f}", level=0)
                     raise e
                 self.print("SUCCESS")
         else:
@@ -367,20 +361,7 @@ class ExampleGen:
                     f"{self.data_save} and re-run this script to "
                     "regenerate"
                 )
-        # self.tensors['vp_init'] = self.tensors['vp_true']
         torch.distributed.barrier()
-        # if rank == 0:
-        #     self.plot_data()
-        #     with open(self.pickle_save, "wb") as f:
-        #         self.print(
-        #             (
-        #                  f"Saving pickle to {self.pickle_save}..."
-        #                 f"self.tensors.keys()=={self.tensors.keys()}"
-        #             ),
-        #             end="",
-        #         )
-        #         pickle.dump(self, f)
-        #         self.print("SUCCESS")
         cleanup()
 
     def run(self, *args, **kw):
@@ -390,23 +371,12 @@ class ExampleGen:
                 "\nFATAL: No GPUs detected, check your system.\n"
                 "    We currently do not support CPU-only training."
             )
-        # self.losses = torch.empty(world_size + 1)
         self.load_all_tensors()
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )
         self.load_all_tensors()
         return self.final_result(*args, **kw)
-        # with open(self.pickle_save, "rb") as f:
-        #     self.print(f"Loading pickle from {self.pickle_save}...", end="")
-        #     self = pickle.load(f)
-        #     self.print(
-        #         f"SUCCESS...deleting self.pickle_save...={self.pickle_save}",
-        #         end="",
-        #     )
-        #     os.remove(self.pickle_save)
-        #     self.print("SUCCESS")
-        # return self
 
     def plot(self, *, keys, column_names, cols, rules, data_process=None):
         data = [self.tensors[k].detach().cpu() for k in keys]
@@ -428,7 +398,7 @@ class ExampleGen:
 
     class KeyException(Exception):
         def __init__(self, ex, msg=None):
-            super().__init__(Example.KeyException.build_base_msg(ex, msg))
+            super().__init__(FWI.KeyException.build_base_msg(ex, msg))
             print(self, flush=True)
 
         @staticmethod
@@ -465,7 +435,7 @@ class ExampleGen:
             return s
 
 
-class Example(ExampleGen):
+class FWIPass(FWI):
     def __init__(
         self,
         *,
@@ -488,91 +458,3 @@ class Example(ExampleGen):
             tmp=tmp,
             **kw,
         )
-
-
-class ExampleComparator:
-    def __init__(
-        self,
-        *examples,
-        data_save="compare/data",
-        fig_save="compare/figs",
-        protect=None,
-        log=0,
-    ):
-        if len(examples) != 2:
-            raise ValueError(
-                "FATAL: ExampleComparator requires exactly 2 examples"
-            )
-        self.first = examples[0].run()
-        self.second = examples[1].run()
-
-        if set(self.first.tensor_names) != set(self.second.tensor_names):
-            raise ValueError(
-                "FATAL: tensor_names for both examples must match, got\n"
-                f"    (1) {self.first.tensor_names}\n"
-                f"    (2) {self.second.tensor_names}"
-            )
-        if protect is None:
-            self.protect = []
-        else:
-            self.protect = protect
-
-        self.data_save = data_save
-        self.fig_save = fig_save
-        self.log = log
-
-        self.dummy_first_path()
-
-        os.makedirs(self.data_save, exist_ok=True)
-        os.makedirs(self.fig_save, exist_ok=True)
-
-    def dummy_first_path(self):
-        self.first.old_data_save = self.first.data_save
-        self.first.old_fig_save = self.first.fig_save
-        self.first.old_output_files = self.first.output_files
-        self.first.data_save = self.data_save
-        self.first.fig_save = self.fig_save
-        self.first.output_files = {
-            e: os.path.join(self.data_save, f"{e}.pt")
-            for e in self.first.tensor_names
-        }
-
-    def compare(self, **kw):
-        if (
-            set(self.first.tensors.keys()) != set(self.second.tensors.keys())
-            or set(self.first.tensors.keys()) != set(self.first.tensor_names)
-            or set(self.second.tensors.keys()) != set(self.second.tensor_names)
-        ):
-            raise ValueError(
-                "\n\n\nFATAL: keys for both examples must match each other and"
-                " their respective tensor_names attribute.\nNOTE:"
-                " Example.self.tensors is initialized to an empty dict.\n   "
-                " It is the responsibility of the user to populate it, usually"
-                " within _generate_data concretization.\n    It is expected"
-                " that by the time _generate_data is finished that"
-                " self.tensors.keys() == self.tensor_names. Debugging info"
-                " below\n    (1) self.first.tensors.keys():"
-                f" {self.first.tensors.keys()}\n    (2)"
-                f" self.second.tensors.keys(): {self.second.tensors.keys()}\n  "
-                f"  (3) self.first.tensor_names: {self.first.tensor_names}\n   "
-                f" (4) self.second.tensor_names: {self.second.tensor_names}\n"
-            )
-
-        self.first.data_save = self.data_save
-        self.first.fig_save = self.fig_save
-        for name in self.first.tensor_names:
-            if name not in self.protect:
-                self.first.tensors[name] = (
-                    self.first.tensors[name] - self.second.tensors[name]
-                )
-                self.first.tensors[name] = self.first.tensors[name].abs()
-                if self.log == 1:
-                    self.first.tensors[name] = torch.log(
-                        self.first.tensors[name]
-                    )
-                elif self.log == 2:
-                    self.first.tensors[name] = torch.log(
-                        1.0 + self.first.tensors[name]
-                    )
-        self.first.save_all_tensors()
-        self.first.plot_data(**kw)
