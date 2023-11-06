@@ -1,4 +1,3 @@
-from ...utils import SlotMeta
 from masthay_helpers import DotDict
 
 import torch
