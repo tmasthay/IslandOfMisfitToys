@@ -97,9 +97,12 @@ class FWI:
         return self._final_result(*args, **kw)
 
     def _final_result(self, *args, **kw):
-        return {
-            k: self.plot(**v) for k, v in self._final_dict(*args, **kw).items()
-        }
+        res = self._final_dict(*args, **kw)
+        items = res.items()
+        d = {}
+        for k, v in items:
+            d[k] = self.plot(**v)
+        return d
 
     def _final_dict(self, *args, **kw):
         return self.base_final_dict(**kw)
@@ -145,7 +148,7 @@ class FWI:
             kw[k] = kw.get(k, {})
             kw[k]['keys'] = kw[k].get('keys', [])
             kw[k]['column_names'] = kw[k].get('column_names', [])
-            kw[k]['cols'] = kw[k].get('cols', 0)
+            kw[k]['cols'] = kw[k].get('cols', None)
             kw[k]['rules'] = kw[k].get(
                 'rules',
                 {
@@ -161,10 +164,8 @@ class FWI:
             *, keys, column_names, cols, rules, data_process, name
         ):
             additions = kw.get(name, {})
-            keys = keys.extend(additions.get('keys', []))
-            column_names = column_names.extend(
-                additions.get('column_names', [])
-            )
+            keys.extend(additions.get('keys', []))
+            column_names.extend(additions.get('column_names', []))
             cols = (
                 cols
                 if additions.get('cols', None) is None
@@ -197,13 +198,13 @@ class FWI:
                 'keys': keys,
                 'column_names': column_names,
                 'cols': cols,
-                'rules': rule_builder(rules),
+                'rules': rule_builder(**rules),
                 'data_process': data_process,
             }
 
         groups = {
             "Loss": {
-                "keys": ["loss"].extend(kw['Loss']['keys']),
+                "keys": ["loss"],
                 "column_names": ["Frequency", "Epoch"],
                 "cols": 1,
                 "rules": dict(
@@ -293,6 +294,7 @@ class FWI:
         for k, v in groups.items():
             groups[k] = extend_group(**v, name=k)
 
+        # raise ValueError('debug')
         return groups
 
     @staticmethod
