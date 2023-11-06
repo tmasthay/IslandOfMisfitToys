@@ -52,6 +52,7 @@ class Training(ABC):
         self.custom = DotDict(kw)
         self.report = DotDict({"loss": []})
         self.custom.loss_reshape = [len(e["values"]) for e in epoch_groups]
+        self.__setup_trainable_records(self.custom.loss_reshape)
 
     @abstractmethod
     def _step(self, path, **kw):
@@ -197,11 +198,13 @@ class Training(ABC):
             self.dist_prop.module.parameters(), **self.opt.defaults
         )
 
-    def __record_trainable_params(self, idx):
-        self.report.trainable_params = []
-        for p in self.dist_prop.module.parameters():
-            if p.requires_grad:
-                self.report.trainable_params.append(p.detach().cpu())
+    def __setup_trainable_records(self, shape):
+        for k, v in self.dist_prop.module.named_parameters():
+            if v.requires_grad:
+                key = k.replace('.p', '')
+                self.report.set(
+                    key + '_record', torch.zeros(*shape, *v.shape).to(self.rank)
+                )
 
 
 class TrainingMultiscale(Training):

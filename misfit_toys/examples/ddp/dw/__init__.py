@@ -1,2 +1,2 @@
-__all__ = ["tmp"]
-from .tmp import *
+__all__ = []
+from . import *
