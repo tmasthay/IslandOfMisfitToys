@@ -95,17 +95,26 @@ def main(path):
     }
     verbose = 2
 
+    # loss = torch.nn.HuberLoss(delta=1.0)
+    loss = torch.nn.MSELoss()
+
+    freqs = [10.0, 15.0, 20.0, 25.0, 30.0]
+    n_epochs = 10
+    sub_epochs = n_epochs // len(freqs)
+    optimizer = torch.optim.LBFGS
+    optimizer_kwargs = dict()
+
     iomt_example = ExampleIOMT(
         prop_kwargs=prop_kwargs,
         reduce=reduce,
         verbose=verbose,
         training_class=TrainingMultiscale,
         training_kwargs={
-            "loss": torch.nn.MSELoss(),
-            "optimizer": (torch.optim.LBFGS, dict()),
+            "loss": loss,
+            "optimizer": (optimizer, optimizer_kwargs),
             "scheduler": None,
-            "freqs": [10.0, 15.0, 20.0, 25.0, 30.0],
-            "n_epochs": 2,
+            "freqs": freqs,
+            "n_epochs": sub_epochs,
         },
         save_dir="conda/BENCHMARK/multiscale",
     )
@@ -117,10 +126,10 @@ def main(path):
         verbose=verbose,
         training_class=TrainingVanilla,
         training_kwargs={
-            "loss": torch.nn.MSELoss(),
-            "optimizer": (torch.optim.LBFGS, dict()),
+            "loss": loss,
+            "optimizer": (optimizer, optimizer_kwargs),
             "scheduler": None,
-            "n_epochs": 10,
+            "n_epochs": n_epochs,
         },
         save_dir="conda/BENCHMARK/vanilla",
     )
@@ -131,4 +140,4 @@ if __name__ == "__main__":
     path = "conda/data/marmousi/deepwave_example/shots16"
     ex1, ex2 = main(path)
     ex1.run()
-    # ex2.run()
+    ex2.run()

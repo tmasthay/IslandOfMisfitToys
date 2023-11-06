@@ -343,9 +343,11 @@ class TrainingVanilla(Training):
         scheduler,
         loss,
         n_epochs,
+        loss_scale=1.0,
         **kw,
     ):
         epoch_groups = self.build_epoch_groups(n_epochs=n_epochs)
+        self.loss_scale = loss_scale
         super().__init__(
             dist_prop=dist_prop,
             rank=rank,
@@ -379,7 +381,7 @@ class TrainingVanilla(Training):
         if "msg" in kw:
             del kw["msg"]
         out = self.dist_prop(1, **kw)
-        loss = 1e6 * self.loss(out[-1], self.report.obs_data)
+        loss = self.loss_scale * self.loss(out[-1], self.report.obs_data)
         return loss, {"out_record": out[-1].detach().cpu()}
 
     def pre_train(self, *, path, **kw):
