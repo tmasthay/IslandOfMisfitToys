@@ -8,3 +8,5 @@ __pycache__
 *tmp*
 *.pt
 *.npy
+.*
+!.git*

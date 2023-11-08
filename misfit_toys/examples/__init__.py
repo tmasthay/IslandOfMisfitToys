@@ -1,16 +1,18 @@
 __all__ = [
+    "legacy",
     "download_data",
     "example",
     "setup_example",
+    "sitecustomize",
     "source",
-    "ddp",
     "jupyter",
-    "data",
+    "ddp",
 ]
+from .legacy import *
 from .download_data import *
 from .example import *
 from .setup_example import *
+from .sitecustomize import *
 from .source import *
-from .ddp import *
 from .jupyter import *
-from .data import *
+from .ddp import *

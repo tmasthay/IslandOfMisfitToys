@@ -141,8 +141,9 @@ class Training(ABC):
         }
         for k, v in params.items():
             key = k.replace('.p', '')
+            print(self.report.keys(), flush=True)
             data = getattr(self.dist_prop.module, key)().detach().cpu()
-            self.report.get(key)[idx] = data
+            self.report.get(key + '_record')[idx] = data
 
     def __build_scheduler(self, scheduler):
         if scheduler is None:
@@ -194,8 +195,8 @@ class Training(ABC):
 
     def reset_optimizer(self):
         opt_type = type(self.optimizer)
-        self.opt = opt_type(
-            self.dist_prop.module.parameters(), **self.opt.defaults
+        self.optimizer = opt_type(
+            self.dist_prop.module.parameters(), **self.optimizer.defaults
         )
 
     def __setup_trainable_records(self, shape):
@@ -205,6 +206,7 @@ class Training(ABC):
                 self.report.set(
                     key + '_record', torch.zeros(*shape, *v.shape).to(self.rank)
                 )
+                print(self.report.keys())
 
 
 class TrainingMultiscale(Training):

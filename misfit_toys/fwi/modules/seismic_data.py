@@ -118,9 +118,15 @@ class SeismicProp(torch.nn.Module):
         self.vp_init = self.vp().detach().cpu()
         self.vs = get_prmzt(vs_init, "vs_init", prmzt=vs_prmzt)
         self.rho = get_prmzt(rho_init, "rho_init", prmzt=rho_prmzt)
+        self.src_amp_y = get_prmzt(
+            src_amp_y, "src_amp_y", prmzt=src_amp_y_prmzt
+        )
+        self.src_amp_x = get_prmzt(
+            src_amp_x, "src_amp_x", prmzt=src_amp_x_prmzt
+        )
 
-        self.src_amp_y = get(src_amp_y, "src_amp_y")
-        self.src_amp_x = get(src_amp_x, "src_amp_x")
+        # self.src_amp_y = get(src_amp_y, "src_amp_y")
+        # self.src_amp_x = get(src_amp_x, "src_amp_x")
         self.obs_data = get(obs_data, "obs_data")
         self.src_loc_y = get(src_loc_y, "src_loc_y")
         self.rec_loc_y = get(rec_loc_y, "rec_loc_y")
@@ -167,7 +173,11 @@ class SeismicProp(torch.nn.Module):
         self.obs_data = cnk(self.obs_data)
         self.src_loc_y = cnk(self.src_loc_y)
         self.rec_loc_y = cnk(self.rec_loc_y)
-        self.src_amp_y = cnk(self.src_amp_y)
+
+        if self.src_amp_y.p.requires_grad:
+            self.src_amp_y.p.data = cnk(self.src_amp_y.p.data)
+        else:
+            self.src_amp_y = cnk(self.src_amp_y)
 
         return self
 
@@ -221,7 +231,7 @@ class SeismicProp(torch.nn.Module):
                 self.vp(),
                 self.metadata.dx,
                 self.metadata.dt,
-                source_amplitudes=self.src_amp_y,
+                source_amplitudes=self.src_amp_y(),
                 source_locations=self.src_loc_y,
                 receiver_locations=self.rec_loc_y,
                 **self.extra_forward_args,
@@ -236,3 +246,86 @@ class SeismicProp(torch.nn.Module):
                 receiver_locations_y=self.rec_loc_y,
                 **self.extra_forward_args,
             )
+
+    def __str__(self):
+        def format_attribute(val, name):
+            base_idt = (len(name) - len(name.strip())) * " "
+            idt = base_idt + '    '
+            # Format for Param or torch.nn.Parameter instances
+            if isinstance(val, Param):
+                return format_attribute(val, 'Param containing\n    ' + name)
+            elif isinstance(val, torch.nn.Parameter):
+                return (
+                    f'{name}\n{idt}{val.shape}'
+                    f'\n{idt}requires_grad={val.requires_grad}'
+                )
+            # Format for other values including tensors and metadata
+            elif isinstance(val, torch.Tensor):
+                return f"{name}: shape={val.shape}"
+            else:
+                return f"{name}: {val}"
+
+        # Initialize lists to hold formatted attribute strings
+        parameter_info = []
+        tensor_info = []
+        additional_info = []
+        sunder_info = []
+        dunder_info = []
+
+        # Iterate over all attributes to format them appropriately
+        d = vars(self)
+        d.update(self.named_parameters())
+        for name, attribute in vars(self).items():
+            if name.startswith('__') and name.endswith('__'):
+                dunder_info.append(format_attribute(attribute, name))
+            elif name.startswith('_'):
+                sunder_info.append(format_attribute(attribute, name))
+            else:
+                formatted = format_attribute(attribute, name)
+                if isinstance(attribute, (torch.nn.Parameter, Param)):
+                    parameter_info.append(formatted)
+                elif isinstance(attribute, torch.Tensor):
+                    tensor_info.append(formatted)
+                else:
+                    additional_info.append(formatted)
+
+        # Headings for sections
+        params_heading = "PARAMETERS (TRAINABLE):\n" if parameter_info else ""
+        tensors_heading = "TENSORS (NEVER TRAINABLE):\n" if tensor_info else ""
+        additional_heading = (
+            "ADDITIONAL ATTRIBUTES:\n" if additional_info else ""
+        )
+        sunder_heading = "SUNDER VARIABLES:\n" if sunder_info else ""
+        dunder_heading = "DUNDER VARIABLES:\n" if dunder_info else ""
+
+        # Combine formatted attribute strings
+        params_str = "\n".join(parameter_info)
+        tensors_str = "\n".join(tensor_info)
+        additional_str = "\n".join(additional_info)
+        sunder_str = "\n".join(sunder_info)
+        dunder_str = "\n".join(dunder_info)
+
+        params_str = (
+            "" if not params_str else f'{params_heading}{params_str}\n\n'
+        )
+        tensors_str = (
+            "" if not tensors_str else f'{tensors_heading}{tensors_str}\n\n'
+        )
+        additional_str = (
+            ""
+            if not additional_str
+            else f'{additional_heading}{additional_str}\n\n'
+        )
+        sunder_str = (
+            "" if not sunder_str else f'{sunder_heading}{sunder_str}\n\n'
+        )
+        dunder_str = "" if not dunder_str else f'{dunder_heading}{dunder_str}'
+
+        total_str = (
+            f"{params_str}{tensors_str}{additional_str}{sunder_str}{dunder_str}"
+        )
+        # Combine all parts
+        return (
+            "SeismicProp Class Instance:\n"
+            f"{total_str if total_str else '    None'}"
+        )
