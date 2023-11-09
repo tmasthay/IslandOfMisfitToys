@@ -1,0 +1,50 @@
+---
+repos:
+  - repo: https://github.com/tmasthay/GitHookEm
+    rev: main  # The tag/commit to clone from
+    hooks:
+      - id: commit-msg-directives
+      - id: ban-super-secret
+
+  - repo: https://github.com/psf/black
+    rev: 23.9.1  # Replace with the specific version you want to pin
+    hooks:
+      - id: black
+        args:
+          - --line-length=80
+          - --skip-string-normalization
+          - --experimental-string-processing
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0  # Always check for the latest version
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-xml
+      - id: detect-private-key
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0  # Replace with the specific version you want to pin
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: 3.9.2  # Replace with the specific version you want to pin
+  #   hooks:
+  #     - id: flake8
+  #       args: [--extend-ignore=F403, --extend-ignore=F405]
+
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.26.3  # The version you want to use
+    hooks:
+      - id: yamllint
+        args: ['--format=auto', '--strict']
