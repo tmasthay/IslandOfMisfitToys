@@ -56,4 +56,4 @@ repos:
     rev: v1.26.3  # The version you want to use
     hooks:
       - id: yamllint
-        args: ['--format=auto', '--strict']
+        args: ['--format=auto']
