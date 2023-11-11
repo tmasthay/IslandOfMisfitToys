@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: pytest
         name: Run pytest
-        entry: pytest
+        entry: pytest --cov=misfit_toys tests
         language: system
         stages: [push]
         always_run: true
