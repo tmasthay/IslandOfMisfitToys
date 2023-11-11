@@ -22,4 +22,5 @@ jobs:
 
       - name: Run pytest
         run: |
+          pip install pytest-cov pytest-xdist
           pytest --cov=misfit_toys tests
