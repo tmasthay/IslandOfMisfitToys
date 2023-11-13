@@ -1,7 +1,9 @@
-from masthay_helpers.global_helpers import torch_dir_compare
-from misfit_toys.utils import parse_path
 import argparse
 import os
+
+from masthay_helpers.global_helpers import torch_dir_compare
+
+from misfit_toys.utils import parse_path
 
 
 def main():
@@ -9,6 +11,7 @@ def main():
     parser.add_argument('dir1', type=str)
     parser.add_argument('dir2', type=str)
     parser.add_argument('out', type=str)
+    parser.add_argument('-f', '--figs', action='store_true')
     args = parser.parse_args()
 
     args.dir1 = os.path.abspath(parse_path(args.dir1))
@@ -22,7 +25,7 @@ def main():
         )
 
     os.makedirs(args.out, exist_ok=True)
-    torch_dir_compare(args.dir1, args.dir2, args.out)
+    torch_dir_compare(args.dir1, args.dir2, args.out, make_figs=args.figs)
 
 
 if __name__ == '__main__':

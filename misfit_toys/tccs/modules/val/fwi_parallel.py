@@ -11,6 +11,8 @@ from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
+from misfit_toys.tccs.modules.seismic_data import SeismicProp
+
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -62,27 +64,27 @@ class Model(torch.nn.Module):
         )
 
 
-class Prop(torch.nn.Module):
-    def __init__(self, model, dx, dt, freq):
-        super().__init__()
-        self.model = model
-        self.dx = dx
-        self.dt = dt
-        self.freq = freq
+# class Prop(torch.nn.Module):
+#     def __init__(self, model, dx, dt, freq):
+#         super().__init__()
+#         self.model = model
+#         self.dx = dx
+#         self.dt = dt
+#         self.freq = freq
 
-    def forward(self, source_amplitudes, source_locations, receiver_locations):
-        v = self.model()
-        return scalar(
-            v,
-            self.dx,
-            self.dt,
-            source_amplitudes=source_amplitudes,
-            source_locations=source_locations,
-            receiver_locations=receiver_locations,
-            max_vel=2500,
-            pml_freq=self.freq,
-            time_pad_frac=0.2,
-        )
+#     def forward(self, source_amplitudes, source_locations, receiver_locations):
+#         v = self.model()
+#         return scalar(
+#             v,
+#             self.dx,
+#             self.dt,
+#             source_amplitudes=source_amplitudes,
+#             source_locations=source_locations,
+#             receiver_locations=receiver_locations,
+#             max_vel=2500,
+#             pml_freq=self.freq,
+#             time_pad_frac=0.2,
+#         )
 
 
 def run_rank(rank, world_size):
@@ -161,7 +163,7 @@ def run_rank(rank, world_size):
     )
 
     model = Model(v_init, 1000, 2500)
-    prop = Prop(model, dx, dt, freq).to(rank)
+    prop = SeismicProp(model, dx, dt, freq).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
     # Setup optimiser to perform inversion
