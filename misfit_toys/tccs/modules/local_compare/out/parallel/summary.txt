@@ -17,39 +17,39 @@
 [31mloss_record.txt      mean=-0.06536865234375[0m
 [32mout_filt_record.txt  mean=3.4601504994569154e-10[0m
 [33mout_record.txt       mean=-5.450077278368326e-09[0m
-[35mv_record.txt         mean=0.025566134601831436[0m
+[35mv_record.txt         mean=-130.3109588623047[0m
 
 [31mloss_record.txt      variance=nan[0m
 [32mout_filt_record.txt  variance=4.55489939099607e-08[0m
 [33mout_record.txt       variance=3.48288892837445e-07[0m
-[35mv_record.txt         variance=0.7760010957717896[0m
+[35mv_record.txt         variance=194567.828125[0m
 
 [31mloss_record.txt      median=-0.06536865234375[0m
 [32mout_filt_record.txt  median=0.0[0m
 [33mout_record.txt       median=0.0[0m
-[35mv_record.txt         median=0.0[0m
+[35mv_record.txt         median=-7.11669921875[0m
 
 [31mloss_record.txt      min=-0.06536865234375[0m
 [32mout_filt_record.txt  min=-0.00785357877612114[0m
 [33mout_record.txt       min=-0.05277109146118164[0m
-[35mv_record.txt         min=-25.945556640625[0m
+[35mv_record.txt         min=-1168.429931640625[0m
 
 [31mloss_record.txt      max=-0.06536865234375[0m
 [32mout_filt_record.txt  max=0.006939888000488281[0m
 [33mout_record.txt       max=0.03750252723693848[0m
-[35mv_record.txt         max=39.5599365234375[0m
+[35mv_record.txt         max=1029.156494140625[0m
 
 [31mloss_record.txt      stddev=nan[0m
 [32mout_filt_record.txt  stddev=0.00021342209947761148[0m
 [33mout_record.txt       stddev=0.00059016008162871[0m
-[35mv_record.txt         stddev=0.880909264087677[0m
+[35mv_record.txt         stddev=441.09844970703125[0m
 
 [31mloss_record.txt      RMS=0.06536865234375[0m
 [32mout_filt_record.txt  RMS=0.00021342208492569625[0m
 [33mout_record.txt       RMS=0.0005901599652133882[0m
-[35mv_record.txt         RMS=0.8812798261642456[0m
+[35mv_record.txt         RMS=459.9441833496094[0m
 
 [31mloss_record.txt      L2=0.06536865234375[0m
 [32mout_filt_record.txt  L2=0.46754756569862366[0m
 [33mout_record.txt       L2=1.2928744554519653[0m
-[35mv_record.txt         L2=1079.277587890625[0m
+[35mv_record.txt         L2=563301.125[0m

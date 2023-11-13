@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 from deepwave import scalar
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
-from torch.nn import HuberLoss, SmoothL1Loss
+from torch.nn import HuberLoss, L1Loss, SmoothL1Loss
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
@@ -184,7 +184,8 @@ def run_rank(rank, world_size):
     # Setup optimiser to perform inversion
     # loss_fn = torch.nn.MSELoss()
     # loss_fn = LeastSquares()
-    loss_fn = HuberLoss()
+    # loss_fn = HuberLoss()
+    loss_fn = L1Loss()
 
     # Run optimisation/inversion
     n_epochs = 2
