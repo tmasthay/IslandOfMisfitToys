@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from masthay_helpers.global_helpers import torch_dir_compare
 
@@ -12,6 +13,9 @@ def main():
     parser.add_argument('dir2', type=str)
     parser.add_argument('out', type=str)
     parser.add_argument('-f', '--figs', action='store_true')
+    parser.add_argument(
+        '-i', '--include-only', type=str, default=None, nargs='+'
+    )
     args = parser.parse_args()
 
     args.dir1 = os.path.abspath(parse_path(args.dir1))
@@ -25,7 +29,13 @@ def main():
         )
 
     os.makedirs(args.out, exist_ok=True)
-    torch_dir_compare(args.dir1, args.dir2, args.out, make_figs=args.figs)
+    torch_dir_compare(
+        args.dir1,
+        args.dir2,
+        args.out,
+        include_only=args.include_only,
+        make_figs=args.figs,
+    )
 
 
 if __name__ == '__main__':

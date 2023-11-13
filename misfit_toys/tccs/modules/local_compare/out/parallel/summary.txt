@@ -14,42 +14,42 @@
 [32mv_record.txt           shape=torch.Size([10,[0m
 [33m600,                   250])[0m
 
-[31mloss_record.txt      mean=0.0054779052734375[0m
-[32mout_filt_record.txt  mean=5.00451768914445e-09[0m
-[33mout_record.txt       mean=-4.8071155944739985e-09[0m
-[35mv_record.txt         mean=-0.009073378518223763[0m
+[31mloss_record.txt      mean=-0.06536865234375[0m
+[32mout_filt_record.txt  mean=3.4601504994569154e-10[0m
+[33mout_record.txt       mean=-5.450077278368326e-09[0m
+[35mv_record.txt         mean=0.041078243404626846[0m
 
 [31mloss_record.txt      variance=nan[0m
-[32mout_filt_record.txt  variance=2.211015903696989e-08[0m
-[33mout_record.txt       variance=1.167126200130042e-07[0m
-[35mv_record.txt         variance=0.26787102222442627[0m
+[32mout_filt_record.txt  variance=4.55489939099607e-08[0m
+[33mout_record.txt       variance=3.48288892837445e-07[0m
+[35mv_record.txt         variance=1.5261121988296509[0m
 
-[31mloss_record.txt      median=0.0054779052734375[0m
+[31mloss_record.txt      median=-0.06536865234375[0m
 [32mout_filt_record.txt  median=0.0[0m
 [33mout_record.txt       median=0.0[0m
 [35mv_record.txt         median=0.0[0m
 
-[31mloss_record.txt      min=0.0054779052734375[0m
-[32mout_filt_record.txt  min=-0.007602035999298096[0m
-[33mout_record.txt       min=-0.018944740295410156[0m
-[35mv_record.txt         min=-20.8194580078125[0m
+[31mloss_record.txt      min=-0.06536865234375[0m
+[32mout_filt_record.txt  min=-0.00785357877612114[0m
+[33mout_record.txt       min=-0.05277109146118164[0m
+[35mv_record.txt         min=-27.582275390625[0m
 
-[31mloss_record.txt      max=0.0054779052734375[0m
-[32mout_filt_record.txt  max=0.006254971027374268[0m
-[33mout_record.txt       max=0.013116836547851562[0m
-[35mv_record.txt         max=14.7454833984375[0m
+[31mloss_record.txt      max=-0.06536865234375[0m
+[32mout_filt_record.txt  max=0.006939888000488281[0m
+[33mout_record.txt       max=0.03750252723693848[0m
+[35mv_record.txt         max=28.714599609375[0m
 
 [31mloss_record.txt      stddev=nan[0m
-[32mout_filt_record.txt  stddev=0.00014869484584778547[0m
-[33mout_record.txt       stddev=0.0003416322870180011[0m
-[35mv_record.txt         stddev=0.5175625681877136[0m
+[32mout_filt_record.txt  stddev=0.00021342209947761148[0m
+[33mout_record.txt       stddev=0.00059016008162871[0m
+[35mv_record.txt         stddev=1.2353590726852417[0m
 
-[31mloss_record.txt      RMS=0.0054779052734375[0m
-[32mout_filt_record.txt  RMS=0.00014869484584778547[0m
-[33mout_record.txt       RMS=0.0003416322579141706[0m
-[35mv_record.txt         RMS=0.5176419019699097[0m
+[31mloss_record.txt      RMS=0.06536865234375[0m
+[32mout_filt_record.txt  RMS=0.00021342208492569625[0m
+[33mout_record.txt       RMS=0.0005901599652133882[0m
+[35mv_record.txt         RMS=1.23604154586792[0m
 
-[31mloss_record.txt      L2=0.0054779052734375[0m
-[32mout_filt_record.txt  L2=0.3257535994052887[0m
-[33mout_record.txt       L2=0.7484211325645447[0m
-[35mv_record.txt         L2=633.96728515625[0m
+[31mloss_record.txt      L2=0.06536865234375[0m
+[32mout_filt_record.txt  L2=0.46754756569862366[0m
+[33mout_record.txt       L2=1.2928744554519653[0m
+[35mv_record.txt         L2=1513.803955078125[0m

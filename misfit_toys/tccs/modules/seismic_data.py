@@ -15,7 +15,9 @@ class SeismicProp(torch.nn.Module):
         rec_loc_y,
         src_amp_x=None,
         src_loc_x=None,
-        rec_loc_x=None
+        rec_loc_x=None,
+        extra_forward=None,
+        **kw
     ):
         super().__init__()
         self.model = model
@@ -28,6 +30,8 @@ class SeismicProp(torch.nn.Module):
         self.src_amp_x = src_amp_x
         self.src_loc_x = src_loc_x
         self.rec_loc_x = rec_loc_x
+        self.extra_forward = extra_forward or {}
+        self.__dict__.update(kw)
 
     def forward(self, dummy):
         v = self.model()
@@ -38,7 +42,5 @@ class SeismicProp(torch.nn.Module):
             source_amplitudes=self.src_amp_y,
             source_locations=self.src_loc_y,
             receiver_locations=self.rec_loc_y,
-            max_vel=2500,
-            pml_freq=self.freq,
-            time_pad_frac=0.2,
+            **self.extra_forward,
         )

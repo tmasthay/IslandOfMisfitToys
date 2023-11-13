@@ -171,6 +171,11 @@ def run_rank(rank, world_size):
         src_amp_y=source_amplitudes,
         src_loc_y=source_locations,
         rec_loc_y=receiver_locations,
+        extra_forward={
+            'max_vel': 2500,
+            'pml_freq': freq,
+            'time_pad_frac': 0.2,
+        },
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
