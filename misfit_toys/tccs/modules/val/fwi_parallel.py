@@ -163,7 +163,15 @@ def run_rank(rank, world_size):
     )
 
     model = Model(v_init, 1000, 2500)
-    prop = SeismicProp(model, dx, dt, freq).to(rank)
+    prop = SeismicProp(
+        model=model,
+        dx=dx,
+        dt=dt,
+        freq=freq,
+        src_amp_y=source_amplitudes,
+        src_loc_y=source_locations,
+        rec_loc_y=receiver_locations,
+    ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
     # Setup optimiser to perform inversion
@@ -198,9 +206,7 @@ def run_rank(rank, world_size):
                 nonlocal num_calls
                 num_calls += 1
                 optimiser.zero_grad()
-                out = prop(
-                    source_amplitudes, source_locations, receiver_locations
-                )
+                out = prop(1)
                 out_filt = filt(taper(out[-1]))
                 loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                 loss.backward()

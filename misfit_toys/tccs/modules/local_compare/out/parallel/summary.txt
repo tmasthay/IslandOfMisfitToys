@@ -1,0 +1,55 @@
+
+
+[31mloss_record.txt      dtype=torch.float32[0m
+[32mout_filt_record.txt  dtype=torch.float32[0m
+[33mout_record.txt       dtype=torch.float32[0m
+[35mv_record.txt         dtype=torch.float32[0m
+
+[31mloss_record.txt        shape=torch.Size([])[0m
+[32mout_filt_record.txt    shape=torch.Size([20,[0m
+[33m8,                     100,[0m
+[35m300])                  out_record.txt[0m
+[36mshape=torch.Size([20,  8,[0m
+[31m100,                   300])[0m
+[32mv_record.txt           shape=torch.Size([10,[0m
+[33m600,                   250])[0m
+
+[31mloss_record.txt      mean=0.0054779052734375[0m
+[32mout_filt_record.txt  mean=5.00451768914445e-09[0m
+[33mout_record.txt       mean=-4.8071155944739985e-09[0m
+[35mv_record.txt         mean=-0.009073378518223763[0m
+
+[31mloss_record.txt      variance=nan[0m
+[32mout_filt_record.txt  variance=2.211015903696989e-08[0m
+[33mout_record.txt       variance=1.167126200130042e-07[0m
+[35mv_record.txt         variance=0.26787102222442627[0m
+
+[31mloss_record.txt      median=0.0054779052734375[0m
+[32mout_filt_record.txt  median=0.0[0m
+[33mout_record.txt       median=0.0[0m
+[35mv_record.txt         median=0.0[0m
+
+[31mloss_record.txt      min=0.0054779052734375[0m
+[32mout_filt_record.txt  min=-0.007602035999298096[0m
+[33mout_record.txt       min=-0.018944740295410156[0m
+[35mv_record.txt         min=-20.8194580078125[0m
+
+[31mloss_record.txt      max=0.0054779052734375[0m
+[32mout_filt_record.txt  max=0.006254971027374268[0m
+[33mout_record.txt       max=0.013116836547851562[0m
+[35mv_record.txt         max=14.7454833984375[0m
+
+[31mloss_record.txt      stddev=nan[0m
+[32mout_filt_record.txt  stddev=0.00014869484584778547[0m
+[33mout_record.txt       stddev=0.0003416322870180011[0m
+[35mv_record.txt         stddev=0.5175625681877136[0m
+
+[31mloss_record.txt      RMS=0.0054779052734375[0m
+[32mout_filt_record.txt  RMS=0.00014869484584778547[0m
+[33mout_record.txt       RMS=0.0003416322579141706[0m
+[35mv_record.txt         RMS=0.5176419019699097[0m
+
+[31mloss_record.txt      L2=0.0054779052734375[0m
+[32mout_filt_record.txt  L2=0.3257535994052887[0m
+[33mout_record.txt       L2=0.7484211325645447[0m
+[35mv_record.txt         L2=633.96728515625[0m
