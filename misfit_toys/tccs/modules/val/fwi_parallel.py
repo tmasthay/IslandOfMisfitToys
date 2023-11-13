@@ -8,7 +8,13 @@ import torch.multiprocessing as mp
 from deepwave import scalar
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
-from torch.nn import BCEWithLogitsLoss, HuberLoss, L1Loss, SmoothL1Loss, SoftMarginLoss
+from torch.nn import (
+    BCEWithLogitsLoss,
+    HuberLoss,
+    L1Loss,
+    SmoothL1Loss,
+    SoftMarginLoss,
+)
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
@@ -17,8 +23,8 @@ from misfit_toys.tccs.modules.seismic_data import SeismicProp
 
 
 def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
 
     # initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
@@ -29,24 +35,24 @@ def cleanup():
     dist.destroy_process_group()
 
 
-def get_file(name, *, rank='', path='out/parallel', ext='.pt'):
-    ext = '.' + ext.replace('.', '')
-    name = name.replace(ext, '')
-    if rank != '':
-        rank = f'_{rank}'
-    return os.path.join(os.path.dirname(__file__), path, f'{name}{rank}{ext}')
+def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
+    ext = "." + ext.replace(".", "")
+    name = name.replace(ext, "")
+    if rank != "":
+        rank = f"_{rank}"
+    return os.path.join(os.path.dirname(__file__), path, f"{name}{rank}{ext}")
 
 
-def load(name, *, rank='', path='out/parallel', ext='.pt'):
-    return torch.load(get_file(name, rank=rank, path=path, ext='.pt'))
+def load(name, *, rank="", path="out/parallel", ext=".pt"):
+    return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
 
 
-def save(tensor, name, *, rank='', path='out/parallel', ext='.pt'):
-    torch.save(tensor, get_file(name, rank=rank, path=path, ext='.pt'))
+def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
+    torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
 
 
-def savefig(name, *, path='out/parallel', ext='.pt'):
-    plt.savefig(get_file(name, rank='', path=path, ext=ext))
+def savefig(name, *, path="out/parallel", ext=".pt"):
+    plt.savefig(get_file(name, rank="", path=path, ext=ext))
 
 
 # Generate a velocity model constrained to be within a desired range
@@ -95,7 +101,7 @@ def run_rank(rank, world_size):
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = load('vp.pt', path='out/base')
+    v_true = load("vp.pt", path="out/base")
 
     # Select portion of model for inversion
     ny = 600
@@ -122,7 +128,7 @@ def run_rank(rank, world_size):
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = load('obs_data.pt', path='out/base')
+    observed_data = load("obs_data.pt", path="out/base")
 
     def taper(x):
         # Taper the ends of traces
@@ -174,20 +180,20 @@ def run_rank(rank, world_size):
         src_loc_y=source_locations,
         rec_loc_y=receiver_locations,
         extra_forward={
-            'max_vel': 2500,
-            'pml_freq': freq,
-            'time_pad_frac': 0.2,
+            "max_vel": 2500,
+            "pml_freq": freq,
+            "time_pad_frac": 0.2,
         },
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
     # Setup optimiser to perform inversion
-    # loss_fn = torch.nn.MSELoss()
+    loss_fn = torch.nn.MSELoss()
     # loss_fn = LeastSquares()
     # loss_fn = HuberLoss()
     # loss_fn = L1Loss()
     # loss_fn = BCEWithLogitsLoss()
-    loss_fn = SoftMarginLoss()
+    # loss_fn = SoftMarginLoss()
 
     # Run optimisation/inversion
     n_epochs = 2
@@ -201,7 +207,7 @@ def run_rank(rank, world_size):
     n_freqs = len(freqs)
     get_epoch = lambda i, j: i * n_epochs + j
     for i, cutoff_freq in enumerate(freqs):
-        sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
+        sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
         ]
@@ -228,18 +234,18 @@ def run_rank(rank, world_size):
                     out_record.append(out[-1].detach().cpu())
                     out_filt_record.append(out_filt.detach().cpu())
                     print(
-                        f'Epoch={get_epoch(i, epoch)}, Loss={loss.item()},'
-                        f' rank={rank}',
+                        f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
+                        f" rank={rank}",
                         flush=True,
                     )
                 return loss
 
             optimiser.step(closure)
 
-    save(torch.tensor(loss_record), 'loss_record.pt', rank=rank)
-    save(torch.stack(v_record), 'v_record.pt', rank=rank)
-    save(torch.stack(out_record), 'out_record.pt', rank=rank)
-    save(torch.stack(out_filt_record), 'out_filt_record.pt', rank=rank)
+    save(torch.tensor(loss_record), "loss_record.pt", rank=rank)
+    save(torch.stack(v_record), "v_record.pt", rank=rank)
+    save(torch.stack(out_record), "out_record.pt", rank=rank)
+    save(torch.stack(out_filt_record), "out_filt_record.pt", rank=rank)
 
     torch.distributed.barrier()
     # Plot
@@ -247,47 +253,47 @@ def run_rank(rank, world_size):
         loss_record = torch.mean(
             torch.stack(
                 [
-                    load('loss_record.pt', rank=rank)
+                    load("loss_record.pt", rank=rank)
                     for rank in range(world_size)
                 ]
             )
         )
-        v_record = load('v_record.pt', rank=0)
+        v_record = load("v_record.pt", rank=0)
         out_record = torch.cat(
-            [load('out_record.pt', rank=rank) for rank in range(world_size)]
+            [load("out_record.pt", rank=rank) for rank in range(world_size)]
         )
         out_filt_record = torch.cat(
             [
-                load('out_filt_record.pt', rank=rank)
+                load("out_filt_record.pt", rank=rank)
                 for rank in range(world_size)
             ]
         )
 
-        save(loss_record, 'loss_record.pt', rank='')
-        save(v_record, 'v_record.pt', rank='')
-        save(out_record, 'out_record.pt', rank='')
-        save(out_filt_record, 'out_filt_record.pt', rank='')
+        save(loss_record, "loss_record.pt", rank="")
+        save(v_record, "v_record.pt", rank="")
+        save(out_record, "out_record.pt", rank="")
+        save(out_filt_record, "out_filt_record.pt", rank="")
 
         v = model()
         vmin = v_true.min()
         vmax = v_true.max()
         _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
         ax[0].imshow(
-            v_init.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+            v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
         )
         ax[0].set_title("Initial")
         ax[1].imshow(
-            v.detach().cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+            v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
         )
         ax[1].set_title("Out")
         ax[2].imshow(
-            v_true.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+            v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
         )
         ax[2].set_title("True")
         plt.tight_layout()
-        savefig('example_distributed_ddp', ext='jpg')
+        savefig("example_distributed_ddp", ext="jpg")
 
-        v.detach().cpu().numpy().tofile('marmousi_v_inv.bin')
+        v.detach().cpu().numpy().tofile("marmousi_v_inv.bin")
     cleanup()
 
 

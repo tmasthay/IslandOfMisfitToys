@@ -8,7 +8,7 @@ from deepwave import scalar
 
 def main():
     def get_file(name):
-        return os.path.join(os.path.dirname(__file__), 'out/base', name)
+        return os.path.join(os.path.dirname(__file__), "out/base", name)
 
     def load(name):
         return torch.load(get_file(name))
@@ -16,21 +16,21 @@ def main():
     def save(tensor, name):
         torch.save(tensor, get_file(name))
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ny = 2301
     nx = 751
     dx = 4.0
-    if os.path.exists('vp.pt'):
-        print('Loading vp.pt')
-        v = load('vp.pt')
+    if os.path.exists("vp.pt"):
+        print("Loading vp.pt")
+        v = load("vp.pt")
     else:
-        print('Loading vp.bin')
+        print("Loading vp.bin")
         v = (
-            torch.from_file(get_file('vp.bin'), size=ny * nx)
+            torch.from_file(get_file("vp.bin"), size=ny * nx)
             .reshape(ny, nx)
             .to(device)
         )
-        save(v.cpu(), 'vp.pt')
+        save(v.cpu(), "vp.pt")
 
     n_shots = 115
 
@@ -92,15 +92,15 @@ def main():
     _, ax = plt.subplots(1, 2, figsize=(10.5, 7), sharey=True)
     ax[0].imshow(
         receiver_amplitudes[57].cpu().T,
-        aspect='auto',
-        cmap='gray',
+        aspect="auto",
+        cmap="gray",
         vmin=vmin,
         vmax=vmax,
     )
     ax[1].imshow(
         receiver_amplitudes[:, 192].cpu().T,
-        aspect='auto',
-        cmap='gray',
+        aspect="auto",
+        cmap="gray",
         vmin=vmin,
         vmax=vmax,
     )
@@ -108,10 +108,10 @@ def main():
     ax[0].set_ylabel("Time Sample")
     ax[1].set_xlabel("Shot")
     plt.tight_layout()
-    plt.savefig('example_forward_model.jpg')
+    plt.savefig("example_forward_model.jpg")
 
-    save(receiver_amplitudes.cpu(), 'obs_data.pt')
+    save(receiver_amplitudes.cpu(), "obs_data.pt")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

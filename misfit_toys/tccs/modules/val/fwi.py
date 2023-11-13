@@ -10,23 +10,23 @@ from torchaudio.functional import biquad
 
 
 def main():
-    def get_file(name, path='out/serial'):
+    def get_file(name, path="out/serial"):
         return os.path.join(os.path.dirname(__file__), path, name)
 
-    def load(name, path='out/serial'):
+    def load(name, path="out/serial"):
         return torch.load(get_file(name, path))
 
-    def save(tensor, name, path='out/serial'):
+    def save(tensor, name, path="out/serial"):
         torch.save(tensor, get_file(name, path))
 
-    def savefig(name, path='out/serial'):
+    def savefig(name, path="out/serial"):
         plt.savefig(get_file(name, path))
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = load('vp.pt', path='out/base')
+    v_true = load("vp.pt", path="out/base")
 
     # Select portion of model for inversion
     ny = 600
@@ -57,7 +57,7 @@ def main():
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = load('obs_data.pt', path='out/base')
+    observed_data = load("obs_data.pt", path="out/base")
 
     # Select portion of data for inversion
     n_shots = 20
@@ -122,19 +122,19 @@ def main():
     vmax = v_true.max()
     _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
     ax[0].imshow(
-        v_init.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[0].set_title("Initial")
     ax[1].imshow(
-        v.detach().cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[1].set_title("Out")
     ax[2].imshow(
-        v_true.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[2].set_title("True")
     plt.tight_layout()
-    savefig('example_simple_fwi.jpg')
+    savefig("example_simple_fwi.jpg")
 
     ## Second attempt: constrained velocity and frequency filtering
 
@@ -169,7 +169,7 @@ def main():
     out_filt_record = []
 
     for cutoff_freq in [10, 15, 20, 25, 30]:
-        sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
+        sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(device)
             for sosi in sos
@@ -180,7 +180,7 @@ def main():
 
         observed_data_filt = filt(observed_data)
         optimiser = torch.optim.LBFGS(
-            model.parameters(), line_search_fn='strong_wolfe'
+            model.parameters(), line_search_fn="strong_wolfe"
         )
         for epoch in range(n_epochs):
             num_calls = 0
@@ -218,25 +218,25 @@ def main():
     vmax = v_true.max()
     _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
     ax[0].imshow(
-        v_init.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[0].set_title("Initial")
     ax[1].imshow(
-        v.detach().cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[1].set_title("Out")
     ax[2].imshow(
-        v_true.cpu().T, aspect='auto', cmap='gray', vmin=vmin, vmax=vmax
+        v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
     )
     ax[2].set_title("True")
     plt.tight_layout()
-    savefig('example_increasing_freq_fwi.jpg')
+    savefig("example_increasing_freq_fwi.jpg")
 
-    save(torch.tensor(loss_record), 'loss_record.pt')
-    save(torch.stack(v_record), 'v_record.pt')
-    save(torch.stack(out_record), 'out_record.pt')
-    save(torch.stack(out_filt_record), 'out_filt_record.pt')
+    save(torch.tensor(loss_record), "loss_record.pt")
+    save(torch.stack(v_record), "v_record.pt")
+    save(torch.stack(out_record), "out_record.pt")
+    save(torch.stack(out_filt_record), "out_filt_record.pt")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
