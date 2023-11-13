@@ -43,7 +43,7 @@ repos:
   #   rev: 5.12.0  # Replace with the specific version you want to pin
   #   hooks:
   #     - id: isort
-  #       args: []
+  #       args: ["--profile", "black"]
 
   # - repo: https://github.com/pycqa/flake8
   #   rev: 3.9.2  # Replace with the specific version you want to pin
