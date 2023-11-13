@@ -11,6 +11,7 @@ from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
+from misfit_toys.fwi.custom_losses import LeastSquares
 from misfit_toys.tccs.modules.seismic_data import SeismicProp
 
 
@@ -180,7 +181,8 @@ def run_rank(rank, world_size):
     prop = DDP(prop, device_ids=[rank])
 
     # Setup optimiser to perform inversion
-    loss_fn = torch.nn.MSELoss()
+    # loss_fn = torch.nn.MSELoss()
+    loss_fn = LeastSquares()
 
     # Run optimisation/inversion
     n_epochs = 2

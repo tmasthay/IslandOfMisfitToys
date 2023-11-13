@@ -1,7 +1,7 @@
-import torch
 import numpy as np
-from scipy.optimize import linear_sum_assignment
+import torch
 import torch.nn.functional as F
+from scipy.optimize import linear_sum_assignment
 
 
 class Renorm:
@@ -204,3 +204,13 @@ class GSOT(torch.nn.Module):
                     ).sum()
                 )
         return loss
+
+
+class LeastSquares(torch.nn.Module):
+    def __init__(self, alpha=1.0):
+        super().__init__()
+        self.alpha = alpha
+
+    def forward(self, y_pred, y_true):
+        # Calculate the difference between the two seismic images
+        return torch.mean((y_pred - y_true) ** 2)

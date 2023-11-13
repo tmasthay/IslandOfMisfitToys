@@ -17,12 +17,12 @@
 [31mloss_record.txt      mean=-0.06536865234375[0m
 [32mout_filt_record.txt  mean=3.4601504994569154e-10[0m
 [33mout_record.txt       mean=-5.450077278368326e-09[0m
-[35mv_record.txt         mean=0.041078243404626846[0m
+[35mv_record.txt         mean=-0.005694549530744553[0m
 
 [31mloss_record.txt      variance=nan[0m
 [32mout_filt_record.txt  variance=4.55489939099607e-08[0m
 [33mout_record.txt       variance=3.48288892837445e-07[0m
-[35mv_record.txt         variance=1.5261121988296509[0m
+[35mv_record.txt         variance=0.11014752089977264[0m
 
 [31mloss_record.txt      median=-0.06536865234375[0m
 [32mout_filt_record.txt  median=0.0[0m
@@ -32,24 +32,24 @@
 [31mloss_record.txt      min=-0.06536865234375[0m
 [32mout_filt_record.txt  min=-0.00785357877612114[0m
 [33mout_record.txt       min=-0.05277109146118164[0m
-[35mv_record.txt         min=-27.582275390625[0m
+[35mv_record.txt         min=-13.1763916015625[0m
 
 [31mloss_record.txt      max=-0.06536865234375[0m
 [32mout_filt_record.txt  max=0.006939888000488281[0m
 [33mout_record.txt       max=0.03750252723693848[0m
-[35mv_record.txt         max=28.714599609375[0m
+[35mv_record.txt         max=7.5528564453125[0m
 
 [31mloss_record.txt      stddev=nan[0m
 [32mout_filt_record.txt  stddev=0.00021342209947761148[0m
 [33mout_record.txt       stddev=0.00059016008162871[0m
-[35mv_record.txt         stddev=1.2353590726852417[0m
+[35mv_record.txt         stddev=0.33188480138778687[0m
 
 [31mloss_record.txt      RMS=0.06536865234375[0m
 [32mout_filt_record.txt  RMS=0.00021342208492569625[0m
 [33mout_record.txt       RMS=0.0005901599652133882[0m
-[35mv_record.txt         RMS=1.23604154586792[0m
+[35mv_record.txt         RMS=0.33193352818489075[0m
 
 [31mloss_record.txt      L2=0.06536865234375[0m
 [32mout_filt_record.txt  L2=0.46754756569862366[0m
 [33mout_record.txt       L2=1.2928744554519653[0m
-[35mv_record.txt         L2=1513.803955078125[0m
+[35mv_record.txt         L2=406.52447509765625[0m
