@@ -1,0 +1,11 @@
+Difference between /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/tccs/modules/alan/out/parallel/out_record_1.pt and /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/tccs/modules/val/out/parallel/out_record_1.pt:
+    dtype = torch.float32
+    shape = torch.Size([10, 8, 100, 300])
+    mean = -9.559512292867112e-09
+    variance = 1.507293490021766e-07
+    median = 0.0
+    min = -0.021022319793701172
+    max = 0.0150127112865448
+    stddev = 0.0003882387827616185
+    RMS = 0.0003882387245539576
+    L2 = 0.6014243364334106
