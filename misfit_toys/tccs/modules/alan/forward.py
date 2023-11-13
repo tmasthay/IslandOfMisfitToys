@@ -7,17 +7,30 @@ from deepwave import scalar
 
 
 def main():
+    def get_file(name):
+        return os.path.join(os.path.dirname(__file__), 'out/base', name)
+
+    def load(name):
+        return torch.load(get_file(name))
+
+    def save(tensor, name):
+        torch.save(tensor, get_file(name))
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     ny = 2301
     nx = 751
     dx = 4.0
     if os.path.exists('vp.pt'):
         print('Loading vp.pt')
-        v = torch.load('vp.pt')
+        v = load('vp.pt')
     else:
         print('Loading vp.bin')
-        v = torch.from_file('vp.bin', size=ny * nx).reshape(ny, nx).to(device)
-        torch.save(v.cpu(), 'vp.pt')
+        v = (
+            torch.from_file(get_file('vp.bin'), size=ny * nx)
+            .reshape(ny, nx)
+            .to(device)
+        )
+        save(v.cpu(), 'vp.pt')
 
     n_shots = 115
 
@@ -97,7 +110,7 @@ def main():
     plt.tight_layout()
     plt.savefig('example_forward_model.jpg')
 
-    torch.save(receiver_amplitudes.cpu(), 'obs_data.pt')
+    save(receiver_amplitudes.cpu(), 'obs_data.pt')
 
 
 if __name__ == '__main__':

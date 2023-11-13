@@ -10,11 +10,23 @@ from torchaudio.functional import biquad
 
 
 def main():
+    def get_file(name, path='out/serial'):
+        return os.path.join(os.path.dirname(__file__), path, name)
+
+    def load(name, path='out/serial'):
+        return torch.load(get_file(name, path))
+
+    def save(tensor, name, path='out/serial'):
+        torch.save(tensor, get_file(name, path))
+
+    def savefig(name, path='out/serial'):
+        plt.savefig(get_file(name, path))
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = torch.load('vp.pt')
+    v_true = load('vp.pt', path='out/base')
 
     # Select portion of model for inversion
     ny = 600
@@ -45,7 +57,7 @@ def main():
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = torch.load('obs_data.pt')
+    observed_data = load('obs_data.pt', path='out/base')
 
     # Select portion of data for inversion
     n_shots = 20
@@ -122,7 +134,7 @@ def main():
     )
     ax[2].set_title("True")
     plt.tight_layout()
-    plt.savefig('example_simple_fwi.jpg')
+    savefig('example_simple_fwi.jpg')
 
     ## Second attempt: constrained velocity and frequency filtering
 
@@ -218,12 +230,12 @@ def main():
     )
     ax[2].set_title("True")
     plt.tight_layout()
-    plt.savefig('example_increasing_freq_fwi.jpg')
+    savefig('example_increasing_freq_fwi.jpg')
 
-    torch.save(torch.tensor(loss_record), 'loss_record.pt')
-    torch.save(torch.stack(v_record), 'v_record.pt')
-    torch.save(torch.stack(out_record), 'out_record.pt')
-    torch.save(torch.stack(out_filt_record), 'out_filt_record.pt')
+    save(torch.tensor(loss_record), 'loss_record.pt')
+    save(torch.stack(v_record), 'v_record.pt')
+    save(torch.stack(out_record), 'out_record.pt')
+    save(torch.stack(out_filt_record), 'out_filt_record.pt')
 
 
 if __name__ == '__main__':
