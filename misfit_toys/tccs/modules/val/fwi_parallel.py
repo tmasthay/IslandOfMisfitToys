@@ -141,12 +141,10 @@ def run_rank(rank, world_size):
     nt = 300
     observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
 
-    source_locations = torch.zeros(
-        n_shots, n_sources_per_shot, 2, dtype=torch.long
-    )
-    source_locations[..., 1] = source_depth
-    source_locations[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
-    src_dummy = towed_src(
+    alan_src = torch.zeros(n_shots, n_sources_per_shot, 2, dtype=torch.long)
+    alan_src[..., 1] = source_depth
+    alan_src[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
+    source_locations = towed_src(
         n_shots=n_shots,
         src_per_shot=n_sources_per_shot,
         src_depth=source_depth,
@@ -154,10 +152,10 @@ def run_rank(rank, world_size):
         fst_src=first_source,
         d_intra_shot=0,
     )
-    if torch.max(src_dummy - source_locations) > 0:
+    if torch.max(source_locations - alan_src) > 0:
         raise ValueError(
             "towed_src and source_locations do not match,"
-            f" norm={torch.max(src_dummy - source_locations)}"
+            f" norm={torch.max(source_locations - alan_src)}"
         )
 
     # receiver_locations
