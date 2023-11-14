@@ -18,8 +18,9 @@ from torch.nn import (
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
-from misfit_toys.fwi.custom_losses import LeastSquares
+from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
 from misfit_toys.tccs.modules.seismic_data import SeismicProp
+from misfit_toys.data.dataset import towed_src
 
 
 def setup(rank, world_size):
@@ -109,7 +110,7 @@ def run_rank(rank, world_size):
     v_true = v_true[:ny, :nx]
 
     # Smooth to use as starting model
-    v_init = torch.tensor(1 / gaussian_filter(1 / v_true.numpy(), 40))
+    v_init = torch.tensor(1.0 / gaussian_filter(1.0 / v_true.numpy(), 40))
 
     n_shots = 115
 
@@ -140,12 +141,24 @@ def run_rank(rank, world_size):
     nt = 300
     observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
 
-    # source_locations
     source_locations = torch.zeros(
         n_shots, n_sources_per_shot, 2, dtype=torch.long
     )
     source_locations[..., 1] = source_depth
     source_locations[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
+    src_dummy = towed_src(
+        n_shots=n_shots,
+        src_per_shot=n_sources_per_shot,
+        src_depth=source_depth,
+        d_src=d_source,
+        fst_src=first_source,
+        d_intra_shot=0,
+    )
+    if torch.max(src_dummy - source_locations) > 0:
+        raise ValueError(
+            "towed_src and source_locations do not match,"
+            f" norm={torch.max(src_dummy - source_locations)}"
+        )
 
     # receiver_locations
     receiver_locations = torch.zeros(
@@ -194,6 +207,10 @@ def run_rank(rank, world_size):
     # loss_fn = L1Loss()
     # loss_fn = BCEWithLogitsLoss()
     # loss_fn = SoftMarginLoss()
+    # def renorm_func(x):
+    #     return x**2
+
+    # loss_fn = CDFLoss(renorm=renorm_func)
 
     # Run optimisation/inversion
     n_epochs = 2

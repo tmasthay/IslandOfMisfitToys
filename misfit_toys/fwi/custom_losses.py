@@ -214,3 +214,28 @@ class LeastSquares(torch.nn.Module):
     def forward(self, y_pred, y_true):
         # Calculate the difference between the two seismic images
         return torch.mean((y_pred - y_true) ** 2)
+
+
+class CDFLoss(torch.nn.Module):
+    def __init__(self, *, renorm):
+        super().__init__()
+        self.renorm = renorm
+
+    def cdf(self, x):
+        x_renorm = self.renorm(x)
+        curr = torch.cumsum(x_renorm, dim=-1)
+        return curr / curr[..., -1].unsqueeze(-1)
+
+    def forward(self, y_pred, y):
+        # Ensure y_pred and y have the same shape
+        if y_pred.shape != y.shape:
+            raise ValueError("The shape of y_pred and y must be the same")
+
+        # Compute CDF for y_pred and y
+        cdf_y_pred = self.cdf(y_pred)
+        cdf_y = self.cdf(y)
+
+        # Compute the L2 mean difference
+        loss = torch.nn.functional.mse_loss(cdf_y_pred, cdf_y)
+
+        return loss
