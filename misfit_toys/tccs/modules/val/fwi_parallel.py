@@ -19,7 +19,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
-from misfit_toys.tccs.modules.seismic_data import SeismicProp
+from misfit_toys.tccs.modules.seismic_data import (
+    SeismicProp,
+    Param,
+    ParamConstrained,
+)
 from misfit_toys.data.dataset import towed_src, fixed_rec
 
 
@@ -199,7 +203,13 @@ def run_rank(rank, world_size):
         rank
     )
 
-    model = Model(v_init, 1000, 2500)
+    # model = Model(v_init, 1000, 2500)
+    model = ParamConstrained(
+        p=v_init,
+        minv=1000,
+        maxv=2500,
+        requires_grad=True,
+    )
     prop = SeismicProp(
         model=model,
         dx=dx,
