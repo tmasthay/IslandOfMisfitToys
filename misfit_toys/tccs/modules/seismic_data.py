@@ -43,6 +43,7 @@ class SeismicProp(torch.nn.Module):
         model='acoustic',
         dx,
         dt,
+        obs_data,
         src_amp_y=None,
         src_loc_y=None,
         rec_loc_y=None,
@@ -58,6 +59,7 @@ class SeismicProp(torch.nn.Module):
         self.model = model.lower()
         self.dx = dx
         self.dt = dt
+        self.obs_data = obs_data
         self.src_amp_y = src_amp_y
         self.src_loc_y = src_loc_y
         self.rec_loc_y = rec_loc_y
