@@ -69,7 +69,7 @@ class SeismicProp(torch.nn.Module):
             v,
             self.dx,
             self.dt,
-            source_amplitudes=self.src_amp_y,
+            source_amplitudes=self.src_amp_y(),
             source_locations=self.src_loc_y,
             receiver_locations=self.rec_loc_y,
             **self.extra_forward,
