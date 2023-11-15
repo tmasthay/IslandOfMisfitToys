@@ -20,7 +20,7 @@ from torchaudio.functional import biquad
 
 from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
 from misfit_toys.tccs.modules.seismic_data import SeismicProp
-from misfit_toys.data.dataset import towed_src
+from misfit_toys.data.dataset import towed_src, fixed_rec
 
 
 def setup(rank, world_size):
@@ -159,13 +159,23 @@ def run_rank(rank, world_size):
         )
 
     # receiver_locations
-    receiver_locations = torch.zeros(
-        n_shots, n_receivers_per_shot, 2, dtype=torch.long
-    )
-    receiver_locations[..., 1] = receiver_depth
-    receiver_locations[:, :, 0] = (
+    rec_alan = torch.zeros(n_shots, n_receivers_per_shot, 2, dtype=torch.long)
+    rec_alan[..., 1] = receiver_depth
+    rec_alan[:, :, 0] = (
         torch.arange(n_receivers_per_shot) * d_receiver + first_receiver
     ).repeat(n_shots, 1)
+    receiver_locations = fixed_rec(
+        n_shots=n_shots,
+        rec_per_shot=n_receivers_per_shot,
+        rec_depth=receiver_depth,
+        d_rec=d_receiver,
+        fst_rec=first_receiver,
+    )
+    if torch.max(receiver_locations - rec_alan) > 0:
+        raise ValueError(
+            "fixed_rec and receiver_locations do not match,"
+            f" norm={torch.max(receiver_locations - rec_alan)}"
+        )
 
     # source_amplitudes
     source_amplitudes = (
