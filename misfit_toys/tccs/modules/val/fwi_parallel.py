@@ -200,25 +200,23 @@ def run_rank(rank, world_size):
     )
 
     # model = Model(v_init, 1000, 2500)
-    model = ParamConstrained(
+    vp = ParamConstrained(
         p=v_init,
         minv=1000,
         maxv=2500,
         requires_grad=True,
     )
     prop = SeismicProp(
-        model=model,
+        vp=vp,
+        model='acoustic',
         dx=dx,
         dt=dt,
-        freq=freq,
         src_amp_y=source_amplitudes,
         src_loc_y=source_locations,
         rec_loc_y=receiver_locations,
-        extra_forward={
-            "max_vel": 2500,
-            "pml_freq": freq,
-            "time_pad_frac": 0.2,
-        },
+        max_vel=2500,
+        pml_freq=freq,
+        time_pad_frac=0.2,
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
@@ -269,7 +267,7 @@ def run_rank(rank, world_size):
                 loss.backward()
                 if num_calls == 1:
                     loss_record.append(loss)
-                    v_record.append(prop.module.model().detach().cpu())
+                    v_record.append(prop.module.vp().detach().cpu())
                     out_record.append(out[-1].detach().cpu())
                     out_filt_record.append(out_filt.detach().cpu())
                     print(
@@ -313,26 +311,26 @@ def run_rank(rank, world_size):
         save(out_record, "out_record.pt", rank="")
         save(out_filt_record, "out_filt_record.pt", rank="")
 
-        v = model()
-        vmin = v_true.min()
-        vmax = v_true.max()
-        _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
-        ax[0].imshow(
-            v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        )
-        ax[0].set_title("Initial")
-        ax[1].imshow(
-            v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        )
-        ax[1].set_title("Out")
-        ax[2].imshow(
-            v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        )
-        ax[2].set_title("True")
-        plt.tight_layout()
-        savefig("example_distributed_ddp", ext="jpg")
+        # v = prop.module.vp()
+        # vmin = v_true.min()
+        # vmax = v_true.max()
+        # _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
+        # ax[0].imshow(
+        #     v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
+        # )
+        # ax[0].set_title("Initial")
+        # ax[1].imshow(
+        #     v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
+        # )
+        # ax[1].set_title("Out")
+        # ax[2].imshow(
+        #     v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
+        # )
+        # ax[2].set_title("True")
+        # plt.tight_layout()
+        # savefig("example_distributed_ddp", ext="jpg")
 
-        v.detach().cpu().numpy().tofile("marmousi_v_inv.bin")
+        # v.detach().cpu().numpy().tofile("marmousi_v_inv.bin")
     cleanup()
 
 
