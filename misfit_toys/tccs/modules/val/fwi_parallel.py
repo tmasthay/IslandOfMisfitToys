@@ -60,6 +60,27 @@ def savefig(name, *, path="out/parallel", ext=".pt"):
     plt.savefig(get_file(name, rank="", path=path, ext=ext))
 
 
+def filt(x, sos):
+    return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+
+
+def freq_preprocess(training, freq):
+    sos = butter(
+        6, freq, fs=1 / training.dist_prop.module.meta.dt, output="sos"
+    )
+    sos = [
+        torch.tensor(sosi).to(training.dist_prop.module.obs_data.dtype)
+        for sosi in sos
+    ]
+
+    training.custom.obs_data_filt = filt(
+        training.dist_prop.module.obs_data, sos
+    )
+
+    training.report.obs_data_filt_record.append(training.custom.obs_data_filt)
+    training.reset_optimizer()
+
+
 # Generate a velocity model constrained to be within a desired range
 class Model(torch.nn.Module):
     def __init__(self, initial, min_vel, max_vel):
