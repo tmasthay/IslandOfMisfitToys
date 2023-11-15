@@ -182,6 +182,14 @@ def run_rank(rank, world_size):
         deepwave.wavelets.ricker(freq, nt, dt, peak_time)
     ).repeat(n_shots, n_sources_per_shot, 1)
 
+    source_amplitudes = torch.nn.Parameter(
+        source_amplitudes, requires_grad=False
+    )
+    source_locations = torch.nn.Parameter(source_locations, requires_grad=False)
+    receiver_locations = torch.nn.Parameter(
+        receiver_locations, requires_grad=False
+    )
+
     observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
     source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
         rank
