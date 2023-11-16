@@ -217,7 +217,7 @@ def run_rank(rank, world_size):
             optimiser.step(closure)
 
     save(torch.tensor(loss_record), 'loss_record.pt', rank=rank)
-    save(torch.stack(v_record), 'v_record.pt', rank=rank)
+    save(torch.stack(v_record), 'vp_record.pt', rank=rank)
     save(torch.stack(out_record), 'out_record.pt', rank=rank)
     save(torch.stack(out_filt_record), 'out_filt_record.pt', rank=rank)
 
@@ -232,7 +232,7 @@ def run_rank(rank, world_size):
                 ]
             )
         )
-        v_record = load('v_record.pt', rank=0)
+        v_record = load('vp_record.pt', rank=0)
         out_record = torch.cat(
             [load('out_record.pt', rank=rank) for rank in range(world_size)]
         )
@@ -244,7 +244,7 @@ def run_rank(rank, world_size):
         )
 
         save(loss_record, 'loss_record.pt', rank='')
-        save(v_record, 'v_record.pt', rank='')
+        save(v_record, 'vp_record.pt', rank='')
         save(out_record, 'out_record.pt', rank='')
         save(out_filt_record, 'out_filt_record.pt', rank='')
 

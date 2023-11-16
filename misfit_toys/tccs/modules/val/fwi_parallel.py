@@ -423,7 +423,7 @@ def run_rank(rank, world_size):
         )
 
         save(loss_record, "loss_record.pt", rank="")
-        save(v_record, "v_record.pt", rank="")
+        save(v_record, "vp_record.pt", rank="")
         save(out_record, "out_record.pt", rank="")
         save(out_filt_record, "out_filt_record.pt", rank="")
 

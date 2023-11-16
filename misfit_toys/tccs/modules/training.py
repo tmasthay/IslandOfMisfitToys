@@ -105,7 +105,6 @@ class TrainingAbstract(ABC):
         self.__setup_trainable_records()
         self.__setup_report_table()
 
-    @abstractmethod
     def _step(self):
         """Abstract step method. Must be implemented by subclass."""
 
@@ -148,6 +147,20 @@ class TrainingAbstract(ABC):
         self.optimizer = opt_type(
             self.dist_prop.module.parameters(), **self.optimizer.defaults
         )
+
+    def _report_info(self, *, calls, **kw):
+        data = [self.epoch, f'{self.report.loss[-1]:.4e}', self.rank, calls]
+        if self.epoch == 0:
+            header = ['Epoch', 'Loss', 'Rank', '# of Gradient Propagations']
+        the_table = tab([data], headers=header, tablefmt='plain')
+        self.print(the_table)
+
+    def _train(self):
+        for epoch in range(self.n_epochs):
+            self.epoch = epoch
+            self._pre_epoch()
+            self.step()
+            self._post_epoch()
 
     def _report_info(self, *, calls, **kw):
         self.custom.report_table.add_row(
