@@ -44,6 +44,7 @@ class SeismicProp(torch.nn.Module):
         dx,
         dt,
         obs_data,
+        meta,
         src_amp_y=None,
         src_loc_y=None,
         rec_loc_y=None,
@@ -67,6 +68,7 @@ class SeismicProp(torch.nn.Module):
         self.src_loc_x = src_loc_x
         self.rec_loc_x = rec_loc_x
         self.extra_forward = kw
+        self.meta = DotDict(meta)
         self.__validate_init__()
 
     def __validate_init__(self):

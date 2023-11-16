@@ -8,13 +8,6 @@ import torch.multiprocessing as mp
 from deepwave import scalar
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
-from torch.nn import (
-    BCEWithLogitsLoss,
-    HuberLoss,
-    L1Loss,
-    SmoothL1Loss,
-    SoftMarginLoss,
-)
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
@@ -25,9 +18,20 @@ from misfit_toys.tccs.modules.seismic_data import (
     ParamConstrained,
 )
 from misfit_toys.data.dataset import towed_src, fixed_rec
+from collections import OrderedDict
+from misfit_toys.tccs.modules.training import Training
+from tabulate import tabulate as tab
+from rich.live import Live
+from rich.table import Table
 
 
 def setup(rank, world_size):
+    """_summary_
+
+    Args:
+        rank (_type_): _description_
+        world_size (_type_): _description_
+    """
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "12355"
 
@@ -37,10 +41,25 @@ def setup(rank, world_size):
 
 
 def cleanup():
+    """_summary_
+    Args:
+        oyoyoyoy
+    """
     dist.destroy_process_group()
 
 
 def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
+    """_summary_
+
+    Args:
+        name (_type_): _description_
+        rank (str, optional): _description_. Defaults to "".
+        path (str, optional): _description_. Defaults to "out/parallel".
+        ext (str, optional): _description_. Defaults to ".pt".
+
+    Returns:
+        _type_: _description_
+    """
     ext = "." + ext.replace(".", "")
     name = name.replace(ext, "")
     if rank != "":
@@ -64,38 +83,95 @@ def filt(x, sos):
     return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
 
-def freq_preprocess(training, freq):
-    sos = butter(
-        6, freq, fs=1 / training.dist_prop.module.meta.dt, output="sos"
-    )
-    sos = [
-        torch.tensor(sosi).to(training.dist_prop.module.obs_data.dtype)
-        for sosi in sos
-    ]
-
-    training.custom.obs_data_filt = filt(
-        training.dist_prop.module.obs_data, sos
-    )
-
-    training.report.obs_data_filt_record.append(training.custom.obs_data_filt)
-    training.reset_optimizer()
+def taper(x):
+    # Taper the ends of traces
+    return deepwave.common.cosine_taper_end(x, 100)
 
 
-# Generate a velocity model constrained to be within a desired range
-class Model(torch.nn.Module):
-    def __init__(self, initial, min_vel, max_vel):
-        super().__init__()
-        self.min_vel = min_vel
-        self.max_vel = max_vel
-        self.model = torch.nn.Parameter(
-            torch.logit((initial - min_vel) / (max_vel - min_vel))
+def pre_train(training):
+    training.report.set('obs_data_filt_record', [])
+    training.report.set('obs_data_record', [])
+
+
+def training_stages():
+    def freq_preprocess(training, freq):
+        sos = butter(
+            6, freq, fs=1 / training.dist_prop.module.meta.dt, output="sos"
+        )
+        sos = [
+            torch.tensor(sosi).to(training.dist_prop.module.obs_data.dtype)
+            for sosi in sos
+        ]
+
+        training.custom.sos = sos
+
+        training.custom.obs_data_filt = filt(
+            training.dist_prop.module.obs_data, sos
         )
 
-    def forward(self):
-        return (
-            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
-            + self.min_vel
+        training.report.obs_data_filt_record.append(
+            training.custom.obs_data_filt
         )
+        training.reset_optimizer()
+
+    def freq_postprocess(training, freq):
+        pass
+
+    def epoch_preprocess(training, epoch):
+        pass
+
+    def epoch_postprocess(training, epoch):
+        pass
+
+    return OrderedDict(
+        [
+            (
+                'freqs',
+                {
+                    'data': [10, 15, 20, 25, 30],
+                    'preprocess': freq_preprocess,
+                    'postprocess': freq_postprocess,
+                },
+            ),
+            (
+                'epochs',
+                {
+                    'data': [0, 1],
+                    'preprocess': epoch_preprocess,
+                    'postprocess': epoch_postprocess,
+                },
+            ),
+        ]
+    )
+
+
+def step(training):
+    out = training.dist_prop(1)
+    out_filt = filt(out[-1], training.custom.sos)
+    loss = 1e6 * training.loss(out_filt, training.custom.obs_data_filt)
+    other_info = {
+        'out_record': out[-1],
+        'out_filt_record': out_filt,
+        'vp_record': training.dist_prop.module.vp(),
+    }
+    return loss, other_info
+
+
+# # Generate a velocity model constrained to be within a desired range
+# class Model(torch.nn.Module):
+#     def __init__(self, initial, min_vel, max_vel):
+#         super().__init__()
+#         self.min_vel = min_vel
+#         self.max_vel = max_vel
+#         self.model = torch.nn.Parameter(
+#             torch.logit((initial - min_vel) / (max_vel - min_vel))
+#         )
+
+#     def forward(self):
+#         return (
+#             torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
+#             + self.min_vel
+#         )
 
 
 # class Prop(torch.nn.Module):
@@ -155,10 +231,6 @@ def run_rank(rank, world_size):
     peak_time = 1.5 / freq
 
     observed_data = load("obs_data.pt", path="out/base")
-
-    def taper(x):
-        # Taper the ends of traces
-        return deepwave.common.cosine_taper_end(x, 100)
 
     # Select portion of data for inversion
     n_shots = 16
@@ -232,78 +304,101 @@ def run_rank(rank, world_size):
         model='acoustic',
         dx=dx,
         dt=dt,
+        obs_data=observed_data,
         src_amp_y=source_amplitudes,
         src_loc_y=source_locations,
         rec_loc_y=receiver_locations,
         max_vel=2500,
         pml_freq=freq,
         time_pad_frac=0.2,
+        meta={'dt': dt, 'dx': dx, 'nt': nt, 'nx': nx, 'ny': ny},
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
+    training = Training(
+        step=step,
+        pre_train=pre_train,
+        post_train=None,
+        dist_prop=prop,
+        rank=rank,
+        world_size=world_size,
+        verbose=1,
+        optimizer=(torch.optim.LBFGS, {}),
+        scheduler=None,
+        loss=torch.nn.MSELoss(),
+        training_stages=training_stages(),
+    )
+
     # Setup optimiser to perform inversion
-    loss_fn = torch.nn.MSELoss()
-    # loss_fn = LeastSquares()
-    # loss_fn = HuberLoss()
-    # loss_fn = L1Loss()
-    # loss_fn = BCEWithLogitsLoss()
-    # loss_fn = SoftMarginLoss()
-    # def renorm_func(x):
-    #     return x**2
+    # loss_fn = torch.nn.MSELoss()
+    # # loss_fn = LeastSquares()
+    # # loss_fn = HuberLoss()
+    # # loss_fn = L1Loss()
+    # # loss_fn = BCEWithLogitsLoss()
+    # # loss_fn = SoftMarginLoss()
+    # # def renorm_func(x):
+    # #     return x**2
 
-    # loss_fn = CDFLoss(renorm=renorm_func)
+    # # loss_fn = CDFLoss(renorm=renorm_func)
 
-    # Run optimisation/inversion
-    n_epochs = 2
+    # # Run optimisation/inversion
+    # n_epochs = 2
 
-    loss_record = []
-    v_record = []
-    out_record = []
-    out_filt_record = []
+    # loss_record = []
+    # v_record = []
+    # out_record = []
+    # out_filt_record = []
 
-    freqs = [10, 15, 20, 25, 30]
-    n_freqs = len(freqs)
-    get_epoch = lambda i, j: i * n_epochs + j
-    for i, cutoff_freq in enumerate(freqs):
-        sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
-        sos = [
-            torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
-        ]
+    # freqs = [10, 15, 20, 25, 30]
+    # n_freqs = len(freqs)
+    # get_epoch = lambda i, j: i * n_epochs + j
+    # for i, cutoff_freq in enumerate(freqs):
+    #     sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
+    #     sos = [
+    #         torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
+    #     ]
 
-        def filt(x):
-            return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+    #     def filt(x):
+    #         return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
-        observed_data_filt = filt(observed_data)
-        optimiser = torch.optim.LBFGS(prop.parameters())
-        for epoch in range(n_epochs):
-            num_calls = 0
+    #     observed_data_filt = filt(observed_data)
+    #     optimiser = torch.optim.LBFGS(prop.parameters())
+    #     for epoch in range(n_epochs):
+    #         num_calls = 0
 
-            def closure():
-                nonlocal num_calls
-                num_calls += 1
-                optimiser.zero_grad()
-                out = prop(1)
-                out_filt = filt(taper(out[-1]))
-                loss = 1e6 * loss_fn(out_filt, observed_data_filt)
-                loss.backward()
-                if num_calls == 1:
-                    loss_record.append(loss)
-                    v_record.append(prop.module.vp().detach().cpu())
-                    out_record.append(out[-1].detach().cpu())
-                    out_filt_record.append(out_filt.detach().cpu())
-                    print(
-                        f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
-                        f" rank={rank}",
-                        flush=True,
-                    )
-                return loss
+    #         def closure():
+    #             nonlocal num_calls
+    #             num_calls += 1
+    #             optimiser.zero_grad()
+    #             out = prop(1)
+    #             out_filt = filt(taper(out[-1]))
+    #             loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+    #             loss.backward()
+    #             if num_calls == 1:
+    #                 loss_record.append(loss)
+    #                 v_record.append(prop.module.vp().detach().cpu())
+    #                 out_record.append(out[-1].detach().cpu())
+    #                 out_filt_record.append(out_filt.detach().cpu())
+    #                 print(
+    #                     f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
+    #                     f" rank={rank}",
+    #                     flush=True,
+    #                 )
+    #             return loss
 
-            optimiser.step(closure)
+    #         optimiser.step(closure)
 
-    save(torch.tensor(loss_record), "loss_record.pt", rank=rank)
-    save(torch.stack(v_record), "v_record.pt", rank=rank)
-    save(torch.stack(out_record), "out_record.pt", rank=rank)
-    save(torch.stack(out_filt_record), "out_filt_record.pt", rank=rank)
+    training.train()
+    save(torch.tensor(training.report.loss_record), "loss_record.pt", rank=rank)
+
+    # raise ValueError(f'length={len(training.report.vp_record)}')
+    save(torch.stack(training.report.vp_record), "vp_record.pt", rank=rank)
+    save(torch.stack(training.report.out_record), "out_record.pt", rank=rank)
+    save(
+        torch.stack(training.report.out_filt_record),
+        "out_filt_record.pt",
+        rank=rank,
+    )
 
     torch.distributed.barrier()
     # Plot
@@ -316,7 +411,7 @@ def run_rank(rank, world_size):
                 ]
             )
         )
-        v_record = load("v_record.pt", rank=0)
+        v_record = load("vp_record.pt", rank=0)
         out_record = torch.cat(
             [load("out_record.pt", rank=rank) for rank in range(world_size)]
         )
