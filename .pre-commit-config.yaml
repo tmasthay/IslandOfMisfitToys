@@ -9,10 +9,20 @@ repos:
         stages: [push]
         always_run: true
 
+  - repo: local
+    hooks:
+      - id: gitlint
+        name: Run gitlint
+        entry: gitlint
+        language: system
+        stages: [commit-msg]
+        always_run: true
+        # types: [text]
+        pass_filenames: false
+
   - repo: https://github.com/tmasthay/GitHookEm
     rev: main  # The tag/commit to clone from
     hooks:
-      - id: commit-msg-directives
       - id: ban-super-secret
 
   - repo: https://github.com/psf/black
