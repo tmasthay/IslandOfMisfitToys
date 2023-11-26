@@ -1,0 +1,20 @@
+---
+name: GPU Validation Workflow
+
+on:
+  push:
+
+jobs:
+  run_gpu_validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute SSH Command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            source ~/.bashrc
+            cd $ISL
+            echo "Hello from Github at $(date)!" > hello.txt
