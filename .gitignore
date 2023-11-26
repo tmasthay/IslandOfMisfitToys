@@ -9,5 +9,9 @@ __pycache__
 *.pt
 *.npy
 .*
-!.git*
+.gitlint
+.gitlint_rules
+!.gitignore
+!.gitattributes
+!.gitmodules
 !.*.yaml

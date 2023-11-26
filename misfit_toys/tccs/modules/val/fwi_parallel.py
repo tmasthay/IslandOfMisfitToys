@@ -5,20 +5,22 @@ import matplotlib.pyplot as plt
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from deepwave import scalar
+
+# from deepwave import scalar
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
-from torch.nn import (
-    BCEWithLogitsLoss,
-    HuberLoss,
-    L1Loss,
-    SmoothL1Loss,
-    SoftMarginLoss,
-)
+
+# from torch.nn import (
+#     BCEWithLogitsLoss,
+#     HuberLoss,
+#     L1Loss,
+#     SmoothL1Loss,
+#     SoftMarginLoss,
+# )
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
-from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
+# from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
 from misfit_toys.tccs.modules.seismic_data import (
     SeismicProp,
     Param,
@@ -241,8 +243,11 @@ def run_rank(rank, world_size):
     out_filt_record = []
 
     freqs = [10, 15, 20, 25, 30]
-    n_freqs = len(freqs)
-    get_epoch = lambda i, j: i * n_epochs + j
+
+    # n_freqs = len(freqs)
+    def get_epoch(i, j):
+        return i * j * n_epochs
+
     for i, cutoff_freq in enumerate(freqs):
         sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
         sos = [
@@ -280,7 +285,7 @@ def run_rank(rank, world_size):
             optimiser.step(closure)
 
     save(torch.tensor(loss_record), "loss_record.pt", rank=rank)
-    save(torch.stack(v_record), "v_record.pt", rank=rank)
+    save(torch.stack(v_record), "vp_record.pt", rank=rank)
     save(torch.stack(out_record), "out_record.pt", rank=rank)
     save(torch.stack(out_filt_record), "out_filt_record.pt", rank=rank)
 
@@ -293,44 +298,27 @@ def run_rank(rank, world_size):
                     load("loss_record.pt", rank=rank)
                     for rank in range(world_size)
                 ]
-            )
+            ),
+            dim=0,
         )
-        v_record = load("v_record.pt", rank=0)
+        v_record = load("vp_record.pt", rank=0)
         out_record = torch.cat(
-            [load("out_record.pt", rank=rank) for rank in range(world_size)]
+            [load("out_record.pt", rank=rank) for rank in range(world_size)],
+            dim=1,
         )
         out_filt_record = torch.cat(
             [
                 load("out_filt_record.pt", rank=rank)
                 for rank in range(world_size)
-            ]
+            ],
+            dim=1,
         )
 
         save(loss_record, "loss_record.pt", rank="")
-        save(v_record, "v_record.pt", rank="")
+        save(v_record, "vp_record.pt", rank="")
         save(out_record, "out_record.pt", rank="")
         save(out_filt_record, "out_filt_record.pt", rank="")
 
-        # v = prop.module.vp()
-        # vmin = v_true.min()
-        # vmax = v_true.max()
-        # _, ax = plt.subplots(3, figsize=(10.5, 10.5), sharex=True, sharey=True)
-        # ax[0].imshow(
-        #     v_init.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        # )
-        # ax[0].set_title("Initial")
-        # ax[1].imshow(
-        #     v.detach().cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        # )
-        # ax[1].set_title("Out")
-        # ax[2].imshow(
-        #     v_true.cpu().T, aspect="auto", cmap="gray", vmin=vmin, vmax=vmax
-        # )
-        # ax[2].set_title("True")
-        # plt.tight_layout()
-        # savefig("example_distributed_ddp", ext="jpg")
-
-        # v.detach().cpu().numpy().tofile("marmousi_v_inv.bin")
     cleanup()
 
 

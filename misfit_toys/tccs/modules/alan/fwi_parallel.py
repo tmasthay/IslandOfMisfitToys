@@ -176,8 +176,11 @@ def run_rank(rank, world_size):
     out_filt_record = []
 
     freqs = [10, 15, 20, 25, 30]
-    n_freqs = len(freqs)
-    get_epoch = lambda i, j: i * n_epochs + j
+    # n_freqs = len(freqs)
+
+    def get_epoch(i, j):
+        return i * j * n_epochs
+
     for i, cutoff_freq in enumerate(freqs):
         sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
         sos = [
@@ -217,7 +220,7 @@ def run_rank(rank, world_size):
             optimiser.step(closure)
 
     save(torch.tensor(loss_record), 'loss_record.pt', rank=rank)
-    save(torch.stack(v_record), 'v_record.pt', rank=rank)
+    save(torch.stack(v_record), 'vp_record.pt', rank=rank)
     save(torch.stack(out_record), 'out_record.pt', rank=rank)
     save(torch.stack(out_filt_record), 'out_filt_record.pt', rank=rank)
 
@@ -230,21 +233,24 @@ def run_rank(rank, world_size):
                     load('loss_record.pt', rank=rank)
                     for rank in range(world_size)
                 ]
-            )
+            ),
+            dim=0,
         )
-        v_record = load('v_record.pt', rank=0)
+        v_record = load('vp_record.pt', rank=0)
         out_record = torch.cat(
-            [load('out_record.pt', rank=rank) for rank in range(world_size)]
+            [load('out_record.pt', rank=rank) for rank in range(world_size)],
+            dim=1,
         )
         out_filt_record = torch.cat(
             [
                 load('out_filt_record.pt', rank=rank)
                 for rank in range(world_size)
-            ]
+            ],
+            dim=1,
         )
 
         save(loss_record, 'loss_record.pt', rank='')
-        save(v_record, 'v_record.pt', rank='')
+        save(v_record, 'vp_record.pt', rank='')
         save(out_record, 'out_record.pt', rank='')
         save(out_filt_record, 'out_filt_record.pt', rank='')
 
