@@ -12,6 +12,7 @@ from scipy.signal import butter
 from dataclasses import dataclass
 from collections import OrderedDict
 from masthay_helpers.global_helpers import get_print
+from misfit_toys.data.dataset import get_data3
 
 # from torch.nn import (
 #     BCEWithLogitsLoss,
@@ -29,7 +30,8 @@ from misfit_toys.tccs.modules.seismic_data import (
     Param,
     ParamConstrained,
 )
-from misfit_toys.data.dataset import towed_src, fixed_rec
+
+# from misfit_toys.data.dataset import towed_src, fixed_rec
 
 
 def setup(rank, world_size):
@@ -299,90 +301,27 @@ class Training:
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
-    ny = 2301
-    nx = 751
-    dx = 4.0
-    v_true = load("vp.pt", path="out/base")
+    data_path = "conda/data/marmousi/deepwave_example/shots16"
+    v_true = get_data3(field='vp', path=data_path)
+    v_true = v_true[:600, :250]
+    obs_data = get_data3(field='obs_data', path=data_path)
+    source_locations = get_data3(field='src_loc_y', path=data_path)
+    receiver_locations = get_data3(field='rec_loc_y', path=data_path)
+    src_amp = get_data3(field='src_amp_y', path=data_path)
+    dx, dt = 4.0, 0.004
 
-    # Select portion of model for inversion
-    ny = 600
-    nx = 250
-    v_true = v_true[:ny, :nx]
-
-    # Smooth to use as starting model
     v_init = torch.tensor(1.0 / gaussian_filter(1.0 / v_true.numpy(), 40))
 
-    n_shots = 115
-
-    n_sources_per_shot = 1
-    d_source = 20  # 20 * 4m = 80m
-    first_source = 10  # 10 * 4m = 40m
-    source_depth = 2  # 2 * 4m = 8m
-
-    n_receivers_per_shot = 384
-    d_receiver = 6  # 6 * 4m = 24m
-    first_receiver = 0  # 0 * 4m = 0m
-    receiver_depth = 2  # 2 * 4m = 8m
-
     freq = 25
-    nt = 750
-    dt = 0.004
-    peak_time = 1.5 / freq
+    # peak_time = 1.5 / freq
 
-    observed_data = load("obs_data.pt", path="out/base")
+    obs_data = taper(obs_data)
 
-    # Select portion of data for inversion
-    n_shots = 16
-    n_receivers_per_shot = 100
-    nt = 300
-    observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
-
-    alan_src = torch.zeros(n_shots, n_sources_per_shot, 2, dtype=torch.long)
-    alan_src[..., 1] = source_depth
-    alan_src[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
-    source_locations = towed_src(
-        n_shots=n_shots,
-        src_per_shot=n_sources_per_shot,
-        src_depth=source_depth,
-        d_src=d_source,
-        fst_src=first_source,
-        d_intra_shot=0,
-    )
-    if torch.max(source_locations - alan_src) > 0:
-        raise ValueError(
-            "towed_src and source_locations do not match,"
-            f" norm={torch.max(source_locations - alan_src)}"
-        )
-
-    # receiver_locations
-    rec_alan = torch.zeros(n_shots, n_receivers_per_shot, 2, dtype=torch.long)
-    rec_alan[..., 1] = receiver_depth
-    rec_alan[:, :, 0] = (
-        torch.arange(n_receivers_per_shot) * d_receiver + first_receiver
-    ).repeat(n_shots, 1)
-    receiver_locations = fixed_rec(
-        n_shots=n_shots,
-        rec_per_shot=n_receivers_per_shot,
-        rec_depth=receiver_depth,
-        d_rec=d_receiver,
-        fst_rec=first_receiver,
-    )
-    if torch.max(receiver_locations - rec_alan) > 0:
-        raise ValueError(
-            "fixed_rec and receiver_locations do not match,"
-            f" norm={torch.max(receiver_locations - rec_alan)}"
-        )
-
-    # source_amplitudes
-    source_amplitudes = (
-        deepwave.wavelets.ricker(freq, nt, dt, peak_time)
-    ).repeat(n_shots, n_sources_per_shot, 1)
-
-    source_amplitudes = Param(p=source_amplitudes, requires_grad=False)
+    source_amplitudes = Param(p=src_amp, requires_grad=False)
     # source_locations = Param(source_locations, requires_grad=False)
     # receiver_locations = Param(receiver_locations, requires_grad=False)
 
-    observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
+    obs_data = torch.chunk(obs_data, world_size)[rank].to(rank)
     source_amplitudes.p.data = torch.chunk(
         source_amplitudes.p.data, world_size
     )[rank].to(rank)
@@ -390,6 +329,19 @@ def run_rank(rank, world_size):
     receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
         rank
     )
+
+    # source_amplitudes = Param(p=source_amplitudes, requires_grad=False)
+    # source_locations = Param(source_locations, requires_grad=False)
+    # receiver_locations = Param(receiver_locations, requires_grad=False)
+
+    # obs_data = torch.chunk(obs_data, world_size)[rank].to(rank)
+    # source_amplitudes.p.data = torch.chunk(
+    #     source_amplitudes.p.data, world_size
+    # )[rank].to(rank)
+    # source_locations = torch.chunk(source_locations, world_size)[rank].to(rank)
+    # receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
+    #     rank
+    # )
 
     # model = Model(v_init, 1000, 2500)
     vp = ParamConstrained(
@@ -430,7 +382,7 @@ def run_rank(rank, world_size):
         freqs=[10, 15, 20, 25, 30],
         dt=dt,
         n_epochs=2,
-        obs_data=observed_data,
+        obs_data=obs_data,
         loss_fn=loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
