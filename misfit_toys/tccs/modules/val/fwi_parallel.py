@@ -306,7 +306,8 @@ def run_rank(rank, world_size):
     setup(rank, world_size)
     data = path_builder(
         "conda/data/marmousi/deepwave_example/shots16",
-        vp=ParamConstrained.delay_init(
+        remap={'vp_init': 'vp'},
+        vp_init=ParamConstrained.delay_init(
             minv=1000, maxv=2500, requires_grad=True
         ),
         src_amp_y=Param.delay_init(requires_grad=False),
@@ -314,7 +315,7 @@ def run_rank(rank, world_size):
         src_loc_y=None,
         rec_loc_y=None,
     )
-    data['vp'].p.data = data['vp'].p.data[:600, :250]
+    # data['vp'].p.data = data['vp'].p.data[:600, :250]
     data['obs_data'] = taper(data['obs_data'])
 
     # dx, dt = data['meta'].dx, data['meta'].dt

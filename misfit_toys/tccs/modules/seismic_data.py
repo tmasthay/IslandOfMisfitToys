@@ -7,7 +7,8 @@ from misfit_toys.data.dataset import get_data3, get_pydict
 # from dataclasses import dataclass
 
 
-def path_builder(path, **kw):
+def path_builder(path, *, remap=None, **kw):
+    remap = remap or {}
     d = {}
     for k, v in kw.items():
         if v is None:
@@ -15,6 +16,8 @@ def path_builder(path, **kw):
         else:
             d[k] = v(get_data3(field=k, path=path))
     d['meta'] = get_pydict(path=path, as_class=True)
+    for k in remap:
+        d[remap[k]] = d.pop(k)
     return d
 
 
