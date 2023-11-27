@@ -16,5 +16,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             source ~/.bashrc
-            cd $ISL
+            cdi
             echo "Hello from Github at $(date)!" > hello.txt
