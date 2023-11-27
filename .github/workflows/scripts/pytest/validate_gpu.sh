@@ -29,7 +29,7 @@ echo >> $ACTION_FILE
 echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> $ACTION_FILE
 echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> $ACTION_FILE
 
-if git commit --amend -m "$(cat $ACTION_FILE)"; then
+if git commit --amend --no-verify -m "$(cat $ACTION_FILE)"; then
     echo "Commit successful...modified commit message below"
     cat .git/COMMIT_EDITMSG
 else

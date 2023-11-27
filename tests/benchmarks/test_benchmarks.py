@@ -9,7 +9,7 @@ def test_validate():
         {
             "output": os.path.join(curr_dir, "out", "validate.out"),
             "justify": "right",
-            "clean": 'ai',
+            "clean": '',
         }
     )
     res = main(args)
