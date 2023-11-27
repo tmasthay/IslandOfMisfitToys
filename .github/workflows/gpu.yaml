@@ -23,6 +23,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "SSH successful at $(date)!"
             source ~/.bashrc
             cd $ISL
             conda activate dw
