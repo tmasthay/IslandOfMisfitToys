@@ -27,7 +27,7 @@ jobs:
             cd $ISL
             conda activate dw
             echo "Hello from Github at $(date)!" > hello.txt
-            git add hello.txt
+            git add -f hello.txt
             git commit --amend --no-edit --no-verify
             git push --force-with-lease
 
