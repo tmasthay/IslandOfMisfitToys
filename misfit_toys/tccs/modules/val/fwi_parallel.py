@@ -95,6 +95,7 @@ class Training:
     n_epochs: int
     obs_data: torch.Tensor
     loss_fn: torch.nn.Module
+    n_epochs: int
     optimizer: list
 
     def __post_init__(self):
@@ -102,22 +103,17 @@ class Training:
         self.optimizer = self.optimizer[0](
             self.prop.parameters(), **self.optimizer[1]
         )
+        self.loss_record = []
+        self.v_record = []
+        self.out_record = []
+        self.out_filt_record = []
 
     def train(self):
-        n_epochs = 2
-
-        loss_record = []
-        v_record = []
-        out_record = []
-        out_filt_record = []
-
-        freqs = [10, 15, 20, 25, 30]
-
         # n_freqs = len(freqs)
         def get_epoch(i, j):
-            return j + i * n_epochs
+            return j + i * self.n_epochs
 
-        for i, cutoff_freq in enumerate(freqs):
+        for i, cutoff_freq in enumerate(self.freqs):
             sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
             sos = [
                 torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
@@ -129,7 +125,7 @@ class Training:
 
             obs_data_filt = filt(self.obs_data)
             self.reset_optimizer()
-            for epoch in range(n_epochs):
+            for epoch in range(self.n_epochs):
                 num_calls = 0
 
                 def closure():
@@ -141,10 +137,12 @@ class Training:
                     loss = 1e6 * self.loss_fn(out_filt, obs_data_filt)
                     loss.backward()
                     if num_calls == 1:
-                        loss_record.append(loss)
-                        v_record.append(self.prop.module.vp().detach().cpu())
-                        out_record.append(out[-1].detach().cpu())
-                        out_filt_record.append(out_filt.detach().cpu())
+                        self.loss_record.append(loss)
+                        self.v_record.append(
+                            self.prop.module.vp().detach().cpu()
+                        )
+                        self.out_record.append(out[-1].detach().cpu())
+                        self.out_filt_record.append(out_filt.detach().cpu())
                         print(
                             f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
                             f" rank={self.rank}",
@@ -154,15 +152,19 @@ class Training:
 
                 self.optimizer.step(closure)
 
-        save(torch.tensor(loss_record), "loss_record.pt", rank=self.rank)
-        save(torch.stack(v_record), "vp_record.pt", rank=self.rank)
-        save(torch.stack(out_record), "out_record.pt", rank=self.rank)
-        save(torch.stack(out_filt_record), "out_filt_record.pt", rank=self.rank)
+        save(torch.tensor(self.loss_record), "loss_record.pt", rank=self.rank)
+        save(torch.stack(self.v_record), "vp_record.pt", rank=self.rank)
+        save(torch.stack(self.out_record), "out_record.pt", rank=self.rank)
+        save(
+            torch.stack(self.out_filt_record),
+            "out_filt_record.pt",
+            rank=self.rank,
+        )
 
         torch.distributed.barrier()
         # Plot
         if self.rank == 0:
-            loss_record = torch.mean(
+            self.loss_record = torch.mean(
                 torch.stack(
                     [
                         load("loss_record.pt", rank=rank)
@@ -171,7 +173,7 @@ class Training:
                 ),
                 dim=0,
             )
-            v_record = load("vp_record.pt", rank=0)
+            self.v_record = load("vp_record.pt", rank=0)
             out_record = torch.cat(
                 [
                     load("out_record.pt", rank=rank)
@@ -179,7 +181,7 @@ class Training:
                 ],
                 dim=1,
             )
-            out_filt_record = torch.cat(
+            self.out_filt_record = torch.cat(
                 [
                     load("out_filt_record.pt", rank=rank)
                     for rank in range(self.world_size)
@@ -187,10 +189,10 @@ class Training:
                 dim=1,
             )
 
-            save(loss_record, "loss_record.pt", rank="")
-            save(v_record, "vp_record.pt", rank="")
+            save(self.loss_record, "loss_record.pt", rank="")
+            save(self.v_record, "vp_record.pt", rank="")
             save(out_record, "out_record.pt", rank="")
-            save(out_filt_record, "out_filt_record.pt", rank="")
+            save(self.out_filt_record, "out_filt_record.pt", rank="")
 
         cleanup()
 
