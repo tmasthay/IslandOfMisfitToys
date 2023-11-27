@@ -1,0 +1,18 @@
+from misfit_toys.tccs.modules.validate import main
+import os
+from masthay_helpers.global_helpers import DotDict
+
+
+def test_validate():
+    curr_dir = os.path.dirname(__file__)
+    args = DotDict(
+        {
+            "output": os.path.join(curr_dir, "out", "validate.txt"),
+            "justify": "right",
+            "clean": ['alan', 'iomt'],
+        }
+    )
+    res = main(args)
+    tol = 0.1
+    diff = max([max(v) for v in res.values()])
+    assert diff < tol, f"MARMOUSI TEST: diff={diff} > tol={tol}"
