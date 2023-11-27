@@ -119,19 +119,34 @@ class Training:
         self.loss.backward()
         return self.loss
 
+    def preprocess_freqs(self, *, cutoff_freq):
+        self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
+        self.sos = [
+            torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
+            for sosi in self.sos
+        ]
+
+        self.obs_data_filt = filt(self.obs_data, self.sos)
+
+    def get_epoch(self, i, j):
+        return j + i * self.n_epochs
+
+    def update_records(self, *, freq_no, epoch):
+        self.loss_record.append(self.loss)
+        self.v_record.append(self.prop.module.vp().detach().cpu())
+        self.out_record.append(self.out[-1].detach().cpu())
+        self.out_filt_record.append(self.out_filt.detach().cpu())
+        print(
+            f"Epoch={self.get_epoch(freq_no, epoch)},"
+            f" Loss={self.loss.item()}, rank={self.rank}",
+            flush=True,
+        )
+
     def train(self):
         # n_freqs = len(freqs)
-        def get_epoch(i, j):
-            return j + i * self.n_epochs
 
         for i, cutoff_freq in enumerate(self.freqs):
-            self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
-            self.sos = [
-                torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
-                for sosi in self.sos
-            ]
-
-            self.obs_data_filt = filt(self.obs_data, self.sos)
+            self.preprocess_freqs(cutoff_freq=cutoff_freq)
             self.reset_optimizer()
             for epoch in range(self.n_epochs):
                 num_calls = 0
@@ -142,19 +157,7 @@ class Training:
                     self.optimizer.zero_grad()
                     self.step()
                     if num_calls == 1:
-                        self.loss_record.append(self.loss)
-                        self.v_record.append(
-                            self.prop.module.vp().detach().cpu()
-                        )
-                        self.out_record.append(self.out[-1].detach().cpu())
-                        self.out_filt_record.append(
-                            self.out_filt.detach().cpu()
-                        )
-                        print(
-                            f"Epoch={get_epoch(i, epoch)},"
-                            f" Loss={self.loss.item()}, rank={self.rank}",
-                            flush=True,
-                        )
+                        self.update_records(freq_no=i, epoch=epoch)
                     return self.loss
 
                 self.optimizer.step(closure)
