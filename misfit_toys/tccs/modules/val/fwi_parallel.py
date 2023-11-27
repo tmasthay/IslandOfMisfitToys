@@ -304,6 +304,7 @@ class Training:
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
+
     data = path_builder(
         "conda/data/marmousi/deepwave_example/shots16",
         remap={'vp_init': 'vp'},
@@ -315,13 +316,7 @@ def run_rank(rank, world_size):
         src_loc_y=None,
         rec_loc_y=None,
     )
-    # data['vp'].p.data = data['vp'].p.data[:600, :250]
     data['obs_data'] = taper(data['obs_data'])
-
-    # dx, dt = data['meta'].dx, data['meta'].dt
-    # v_init = torch.tensor(1.0 / gaussian_filter(1.0 / data['vp'].numpy(), 40))
-    freq = 25
-
     data = chunk_and_deploy(
         rank,
         world_size,
@@ -331,28 +326,18 @@ def run_rank(rank, world_size):
             'params': ['src_amp_y'],
         },
     )
-    # peak_time = 1.5 / freq
 
     prop_data = subdict(data, exclude=['obs_data'])
     prop = SeismicProp(
         **prop_data,
         max_vel=2500,
-        pml_freq=freq,
+        pml_freq=data['meta'].freq,
         time_pad_frac=0.2,
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
-    # Setup optimiser to perform inversion
     loss_fn = torch.nn.MSELoss()
-    # loss_fn = LeastSquares()
-    # loss_fn = HuberLoss()
-    # loss_fn = L1Loss()
-    # loss_fn = BCEWithLogitsLoss()
-    # loss_fn = SoftMarginLoss()
-    # def renorm_func(x):
-    #     return x**2
 
-    # loss_fn = CDFLoss(renorm=renorm_func)
     train = Training(
         rank=rank,
         world_size=world_size,
