@@ -23,12 +23,13 @@ else
 fi
 
 # Perform the commit
-cp .git/COMMIT_EDITMSG .git/COMMIT_EDITMSG.bak
-echo >> .git/COMMIT_EDITMSG
-echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> .git/COMMIT_EDITMSG
-echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> .git/COMMIT_EDITMSG
+ACTION_FILE=/tmp/github_actions.txt
+cp .git/COMMIT_EDITMSG $ACTION_FILE
+echo >> $ACTION_FILE
+echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> $ACTION_FILE
+echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> $ACTION_FILE
 
-if git commit --amend --no-edit --no-verify; then
+if git commit --amend -m "$(cat $ACTION_FILE)"; then
     echo "Commit successful...modified commit message below"
     cat .git/COMMIT_EDITMSG
 else
