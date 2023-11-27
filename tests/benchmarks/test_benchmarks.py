@@ -9,10 +9,14 @@ def test_validate():
         {
             "output": os.path.join(curr_dir, "out", "validate.out"),
             "justify": "right",
-            "clean": ['alan', 'iomt'],
+            "clean": 'ai',
         }
     )
     res = main(args)
     tol = 0.1
     diff = max([max(v) for v in res.values()])
     assert diff < tol, f"MARMOUSI TEST: diff={diff} > tol={tol}"
+
+
+if __name__ == "__main__":
+    test_validate()

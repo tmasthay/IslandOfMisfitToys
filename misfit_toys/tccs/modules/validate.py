@@ -120,6 +120,7 @@ def get_args():
 
 
 def main(args):
+    input(args.clean)
     clean_output(clean=args.clean)
 
     @transpose
