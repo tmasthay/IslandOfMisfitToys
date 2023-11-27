@@ -23,15 +23,21 @@ else
 fi
 
 # Perform the commit
+cp .git/COMMIT_EDITMSG .git/COMMIT_EDITMSG.bak
+echo >> .git/COMMIT_EDITMSG
+echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> .git/COMMIT_EDITMSG
+echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> .git/COMMIT_EDITMSG
+
 if git commit --amend --no-edit --no-verify; then
-    echo "Commit successful."
+    echo "Commit successful...modified commit message below"
+    cat .git/COMMIT_EDITMSG
 else
     echo "WARNING: Commit failed. Not pushing changes."
     exit $pytest_exit_code
 fi
 
 # Push only if commit is successful
-if git push --force-with-lease origin HEAD -o $PERSONAL_ACCESS_TOKEN; then
+if git push --force-with-lease origin HEAD; then
     echo "Push successful."
 else
     echo "WARNING: Push failed."
