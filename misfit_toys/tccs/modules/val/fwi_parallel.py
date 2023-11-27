@@ -85,6 +85,10 @@ def taper(x):
     return deepwave.common.cosine_taper_end(x, 100)
 
 
+def filt(x, sos):
+    return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+
+
 @dataclass
 class Training:
     rank: int
@@ -108,22 +112,26 @@ class Training:
         self.out_record = []
         self.out_filt_record = []
 
+    def step(self):
+        self.out = self.prop(1)
+        self.out_filt = filt(taper(self.out[-1]), self.sos)
+        self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+        self.loss.backward()
+        return self.loss
+
     def train(self):
         # n_freqs = len(freqs)
         def get_epoch(i, j):
             return j + i * self.n_epochs
 
         for i, cutoff_freq in enumerate(self.freqs):
-            sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
-            sos = [
+            self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
+            self.sos = [
                 torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
-                for sosi in sos
+                for sosi in self.sos
             ]
 
-            def filt(x):
-                return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
-
-            obs_data_filt = filt(self.obs_data)
+            self.obs_data_filt = filt(self.obs_data, self.sos)
             self.reset_optimizer()
             for epoch in range(self.n_epochs):
                 num_calls = 0
@@ -132,23 +140,22 @@ class Training:
                     nonlocal num_calls
                     num_calls += 1
                     self.optimizer.zero_grad()
-                    out = self.prop(1)
-                    out_filt = filt(taper(out[-1]))
-                    loss = 1e6 * self.loss_fn(out_filt, obs_data_filt)
-                    loss.backward()
+                    self.step()
                     if num_calls == 1:
-                        self.loss_record.append(loss)
+                        self.loss_record.append(self.loss)
                         self.v_record.append(
                             self.prop.module.vp().detach().cpu()
                         )
-                        self.out_record.append(out[-1].detach().cpu())
-                        self.out_filt_record.append(out_filt.detach().cpu())
+                        self.out_record.append(self.out[-1].detach().cpu())
+                        self.out_filt_record.append(
+                            self.out_filt.detach().cpu()
+                        )
                         print(
-                            f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
-                            f" rank={self.rank}",
+                            f"Epoch={get_epoch(i, epoch)},"
+                            f" Loss={self.loss.item()}, rank={self.rank}",
                             flush=True,
                         )
-                    return loss
+                    return self.loss
 
                 self.optimizer.step(closure)
 
