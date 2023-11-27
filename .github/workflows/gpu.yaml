@@ -25,7 +25,11 @@ jobs:
 
       - name: Display the contents of hello.txt
         run: |
-          scp $REMOTE_USER@$REMOTE_HOST:~/hello.txt .
-          echo "Contents of hello.txt retrieved from remote host:" > hello.txt
+          /bin/bash <<EOF
+          scp -o StrictHostKeyChecking=no \
+            $REMOTE_USER@$REMOTE_HOST:~/hello.txt .
+
+          echo "Contents of hello.txt retrieved from remote host:"
           cat hello.txt
           echo "Updating latest commit message (TBC)..."
+          EOF
