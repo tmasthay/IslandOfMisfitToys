@@ -1,4 +1,4 @@
-              Relative Pointwise Difference              
+              Relative Pointwise Difference
 ┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
 ┃          vp ┃        loss ┃         out ┃    out_filt ┃
 ┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩

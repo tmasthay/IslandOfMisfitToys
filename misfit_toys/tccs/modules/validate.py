@@ -6,6 +6,7 @@ import argparse
 import torch
 import numpy as np
 from functools import wraps
+from rich_tools import table_to_dicts
 
 
 def extend_files(path, filenames):
@@ -72,8 +73,17 @@ def compare_output(
     row_data = row_gen(alan_tensors, iomt_tensors)
     for row in row_data:
         table.add_row(*row)
-    console = Console(file=open(output_filename, 'w'))
+    if output_filename is None:
+        console = Console()
+    else:
+        console = Console(file=open(output_filename, 'w'))
     console.print(table)
+    res = list(table_to_dicts(table))
+    if len(res) > 0:
+        res = {k: [float(d[k]) for d in res] for k in res[0].keys()}
+    else:
+        res = {}
+    return res
 
 
 def clean_output(clean):
@@ -109,8 +119,7 @@ def get_args():
     return args
 
 
-def main():
-    args = get_args()
+def main(args):
     clean_output(clean=args.clean)
 
     @transpose
@@ -123,7 +132,7 @@ def main():
             res.append(curr)
         return res
 
-    compare_output(
+    return compare_output(
         row_gen=rel_pointwise_error,
         row_gen_label='Relative Pointwise Difference',
         output_filename=args.output,
@@ -132,4 +141,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = get_args()
+    main(args)

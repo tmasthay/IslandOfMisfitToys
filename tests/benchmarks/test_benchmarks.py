@@ -7,7 +7,7 @@ def test_validate():
     curr_dir = os.path.dirname(__file__)
     args = DotDict(
         {
-            "output": os.path.join(curr_dir, "out", "validate.txt"),
+            "output": os.path.join(curr_dir, "out", "validate.out"),
             "justify": "right",
             "clean": ['alan', 'iomt'],
         }
