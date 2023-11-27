@@ -10,6 +10,8 @@ import torch.multiprocessing as mp
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from dataclasses import dataclass
+from collections import OrderedDict
+from masthay_helpers.global_helpers import get_print
 
 # from torch.nn import (
 #     BCEWithLogitsLoss,
@@ -101,6 +103,7 @@ class Training:
     loss_fn: torch.nn.Module
     n_epochs: int
     optimizer: list
+    verbose: int = 1
 
     def __post_init__(self):
         self.optimizer_kwargs = self.optimizer
@@ -111,57 +114,59 @@ class Training:
         self.v_record = []
         self.out_record = []
         self.out_filt_record = []
+        self.training_stages = self.training_stages()
+        self.print, _ = get_print(_verbose=self.verbose)
 
-    def step(self):
-        self.out = self.prop(1)
-        self.out_filt = filt(taper(self.out[-1]), self.sos)
-        self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-        self.loss.backward()
-        return self.loss
+    def training_stages(self):
+        def freq_preprocess(training, freq):
+            sos = butter(6, freq, fs=1 / training.dt, output="sos")
+            sos = [
+                torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos
+            ]
 
-    def preprocess_freqs(self, *, cutoff_freq):
-        self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
-        self.sos = [
-            torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
-            for sosi in self.sos
-        ]
+            training.sos = sos
 
-        self.obs_data_filt = filt(self.obs_data, self.sos)
+            training.obs_data_filt = filt(training.obs_data, sos)
 
-    def get_epoch(self, i, j):
-        return j + i * self.n_epochs
+            # training.report.obs_data_filt_record.append(
+            #     training.custom.obs_data_filt
+            # )
+            training.reset_optimizer()
 
-    def update_records(self, *, freq_no, epoch):
-        self.loss_record.append(self.loss)
-        self.v_record.append(self.prop.module.vp().detach().cpu())
-        self.out_record.append(self.out[-1].detach().cpu())
-        self.out_filt_record.append(self.out_filt.detach().cpu())
-        print(
-            f"Epoch={self.get_epoch(freq_no, epoch)},"
-            f" Loss={self.loss.item()}, rank={self.rank}",
-            flush=True,
+        def freq_postprocess(training, freq):
+            pass
+
+        def epoch_preprocess(training, epoch):
+            pass
+
+        def epoch_postprocess(training, epoch):
+            pass
+
+        return OrderedDict(
+            [
+                (
+                    'freqs',
+                    {
+                        'data': [10, 15, 20, 25, 30],
+                        'preprocess': freq_preprocess,
+                        'postprocess': freq_postprocess,
+                    },
+                ),
+                (
+                    'epochs',
+                    {
+                        'data': [0, 1],
+                        'preprocess': epoch_preprocess,
+                        'postprocess': epoch_postprocess,
+                    },
+                ),
+            ]
         )
 
-    def train(self):
-        # n_freqs = len(freqs)
+    def _pre_train(self):
+        pass
 
-        for i, cutoff_freq in enumerate(self.freqs):
-            self.preprocess_freqs(cutoff_freq=cutoff_freq)
-            self.reset_optimizer()
-            for epoch in range(self.n_epochs):
-                num_calls = 0
-
-                def closure():
-                    nonlocal num_calls
-                    num_calls += 1
-                    self.optimizer.zero_grad()
-                    self.step()
-                    if num_calls == 1:
-                        self.update_records(freq_no=i, epoch=epoch)
-                    return self.loss
-
-                self.optimizer.step(closure)
-
+    def _post_train(self):
         save(torch.tensor(self.loss_record), "loss_record.pt", rank=self.rank)
         save(torch.stack(self.v_record), "vp_record.pt", rank=self.rank)
         save(torch.stack(self.out_record), "out_record.pt", rank=self.rank)
@@ -170,7 +175,6 @@ class Training:
             "out_filt_record.pt",
             rank=self.rank,
         )
-
         torch.distributed.barrier()
         # Plot
         if self.rank == 0:
@@ -203,8 +207,88 @@ class Training:
             save(self.v_record, "vp_record.pt", rank="")
             save(out_record, "out_record.pt", rank="")
             save(self.out_filt_record, "out_filt_record.pt", rank="")
-
+        torch.distributed.barrier()
         cleanup()
+
+    def train(self):
+        self._pre_train()
+        self._train()
+        self._post_train()
+
+    def _train(self):
+        self.__recursive_train(
+            level_data=self.training_stages,
+            depth=0,
+            max_depth=len(self.training_stages),
+        )
+
+    def __recursive_train(self, *, level_data, depth=0, max_depth=0):
+        if depth == max_depth:
+            self.step()  # Main training logic
+            return
+
+        level_name, level_info = list(level_data.items())[depth]
+        data, preprocess, postprocess = (
+            level_info['data'],
+            level_info['preprocess'],
+            level_info['postprocess'],
+        )
+
+        idt = '    ' * depth
+        for item in data:
+            self.print(f"{idt}Preprocessing {level_name} {item}", verbose=2)
+            preprocess(self, item)  # Assuming preprocess takes 'self'
+
+            self.__recursive_train(
+                level_data=level_data, depth=depth + 1, max_depth=max_depth
+            )
+
+            self.print(f"{idt}Postprocessing {level_name} {item}", verbose=2)
+            postprocess(self, item)
+
+    def _step(self):
+        self.out = self.prop(1)
+        self.out_filt = filt(taper(self.out[-1]), self.sos)
+        self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+        self.loss.backward()
+        return self.loss
+
+    def step(self):
+        num_calls = 0
+
+        def closure():
+            nonlocal num_calls
+            num_calls += 1
+            self.optimizer.zero_grad()
+            self._step()
+            if num_calls == 1:
+                self.update_records()
+            return self.loss
+
+        self.optimizer.step(closure)
+
+    def preprocess_freqs(self, *, cutoff_freq):
+        self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
+        self.sos = [
+            torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
+            for sosi in self.sos
+        ]
+
+        self.obs_data_filt = filt(self.obs_data, self.sos)
+
+    def get_epoch(self, i, j):
+        return j + i * self.n_epochs
+
+    def update_records(self):
+        self.loss_record.append(self.loss)
+        self.v_record.append(self.prop.module.vp().detach().cpu())
+        self.out_record.append(self.out[-1].detach().cpu())
+        self.out_filt_record.append(self.out_filt.detach().cpu())
+        # print(
+        #     f"Epoch={self.get_epoch(self.freq_no, self.epoch)},"
+        #     f" Loss={self.loss.item()}, rank={self.rank}",
+        #     flush=True,
+        # )
 
     def reset_optimizer(self):
         self.optimizer = self.optimizer_kwargs[0](
@@ -349,6 +433,7 @@ def run_rank(rank, world_size):
         obs_data=observed_data,
         loss_fn=loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
+        verbose=2,
     )
     train.train()
 
