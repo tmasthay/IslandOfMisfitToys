@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PERSONAL_ACCESS_TOKEN=$1
+
 echo "SSH successful at $(date)!"
 source ~/.bashrc
 cd $ISL
@@ -29,7 +31,7 @@ else
 fi
 
 # Push only if commit is successful
-if git push --force-with-lease origin HEAD; then
+if git push --force-with-lease origin HEAD -o $PERSONAL_ACCESS_TOKEN; then
     echo "Push successful."
 else
     echo "WARNING: Push failed."

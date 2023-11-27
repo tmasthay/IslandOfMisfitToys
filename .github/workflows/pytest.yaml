@@ -13,6 +13,7 @@ jobs:
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+      MY_PAT: ${{ secrets.MY_PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -25,4 +26,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd $ISL/.github/workflows/scripts/pytest
-            ./validate_gpu.sh
+            ./validate_gpu.sh $MY_PAT
