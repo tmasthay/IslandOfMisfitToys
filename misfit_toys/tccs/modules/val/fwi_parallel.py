@@ -7,12 +7,13 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 # from deepwave import scalar
-from scipy.ndimage import gaussian_filter
+# from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from dataclasses import dataclass
 from collections import OrderedDict
-from masthay_helpers.global_helpers import get_print
-from misfit_toys.data.dataset import get_data3
+from masthay_helpers.global_helpers import get_print, subdict
+
+# from misfit_toys.data.dataset import get_data3
 
 # from torch.nn import (
 #     BCEWithLogitsLoss,
@@ -29,6 +30,8 @@ from misfit_toys.tccs.modules.seismic_data import (
     SeismicProp,
     Param,
     ParamConstrained,
+    path_builder,
+    chunk_and_deploy,
 )
 
 # from misfit_toys.data.dataset import towed_src, fixed_rec
@@ -301,63 +304,37 @@ class Training:
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
-    data_path = "conda/data/marmousi/deepwave_example/shots16"
-    v_true = get_data3(field='vp', path=data_path)
-    v_true = v_true[:600, :250]
-    obs_data = get_data3(field='obs_data', path=data_path)
-    source_locations = get_data3(field='src_loc_y', path=data_path)
-    receiver_locations = get_data3(field='rec_loc_y', path=data_path)
-    src_amp = get_data3(field='src_amp_y', path=data_path)
-    dx, dt = 4.0, 0.004
+    data = path_builder(
+        "conda/data/marmousi/deepwave_example/shots16",
+        vp=ParamConstrained.delay_init(
+            minv=1000, maxv=2500, requires_grad=True
+        ),
+        src_amp_y=Param.delay_init(requires_grad=False),
+        obs_data=None,
+        src_loc_y=None,
+        rec_loc_y=None,
+    )
+    data['vp'].p.data = data['vp'].p.data[:600, :250]
+    data['obs_data'] = taper(data['obs_data'])
 
-    v_init = torch.tensor(1.0 / gaussian_filter(1.0 / v_true.numpy(), 40))
-
+    # dx, dt = data['meta'].dx, data['meta'].dt
+    # v_init = torch.tensor(1.0 / gaussian_filter(1.0 / data['vp'].numpy(), 40))
     freq = 25
+
+    data = chunk_and_deploy(
+        rank,
+        world_size,
+        data=data,
+        chunk_keys={
+            'tensors': ['obs_data', 'src_loc_y', 'rec_loc_y'],
+            'params': ['src_amp_y'],
+        },
+    )
     # peak_time = 1.5 / freq
 
-    obs_data = taper(obs_data)
-
-    source_amplitudes = Param(p=src_amp, requires_grad=False)
-    # source_locations = Param(source_locations, requires_grad=False)
-    # receiver_locations = Param(receiver_locations, requires_grad=False)
-
-    obs_data = torch.chunk(obs_data, world_size)[rank].to(rank)
-    source_amplitudes.p.data = torch.chunk(
-        source_amplitudes.p.data, world_size
-    )[rank].to(rank)
-    source_locations = torch.chunk(source_locations, world_size)[rank].to(rank)
-    receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
-        rank
-    )
-
-    # source_amplitudes = Param(p=source_amplitudes, requires_grad=False)
-    # source_locations = Param(source_locations, requires_grad=False)
-    # receiver_locations = Param(receiver_locations, requires_grad=False)
-
-    # obs_data = torch.chunk(obs_data, world_size)[rank].to(rank)
-    # source_amplitudes.p.data = torch.chunk(
-    #     source_amplitudes.p.data, world_size
-    # )[rank].to(rank)
-    # source_locations = torch.chunk(source_locations, world_size)[rank].to(rank)
-    # receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
-    #     rank
-    # )
-
-    # model = Model(v_init, 1000, 2500)
-    vp = ParamConstrained(
-        p=v_init,
-        minv=1000,
-        maxv=2500,
-        requires_grad=True,
-    )
+    prop_data = subdict(data, exclude=['obs_data'])
     prop = SeismicProp(
-        vp=vp,
-        model='acoustic',
-        dx=dx,
-        dt=dt,
-        src_amp_y=source_amplitudes,
-        src_loc_y=source_locations,
-        rec_loc_y=receiver_locations,
+        **prop_data,
         max_vel=2500,
         pml_freq=freq,
         time_pad_frac=0.2,
@@ -380,9 +357,9 @@ def run_rank(rank, world_size):
         world_size=world_size,
         prop=prop,
         freqs=[10, 15, 20, 25, 30],
-        dt=dt,
+        dt=data['meta'].dt,
         n_epochs=2,
-        obs_data=obs_data,
+        obs_data=data['obs_data'],
         loss_fn=loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
