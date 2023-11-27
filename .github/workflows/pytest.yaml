@@ -9,7 +9,6 @@ concurrency:
 jobs:
   run_gpu_validation:
     runs-on: ubuntu-latest
-    if: github.actor != 'github-actions[bot]'
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
