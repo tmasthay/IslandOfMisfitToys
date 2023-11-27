@@ -12,7 +12,7 @@ echo "CANCEL NOW IF YOU NEED TO CANCEL AUTO-COMMIT"
 sleep 30
 
 # Check if there are any .out files to add
-if git ls-files --others --exclude-standard | grep -q 'tests/.*\.out$'; then
+if git status -uno --porcelain | grep '.out$' > /dev/null; then
     echo "Adding .out files to commit..."
     git add tests/**/*.out
 else
