@@ -9,6 +9,7 @@ import torch.multiprocessing as mp
 # from deepwave import scalar
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
+from dataclasses import dataclass
 
 # from torch.nn import (
 #     BCEWithLogitsLoss,
@@ -84,12 +85,25 @@ def taper(x):
     return deepwave.common.cosine_taper_end(x, 100)
 
 
+@dataclass
 class Training:
-    def __init__(self, rank, world_size):
-        self.rank = rank
-        self.world_size = world_size
+    rank: int
+    world_size: int
+    prop: torch.nn.Module
+    freqs: list
+    dt: float
+    n_epochs: int
+    obs_data: torch.Tensor
+    loss_fn: torch.nn.Module
+    optimizer: list
 
-    def train(self, *, prop, freqs, dt, n_epochs, observed_data, loss_fn):
+    def __post_init__(self):
+        self.optimizer_kwargs = self.optimizer
+        self.optimizer = self.optimizer[0](
+            self.prop.parameters(), **self.optimizer[1]
+        )
+
+    def train(self):
         n_epochs = 2
 
         loss_record = []
@@ -104,31 +118,31 @@ class Training:
             return j + i * n_epochs
 
         for i, cutoff_freq in enumerate(freqs):
-            sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
+            sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
             sos = [
-                torch.tensor(sosi).to(observed_data.dtype).to(self.rank)
+                torch.tensor(sosi).to(self.obs_data.dtype).to(self.rank)
                 for sosi in sos
             ]
 
             def filt(x):
                 return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
-            observed_data_filt = filt(observed_data)
-            optimiser = torch.optim.LBFGS(prop.parameters())
+            obs_data_filt = filt(self.obs_data)
+            self.reset_optimizer()
             for epoch in range(n_epochs):
                 num_calls = 0
 
                 def closure():
                     nonlocal num_calls
                     num_calls += 1
-                    optimiser.zero_grad()
-                    out = prop(1)
+                    self.optimizer.zero_grad()
+                    out = self.prop(1)
                     out_filt = filt(taper(out[-1]))
-                    loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+                    loss = 1e6 * self.loss_fn(out_filt, obs_data_filt)
                     loss.backward()
                     if num_calls == 1:
                         loss_record.append(loss)
-                        v_record.append(prop.module.vp().detach().cpu())
+                        v_record.append(self.prop.module.vp().detach().cpu())
                         out_record.append(out[-1].detach().cpu())
                         out_filt_record.append(out_filt.detach().cpu())
                         print(
@@ -138,7 +152,7 @@ class Training:
                         )
                     return loss
 
-                optimiser.step(closure)
+                self.optimizer.step(closure)
 
         save(torch.tensor(loss_record), "loss_record.pt", rank=self.rank)
         save(torch.stack(v_record), "vp_record.pt", rank=self.rank)
@@ -179,6 +193,11 @@ class Training:
             save(out_filt_record, "out_filt_record.pt", rank="")
 
         cleanup()
+
+    def reset_optimizer(self):
+        self.optimizer = self.optimizer_kwargs[0](
+            self.prop.parameters(), **self.optimizer_kwargs[1]
+        )
 
 
 def run_rank(rank, world_size):
@@ -311,15 +330,15 @@ def run_rank(rank, world_size):
     train = Training(
         rank=rank,
         world_size=world_size,
-    )
-    train.train(
         prop=prop,
         freqs=[10, 15, 20, 25, 30],
         dt=dt,
         n_epochs=2,
-        observed_data=observed_data,
+        obs_data=observed_data,
         loss_fn=loss_fn,
+        optimizer=[torch.optim.LBFGS, {}],
     )
+    train.train()
 
 
 def run(world_size):
