@@ -25,10 +25,11 @@ jobs:
           script: |
             source ~/.bashrc
             cd $ISL
+            conda activate dw
             echo "Hello from Github at $(date)!" > hello.txt
             git add hello.txt
-            git commit --amend --no-edit
-            git push --force-with-lease origin HEAD
+            git commit --amend --no-edit --no-verify
+            git push --force-with-lease
 
       - name: Sleep for 5 seconds
         run: sleep 5
