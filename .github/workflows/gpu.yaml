@@ -3,6 +3,8 @@ name: GPU Validation Workflow
 
 on:
   push:
+    paths-ignore:
+      - '**/hello.txt'  # Avoid infinite loop on automated commits
 
 jobs:
   run_gpu_validation:
@@ -11,7 +13,10 @@ jobs:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
     steps:
-      - name: Execute SSH Command
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Execute SSH Command and Push Changes
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.REMOTE_HOST }}
@@ -21,15 +26,16 @@ jobs:
             source ~/.bashrc
             cd $ISL
             echo "Hello from Github at $(date)!" > hello.txt
-            cp hello.txt ~/hello.txt
+            git add hello.txt
+            git commit --amend --no-edit
+            git push --force-with-lease origin HEAD
 
-      - name: Display the contents of hello.txt
+      - name: Sleep for 5 seconds
+        run: sleep 5
+
+      - name: Retrieve and Display Updated hello.txt
         run: |
-          /bin/bash <<EOF
-          scp -o StrictHostKeyChecking=no \
-            $REMOTE_USER@$REMOTE_HOST:~/hello.txt .
-
-          echo "Contents of hello.txt retrieved from remote host:"
+          git fetch origin
+          git checkout HEAD hello.txt
+          echo "Updated contents of hello.txt:"
           cat hello.txt
-          echo "Updating latest commit message (TBC)..."
-          EOF
