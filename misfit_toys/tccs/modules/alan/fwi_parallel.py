@@ -179,7 +179,7 @@ def run_rank(rank, world_size):
     # n_freqs = len(freqs)
 
     def get_epoch(i, j):
-        return i * j * n_epochs
+        return j + i * n_epochs
 
     for i, cutoff_freq in enumerate(freqs):
         sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')

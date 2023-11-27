@@ -79,27 +79,106 @@ class Model(torch.nn.Module):
         )
 
 
-# class Prop(torch.nn.Module):
-#     def __init__(self, model, dx, dt, freq):
-#         super().__init__()
-#         self.model = model
-#         self.dx = dx
-#         self.dt = dt
-#         self.freq = freq
+def taper(x):
+    # Taper the ends of traces
+    return deepwave.common.cosine_taper_end(x, 100)
 
-#     def forward(self, source_amplitudes, source_locations, receiver_locations):
-#         v = self.model()
-#         return scalar(
-#             v,
-#             self.dx,
-#             self.dt,
-#             source_amplitudes=source_amplitudes,
-#             source_locations=source_locations,
-#             receiver_locations=receiver_locations,
-#             max_vel=2500,
-#             pml_freq=self.freq,
-#             time_pad_frac=0.2,
-#         )
+
+class Training:
+    def __init__(self, rank, world_size):
+        self.rank = rank
+        self.world_size = world_size
+
+    def train(self, *, prop, freqs, dt, n_epochs, observed_data, loss_fn):
+        n_epochs = 2
+
+        loss_record = []
+        v_record = []
+        out_record = []
+        out_filt_record = []
+
+        freqs = [10, 15, 20, 25, 30]
+
+        # n_freqs = len(freqs)
+        def get_epoch(i, j):
+            return j + i * n_epochs
+
+        for i, cutoff_freq in enumerate(freqs):
+            sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
+            sos = [
+                torch.tensor(sosi).to(observed_data.dtype).to(self.rank)
+                for sosi in sos
+            ]
+
+            def filt(x):
+                return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+
+            observed_data_filt = filt(observed_data)
+            optimiser = torch.optim.LBFGS(prop.parameters())
+            for epoch in range(n_epochs):
+                num_calls = 0
+
+                def closure():
+                    nonlocal num_calls
+                    num_calls += 1
+                    optimiser.zero_grad()
+                    out = prop(1)
+                    out_filt = filt(taper(out[-1]))
+                    loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+                    loss.backward()
+                    if num_calls == 1:
+                        loss_record.append(loss)
+                        v_record.append(prop.module.vp().detach().cpu())
+                        out_record.append(out[-1].detach().cpu())
+                        out_filt_record.append(out_filt.detach().cpu())
+                        print(
+                            f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
+                            f" rank={self.rank}",
+                            flush=True,
+                        )
+                    return loss
+
+                optimiser.step(closure)
+
+        save(torch.tensor(loss_record), "loss_record.pt", rank=self.rank)
+        save(torch.stack(v_record), "vp_record.pt", rank=self.rank)
+        save(torch.stack(out_record), "out_record.pt", rank=self.rank)
+        save(torch.stack(out_filt_record), "out_filt_record.pt", rank=self.rank)
+
+        torch.distributed.barrier()
+        # Plot
+        if self.rank == 0:
+            loss_record = torch.mean(
+                torch.stack(
+                    [
+                        load("loss_record.pt", rank=rank)
+                        for rank in range(self.world_size)
+                    ]
+                ),
+                dim=0,
+            )
+            v_record = load("vp_record.pt", rank=0)
+            out_record = torch.cat(
+                [
+                    load("out_record.pt", rank=rank)
+                    for rank in range(self.world_size)
+                ],
+                dim=1,
+            )
+            out_filt_record = torch.cat(
+                [
+                    load("out_filt_record.pt", rank=rank)
+                    for rank in range(self.world_size)
+                ],
+                dim=1,
+            )
+
+            save(loss_record, "loss_record.pt", rank="")
+            save(v_record, "vp_record.pt", rank="")
+            save(out_record, "out_record.pt", rank="")
+            save(out_filt_record, "out_filt_record.pt", rank="")
+
+        cleanup()
 
 
 def run_rank(rank, world_size):
@@ -136,10 +215,6 @@ def run_rank(rank, world_size):
     peak_time = 1.5 / freq
 
     observed_data = load("obs_data.pt", path="out/base")
-
-    def taper(x):
-        # Taper the ends of traces
-        return deepwave.common.cosine_taper_end(x, 100)
 
     # Select portion of data for inversion
     n_shots = 16
@@ -233,93 +308,18 @@ def run_rank(rank, world_size):
     #     return x**2
 
     # loss_fn = CDFLoss(renorm=renorm_func)
-
-    # Run optimisation/inversion
-    n_epochs = 2
-
-    loss_record = []
-    v_record = []
-    out_record = []
-    out_filt_record = []
-
-    freqs = [10, 15, 20, 25, 30]
-
-    # n_freqs = len(freqs)
-    def get_epoch(i, j):
-        return i * j * n_epochs
-
-    for i, cutoff_freq in enumerate(freqs):
-        sos = butter(6, cutoff_freq, fs=1 / dt, output="sos")
-        sos = [
-            torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
-        ]
-
-        def filt(x):
-            return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
-
-        observed_data_filt = filt(observed_data)
-        optimiser = torch.optim.LBFGS(prop.parameters())
-        for epoch in range(n_epochs):
-            num_calls = 0
-
-            def closure():
-                nonlocal num_calls
-                num_calls += 1
-                optimiser.zero_grad()
-                out = prop(1)
-                out_filt = filt(taper(out[-1]))
-                loss = 1e6 * loss_fn(out_filt, observed_data_filt)
-                loss.backward()
-                if num_calls == 1:
-                    loss_record.append(loss)
-                    v_record.append(prop.module.vp().detach().cpu())
-                    out_record.append(out[-1].detach().cpu())
-                    out_filt_record.append(out_filt.detach().cpu())
-                    print(
-                        f"Epoch={get_epoch(i, epoch)}, Loss={loss.item()},"
-                        f" rank={rank}",
-                        flush=True,
-                    )
-                return loss
-
-            optimiser.step(closure)
-
-    save(torch.tensor(loss_record), "loss_record.pt", rank=rank)
-    save(torch.stack(v_record), "vp_record.pt", rank=rank)
-    save(torch.stack(out_record), "out_record.pt", rank=rank)
-    save(torch.stack(out_filt_record), "out_filt_record.pt", rank=rank)
-
-    torch.distributed.barrier()
-    # Plot
-    if rank == 0:
-        loss_record = torch.mean(
-            torch.stack(
-                [
-                    load("loss_record.pt", rank=rank)
-                    for rank in range(world_size)
-                ]
-            ),
-            dim=0,
-        )
-        v_record = load("vp_record.pt", rank=0)
-        out_record = torch.cat(
-            [load("out_record.pt", rank=rank) for rank in range(world_size)],
-            dim=1,
-        )
-        out_filt_record = torch.cat(
-            [
-                load("out_filt_record.pt", rank=rank)
-                for rank in range(world_size)
-            ],
-            dim=1,
-        )
-
-        save(loss_record, "loss_record.pt", rank="")
-        save(v_record, "vp_record.pt", rank="")
-        save(out_record, "out_record.pt", rank="")
-        save(out_filt_record, "out_filt_record.pt", rank="")
-
-    cleanup()
+    train = Training(
+        rank=rank,
+        world_size=world_size,
+    )
+    train.train(
+        prop=prop,
+        freqs=[10, 15, 20, 25, 30],
+        dt=dt,
+        n_epochs=2,
+        observed_data=observed_data,
+        loss_fn=loss_fn,
+    )
 
 
 def run(world_size):
