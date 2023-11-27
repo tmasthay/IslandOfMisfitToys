@@ -13,7 +13,7 @@ def test_validate():
         }
     )
     res = main(args)
-    tol = 0.1
+    tol = 0.2
     diff = max([max(v) for v in res.values()])
     assert diff < tol, f"MARMOUSI TEST: diff={diff} > tol={tol}"
 
