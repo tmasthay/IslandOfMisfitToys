@@ -22,4 +22,6 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: ./scripts/validate_gpu.sh
+          script: |
+            cd $ISL/.github/workflows/scripts/pytest
+            ./validate_gpu.sh
