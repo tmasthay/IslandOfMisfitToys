@@ -7,6 +7,9 @@ on:
 jobs:
   run_gpu_validation:
     runs-on: ubuntu-latest
+    env:
+      REMOTE_USER: ${{ secrets.REMOTE_USER }}
+      REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
     steps:
       - name: Execute SSH Command
         uses: appleboy/ssh-action@master
@@ -16,5 +19,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             source ~/.bashrc
-            cdi
+            cd $ISL
             echo "Hello from Github at $(date)!" > hello.txt
+            cp hello.txt ~/hello.txt
+
+      - name: Display the contents of hello.txt
+        run: |
+          scp $REMOTE_USER@$REMOTE_HOST:~/hello.txt .
+          echo "Contents of hello.txt retrieved from remote host:"
+          cat hello.txt
+          echo "Updating latest commit message (TBC)..."
