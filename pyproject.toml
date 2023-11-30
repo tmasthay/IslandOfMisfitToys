@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+log_file = "/tmp/pytest.log"
+log_file_level = "NOTSET"
+filterwarnings=["ignore::UserWarning", "ignore::DeprecationWarning"]
+
+[tool.flake8]
+max-line-length = 80

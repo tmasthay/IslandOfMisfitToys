@@ -96,18 +96,60 @@ def filt(x, sos):
     return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
 
+def training_stages():
+    def freq_preprocess(training, freq):
+        sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
+        sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
+
+        training.sos = sos
+
+        training.obs_data_filt = filt(training.obs_data, sos)
+
+        # training.report.obs_data_filt_record.append(
+        #     training.custom.obs_data_filt
+        # )
+        training.reset_optimizer()
+
+    def freq_postprocess(training, freq):
+        pass
+
+    def epoch_preprocess(training, epoch):
+        pass
+
+    def epoch_postprocess(training, epoch):
+        pass
+
+    return OrderedDict(
+        [
+            (
+                "freqs",
+                {
+                    "data": [10, 15, 20, 25, 30],
+                    "preprocess": freq_preprocess,
+                    "postprocess": freq_postprocess,
+                },
+            ),
+            (
+                "epochs",
+                {
+                    "data": [0, 1],
+                    "preprocess": epoch_preprocess,
+                    "postprocess": epoch_postprocess,
+                },
+            ),
+        ]
+    )
+
+
 @dataclass
 class Training:
     rank: int
     world_size: int
     prop: torch.nn.Module
-    freqs: list
-    dt: float
-    n_epochs: int
     obs_data: torch.Tensor
     loss_fn: torch.nn.Module
-    n_epochs: int
     optimizer: list
+    training_stages: OrderedDict
     verbose: int = 1
 
     def __post_init__(self):
@@ -119,54 +161,7 @@ class Training:
         self.v_record = []
         self.out_record = []
         self.out_filt_record = []
-        self.training_stages = self.training_stages()
         self.print, _ = get_print(_verbose=self.verbose)
-
-    def training_stages(self):
-        def freq_preprocess(training, freq):
-            sos = butter(6, freq, fs=1 / training.dt, output="sos")
-            sos = [
-                torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos
-            ]
-
-            training.sos = sos
-
-            training.obs_data_filt = filt(training.obs_data, sos)
-
-            # training.report.obs_data_filt_record.append(
-            #     training.custom.obs_data_filt
-            # )
-            training.reset_optimizer()
-
-        def freq_postprocess(training, freq):
-            pass
-
-        def epoch_preprocess(training, epoch):
-            pass
-
-        def epoch_postprocess(training, epoch):
-            pass
-
-        return OrderedDict(
-            [
-                (
-                    'freqs',
-                    {
-                        'data': [10, 15, 20, 25, 30],
-                        'preprocess': freq_preprocess,
-                        'postprocess': freq_postprocess,
-                    },
-                ),
-                (
-                    'epochs',
-                    {
-                        'data': [0, 1],
-                        'preprocess': epoch_preprocess,
-                        'postprocess': epoch_postprocess,
-                    },
-                ),
-            ]
-        )
 
     def _pre_train(self):
         pass
@@ -234,12 +229,12 @@ class Training:
 
         level_name, level_info = list(level_data.items())[depth]
         data, preprocess, postprocess = (
-            level_info['data'],
-            level_info['preprocess'],
-            level_info['postprocess'],
+            level_info["data"],
+            level_info["preprocess"],
+            level_info["postprocess"],
         )
 
-        idt = '    ' * depth
+        idt = "    " * depth
         for item in data:
             self.print(f"{idt}Preprocessing {level_name} {item}", verbose=2)
             preprocess(self, item)  # Assuming preprocess takes 'self'
@@ -307,7 +302,7 @@ def run_rank(rank, world_size):
 
     data = path_builder(
         "conda/data/marmousi/deepwave_example/shots16",
-        remap={'vp_init': 'vp'},
+        remap={"vp_init": "vp"},
         vp_init=ParamConstrained.delay_init(
             minv=1000, maxv=2500, requires_grad=True
         ),
@@ -316,23 +311,20 @@ def run_rank(rank, world_size):
         src_loc_y=None,
         rec_loc_y=None,
     )
-    data['obs_data'] = taper(data['obs_data'])
+    data["obs_data"] = taper(data["obs_data"])
     data = chunk_and_deploy(
         rank,
         world_size,
         data=data,
         chunk_keys={
-            'tensors': ['obs_data', 'src_loc_y', 'rec_loc_y'],
-            'params': ['src_amp_y'],
+            "tensors": ["obs_data", "src_loc_y", "rec_loc_y"],
+            "params": ["src_amp_y"],
         },
     )
 
-    prop_data = subdict(data, exclude=['obs_data'])
+    prop_data = subdict(data, exclude=["obs_data"])
     prop = SeismicProp(
-        **prop_data,
-        max_vel=2500,
-        pml_freq=data['meta'].freq,
-        time_pad_frac=0.2,
+        **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
@@ -342,13 +334,11 @@ def run_rank(rank, world_size):
         rank=rank,
         world_size=world_size,
         prop=prop,
-        freqs=[10, 15, 20, 25, 30],
-        dt=data['meta'].dt,
-        n_epochs=2,
-        obs_data=data['obs_data'],
+        obs_data=data["obs_data"],
         loss_fn=loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
+        training_stages=training_stages(),
     )
     train.train()
 

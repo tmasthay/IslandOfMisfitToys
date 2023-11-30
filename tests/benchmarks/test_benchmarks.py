@@ -2,8 +2,15 @@ from misfit_toys.tccs.modules.validate import main
 import os
 from masthay_helpers.global_helpers import DotDict
 
+# import logging
+# import pytest
+
 
 def test_validate():
+    # logging.basicConfig(
+    #     level=logging.WARNING, filename='/tmp/pytest_warnings.log'
+    # )
+    # logging.captureWarnings(True)
     curr_dir = os.path.dirname(__file__)
     args = DotDict(
         {
