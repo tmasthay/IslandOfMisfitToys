@@ -11,7 +11,12 @@ import torch.multiprocessing as mp
 from scipy.signal import butter
 from dataclasses import dataclass
 from collections import OrderedDict
-from masthay_helpers.global_helpers import get_print, subdict, DotDict
+from masthay_helpers.global_helpers import (
+    get_print,
+    subdict,
+    DotDict,
+    flip_dict,
+)
 
 # from masthay_helpers.curry import curry
 
@@ -162,10 +167,7 @@ class Training:
     loss_fn: torch.nn.Module
     optimizer: list
     training_stages: OrderedDict
-    report_update: dict
-    report_presave: dict
-    report_reduce: dict
-    report_path: str = 'out/parallel'
+    report_spec: dict
     verbose: int = 1
 
     def __post_init__(self):
@@ -173,7 +175,20 @@ class Training:
         self.optimizer = self.optimizer[0](
             self.prop.parameters(), **self.optimizer[1]
         )
-        self.report = DotDict({k: [] for k in self.report_update})
+        self.report_spec.setdefault('path', 'out/parallel')
+        for k, v in self.report_spec.items():
+            if k == 'path':
+                continue
+            defaults = {
+                'update': lambda x: getattr(x, k),
+                'reduce': torch.stack,
+                'presave': torch.stack,
+            }
+            self.report_spec[k] = {**defaults, **v}
+        self.report_spec_flip = flip_dict(
+            subdict(self.report_spec, exclude=['path'])
+        )
+        self.report = DotDict({k: [] for k in self.report_spec.keys()})
         self.print, _ = get_print(_verbose=self.verbose)
 
     def _pre_train(self):
@@ -181,20 +196,22 @@ class Training:
 
     def save_report(self):
         for k, v in self.report.items():
-            if k in self.report_presave.keys():
+            if k in self.report_spec_flip['presave'].keys():
                 print(f"Presaving {k}", flush=True)
                 print(f"v={v}", flush=True)
-                v = self.report_presave[k](v)
+                v = self.report_spec_flip['presave'][k](v)
             save(v, f'{k}_record', rank=self.rank)
 
     def reduce_report(self):
         for k in self.report.keys():
             v = load_all(
-                f'{k}_record', world_size=self.world_size, path=self.report_path
+                f'{k}_record',
+                world_size=self.world_size,
+                path=self.report_spec['path'],
             )
             reduce_key = k.replace('_record', '')
-            if reduce_key in self.report_reduce.keys():
-                v = self.report_reduce[reduce_key](v)
+            if reduce_key in self.report_spec_flip['reduce'].keys():
+                v = self.report_spec_flip['reduce'][reduce_key](v)
             else:
                 v = torch.stack(v)
             save(v, f'{k}_record', rank='')
@@ -278,14 +295,14 @@ class Training:
         return j + i * self.n_epochs
 
     def update_records(self):
-        for k in self.report_update.keys():
+        for k in self.report_spec_flip['update'].keys():
             if k not in self.report.keys():
                 raise ValueError(
                     f"Key {k} not in report,"
-                    f" update.keys()={self.report_update.keys()},"
+                    f" update.keys()={self.report_spec_flip['update'].keys()},"
                     f" report.keys()={self.report.keys()}"
                 )
-            self.report[k].append(self.report_update[k](self))
+            self.report[k].append(self.report_spec_flip['update'][k](self))
 
         # self.loss_record.append(self.loss)
         # self.report.vp_record.append(self.prop.module.vp().detach().cpu())
@@ -350,23 +367,27 @@ def run_rank(rank, world_size):
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
         training_stages=training_stages(),
-        report_update={
-            "loss": lambda x: d2cpu(x.loss),
-            "vp": lambda x: d2cpu(x.prop.module.vp()),
-            "out": lambda x: d2cpu(x.out[-1]),
-            "out_filt": lambda x: d2cpu(x.out_filt),
-        },
-        report_presave={
-            "loss": torch.tensor,
-            "vp": torch.stack,
-            "out": torch.stack,
-            "out_filt": torch.stack,
-        },
-        report_reduce={
-            'loss': lambda x: torch.mean(torch.stack(x), dim=0),
-            'vp': lambda x: x[0],
-            'out': lambda x: torch.cat(x, dim=1),
-            'out_filt': lambda x: torch.cat(x, dim=1),
+        report_spec={
+            'loss': {
+                'update': lambda x: d2cpu(x.loss),
+                'reduce': lambda x: torch.mean(torch.stack(x), dim=0),
+                'presave': torch.tensor,
+            },
+            'vp': {
+                'update': lambda x: d2cpu(x.prop.module.vp()),
+                'reduce': lambda x: x[0],
+                'presave': torch.stack,
+            },
+            'out': {
+                'update': lambda x: d2cpu(x.out[-1]),
+                'reduce': lambda x: torch.cat(x, dim=1),
+                'presave': torch.stack,
+            },
+            'out_filt': {
+                'update': lambda x: d2cpu(x.out_filt),
+                'reduce': lambda x: torch.cat(x, dim=1),
+                'presave': torch.stack,
+            },
         },
     )
     train.train()
