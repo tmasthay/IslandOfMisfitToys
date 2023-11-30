@@ -1,4 +1,4 @@
-from masthay_helpers import DotDict
+from masthay_helpers.global_helpers import DotDict
 
 import torch
 import deepwave as dw

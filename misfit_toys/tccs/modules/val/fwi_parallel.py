@@ -12,6 +12,7 @@ from scipy.signal import butter
 from dataclasses import dataclass
 from collections import OrderedDict
 from masthay_helpers.global_helpers import get_print, subdict
+from masthay_helpers.curry import curry
 
 # from misfit_toys.data.dataset import get_data3
 
@@ -60,6 +61,16 @@ def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
 
 def load(name, *, rank="", path="out/parallel", ext=".pt"):
     return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
+
+
+def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
+    if world_size == 0:
+        return load(name, rank='', path=path, ext=ext)
+    else:
+        return [
+            load(name, rank=rank, path=path, ext=ext)
+            for rank in range(world_size)
+        ]
 
 
 def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
@@ -176,31 +187,16 @@ class Training:
             rank=self.rank,
         )
         torch.distributed.barrier()
+        fetch_all = curry(load_all)(world_size=self.world_size)
         # Plot
         if self.rank == 0:
             self.loss_record = torch.mean(
-                torch.stack(
-                    [
-                        load("loss_record.pt", rank=rank)
-                        for rank in range(self.world_size)
-                    ]
-                ),
-                dim=0,
+                torch.stack(fetch_all('loss_record.pt')), dim=0
             )
             self.v_record = load("vp_record.pt", rank=0)
-            out_record = torch.cat(
-                [
-                    load("out_record.pt", rank=rank)
-                    for rank in range(self.world_size)
-                ],
-                dim=1,
-            )
+            out_record = torch.cat(fetch_all('out_record.pt'), dim=1)
             self.out_filt_record = torch.cat(
-                [
-                    load("out_filt_record.pt", rank=rank)
-                    for rank in range(self.world_size)
-                ],
-                dim=1,
+                fetch_all('out_filt_record.pt'), dim=1
             )
 
             save(self.loss_record, "loss_record.pt", rank="")

@@ -7,7 +7,7 @@ from typing import Optional as Opt
 import deepwave as dw
 import torch
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from masthay_helpers import DotDict
+from masthay_helpers.global_helpers import DotDict
 
 
 class Param(torch.nn.Module):

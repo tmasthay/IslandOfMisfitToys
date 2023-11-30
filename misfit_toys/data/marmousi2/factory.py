@@ -3,7 +3,7 @@ import torch
 from warnings import warn
 import deepwave as dw
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from masthay_helpers import add_root_package_path
+from masthay_helpers.global_helpers import add_root_package_path
 
 add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec

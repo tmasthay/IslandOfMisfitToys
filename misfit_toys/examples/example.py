@@ -4,7 +4,7 @@ from misfit_toys.swiffer import iraise, istr
 from masthay_helpers.jupyter import iplot
 from misfit_toys.fwi.modules.seismic_data import SeismicProp
 
-from masthay_helpers import peel_final
+from masthay_helpers.global_helpers import peel_final
 
 from abc import ABC, abstractmethod
 import os
@@ -453,12 +453,10 @@ class ExampleGen:
                     istr(
                         "\n",
                         "(1) Explicitly set (params synced by DDP)\n",
-                        (
-                            "(2) Implicitly set by saving to"
-                            " f\"{ex.data_save}/{key}_{rank}.pt\" for"
-                            " each rank (unsynced metadata, e.g. loss"
-                            " history)"
-                        ),
+                        "(2) Implicitly set by saving to"
+                        " f\"{ex.data_save}/{key}_{rank}.pt\" for"
+                        " each rank (unsynced metadata, e.g. loss"
+                        " history)",
                     ),
                 ),
             )

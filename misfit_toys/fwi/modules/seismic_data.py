@@ -3,7 +3,7 @@ from ...data.dataset import *
 from .models import Param, ParamConstrained
 
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from masthay_helpers import DotDict
+from masthay_helpers.global_helpers import DotDict
 
 from torchaudio.functional import biquad
 from typing import Annotated as Ant, Optional as Opt, Union, Callable as Call
