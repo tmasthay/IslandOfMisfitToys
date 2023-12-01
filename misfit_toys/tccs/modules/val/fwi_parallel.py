@@ -17,6 +17,7 @@ from masthay_helpers.global_helpers import (
     DotDict,
     flip_dict,
 )
+from torch.optim.lr_scheduler import ChainedScheduler
 
 # from masthay_helpers.curry import curry
 
@@ -168,6 +169,7 @@ class Training:
     optimizer: list
     training_stages: OrderedDict
     report_spec: dict
+    scheduler: list = None
     verbose: int = 1
 
     def __post_init__(self):
@@ -175,6 +177,10 @@ class Training:
         self.optimizer = self.optimizer[0](
             self.prop.parameters(), **self.optimizer[1]
         )
+        if self.scheduler:
+            self.scheduler = ChainedScheduler(
+                [curr[0](self.optimizer, **curr[1]) for curr in self.scheduler]
+            )
         self.report_spec.setdefault('path', 'out/parallel')
         for k, v in self.report_spec.items():
             if k == 'path':
@@ -281,6 +287,8 @@ class Training:
             return self.loss
 
         self.optimizer.step(closure)
+        if self.scheduler:
+            self.scheduler.step()
 
     def preprocess_freqs(self, *, cutoff_freq):
         self.sos = butter(6, cutoff_freq, fs=1 / self.dt, output="sos")
