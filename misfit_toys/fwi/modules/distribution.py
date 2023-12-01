@@ -1,4 +1,3 @@
-# from .seismic_data import SeismicProp
 from ...utils import idt_print
 
 import os
@@ -65,8 +64,6 @@ class Distribution:
         self.prop.src_loc_y = pr_tensor(self.prop.src_loc_y)
         self.prop.rec_loc_y = pr_tensor(self.prop.rec_loc_y)
 
-        # self.prop.src_amp_y.p = pr_param(self.prop.src_amp_y.p)
-        # self.prop.src_amp_x.p = pr_param(self.prop.src_amp_x.p)
         self.prop.src_amp_y = pr_tensor(self.prop.src_amp_y)
         self.prop.src_amp_x = pr_tensor(self.prop.src_amp_x)
 
@@ -74,15 +71,4 @@ class Distribution:
         if self.prop.vs is not None:
             self.prop.vs = self.prop.vs.to(self.rank)
             self.prop.rho = self.prop.rho.to(self.rank)
-
-        # if( self.prop.model == 'acoustic' ):
-        #     self.prop.vp.p = pr_param(prop.data.vp.p)
-        # else:
-        #     self.prop.vs.p = pr_param(prop.data.vs.p)
-        #     prop.data.rho.p = pr_param(prop.data.rho.p)
-        #     prop.data.src_amp_x.p = pr_param(prop.data.src_amp_x.p)
-
-        # print(list(prop.parameters()))
         self.dist_prop = DDP(self.prop, device_ids=[self.rank])
-
-        # input([(type(e), e.requires_grad) for e in list(self.dist_prop.parameters())])

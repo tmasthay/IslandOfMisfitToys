@@ -5,9 +5,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-
-# from deepwave import scalar
-# from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from dataclasses import dataclass
 from collections import OrderedDict
@@ -19,21 +16,9 @@ from masthay_helpers.global_helpers import (
 )
 from torch.optim.lr_scheduler import ChainedScheduler
 
-# from masthay_helpers.curry import curry
-
-# from misfit_toys.data.dataset import get_data3
-
-# from torch.nn import (
-#     BCEWithLogitsLoss,
-#     HuberLoss,
-#     L1Loss,
-#     SmoothL1Loss,
-#     SoftMarginLoss,
-# )
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
-# from misfit_toys.fwi.custom_losses import LeastSquares, CDFLoss
 from misfit_toys.tccs.modules.seismic_data import (
     SeismicProp,
     Param,
@@ -41,8 +26,6 @@ from misfit_toys.tccs.modules.seismic_data import (
     path_builder,
     chunk_and_deploy,
 )
-
-# from misfit_toys.data.dataset import towed_src, fixed_rec
 
 
 def setup(rank, world_size):
@@ -311,16 +294,6 @@ class Training:
                     f" report.keys()={self.report.keys()}"
                 )
             self.report[k].append(self.report_spec_flip['update'][k](self))
-
-        # self.loss_record.append(self.loss)
-        # self.report.vp_record.append(self.prop.module.vp().detach().cpu())
-        # self.out_record.append(self.out[-1].detach().cpu())
-        # self.out_filt_record.append(self.out_filt.detach().cpu())
-        # print(
-        #     f"Epoch={self.get_epoch(self.freq_no, self.epoch)},"
-        #     f" Loss={self.loss.item()}, rank={self.rank}",
-        #     flush=True,
-        # )
 
     def reset_optimizer(self):
         self.optimizer = self.optimizer_kwargs[0](

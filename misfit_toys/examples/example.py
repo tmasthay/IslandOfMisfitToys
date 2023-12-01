@@ -369,18 +369,6 @@ class ExampleGen:
                 )
         # self.tensors['vp_init'] = self.tensors['vp_true']
         torch.distributed.barrier()
-        # if rank == 0:
-        #     self.plot_data()
-        #     with open(self.pickle_save, "wb") as f:
-        #         self.print(
-        #             (
-        #                  f"Saving pickle to {self.pickle_save}..."
-        #                 f"self.tensors.keys()=={self.tensors.keys()}"
-        #             ),
-        #             end="",
-        #         )
-        #         pickle.dump(self, f)
-        #         self.print("SUCCESS")
         cleanup()
 
     def run(self, *args, **kw):
@@ -390,23 +378,12 @@ class ExampleGen:
                 "\nFATAL: No GPUs detected, check your system.\n"
                 "    We currently do not support CPU-only training."
             )
-        # self.losses = torch.empty(world_size + 1)
         self.load_all_tensors()
         mp.spawn(
             self.run_rank, args=(world_size,), nprocs=world_size, join=True
         )
         self.load_all_tensors()
         return self.final_result(*args, **kw)
-        # with open(self.pickle_save, "rb") as f:
-        #     self.print(f"Loading pickle from {self.pickle_save}...", end="")
-        #     self = pickle.load(f)
-        #     self.print(
-        #         f"SUCCESS...deleting self.pickle_save...={self.pickle_save}",
-        #         end="",
-        #     )
-        #     os.remove(self.pickle_save)
-        #     self.print("SUCCESS")
-        # return self
 
     def plot(self, *, keys, column_names, cols, rules, data_process=None):
         data = [self.tensors[k].detach().cpu() for k in keys]

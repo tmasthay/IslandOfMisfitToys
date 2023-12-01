@@ -15,13 +15,6 @@ class Renorm:
         u = x - x.min()
         return u / u.sum()
 
-    # @staticmethod
-    # def exp(beta):
-    #     def helper(x):
-    #         u = torch.exp(beta * x)
-    #         return u / u.sum()
-
-    #     return helper
     @staticmethod
     def exp(x):
         u = torch.exp(0.1 * x)

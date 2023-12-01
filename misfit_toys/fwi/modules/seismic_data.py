@@ -124,9 +124,6 @@ class SeismicProp(torch.nn.Module):
         self.src_amp_x = get_prmzt(
             src_amp_x, "src_amp_x", prmzt=src_amp_x_prmzt
         )
-
-        # self.src_amp_y = get(src_amp_y, "src_amp_y")
-        # self.src_amp_x = get(src_amp_x, "src_amp_x")
         self.obs_data = get(obs_data, "obs_data")
         self.src_loc_y = get(src_loc_y, "src_loc_y")
         self.rec_loc_y = get(rec_loc_y, "rec_loc_y")
@@ -216,17 +213,6 @@ class SeismicProp(torch.nn.Module):
 
     def forward(self, x):
         if self.model == "acoustic":
-            # return dw.scalar(
-            #     self.vp(),
-            #     4.0,
-            #     0.004,
-            #     source_amplitudes=self.src_amp_y,
-            #     source_locations=self.src_loc_y,
-            #     receiver_locations=self.rec_loc_y,
-            #     max_vel=2500,
-            #     pml_freq=25,
-            #     time_pad_frac=0.2,
-            # )
             return dw.scalar(
                 self.vp(),
                 self.metadata.dx,

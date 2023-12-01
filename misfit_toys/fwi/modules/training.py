@@ -261,9 +261,6 @@ class TrainingMultiscale(Training):
 
             obj.report.obs_data_filt_record.append(self.custom.obs_data_filt)
 
-            # s = summarize_tensor(obj.custom.obs_data_filt)
-            # self.print(f"obs_data_filt={s}", verbose=1)
-
             # This is the point where we might need to reset the optimizer in
             #   case there is something I am missing!
             self.reset_optimizer()
@@ -272,15 +269,11 @@ class TrainingMultiscale(Training):
             pass
 
         def epoch_preprocess(*, obj, path, combos, combo_num, field_num):
-            # obj.custom.obs_data_filt = obj.custom.filt(
-            #     obj.dist_prop.module.obs_data
-            # )
             pass
 
         def epoch_postprocess(*, obj, path, combos, combo_num, field_num):
             self.print(f"epoch_postprocess", verbose=2)
             idx = combos["idx"][combo_num]
-            # obj.report.vp_record[idx] = obj.dist_prop.module.vp().detach().cpu()
             obj.record_trainables(idx)
 
         epoch_groups = [
