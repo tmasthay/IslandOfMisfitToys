@@ -24,11 +24,15 @@ fi
 
 # Perform the commit
 ACTION_FILE=/tmp/github_actions.txt
+COMMENT_FILE=/tmp/github_comments.txt
 cp .git/COMMIT_EDITMSG $ACTION_FILE
+cat $ACTION_FILE | grep "#" > $COMMENT_FILE
 sed -i '/^#/d' $ACTION_FILE
 echo >> $ACTION_FILE
 echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> $ACTION_FILE
 echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> $ACTION_FILE
+echo >> $ACTION_FILE
+cat $COMMENT_FILE >> $ACTION_FILE
 
 if git commit --amend --no-verify -m "$(cat $ACTION_FILE)"; then
     echo "Commit successful...modified commit message below"
