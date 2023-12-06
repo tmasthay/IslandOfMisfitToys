@@ -25,6 +25,7 @@ fi
 # Perform the commit
 ACTION_FILE=/tmp/github_actions.txt
 cp .git/COMMIT_EDITMSG $ACTION_FILE
+sed -i '/^#/d' $ACTION_FILE
 echo >> $ACTION_FILE
 echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> $ACTION_FILE
 echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> $ACTION_FILE
