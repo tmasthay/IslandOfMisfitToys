@@ -192,7 +192,11 @@ class Training:
             save(v, f'{k}_record', rank=self.rank)
 
     def reduce_report(self):
+        block = ['path']
+        block.extend([f'{k}_record' for k in block])
         for k in self.report.keys():
+            if k in block:
+                continue
             v = load_all(
                 f'{k}_record',
                 world_size=self.world_size,
@@ -287,6 +291,8 @@ class Training:
 
     def update_records(self):
         for k in self.report_spec_flip['update'].keys():
+            if k in ['path', 'path_record']:
+                continue
             if k not in self.report.keys():
                 raise ValueError(
                     f"Key {k} not in report,"
