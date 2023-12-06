@@ -71,23 +71,6 @@ def savefig(name, *, path="out/parallel", ext=".pt"):
     plt.savefig(get_file(name, rank="", path=path, ext=ext))
 
 
-# Generate a velocity model constrained to be within a desired range
-class Model(torch.nn.Module):
-    def __init__(self, initial, min_vel, max_vel):
-        super().__init__()
-        self.min_vel = min_vel
-        self.max_vel = max_vel
-        self.model = torch.nn.Parameter(
-            torch.logit((initial - min_vel) / (max_vel - min_vel))
-        )
-
-    def forward(self):
-        return (
-            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
-            + self.min_vel
-        )
-
-
 def taper(x):
     # Taper the ends of traces
     return deepwave.common.cosine_taper_end(x, 100)
