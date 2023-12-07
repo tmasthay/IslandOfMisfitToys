@@ -5,3 +5,14 @@ misfit_toys.fwi module
    :members:
    :undoc-members:
    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   custom_losses
+   models
+   seismic_data
+   training
