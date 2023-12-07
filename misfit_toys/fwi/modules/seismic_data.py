@@ -1,6 +1,6 @@
-from ...utils import auto_path, get_pydict, SlotMeta
-from ...data.dataset import *
-from .models import Param, ParamConstrained
+from misfit_toys.utils import auto_path, get_pydict, SlotMeta
+from misfit_toys.data.dataset import *
+from misfit_toys.fwi.modules.models import Param, ParamConstrained
 
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from masthay_helpers.global_helpers import DotDict

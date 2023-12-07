@@ -9,6 +9,7 @@ from masthay_helpers.global_helpers import (
 )
 from torch.optim.lr_scheduler import ChainedScheduler
 from misfit_toys.utils import load_all, save, cleanup, filt, taper
+from typing import Protocol, Callable, Any
 
 
 @dataclass
@@ -21,6 +22,7 @@ class Training:
     optimizer: list
     training_stages: OrderedDict
     report_spec: dict
+    _step: Callable
     scheduler: list = None
     verbose: int = 1
 
@@ -125,12 +127,8 @@ class Training:
             self.print(f"{idt}Postprocessing {level_name} {item}", verbose=2)
             postprocess(self, item)
 
-    def _step(self):
-        self.out = self.prop(1)
-        self.out_filt = filt(taper(self.out[-1]), self.sos)
-        self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-        self.loss.backward()
-        return self.loss
+    def __step(self):
+        self._step(self)
 
     def step(self):
         num_calls = 0
@@ -139,7 +137,7 @@ class Training:
             nonlocal num_calls
             num_calls += 1
             self.optimizer.zero_grad()
-            self._step()
+            self.__step()
             if num_calls == 1:
                 self.update_records()
             return self.loss
