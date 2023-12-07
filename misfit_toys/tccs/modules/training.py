@@ -57,7 +57,52 @@ class Training:
         if self._post_train is None:
             self._post_train = lambda x: None
 
-    def save_report(self):
+    def train(self):
+        self.__pre_train()
+        self._train()
+        self.__post_train()
+
+    def step(self):
+        num_calls = 0
+
+        def closure():
+            nonlocal num_calls
+            num_calls += 1
+            self.optimizer.zero_grad()
+            self.__step()
+            if num_calls == 1:
+                self._update_records()
+            return self.loss
+
+        self.optimizer.step(closure)
+        if self.scheduler:
+            self.scheduler.step()
+
+    def reset_optimizer(self):
+        self.optimizer = self.optimizer_kwargs[0](
+            self.prop.parameters(), **self.optimizer_kwargs[1]
+        )
+
+    def _train(self):
+        self.__recursive_train(
+            level_data=self.training_stages,
+            depth=0,
+            max_depth=len(self.training_stages),
+        )
+
+    def _update_records(self):
+        for k in self.report_spec_flip['update'].keys():
+            if k in ['path', 'path_record']:
+                continue
+            if k not in self.report.keys():
+                raise ValueError(
+                    f"Key {k} not in report,"
+                    f" update.keys()={self.report_spec_flip['update'].keys()},"
+                    f" report.keys()={self.report.keys()}"
+                )
+            self.report[k].append(self.report_spec_flip['update'][k](self))
+
+    def _save_report(self):
         for k, v in self.report.items():
             if k in self.report_spec_flip['presave'].keys():
                 print(f"Presaving {k}", flush=True)
@@ -67,7 +112,7 @@ class Training:
                 v, f'{k}_record', rank=self.rank, path=self.report_spec['path']
             )
 
-    def reduce_report(self):
+    def _reduce_report(self):
         block = ['path']
         block.extend([f'{k}_record' for k in block])
         for k in self.report.keys():
@@ -87,28 +132,6 @@ class Training:
 
     def __pre_train(self):
         self._pre_train(self)
-
-    def __post_train(self):
-        self._post_train(self)
-        self.save_report()
-        torch.distributed.barrier()
-
-        if self.rank == 0:
-            self.reduce_report()
-        torch.distributed.barrier()
-        cleanup()
-
-    def train(self):
-        self.__pre_train()
-        self._train()
-        self.__post_train()
-
-    def _train(self):
-        self.__recursive_train(
-            level_data=self.training_stages,
-            depth=0,
-            max_depth=len(self.training_stages),
-        )
 
     def __recursive_train(self, *, level_data, depth=0, max_depth=0):
         if depth == max_depth:
@@ -134,38 +157,15 @@ class Training:
             self.print(f"{idt}Postprocessing {level_name} {item}", verbose=2)
             postprocess(self, item)
 
+    def __post_train(self):
+        self._post_train(self)
+        self._save_report()
+        torch.distributed.barrier()
+
+        if self.rank == 0:
+            self._reduce_report()
+        torch.distributed.barrier()
+        cleanup()
+
     def __step(self):
         self._step(self)
-
-    def step(self):
-        num_calls = 0
-
-        def closure():
-            nonlocal num_calls
-            num_calls += 1
-            self.optimizer.zero_grad()
-            self.__step()
-            if num_calls == 1:
-                self.update_records()
-            return self.loss
-
-        self.optimizer.step(closure)
-        if self.scheduler:
-            self.scheduler.step()
-
-    def update_records(self):
-        for k in self.report_spec_flip['update'].keys():
-            if k in ['path', 'path_record']:
-                continue
-            if k not in self.report.keys():
-                raise ValueError(
-                    f"Key {k} not in report,"
-                    f" update.keys()={self.report_spec_flip['update'].keys()},"
-                    f" report.keys()={self.report.keys()}"
-                )
-            self.report[k].append(self.report_spec_flip['update'][k](self))
-
-    def reset_optimizer(self):
-        self.optimizer = self.optimizer_kwargs[0](
-            self.prop.parameters(), **self.optimizer_kwargs[1]
-        )
