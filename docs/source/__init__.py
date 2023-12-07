@@ -1,4 +1,2 @@
-__all__ = [
-    "conf"
-]
+__all__ = ["conf"]
 from . import *

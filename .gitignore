@@ -4,3 +4,14 @@ __pycache__
 *.bin
 /build/
 /IslandOfMisfitToys.egg-info/
+*.txt
+*tmp*
+*.pt
+*.npy
+.*
+.gitlint
+.gitlint_rules
+!.gitignore
+!.gitattributes
+!.gitmodules
+!.github

@@ -1,4 +1,2 @@
-__all__ = [
-    "source"
-]
+__all__ = ["source"]
 from . import *

@@ -1,8 +1,6 @@
-__all__ = [
-    "custom_losses",
-    "postprocess",
-    "modules"
-]
+__all__ = ["seismic_data", "custom_losses", "models", "training", "modules"]
+from .seismic_data import *
 from .custom_losses import *
-from .postprocess import *
+from .models import *
+from .training import *
 from .modules import *

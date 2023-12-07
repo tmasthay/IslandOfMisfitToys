@@ -1,67 +1,83 @@
-from subprocess import check_output as co
-from subprocess import CalledProcessError
-import sys
-from time import time
 import matplotlib.pyplot as plt
-from imageio import imread, mimsave
 import numpy as np
 import torch
-from typing import Annotated as Ant, Any, Optional as Opt, Callable
-from abc import ABCMeta, abstractmethod
-import itertools
-from .swiffer import *
-from torch.optim.lr_scheduler import _LRScheduler
+
+from typing import Annotated as Ant, Any
+
 import deepwave as dw
-from warnings import warn
 import os
-import textwrap
+
+from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
+import torch.distributed as dist
+from torchaudio.functional import biquad
 
 
-class DotDict:
-    def __init__(self, d):
-        for k, v in d.items():
-            setattr(self, k, v)
+def setup(rank, world_size, port=12355):
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(port)
 
-    def set(self, k, v):
-        setattr(self, k, v)
+    # initialize the process group
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
 
-    def get(self, k):
-        return getattr(self, k)
 
-    def keys(self):
-        return self.__dict__.keys()
+def cleanup():
+    dist.destroy_process_group()
 
-    def items(self):
-        return self.__dict__.items()
 
-    def values(self):
-        return self.__dict__.values()
+def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
+    ext = "." + ext.replace(".", "")
+    name = name.replace(ext, "")
+    if rank != "":
+        rank = f"_{rank}"
+    return os.path.join(os.path.dirname(__file__), path, f"{name}{rank}{ext}")
 
-    def has(self, k):
-        return hasattr(self, k)
 
-    def has_all(self, *keys):
-        return all([self.has(k) for k in keys])
+def load(name, *, rank="", path="out/parallel", ext=".pt"):
+    return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
 
-    def has_all_type(self, *keys, lcl_type=None):
-        return all(
-            [self.has(k) and type(self.get(k)) is lcl_type for k in keys]
-        )
+
+def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
+    if world_size == -1:
+        return load(name, rank='', path=path, ext=ext)
+    else:
+        return [
+            load(name, rank=rank, path=path, ext=ext)
+            for rank in range(world_size)
+        ]
+
+
+def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
+    os.makedirs(path, exist_ok=True)
+    torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
+
+
+def savefig(name, *, path="out/parallel", ext=".pt"):
+    plt.savefig(get_file(name, rank="", path=path, ext=ext))
+
+
+# def taper(x):
+#     # Taper the ends of traces
+#     return dw.common.cosine_taper_end(x, 100)
+
+
+def filt(x, sos):
+    return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
 
 def parse_path(path):
     if path is None:
-        path = 'conda'
-    if path.startswith('conda'):
-        path = path.replace('conda', os.environ['CONDA_PREFIX'])
-    elif path.startswith('pwd'):
-        path = path.replace('pwd', os.getcwd())
+        path = "conda"
+    if path.startswith("conda"):
+        path = path.replace("conda", os.environ["CONDA_PREFIX"])
+    elif path.startswith("pwd"):
+        path = path.replace("pwd", os.getcwd())
     else:
         path = os.path.join(os.getcwd(), path)
     return path
 
 
-def auto_path(kw_path='path', make_dir=False):
+def auto_path(kw_path="path", make_dir=False):
     def decorator(func):
         def wrapper(*args, **kwargs):
             if kw_path in kwargs:
@@ -75,29 +91,15 @@ def auto_path(kw_path='path', make_dir=False):
     return decorator
 
 
-def get_pydict(path, *, filename='metadata', as_class=False):
+def get_pydict(path, *, filename="metadata", as_class=False):
     path = parse_path(path)
-    filename = filename.replace('.pydict', '') + '.pydict'
+    filename = filename.replace(".pydict", "") + ".pydict"
     full_path = os.path.join(path, filename)
-    d = eval(open(full_path, 'r').read())
+    d = eval(open(full_path, "r").read())
     if as_class:
         return DotDict(d)
     else:
         return d
-
-
-def gpu_mem(msg='', color='red', print_protocol=print):
-    if len(msg) > 0 and msg[-1] != '\n':
-        msg += '\n'
-
-    if type(color) == tuple:
-        color = [str(e) for e in color]
-        color = 'rgb' + '_'.join(color)
-    out = sco_bash('gpu_mem', color, split=True)
-    out = [f'    {e}' for e in out if len(e) > 0]
-    out[-1] = out[-1].replace('\n', '')
-    out = '\n'.join(out)
-    print_protocol(f'{msg}{out}')
 
 
 def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
@@ -121,30 +123,30 @@ def verbosity_str_to_int(*, verbosity, levels):
         for level, level_names in levels:
             if verbosity in level_names:
                 return level
-        raise ValueError(f'Verbose value {verbosity} not recognized')
+        raise ValueError(f"Verbose value {verbosity} not recognized")
     else:
-        raise ValueError(f'Verbosity must be int or str, got {type(verbosity)}')
+        raise ValueError(f"Verbosity must be int or str, got {type(verbosity)}")
 
 
 def clean_levels(levels):
     if levels is None:
         levels = []
-        levels.append((0, ['none', 'silent']))
-        levels.append((1, ['low', 'progress']))
-        levels.append((2, ['medium', 'debug']))
-        levels.append((np.inf, ['high', 'all']))
+        levels.append((0, ["none", "silent"]))
+        levels.append((1, ["low", "progress"]))
+        levels.append((2, ["medium", "debug"]))
+        levels.append((np.inf, ["high", "all"]))
     for i, l in enumerate(levels):
         if type(l) is int:
             levels[i] = (l, [str(l)])
     for i, l in enumerate(levels):
         if type(l) not in [list, tuple] or len(l) != 2:
-            raise ValueError('Levels must be list of pairs')
+            raise ValueError("Levels must be list of pairs")
         elif type(l[1]) is not list:
-            raise ValueError(f'Level names must be list, got {type(l[1])}')
+            raise ValueError(f"Level names must be list, got {type(l[1])}")
         elif str(l[0]) not in l[1]:
             l[1].append(str(l[0]))
             if l[0] is np.inf:
-                l[1].append('infinity')
+                l[1].append("infinity")
     levels = sorted(levels, key=lambda x: x[0])
     return levels
 
@@ -167,92 +169,52 @@ def run_verbosity(*, verbosity, levels):
     return helper
 
 
-def mem_report(*args, precision=2, sep=', ', rep=None):
+def mem_report(*args, precision=2, sep=", ", rep=None):
     filtered_args = []
     if rep is None:
         rep = []
-    [rep.append('unknown') for _ in range(len(args) - len(rep))]
-    add = lambda x, i: filtered_args.append(x + ' (' + rep[i] + ')')
+    [rep.append("unknown") for _ in range(len(args) - len(rep))]
+    add = lambda x, i: filtered_args.append(x + " (" + rep[i] + ")")
     for i, arg in enumerate(args):
         if 1e18 < arg:
-            add(f'{arg/1e18:.{precision}f} EB', i)
+            add(f"{arg/1e18:.{precision}f} EB", i)
         elif 1e15 < arg:
-            add(f'{arg/1e15:.{precision}f} PB', i)
+            add(f"{arg/1e15:.{precision}f} PB", i)
         elif 1e12 < arg:
-            add(f'{arg/1e12:.{precision}f} TB', i)
+            add(f"{arg/1e12:.{precision}f} TB", i)
         elif 1e9 < arg:
-            add(f'{arg/1e9:.{precision}f} GB', i)
+            add(f"{arg/1e9:.{precision}f} GB", i)
         elif 1e6 < arg:
-            add(f'{arg/1e6:.{precision}f} MB', i)
+            add(f"{arg/1e6:.{precision}f} MB", i)
         elif 1e3 < arg:
-            add(f'{arg/1e3:.{precision}f} KB', i)
+            add(f"{arg/1e3:.{precision}f} KB", i)
         else:
-            add(f'{arg:.{precision}f} B', i)
+            add(f"{arg:.{precision}f} B", i)
     return sep.join(filtered_args)
 
 
-def full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None):
+def full_mem_report(precision=2, sep=", ", rep=("free", "total"), title=None):
     if title is None:
-        title = ''
+        title = ""
     else:
-        title = title + '\n    '
+        title = title + "\n    "
     return title + mem_report(
         *torch.cuda.mem_get_info(), precision=precision, sep=sep, rep=rep
     )
 
 
-def taper(x, length):
+def taper(x, length=100):
     return dw.common.cosine_taper_end(x, length)
-
-
-def summarize_tensor(tensor, *, idt_level=0, idt_str='    ', heading='Tensor'):
-    stats = dict(dtype=tensor.dtype, shape=tensor.shape)
-    if tensor.dtype == torch.bool:
-        return str(stats)
-    elif tensor.dtype in [
-        torch.int8,
-        torch.int16,
-        torch.int32,
-        torch.int64,
-        torch.uint8,
-    ]:
-        tensor = tensor.float()
-
-    # Compute various statistics
-    stats.update(
-        dict(
-            mean=torch.mean(tensor).item(),
-            variance=torch.var(tensor).item(),
-            median=torch.median(tensor).item(),
-            min=torch.min(tensor).item(),
-            max=torch.max(tensor).item(),
-            stddev=torch.std(tensor).item(),
-        )
-    )
-
-    # Prepare the summary string with the desired indentation
-    indent = idt_str * idt_level
-    summary = [f"{heading}:"]
-    for key, value in stats.items():
-        summary.append(f"{indent}{idt_str}{key} = {value}")
-
-    return '\n'.join(summary)
-
-
-def print_tensor(tensor, print_fn=print, print_kwargs=None, **kwargs):
-    if print_kwargs is None:
-        print_kwargs = {'flush': True}
-    print_fn(summarize_tensor(tensor, **kwargs), **print_kwargs)
 
 
 def downsample_any(u, ratios):
     assert len(ratios) == len(u.shape), (
-        f'downsample_any: len(ratios)={len(ratios)} !='
-        f' len(u.shape)={len(u.shape)}'
+        f"downsample_any: len(ratios)={len(ratios)} !="
+        f" len(u.shape)={len(u.shape)}"
     )
     assert all(
         [r > 0 and type(r) is int for r in ratios]
-    ), f'downsample_any: ratios={ratios} must be positive ints'
+    ), f"downsample_any: ratios={ratios} must be positive ints"
 
     slices = [slice(None, None, r) for r in ratios]
     return u[tuple(slices)]
@@ -262,7 +224,7 @@ class SlotMeta(type):
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
         try:
-            annotated_keys = list(class_dict['__annotations__'].keys())
+            annotated_keys = list(class_dict["__annotations__"].keys())
         except KeyError:
             annotated_keys = []
 
@@ -271,31 +233,31 @@ class SlotMeta(type):
             key
             for key, value in class_dict.items()
             if not (
-                callable(value) or key.startswith('__') or key in annotated_keys
+                callable(value) or key.startswith("__") or key in annotated_keys
             )
         ]
 
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
-            class_dict['__annotations__'][key] = Ant[Any, 'NOT ANNOTATED']
+            class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
 
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
 
         # Create the __slots__ attribute from updated annotationsi
         try:
-            class_dict['__slots__'] = list(class_dict['__annotations__'].keys())
+            class_dict["__slots__"] = list(class_dict["__annotations__"].keys())
         except KeyError:
-            class_dict['__slots__'] = []
+            class_dict["__slots__"] = []
 
         return super().__new__(cls, name, bases, class_dict)
 
 
-class CombinedMeta(SlotMeta, ABCMeta):
-    pass
+# class CombinedMeta(SlotMeta, ABCMeta):
+#     pass
 
 
-def idt_print(*args, levels=None, idt='    '):
+def idt_print(*args, levels=None, idt="    "):
     if levels is None:
         levels = [1 for _ in range(len(args))]
         levels[0] = 0
@@ -307,5 +269,90 @@ def idt_print(*args, levels=None, idt='    '):
     lines = args
     i = 0
     for arg, idt_level in zip(args, levels):
-        lines[i] = f'{idt * idt_level}{arg}'
-    return '\n'.join(lines)
+        lines[i] = f"{idt * idt_level}{arg}"
+    return "\n".join(lines)
+
+
+def canonical_tensors(exclude=None, extra=None):
+    exclude = exclude if exclude else []
+    extra = extra if extra else []
+    canon = []
+
+    def place(name, init=False):
+        if name not in exclude:
+            canon.append(name)
+            name = name.replace("_record", "")
+            if init:
+                canon.append(f"{name}_init")
+                canon.append(f"{name}_true")
+
+    place("out_record", init=True)
+    place("out_filt_record", init=True)
+    place("obs_data_filt_record", init=True)
+    place("obs_data")
+    place("loss")
+    place("freqs")
+    place("src_amp_y")
+    place("rec_loc_y")
+    place("src_loc_y")
+    for e in extra:
+        if type(extra) is tuple:
+            place(e[0], init=e[1])
+        else:
+            place(e)
+    return canon
+
+
+def canonical_reduce(reduce=None, exclude=None, extra=None):
+    reduce = reduce if reduce else {}
+    extra = extra if extra else {}
+    exclude = exclude if exclude else []
+    canon = canonical_tensors(exclude=exclude, extra=extra)
+    default = dict()
+
+    for name in canon:
+        has_key = lambda *x: any([e in name for e in x])
+        if has_key("cat", "filt", "record"):
+            default[name] = "cat"
+        elif has_key("stack"):
+            default[name] = "stack"
+        elif has_key("mean"):
+            default[name] = "mean"
+        elif has_key("sum"):
+            default[name] = "sum"
+        else:
+            default[name] = None
+
+    return {**default, **reduce}
+
+
+def see_data(path, cmap='nipy_spectral'):
+    path = os.path.abspath(parse_path(path))
+    for file in find_files(path, "*.pt"):
+        target = file.replace('.pt', '.jpg')
+        if not os.path.exists(target):
+            u = torch.load(file).detach().cpu().numpy()
+            if len(u.shape) == 2:
+                plt.imshow(u, cmap=cmap)
+                plt.title(path.split('/')[-1])
+                plt.colorbar()
+                plt.savefig(file.replace('.pt', '.jpg'))
+                plt.clf()
+
+
+def check_devices(root):
+    root = parse_path(root)
+    pt_path = vco(f'find {root} -type f -name "*.pt"').split('\n')
+    headers = ['FILE', 'DEVICE', 'ERROR MESSAGE']
+    colors = ['magenta', 'green', 'yellow']
+    data = []
+    for file in pt_path:
+        try:
+            u = torch.load(file)
+            data.append([file, str(u.device), ''])
+            del u
+        except Exception as e:
+            data.append([file, '', str(e)])
+            del u
+    s = ctab(data, headers=headers, colors=colors)
+    print(s)
