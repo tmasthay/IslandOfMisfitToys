@@ -23,6 +23,8 @@ class Training:
     training_stages: OrderedDict
     report_spec: dict
     _step: Callable
+    _pre_train: Callable = None
+    _post_train: Callable = None
     scheduler: list = None
     verbose: int = 1
 
@@ -50,9 +52,10 @@ class Training:
         )
         self.report = DotDict({k: [] for k in self.report_spec.keys()})
         self.print, _ = get_print(_verbose=self.verbose)
-
-    def _pre_train(self):
-        pass
+        if self._pre_train is None:
+            self._pre_train = lambda x: None
+        if self._post_train is None:
+            self._post_train = lambda x: None
 
     def save_report(self):
         for k, v in self.report.items():
@@ -82,7 +85,11 @@ class Training:
                 v = torch.stack(v)
             save(v, f'{k}_record', rank='', path=self.report_spec['path'])
 
-    def _post_train(self):
+    def __pre_train(self):
+        self._pre_train(self)
+
+    def __post_train(self):
+        self._post_train(self)
         self.save_report()
         torch.distributed.barrier()
 
@@ -92,9 +99,9 @@ class Training:
         cleanup()
 
     def train(self):
-        self._pre_train()
+        self.__pre_train()
         self._train()
-        self._post_train()
+        self.__post_train()
 
     def _train(self):
         self.__recursive_train(
