@@ -1,4 +1,4 @@
-from misfit_toys.tccs.modules.validate import main
+from misfit_toys.examples.marmousi.validate import main
 import os
 from masthay_helpers.global_helpers import DotDict
 
