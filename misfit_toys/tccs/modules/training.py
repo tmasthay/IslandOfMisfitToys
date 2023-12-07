@@ -17,6 +17,39 @@ from abc import ABC, abstractmethod
 #   and encapsulate _step, _pre_train, _post_train inside of it
 @dataclass
 class TrainingAbstract(ABC):
+    """
+    Abstract base class for training modules.
+
+    Attributes:
+        rank (int): The rank of the training module.
+        world_size (int): The total number of training modules.
+        prop (torch.nn.Module): The model to be trained.
+        obs_data (torch.Tensor): The input data for training.
+        loss_fn (torch.nn.Module): The loss function for training.
+        optimizer (list): The optimizer used for training.
+        report_spec (dict): The specification for reporting training progress.
+        scheduler (list): The scheduler used for adjusting learning rate during training.
+        verbose (int): The verbosity level for printing training progress.
+        override_post_train (bool): Flag indicating whether to override the default post-training logic.
+
+    Methods:
+        __post_init__(): Initialize the training module.
+        _step(): Perform a single step of training.
+        _build_training_stages(): Build the training stages for initialization.
+        train(): Train the model.
+        step(): Perform a single step of training.
+        reset_optimizer(): Reset the optimizer.
+        _pre_train(): Run logic before training.
+        _train(): Run the training process.
+        _post_train(): Run logic after training.
+        _update_records(): Update the training progress records.
+        _save_report(): Save the training progress report.
+        _reduce_report(): Reduce the training progress report.
+        _post_train_default(): Default post-training logic.
+        __recursive_train(): Recursively run the training process.
+        __post_train(): Perform post-training operations.
+    """
+
     rank: int
     world_size: int
     prop: torch.nn.Module
@@ -183,6 +216,33 @@ class TrainingAbstract(ABC):
 
 
 class Training(TrainingAbstract):
+    """
+    A class representing the training process.
+
+    Attributes:
+        rank (int): The rank of the training process.
+        world_size (int): The total number of training processes.
+        prop (torch.nn.Module): The model to be trained.
+        obs_data (torch.Tensor): The input data for training.
+        loss_fn (torch.nn.Module): The loss function used for training.
+        optimizer (list): The optimizer used for training.
+        report_spec (dict): The specification for reporting training progress.
+        scheduler (list, optional): The learning rate scheduler used for training. Defaults to None.
+        verbose (int, optional): The verbosity level. Defaults to 1.
+        override_post_train (bool, optional): Whether to override the post-training step. Defaults to False.
+    """
+
+    rank: int
+    world_size: int
+    prop: torch.nn.Module
+    obs_data: torch.Tensor
+    loss_fn: torch.nn.Module
+    optimizer: list
+    report_spec: dict
+    scheduler: list = None
+    verbose: int = 1
+    override_post_train: bool = False
+
     def __init__(
         self,
         *,
