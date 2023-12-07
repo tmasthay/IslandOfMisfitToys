@@ -2,7 +2,9 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! The associated PyPI page for this repo can be found [here](https://pypi.org/project/IslandOfMisfitToys/). See [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)) if you are confused by the logo.
+Welcome to the **Island of Misfit Toys**! See [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)) if you are confused by the logo.
+
+[PyPI](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
 
 This repository contains implementations of various misfit functions found in seismic literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
