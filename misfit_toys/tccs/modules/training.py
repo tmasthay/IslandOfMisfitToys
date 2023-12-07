@@ -9,24 +9,24 @@ from masthay_helpers.global_helpers import (
 )
 from torch.optim.lr_scheduler import ChainedScheduler
 from misfit_toys.utils import load_all, save, cleanup, filt, taper
-from typing import Protocol, Callable, Any
+from typing import Callable, Any
+from abc import ABC, abstractmethod
 
 
+# Consider using a Protocol here
+#   and encapsulate _step, _pre_train, _post_train inside of it
 @dataclass
-class Training:
+class TrainingAbstract(ABC):
     rank: int
     world_size: int
     prop: torch.nn.Module
     obs_data: torch.Tensor
     loss_fn: torch.nn.Module
     optimizer: list
-    training_stages: OrderedDict
     report_spec: dict
-    _step: Callable
-    _pre_train: Callable = None
-    _post_train: Callable = None
     scheduler: list = None
     verbose: int = 1
+    override_post_train: bool = False
 
     def __post_init__(self):
         self.optimizer_kwargs = self.optimizer
@@ -52,13 +52,18 @@ class Training:
         )
         self.report = DotDict({k: [] for k in self.report_spec.keys()})
         self.print, _ = get_print(_verbose=self.verbose)
-        if self._pre_train is None:
-            self._pre_train = lambda x: None
-        if self._post_train is None:
-            self._post_train = lambda x: None
+        self.training_stages = self._build_training_stages()
+
+    @abstractmethod
+    def _step(self) -> None:
+        """Main stepping logic"""
+
+    @abstractmethod
+    def _build_training_stages(self) -> OrderedDict:
+        """Define training stages for initializer"""
 
     def train(self):
-        self.__pre_train()
+        self._pre_train()
         self._train()
         self.__post_train()
 
@@ -69,7 +74,7 @@ class Training:
             nonlocal num_calls
             num_calls += 1
             self.optimizer.zero_grad()
-            self.__step()
+            self._step()
             if num_calls == 1:
                 self._update_records()
             return self.loss
@@ -83,12 +88,20 @@ class Training:
             self.prop.parameters(), **self.optimizer_kwargs[1]
         )
 
+    def _pre_train(self) -> None:
+        """Logic to run before training"""
+        pass
+
     def _train(self):
         self.__recursive_train(
             level_data=self.training_stages,
             depth=0,
             max_depth=len(self.training_stages),
         )
+
+    def _post_train(self) -> None:
+        """Logic to run after training"""
+        pass
 
     def _update_records(self):
         for k in self.report_spec_flip['update'].keys():
@@ -130,8 +143,14 @@ class Training:
                 v = torch.stack(v)
             save(v, f'{k}_record', rank='', path=self.report_spec['path'])
 
-    def __pre_train(self):
-        self._pre_train(self)
+    def _post_train_default(self):
+        self._save_report()
+        torch.distributed.barrier()
+
+        if self.rank == 0:
+            self._reduce_report()
+        torch.distributed.barrier()
+        cleanup()
 
     def __recursive_train(self, *, level_data, depth=0, max_depth=0):
         if depth == max_depth:
@@ -159,13 +178,52 @@ class Training:
 
     def __post_train(self):
         self._post_train(self)
-        self._save_report()
-        torch.distributed.barrier()
+        if not self.override_post_train:
+            self._post_train_default()
 
-        if self.rank == 0:
-            self._reduce_report()
-        torch.distributed.barrier()
-        cleanup()
 
-    def __step(self):
-        self._step(self)
+class Training(TrainingAbstract):
+    def __init__(
+        self,
+        *,
+        rank: int,
+        world_size: int,
+        prop: torch.nn.Module,
+        obs_data: torch.Tensor,
+        loss_fn: torch.nn.Module,
+        optimizer: list,
+        report_spec: dict,
+        scheduler: list = None,
+        verbose: int = 1,
+        override_post_train: bool = False,
+        _step: Callable[[Training], None],
+        _pre_train: Callable[[Training], None] = None,
+        _post_train: Callable[[Training], None] = None,
+        _build_training_stages: Callable[[Training], OrderedDict],
+    ):
+        """initializer"""
+        super().__init__(
+            rank=rank,
+            world_size=world_size,
+            prop=prop,
+            obs_data=obs_data,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            report_spec=report_spec,
+            scheduler=scheduler,
+            verbose=verbose,
+            override_post_train=override_post_train,
+        )
+        self._step_helper = _step
+        self.training_stages = _build_training_stages(self)
+        self._pre_train_helper = _pre_train if _pre_train else lambda x: None
+        self._post_train_helper = _post_train if _post_train else lambda x: None
+
+    def _step(self):
+        self.__step(self)
+
+    def _pre_train(self):
+        self.__pre_train(self)
+
+    def _post_train(self):
+        self._post_train_helper(self)
