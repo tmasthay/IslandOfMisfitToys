@@ -119,6 +119,7 @@ def get_args():
 
 def main(args):
     clean_output(clean=args.clean, out_file_name=args.output)
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
     @transpose
     def rel_pointwise_error(alan_tensors, iomt_tensors):

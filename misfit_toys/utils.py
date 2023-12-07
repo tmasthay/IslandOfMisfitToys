@@ -48,6 +48,7 @@ def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
 
 
 def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
+    os.makedirs(path, exist_ok=True)
     torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
 
 

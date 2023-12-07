@@ -45,6 +45,7 @@ def load(name, *, rank='', path='out/parallel', ext='.pt'):
 
 
 def save(tensor, name, *, rank='', path='out/parallel', ext='.pt'):
+    os.makedirs(path, exist_ok=True)
     torch.save(tensor, get_file(name, rank=rank, path=path, ext='.pt'))
 
 
@@ -127,7 +128,7 @@ def run_rank(rank, world_size):
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = load(f'{path}/obs_data.pt', path=get('out/base'))
+    observed_data = load('obs_data.pt', path=get('out/base'))
 
     def taper(x):
         # Taper the ends of traces
