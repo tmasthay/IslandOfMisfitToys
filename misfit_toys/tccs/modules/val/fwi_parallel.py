@@ -1,25 +1,14 @@
 import os
 
-import deepwave
-import matplotlib.pyplot as plt
 import torch
-import torch.distributed as dist
 import torch.multiprocessing as mp
 from scipy.signal import butter
-from dataclasses import dataclass
 from collections import OrderedDict
-from masthay_helpers.global_helpers import (
-    get_print,
-    subdict,
-    DotDict,
-    flip_dict,
-)
-from torch.optim.lr_scheduler import ChainedScheduler
+from masthay_helpers.global_helpers import subdict
 from misfit_toys.utils import setup, filt, taper
 from misfit_toys.tccs.modules.training import Training
 
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torchaudio.functional import biquad
 from misfit_toys.tccs.modules.seismic_data import (
     SeismicProp,
     Param,
@@ -29,49 +18,8 @@ from misfit_toys.tccs.modules.seismic_data import (
 )
 
 
-# def setup(rank, world_size):
-#     os.environ["MASTER_ADDR"] = "localhost"
-#     os.environ["MASTER_PORT"] = "12355"
-
-#     # initialize the process group
-#     dist.init_process_group("nccl", rank=rank, world_size=world_size)
-#     torch.cuda.set_device(rank)
-
-
-# def cleanup():
-#     dist.destroy_process_group()
-
-# def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
-#     ext = "." + ext.replace(".", "")
-#     name = name.replace(ext, "")
-#     if rank != "":
-#         rank = f"_{rank}"
-#     return os.path.join(os.path.dirname(__file__), path, f"{name}{rank}{ext}")
-
-
-# def load(name, *, rank="", path="out/parallel", ext=".pt"):
-#     return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
-
-
-# def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
-#     if world_size == -1:
-#         return load(name, rank='', path=path, ext=ext)
-#     else:
-#         return [
-#             load(name, rank=rank, path=path, ext=ext)
-#             for rank in range(world_size)
-#         ]
-
-
-# def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
-#     torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
-
-
-# def savefig(name, *, path="out/parallel", ext=".pt"):
-#     plt.savefig(get_file(name, rank="", path=path, ext=ext))
-
-
 def training_stages():
+    # define training stages for the training class
     def freq_preprocess(training, freq):
         sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
         sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
@@ -80,9 +28,6 @@ def training_stages():
 
         training.obs_data_filt = filt(training.obs_data, sos)
 
-        # training.report.obs_data_filt_record.append(
-        #     training.custom.obs_data_filt
-        # )
         training.reset_optimizer()
 
     def freq_postprocess(training, freq):
@@ -116,6 +61,7 @@ def training_stages():
     )
 
 
+# Define _step for the training class
 def _step(self):
     self.out = self.prop(1)
     self.out_filt = filt(taper(self.out[-1]), self.sos)
@@ -124,14 +70,17 @@ def _step(self):
     return self.loss
 
 
+# Syntactic sugar for converting from device to cpu
 def d2cpu(x):
     return x.detach().cpu()
 
 
+# Main function for training on each rank
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 
+    # Build data for marmousi model
     data = path_builder(
         "conda/data/marmousi/deepwave_example/shots16",
         remap={"vp_init": "vp"},
@@ -143,6 +92,8 @@ def run_rank(rank, world_size):
         src_loc_y=None,
         rec_loc_y=None,
     )
+
+    # preprocess data like Alan and then deploy slices onto GPUs
     data["obs_data"] = taper(data["obs_data"])
     data = chunk_and_deploy(
         rank,
@@ -154,20 +105,20 @@ def run_rank(rank, world_size):
         },
     )
 
+    # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exclude=["obs_data"])
     prop = SeismicProp(
         **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
-    loss_fn = torch.nn.MSELoss()
-
+    # Define the training object
     train = Training(
         rank=rank,
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=loss_fn,
+        loss_fn=torch.nn.MSELoss(),
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
         report_spec={
@@ -199,14 +150,17 @@ def run_rank(rank, world_size):
     train.train()
 
 
+# Main function for spawning ranks
 def run(world_size):
     mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
+# Main function for running the script
 def main():
     n_gpus = torch.cuda.device_count()
     run(n_gpus)
 
 
+# Run the script from command line
 if __name__ == "__main__":
     main()

@@ -13,8 +13,10 @@ from typing import Callable, Any
 from abc import ABC, abstractmethod
 
 
-# Consider using a Protocol here
-#   and encapsulate _step, _pre_train, _post_train inside of it
+# TODO: Consider using a Protocol here
+#   and encapsulate _step, _pre_train, _post_train inside of it.
+#   I do not believe that it is necessary, but if things get more complicated,
+#   it may be worth it.
 @dataclass
 class TrainingAbstract(ABC):
     """
