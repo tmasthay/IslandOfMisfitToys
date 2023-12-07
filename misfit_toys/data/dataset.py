@@ -256,8 +256,10 @@ def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     datasets = {
         "marmousi": {
-            "url": "https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/"
-            + "GEOMODELS/Marmousi",
+            "url": (
+                "https://www.geoazur.fr/WIND/pub/nfs/FWI-DATA/"
+                + "GEOMODELS/Marmousi"
+            ),
             "ext": "bin",
             "ny": 2301,
             "nx": 751,
@@ -516,10 +518,8 @@ class DataFactory(ABC):
             if exit_code != 0:
                 iraise(
                     RuntimeError,
-                    (
-                        f"\n\nDataFactory constructor: {cmd} failed with exit"
-                        f" code {exit_code}\n"
-                    ),
+                    f"\n\nDataFactory constructor: {cmd} failed with exit"
+                    f" code {exit_code}\n",
                 )
             pydict_exists = os.path.exists(f"{self.out_path}/metadata.pydict")
             if not pydict_exists:
