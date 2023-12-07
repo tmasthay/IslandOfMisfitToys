@@ -8,6 +8,10 @@ import numpy as np
 from functools import wraps
 from rich_tools import table_to_dicts
 
+from misfit_toys.tccs.modules.alan.fwi_parallel import main as alan
+
+from misfit_toys.tccs.modules.val.fwi_parallel import main as iomt
+
 
 def extend_files(path, filenames):
     return {
@@ -37,17 +41,9 @@ def get_files():
     alan_files = extend_files(alan_out_dir, filenames)
     iomt_files = extend_files(iomt_out_dir, filenames)
     if not all_exist(alan_files.values()):
-        print('Rerunning alan fwi_parallel.py')
-        os.system('sleep 5')
-        os.chdir(os.path.join(curr_dir, 'alan'))
-        os.system('python fwi_parallel.py')
-        os.chdir(curr_dir)
+        alan()
     if not all_exist(iomt_files.values()):
-        print('Rerunning iomt fwi_parallel.py')
-        os.system('sleep 5')
-        os.chdir(os.path.join(curr_dir, 'val'))
-        os.system('python fwi_parallel.py')
-        os.chdir(curr_dir)
+        iomt()
     if not all_exist(alan_files.values()) or not all_exist(iomt_files.values()):
         print('Error: could not generate all files')
         sys.exit(1)
@@ -86,7 +82,7 @@ def compare_output(
     return res
 
 
-def clean_output(clean):
+def clean_output(clean, out_file_name):
     alan_files, iomt_files = get_files()
     if 'a' in clean:
         for v in alan_files.values():
@@ -94,6 +90,8 @@ def clean_output(clean):
     if 'i' in clean:
         for v in iomt_files.values():
             os.remove(v)
+    if os.path.exists(out_file_name):
+        os.remove(out_file_name)
 
 
 def get_args():
@@ -120,7 +118,7 @@ def get_args():
 
 
 def main(args):
-    clean_output(clean=args.clean)
+    clean_output(clean=args.clean, out_file_name=args.output)
 
     @transpose
     def rel_pointwise_error(alan_tensors, iomt_tensors):
@@ -142,4 +140,5 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_args()
+    input(args)
     main(args)

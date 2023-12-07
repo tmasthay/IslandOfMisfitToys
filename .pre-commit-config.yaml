@@ -55,15 +55,14 @@ repos:
   #     - id: isort
   #       args: ["--profile", "black"]
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 3.9.2
-    hooks:
-      - id: flake8
-        args: [--extend-ignore=F403, --extend-ignore=F405, --max-line-length=82]
-
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: 3.9.2
+  #   hooks:
+  #     - id: flake8
+  #    args: [--extend-ignore=F403, --extend-ignore=F405, --max-line-length=82]
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.26.3
     hooks:
       - id: yamllint
-        args: ['--format=auto']
+        args: ["--format=auto"]

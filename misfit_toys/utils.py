@@ -8,6 +8,60 @@ import deepwave as dw
 import os
 
 from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
+import torch.distributed as dist
+from torchaudio.functional import biquad
+
+
+def setup(rank, world_size, port=12355):
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(port)
+
+    # initialize the process group
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+
+def cleanup():
+    dist.destroy_process_group()
+
+
+def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
+    ext = "." + ext.replace(".", "")
+    name = name.replace(ext, "")
+    if rank != "":
+        rank = f"_{rank}"
+    return os.path.join(os.path.dirname(__file__), path, f"{name}{rank}{ext}")
+
+
+def load(name, *, rank="", path="out/parallel", ext=".pt"):
+    return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
+
+
+def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
+    if world_size == -1:
+        return load(name, rank='', path=path, ext=ext)
+    else:
+        return [
+            load(name, rank=rank, path=path, ext=ext)
+            for rank in range(world_size)
+        ]
+
+
+def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
+    torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
+
+
+def savefig(name, *, path="out/parallel", ext=".pt"):
+    plt.savefig(get_file(name, rank="", path=path, ext=ext))
+
+
+# def taper(x):
+#     # Taper the ends of traces
+#     return dw.common.cosine_taper_end(x, 100)
+
+
+def filt(x, sos):
+    return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
 
 def parse_path(path):
@@ -148,7 +202,7 @@ def full_mem_report(precision=2, sep=", ", rep=("free", "total"), title=None):
     )
 
 
-def taper(x, length):
+def taper(x, length=100):
     return dw.common.cosine_taper_end(x, length)
 
 

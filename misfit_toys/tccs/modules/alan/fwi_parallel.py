@@ -25,7 +25,14 @@ def cleanup():
     dist.destroy_process_group()
 
 
+def cwd(x=''):
+    if x.startswith('/'):
+        return x
+    return os.path.join(os.path.dirname(__file__), x)
+
+
 def get_file(name, *, rank='', path='out/parallel', ext='.pt'):
+    path = cwd(path)
     ext = '.' + ext.replace('.', '')
     name = name.replace(ext, '')
     if rank != '':
@@ -88,10 +95,12 @@ class Prop(torch.nn.Module):
 def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
+    path = os.path.dirname(__file__)
+    get = lambda x: os.path.join(path, x)
     ny = 2301
     nx = 751
     dx = 4.0
-    v_true = load('vp.pt', path='out/base')
+    v_true = load('vp.pt', path=get('out/base'))
 
     # Select portion of model for inversion
     ny = 600
@@ -118,7 +127,7 @@ def run_rank(rank, world_size):
     dt = 0.004
     peak_time = 1.5 / freq
 
-    observed_data = load('obs_data.pt', path='out/base')
+    observed_data = load(f'{path}/obs_data.pt', path=get('out/base'))
 
     def taper(x):
         # Taper the ends of traces
@@ -281,6 +290,9 @@ def run(world_size):
     mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
+def main():
+    run(torch.cuda.device_count())
+
+
 if __name__ == "__main__":
-    n_gpus = torch.cuda.device_count()
-    run(n_gpus)
+    main()
