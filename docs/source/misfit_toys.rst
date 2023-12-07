@@ -12,6 +12,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   misfit_toys.data
-   misfit_toys.examples
-   misfit_toys.fwi
+   data/main
+   examples/main
+   fwi/main
