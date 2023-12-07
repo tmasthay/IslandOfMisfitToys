@@ -170,7 +170,6 @@ def run_rank(rank, world_size):
         loss_fn=loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
-        training_stages=training_stages(),
         report_spec={
             'path': os.path.join(os.path.dirname(__file__), 'out', 'parallel'),
             'loss': {
@@ -195,6 +194,7 @@ def run_rank(rank, world_size):
             },
         },
         _step=_step,
+        _build_training_stages=training_stages,
     )
     train.train()
 

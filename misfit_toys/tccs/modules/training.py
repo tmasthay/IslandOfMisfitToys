@@ -177,7 +177,7 @@ class TrainingAbstract(ABC):
             postprocess(self, item)
 
     def __post_train(self):
-        self._post_train(self)
+        self._post_train()
         if not self.override_post_train:
             self._post_train_default()
 
@@ -196,12 +196,16 @@ class Training(TrainingAbstract):
         scheduler: list = None,
         verbose: int = 1,
         override_post_train: bool = False,
-        _step: Callable[[Training], None],
-        _pre_train: Callable[[Training], None] = None,
-        _post_train: Callable[[Training], None] = None,
-        _build_training_stages: Callable[[Training], OrderedDict],
+        _step: Callable[[TrainingAbstract], None],
+        _pre_train: Callable[[TrainingAbstract], None] = None,
+        _post_train: Callable[[TrainingAbstract], None] = None,
+        _build_training_stages: Callable[[TrainingAbstract], OrderedDict],
     ):
         """initializer"""
+        self._step_helper = _step
+        self._build_training_stages_helper = _build_training_stages
+        self._pre_train_helper = _pre_train if _pre_train else lambda x: None
+        self._post_train_helper = _post_train if _post_train else lambda x: None
         super().__init__(
             rank=rank,
             world_size=world_size,
@@ -214,16 +218,15 @@ class Training(TrainingAbstract):
             verbose=verbose,
             override_post_train=override_post_train,
         )
-        self._step_helper = _step
-        self.training_stages = _build_training_stages(self)
-        self._pre_train_helper = _pre_train if _pre_train else lambda x: None
-        self._post_train_helper = _post_train if _post_train else lambda x: None
 
     def _step(self):
-        self.__step(self)
+        self._step_helper(self)
+
+    def _build_training_stages(self) -> OrderedDict:
+        return self._build_training_stages_helper()
 
     def _pre_train(self):
-        self.__pre_train(self)
+        self._pre_train_helper(self)
 
     def _post_train(self):
         self._post_train_helper(self)
