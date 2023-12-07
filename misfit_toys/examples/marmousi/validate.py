@@ -8,9 +8,8 @@ import numpy as np
 from functools import wraps
 from rich_tools import table_to_dicts
 
-from misfit_toys.tccs.modules.alan.fwi_parallel import main as alan
-
-from misfit_toys.tccs.modules.val.fwi_parallel import main as iomt
+from misfit_toys.examples.marmousi.alan.fwi_parallel import main as alan
+from misfit_toys.examples.marmousi.val.fwi_parallel import main as iomt
 
 
 def extend_files(path, filenames):

@@ -6,10 +6,10 @@ from scipy.signal import butter
 from collections import OrderedDict
 from masthay_helpers.global_helpers import subdict
 from misfit_toys.utils import setup, filt, taper
-from misfit_toys.tccs.modules.training import Training
+from misfit_toys.fwi.modules.training import Training
 
 from torch.nn.parallel import DistributedDataParallel as DDP
-from misfit_toys.tccs.modules.seismic_data import (
+from misfit_toys.fwi.modules.seismic_data import (
     SeismicProp,
     Param,
     ParamConstrained,
