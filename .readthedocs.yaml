@@ -6,7 +6,7 @@ build:
   tools:
     python: "3.10"
   jobs:
-    checkout:
+    pre_build:
       - sphinx-apidoc -o docs/source misfit_toys
 
 python:
