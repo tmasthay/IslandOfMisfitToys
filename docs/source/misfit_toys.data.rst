@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   misfit_toys.data.custom
    misfit_toys.data.das_curtin
    misfit_toys.data.marmousi
    misfit_toys.data.marmousi2
