@@ -1,3 +1,17 @@
+"""
+This module defines custom loss functions for seismic image analysis.
+
+Available Loss Functions:
+- W1: Computes the W1 loss between predicted and true seismic images.
+- L2: Computes the L2 loss between predicted and true seismic images.
+- W2: Computes the W2 loss between predicted and true seismic images.
+- HuberLegacy: Computes the Huber loss between predicted and true seismic images.
+- HuberLoss: Computes the Huber loss between predicted and true seismic images.
+- Hybrid_norm: Computes the hybrid norm loss between predicted and true seismic images.
+- Tikhonov: Placeholder class for Tikhonov regularization loss.
+- GSOT: Computes the GSOT loss between predicted and true seismic images.
+"""
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -5,23 +19,56 @@ from scipy.optimize import linear_sum_assignment
 
 
 class Renorm:
+    """
+    Class representing different renormalization methods.
+    """
+
     @staticmethod
     def square(x):
+        """Square renormalization method.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Tensor: Renormalized tensor.
+        """
         u = x**2
         return u / u.sum()
 
     @staticmethod
     def shift(x):
+        """Shift renormalization method.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Tensor: Renormalized tensor.
+        """
         u = x - x.min()
         return u / u.sum()
 
     @staticmethod
     def exp(x):
+        """Exponential renormalization method.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Tensor: Renormalized tensor.
+        """
         u = torch.exp(0.1 * x)
         return u / u.sum()
 
     @staticmethod
     def get_options():
+        """Get the available renormalization options.
+
+        Returns:
+            dict: A dictionary of available renormalization options.
+        """
         return {
             k: v.__func__
             for k, v in Renorm.__dict__.items()
@@ -30,6 +77,19 @@ class Renorm:
 
     @staticmethod
     def choose(s, *args, **kw):
+        """Choose a renormalization method.
+
+        Args:
+            s: Renormalization method name.
+            *args: Additional positional arguments.
+            **kw: Additional keyword arguments.
+
+        Returns:
+            function: The chosen renormalization method.
+
+        Raises:
+            ValueError: If the specified renormalization method is not recognized.
+        """
         options = Renorm.get_options()
         if s not in options.keys():
             raise ValueError(
@@ -43,17 +103,44 @@ class Renorm:
 
 
 class W1(torch.nn.Module):
+    """
+    W1 loss function implementation.
+
+    Args:
+        renorm_func (callable): Function to renormalize the input data.
+        eps (float, optional): Epsilon value for numerical stability. Defaults to 1.0.
+    """
+
     def __init__(self, renorm_func, eps=1.0):
         super().__init__()
         self.renorm_func = renorm_func
         self.eps = eps
 
     def prep_data(self, y):
+        """
+        Preprocesses the input data.
+
+        Args:
+            y (torch.Tensor): Input data.
+
+        Returns:
+            torch.Tensor: Preprocessed data.
+        """
         y = self.eps + self.renorm_func(y)
         y = torch.cumulative_trapezoid(y, dim=-1)
         return y / y[..., -1].unsqueeze(-1)
 
     def forward(self, y_pred, y_true):
+        """
+        Forward pass of the W1 loss function.
+
+        Args:
+            y_pred (torch.Tensor): Predicted values.
+            y_true (torch.Tensor): True values.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         y_pred = self.prep_data(y_pred)
 
         # Note that this is not necessary...should be a preprocessing step
@@ -64,25 +151,66 @@ class W1(torch.nn.Module):
 
 
 class L2(torch.nn.Module):
+    """
+    Calculates the L2 loss between predicted and true values.
+    """
+
     def __init__(self):
         super().__init__()
 
     def forward(self, y_pred, y_true):
+        """
+        Calculates the L2 loss between predicted and true values.
+
+        Args:
+            y_pred (torch.Tensor): Predicted values.
+            y_true (torch.Tensor): True values.
+
+        Returns:
+            torch.Tensor: L2 loss.
+        """
         loss = torch.mean((y_pred - y_true) ** 2)
         return loss
 
 
 # This is incorrect implementation of W2
 class W2(torch.nn.Module):
+    """
+    W2 custom loss function.
+
+    Args:
+        renorm_func (callable): Function to renormalize the input data.
+        eps (float, optional): Small value added to the input data to avoid division by zero. Defaults to 0.0.
+    """
+
     def __init__(self, renorm_func, eps=0.0):
         super().__init__()
         self.renorm_func = renorm_func
         self.eps = eps
 
     def prep_data(self, y):
+        """
+        Preprocesses the input data.
+
+        Args:
+            y (torch.Tensor): Input data.
+
+        Returns:
+            torch.Tensor: Preprocessed data.
+        """
         y = self.eps + self.renorm_func(y)
 
     def forward(self, y_pred, y_true):
+        """
+        Forward pass of the W2 loss function.
+
+        Args:
+            y_pred (torch.Tensor): Predicted values.
+            y_true (torch.Tensor): True values.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
         # Square the values
         y_pred = self.renorm_func(y_pred)
         y_true = self.renorm_func(y_true)
@@ -107,11 +235,33 @@ class W2(torch.nn.Module):
 
 
 class HuberLegacy(torch.nn.Module):
+    """
+    Huber loss function for regression tasks.
+
+    Args:
+        delta (float): The threshold value for the Huber loss function. Defaults to 0.5.
+
+    Returns:
+        torch.Tensor: The calculated loss value.
+
+    """
+
     def __init__(self, delta=0.5):
         super().__init__()
         self.delta = delta
 
     def forward(self, y_pred, y_true):
+        """
+        Forward pass of the Huber loss function.
+
+        Args:
+            y_pred (torch.Tensor): The predicted values.
+            y_true (torch.Tensor): The true values.
+
+        Returns:
+            torch.Tensor: The calculated loss value.
+
+        """
         # Calculate the absolute difference between the two seismic images
         diff = torch.abs(y_pred - y_true)
 
@@ -129,11 +279,31 @@ class HuberLegacy(torch.nn.Module):
 
 
 class HuberLoss(torch.nn.Module):
+    """
+    Huber loss function for regression tasks.
+
+    Args:
+        delta (float): The threshold value for the loss function.
+
+    Returns:
+        torch.Tensor: The computed loss value.
+    """
+
     def __init__(self, delta):
         super(HuberLoss, self).__init__()
         self.delta = torch.tensor(delta)
 
     def forward(self, input, target):
+        """
+        Compute the Huber loss between the input and target tensors.
+
+        Args:
+            input (torch.Tensor): The predicted values.
+            target (torch.Tensor): The target values.
+
+        Returns:
+            torch.Tensor: The computed loss value.
+        """
         error = input - target
         abs_error = torch.abs(error)
         quadratic = torch.minimum(abs_error, self.delta)
@@ -145,11 +315,31 @@ class HuberLoss(torch.nn.Module):
 
 
 class Hybrid_norm(torch.nn.Module):
+    """
+    Custom loss function that calculates the hybrid norm between predicted and true seismic images.
+
+    Args:
+        delta (float): The delta value used in the hybrid norm calculation.
+
+    Returns:
+        torch.Tensor: The hybrid norm loss value.
+    """
+
     def __init__(self, delta=10.0):
         super(Hybrid_norm, self).__init__()
         self.delta = delta
 
     def forward(self, y_pred, y_true):
+        """
+        Forward pass of the hybrid norm loss function.
+
+        Args:
+            y_pred (torch.Tensor): The predicted seismic image.
+            y_true (torch.Tensor): The true seismic image.
+
+        Returns:
+            torch.Tensor: The hybrid norm loss value.
+        """
         # Calculate the difference between the two seismic images
         r = y_pred - y_true
 
@@ -161,6 +351,15 @@ class Hybrid_norm(torch.nn.Module):
 
 
 class Tikhonov(torch.nn.Module):
+    """
+    Tikhonov regularization loss module.
+
+    Args:
+        lmbda (float): The regularization parameter.
+        velocity (torch.Tensor): The velocity tensor.
+        R (torch.Tensor): The regularization matrix.
+    """
+
     def __init__(self, lmbda, velocity, R):
         self.lmbda = lmbda
         self.velocity = velocity
@@ -168,11 +367,27 @@ class Tikhonov(torch.nn.Module):
 
 
 class GSOT(torch.nn.Module):
+    """
+    GSOT (Graph Space Optimal Transport) views 1D data as a point cloud and
+    defines a Gaussian mixture around each point. The loss function between two
+    signals is the 2D optimal transport distance between the two point clouds.
+    """
+
     def __init__(self, eta=0.003):
         super(GSOT, self).__init__()
         self.eta = eta
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor):
+        """
+        Forward pass of the GSOT loss function.
+
+        Args:
+            y_pred (torch.Tensor): The predicted tensor.
+            y_true (torch.Tensor): The true tensor.
+
+        Returns:
+            torch.Tensor: The calculated loss.
+        """
         loss = torch.tensor(0, dtype=torch.float)
         for s in range(y_true.shape[0]):
             for r in range(y_true.shape[1]):
