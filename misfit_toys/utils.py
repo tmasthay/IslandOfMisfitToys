@@ -1,3 +1,36 @@
+"""
+Utility functions for the Island of Misfit Toys project.
+
+Functions:
+- setup: Set up the distributed training environment.
+- cleanup: Clean up the distributed training environment.
+- get_file: Get the file path for saving or loading a tensor.
+- load: Load a tensor from a file.
+- load_all: Load tensors from multiple files.
+- save: Save a tensor to a file.
+- savefig: Save the current figure to a file.
+- filt: Apply a biquad filter to the input signal.
+- parse_path: Parse the input path.
+- auto_path: Decorator to automatically parse and create directories for file paths.
+- get_pydict: Get a Python dictionary from a file.
+- gaussian_perturb: Generate a Gaussian perturbation based on a reference tensor.
+- verbosity_str_to_int: Convert a verbosity string to an integer value.
+- clean_levels: Clean and validate the verbosity levels.
+- run_verbosity: Decorator to control the verbosity of a function.
+- mem_report: Generate a memory report.
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import os
+import deepwave as dw
+from typing import Annotated as Ant, Any
+from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
+import torch.distributed as dist
+from torchaudio.functional import biquad
+
+# Rest of the code...
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -13,6 +46,14 @@ from torchaudio.functional import biquad
 
 
 def setup(rank, world_size, port=12355):
+    """
+    Set up the distributed training environment.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        port (int, optional): The port number for communication. Defaults to 12355.
+    """
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(port)
 
@@ -22,10 +63,25 @@ def setup(rank, world_size, port=12355):
 
 
 def cleanup():
+    """
+    Clean up the distributed training environment.
+    """
     dist.destroy_process_group()
 
 
 def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
+    """
+    Get the file path for saving or loading a tensor.
+
+    Args:
+        name (str): The name of the file.
+        rank (str, optional): The rank of the current process. Defaults to "".
+        path (str, optional): The directory path. Defaults to "out/parallel".
+        ext (str, optional): The file extension. Defaults to ".pt".
+
+    Returns:
+        str: The file path.
+    """
     ext = "." + ext.replace(".", "")
     name = name.replace(ext, "")
     if rank != "":
@@ -34,10 +90,34 @@ def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
 
 
 def load(name, *, rank="", path="out/parallel", ext=".pt"):
+    """
+    Load a tensor from a file.
+
+    Args:
+        name (str): The name of the file.
+        rank (str, optional): The rank of the current process. Defaults to "".
+        path (str, optional): The directory path. Defaults to "out/parallel".
+        ext (str, optional): The file extension. Defaults to ".pt".
+
+    Returns:
+        torch.Tensor: The loaded tensor.
+    """
     return torch.load(get_file(name, rank=rank, path=path, ext=".pt"))
 
 
 def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
+    """
+    Load tensors from multiple files.
+
+    Args:
+        name (str): The name of the file.
+        world_size (int, optional): The total number of processes. Defaults to 0.
+        path (str, optional): The directory path. Defaults to "out/parallel".
+        ext (str, optional): The file extension. Defaults to ".pt".
+
+    Returns:
+        Union[torch.Tensor, List[torch.Tensor]]: The loaded tensor or a list of loaded tensors.
+    """
     if world_size == -1:
         return load(name, rank='', path=path, ext=ext)
     else:
@@ -48,24 +128,56 @@ def load_all(name, *, world_size=0, path='out/parallel', ext='.pt'):
 
 
 def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
+    """
+    Save a tensor to a file.
+
+    Args:
+        tensor (torch.Tensor): The tensor to be saved.
+        name (str): The name of the file.
+        rank (str, optional): The rank of the current process. Defaults to "".
+        path (str, optional): The directory path. Defaults to "out/parallel".
+        ext (str, optional): The file extension. Defaults to ".pt".
+    """
     os.makedirs(path, exist_ok=True)
     torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
 
 
 def savefig(name, *, path="out/parallel", ext=".pt"):
+    """
+    Save the current figure to a file.
+
+    Args:
+        name (str): The name of the file.
+        path (str, optional): The directory path. Defaults to "out/parallel".
+        ext (str, optional): The file extension. Defaults to ".pt".
+    """
     plt.savefig(get_file(name, rank="", path=path, ext=ext))
 
 
-# def taper(x):
-#     # Taper the ends of traces
-#     return dw.common.cosine_taper_end(x, 100)
-
-
 def filt(x, sos):
+    """
+    Apply a biquad filter to the input signal.
+
+    Args:
+        x (torch.Tensor): The input signal.
+        sos (List[List[float]]): The second-order sections of the filter.
+
+    Returns:
+        torch.Tensor: The filtered signal.
+    """
     return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
 
 
 def parse_path(path):
+    """
+    Parse the input path.
+
+    Args:
+        path (str): The input path.
+
+    Returns:
+        str: The parsed path.
+    """
     if path is None:
         path = "conda"
     if path.startswith("conda"):
@@ -78,6 +190,17 @@ def parse_path(path):
 
 
 def auto_path(kw_path="path", make_dir=False):
+    """
+    Decorator to automatically parse and create directories for file paths.
+
+    Args:
+        kw_path (str, optional): The keyword argument name for the file path. Defaults to "path".
+        make_dir (bool, optional): Whether to create the directory if it doesn't exist. Defaults to False.
+
+    Returns:
+        Callable: The decorator function.
+    """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             if kw_path in kwargs:
@@ -92,6 +215,17 @@ def auto_path(kw_path="path", make_dir=False):
 
 
 def get_pydict(path, *, filename="metadata", as_class=False):
+    """
+    Get a Python dictionary from a file.
+
+    Args:
+        path (str): The file path.
+        filename (str, optional): The name of the file. Defaults to "metadata".
+        as_class (bool, optional): Whether to return the dictionary as a DotDict object. Defaults to False.
+
+    Returns:
+        Union[dict, DotDict]: The Python dictionary.
+    """
     path = parse_path(path)
     filename = filename.replace(".pydict", "") + ".pydict"
     full_path = os.path.join(path, filename)
@@ -103,6 +237,18 @@ def get_pydict(path, *, filename="metadata", as_class=False):
 
 
 def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
+    """
+    Generate a Gaussian perturbation based on a reference tensor.
+
+    Args:
+        ref (torch.Tensor): The reference tensor.
+        scaled_sigma (float): The scaled standard deviation of the Gaussian distribution.
+        scaled_mu (float): The scaled mean of the Gaussian distribution.
+        scale (bool, optional): Whether to scale the perturbation based on the maximum absolute value of the reference tensor. Defaults to False.
+
+    Returns:
+        torch.Tensor: The perturbed tensor.
+    """
     if scale:
         scaling = torch.max(torch.abs(ref))
     else:
@@ -116,6 +262,19 @@ def gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False):
 
 
 def verbosity_str_to_int(*, verbosity, levels):
+    """
+    Convert a verbosity string to an integer value.
+
+    Args:
+        verbosity (Union[int, str]): The verbosity level as an integer or string.
+        levels (List[Tuple[int, List[str]]]): The list of verbosity levels and their corresponding names.
+
+    Returns:
+        int: The converted verbosity level as an integer.
+
+    Raises:
+        ValueError: If the verbosity value is not recognized.
+    """
     if type(verbosity) == int:
         return verbosity
     elif type(verbosity) == str:
@@ -129,6 +288,18 @@ def verbosity_str_to_int(*, verbosity, levels):
 
 
 def clean_levels(levels):
+    """
+    Clean and validate the verbosity levels.
+
+    Args:
+        levels (List[Union[int, Tuple[int, List[str]]]]): The list of verbosity levels.
+
+    Returns:
+        List[Tuple[int, List[str]]]: The cleaned and validated verbosity levels.
+
+    Raises:
+        ValueError: If the levels are not in the correct format.
+    """
     if levels is None:
         levels = []
         levels.append((0, ["none", "silent"]))
@@ -152,6 +323,16 @@ def clean_levels(levels):
 
 
 def run_verbosity(*, verbosity, levels):
+    """
+    Decorator to control the verbosity of a function.
+
+    Args:
+        verbosity (Union[int, str]): The verbosity level as an integer or string.
+        levels (List[Union[int, Tuple[int, List[str]]]]): The list of verbosity levels.
+
+    Returns:
+        Callable: The decorator function.
+    """
     levels = clean_levels(levels)
     v2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
     verbosity_int = v2i(verbosity)
@@ -170,6 +351,18 @@ def run_verbosity(*, verbosity, levels):
 
 
 def mem_report(*args, precision=2, sep=", ", rep=None):
+    """
+    Generate a memory report.
+
+    Args:
+        args (float): The memory values to be reported.
+        precision (int, optional): The number of decimal places for the memory values. Defaults to 2.
+        sep (str, optional): The separator between memory values. Defaults to ", ".
+        rep (List[str], optional): The labels for the memory values. Defaults to None.
+
+    Returns:
+        str: The memory report.
+    """
     filtered_args = []
     if rep is None:
         rep = []
@@ -194,6 +387,18 @@ def mem_report(*args, precision=2, sep=", ", rep=None):
 
 
 def full_mem_report(precision=2, sep=", ", rep=("free", "total"), title=None):
+    """
+    Generate a full memory report.
+
+    Args:
+        precision (int, optional): The number of decimal places for the memory values. Defaults to 2.
+        sep (str, optional): The separator between memory values. Defaults to ", ".
+        rep (Tuple[str, str], optional): The labels for the memory values. Defaults to ("free", "total").
+        title (str, optional): The title of the memory report. Defaults to None.
+
+    Returns:
+        str: The full memory report.
+    """
     if title is None:
         title = ""
     else:
@@ -204,10 +409,34 @@ def full_mem_report(precision=2, sep=", ", rep=("free", "total"), title=None):
 
 
 def taper(x, length=100):
+    """
+    Apply a cosine taper to the ends of a signal.
+
+    Args:
+        x (torch.Tensor): The input signal.
+        length (int, optional): The length of the taper. Defaults to 100.
+
+    Returns:
+        torch.Tensor: The tapered signal.
+    """
     return dw.common.cosine_taper_end(x, length)
 
 
 def downsample_any(u, ratios):
+    """
+    Downsample a tensor along any dimension.
+
+    Args:
+        u (torch.Tensor): The input tensor.
+        ratios (List[int]): The downsampling ratios for each dimension.
+
+    Returns:
+        torch.Tensor: The downsampled tensor.
+
+    Raises:
+        AssertionError: If the number of ratios does not match the number of dimensions.
+        AssertionError: If any ratio is not a positive integer.
+    """
     assert len(ratios) == len(u.shape), (
         f"downsample_any: len(ratios)={len(ratios)} !="
         f" len(u.shape)={len(u.shape)}"
@@ -221,6 +450,13 @@ def downsample_any(u, ratios):
 
 
 class SlotMeta(type):
+    """
+    Metaclass for adding default annotations and __slots__ attribute to a class.
+
+    The metaclass automatically adds default annotations for attributes that are not methods, not in special names, and not already annotated.
+    It also creates the __slots__ attribute based on the updated annotations.
+    """
+
     def __new__(cls, name, bases, class_dict):
         # Extract the variable names from the annotations
         try:
@@ -228,7 +464,7 @@ class SlotMeta(type):
         except KeyError:
             annotated_keys = []
 
-        # Find attributes that are not methods, not in special names and not already annotated
+        # Find attributes that are not methods, not in special names, and not already annotated
         non_annotated_attrs = [
             key
             for key, value in class_dict.items()
@@ -244,7 +480,7 @@ class SlotMeta(type):
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
 
-        # Create the __slots__ attribute from updated annotationsi
+        # Create the __slots__ attribute from updated annotations
         try:
             class_dict["__slots__"] = list(class_dict["__annotations__"].keys())
         except KeyError:
@@ -253,11 +489,18 @@ class SlotMeta(type):
         return super().__new__(cls, name, bases, class_dict)
 
 
-# class CombinedMeta(SlotMeta, ABCMeta):
-#     pass
-
-
 def idt_print(*args, levels=None, idt="    "):
+    """
+    Print indented text with different indentation levels.
+
+    Args:
+        args (str): The text to be printed.
+        levels (List[int], optional): The indentation levels for each text. Defaults to None.
+        idt (str, optional): The indentation string. Defaults to "    ".
+
+    Returns:
+        str: The indented text.
+    """
     if levels is None:
         levels = [1 for _ in range(len(args))]
         levels[0] = 0
@@ -274,6 +517,16 @@ def idt_print(*args, levels=None, idt="    "):
 
 
 def canonical_tensors(exclude=None, extra=None):
+    """
+    Get the canonical tensor names.
+
+    Args:
+        exclude (List[str], optional): The tensor names to be excluded. Defaults to None.
+        extra (List[Union[str, Tuple[str, bool]]], optional): Additional tensor names to be included. Defaults to None.
+
+    Returns:
+        List[str]: The canonical tensor names.
+    """
     exclude = exclude if exclude else []
     extra = extra if extra else []
     canon = []
@@ -304,6 +557,17 @@ def canonical_tensors(exclude=None, extra=None):
 
 
 def canonical_reduce(reduce=None, exclude=None, extra=None):
+    """
+    Get the canonical reduce operations for each tensor.
+
+    Args:
+        reduce (Dict[str, str], optional): Custom reduce operations for specific tensors. Defaults to None.
+        exclude (List[str], optional): The tensor names to be excluded. Defaults to None.
+        extra (Dict[str, str], optional): Additional tensor names and their reduce operations to be included. Defaults to None.
+
+    Returns:
+        Dict[str, str]: The canonical reduce operations for each tensor.
+    """
     reduce = reduce if reduce else {}
     extra = extra if extra else {}
     exclude = exclude if exclude else []
@@ -327,6 +591,13 @@ def canonical_reduce(reduce=None, exclude=None, extra=None):
 
 
 def see_data(path, cmap='nipy_spectral'):
+    """
+    Visualize data stored in .pt files.
+
+    Args:
+        path (str): The directory path.
+        cmap (str, optional): The colormap for visualization. Defaults to 'nipy_spectral'.
+    """
     path = os.path.abspath(parse_path(path))
     for file in find_files(path, "*.pt"):
         target = file.replace('.pt', '.jpg')
@@ -341,6 +612,12 @@ def see_data(path, cmap='nipy_spectral'):
 
 
 def check_devices(root):
+    """
+    Check the devices used for storing tensors.
+
+    Args:
+        root (str): The root directory path.
+    """
     root = parse_path(root)
     pt_path = vco(f'find {root} -type f -name "*.pt"').split('\n')
     headers = ['FILE', 'DEVICE', 'ERROR MESSAGE']

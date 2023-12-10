@@ -1,3 +1,18 @@
+"""
+Collection of miscellaneous helper functions to clean up code, like a Swiffer.
+
+Functions:
+    sco: Execute a shell command and return the output.
+    sco_bash: Execute a bash function and return the output.
+    human_time: Convert seconds to a human-readable time format.
+    see_fields: Get the values of specified fields in an object.
+    sub_dict: Create a new dictionary with only the specified keys.
+    istr: Indent and wrap a string.
+    iprint: Print an indented and wrapped string.
+    iraise: Raise an exception with an indented and wrapped error message.
+    ireraise: Re-raise an exception with an indented and wrapped error message.
+"""
+
 import subprocess
 from subprocess import check_output as co
 from subprocess import CalledProcessError
@@ -6,6 +21,16 @@ import textwrap
 
 
 def sco(s, split=True):
+    """
+    Execute a shell command and return the output.
+
+    Args:
+        s (str): The shell command to execute.
+        split (bool, optional): Whether to split the output by lines. Defaults to True.
+
+    Returns:
+        str or list: The output of the shell command. If split is True, returns a list of lines, otherwise returns a single string.
+    """
     try:
         u = co(s, shell=True).decode("utf-8")
         if split:
@@ -17,6 +42,20 @@ def sco(s, split=True):
 
 
 def sco_bash(function_name, *args, split=False):
+    """
+    Execute a bash function and return the output.
+
+    Args:
+        function_name (str): The name of the bash function to execute.
+        *args: The arguments to pass to the bash function.
+        split (bool, optional): Whether to split the output by lines. Defaults to False.
+
+    Returns:
+        str or list: The output of the bash function. If split is True, returns a list of lines, otherwise returns a single string.
+
+    Raises:
+        RuntimeError: If there is an error executing the bash function.
+    """
     source_command = "source ~/.bash_functions"
     function_call = f'{function_name} {" ".join(map(str, args))}'
     full_command = f"{source_command} && {function_call}"
@@ -45,6 +84,16 @@ def sco_bash(function_name, *args, split=False):
 
 
 def human_time(seconds, dec=2):
+    """
+    Convert seconds to a human-readable time format.
+
+    Args:
+        seconds (int): The number of seconds.
+        dec (int, optional): The number of decimal places to include. Defaults to 2.
+
+    Returns:
+        str: The human-readable time format.
+    """
     s = str(timedelta(seconds=seconds))
 
     def clean_intra_day(u):
@@ -62,6 +111,22 @@ def human_time(seconds, dec=2):
 
 
 def see_fields(obj, *, field, member_paths, idt="    ", level=0):
+    """
+    Get the values of specified fields in an object.
+
+    Args:
+        obj (object): The object to inspect.
+        field (str): The name of the field to retrieve.
+        member_paths (list): A list of member paths to traverse in the object.
+        idt (str, optional): The indentation string. Defaults to "    ".
+        level (int, optional): The indentation level. Defaults to 0.
+
+    Returns:
+        str: The values of the specified fields in the object.
+
+    Raises:
+        ValueError: If member_paths is not a non-empty list of strings, or if a member path does not exist in the object.
+    """
     if member_paths is None:
         member_paths = []
     if len(member_paths) == 0:
@@ -88,10 +153,32 @@ def see_fields(obj, *, field, member_paths, idt="    ", level=0):
 
 
 def sub_dict(d, keys):
+    """
+    Create a new dictionary with only the specified keys.
+
+    Args:
+        d (dict): The original dictionary.
+        keys (list): The keys to include in the new dictionary.
+
+    Returns:
+        dict: The new dictionary with only the specified keys.
+    """
     return {k: v for k, v in d.items() if k in keys}
 
 
 def istr(*args, idt_level=0, idt_str="    ", cpl=80):
+    """
+    Indent and wrap a string.
+
+    Args:
+        *args: The strings to be indented and wrapped.
+        idt_level (int, optional): The indentation level. Defaults to 0.
+        idt_str (str, optional): The indentation string. Defaults to "    ".
+        cpl (int, optional): The maximum number of characters per line. Defaults to 80.
+
+    Returns:
+        str: The indented and wrapped string.
+    """
     wrapper = textwrap.TextWrapper(width=cpl)
     s = "".join(args)
     word_list = wrapper.wrap(text=s)
@@ -104,14 +191,54 @@ def istr(*args, idt_level=0, idt_str="    ", cpl=80):
 
 
 def iprint(*args, idt_level=0, idt_str="    ", cpl=80, **kw):
+    """
+    Print an indented and wrapped string.
+
+    Args:
+        *args: The strings to be indented and wrapped.
+        idt_level (int, optional): The indentation level. Defaults to 0.
+        idt_str (str, optional): The indentation string. Defaults to "    ".
+        cpl (int, optional): The maximum number of characters per line. Defaults to 80.
+        **kw: Additional keyword arguments to pass to the print function.
+
+    Returns:
+        None: The indented and wrapped string is printed.
+    """
     print(istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl), **kw)
 
 
 def iraise(error_type, *args, idt_level=0, idt_str="    ", cpl=80):
+    """
+    Raise an exception with an indented and wrapped error message.
+
+    Args:
+        error_type (type): The type of the exception to raise.
+        *args: The strings to be indented and wrapped.
+        idt_level (int, optional): The indentation level. Defaults to 0.
+        idt_str (str, optional): The indentation string. Defaults to "    ".
+        cpl (int, optional): The maximum number of characters per line. Defaults to 80.
+
+    Raises:
+        error_type: The raised exception with the indented and wrapped error message.
+    """
     raise error_type(istr(*args, idt_level=idt_level, idt_str=idt_str, cpl=cpl))
 
 
 def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
+    """
+    Re-raise an exception with an indented and wrapped error message.
+
+    Args:
+        e (Exception): The exception to re-raise.
+        *args: The strings to be indented and wrapped.
+        idt_level (int, optional): The indentation level. Defaults to 0.
+        idt_str (str, optional): The indentation string. Defaults to "    ".
+        cpl (int, optional): The maximum number of characters per line. Defaults to 80.
+        idt_further (bool, optional): Whether to increase the indentation level for the additional strings. Defaults to True.
+
+    Raises:
+        Exception: The re-raised exception with the indented and wrapped error message.
+    """
     msg = str(e) + "\n"
     exception_type = type(e)
     full = istr(msg, idt_level=idt_level, idt_str=idt_str, cpl=cpl)
