@@ -1,17 +1,20 @@
 import torch
 import torch.nn as nn
 from torch.nn.functional import mse_loss
+from dataclasses import dataclass
 
 
 class TikhonovLoss(nn.Module):
-    def __init__(self, *, weights, alpha=1.0):
-        """
-        model_param: The single 600x250 parameter tensor of the model
-        alpha: Regularization coefficient
-        """
-        super(TikhonovLoss, self).__init__()
+    weights: torch.Tensor
+    alpha: float
+    max_iters: int
+
+    def __init__(self, weights, *, alpha, max_iters=100):
+        super().__init__()
         self.weights = weights
         self.alpha = alpha
+        self.max_iters = max_iters
+        self.iter = 0
 
     def compute_gradient_penalty(self, param):
         """
@@ -36,5 +39,9 @@ class TikhonovLoss(nn.Module):
         grad_penalty = self.compute_gradient_penalty(self.weights)
 
         # Total loss
-        total_loss = least_squares + self.alpha * grad_penalty
+        total_loss = (
+            least_squares + self.alpha(self.iter, self.max_iters) * grad_penalty
+        )
+        self.iters = self.iter + 1
+
         return total_loss

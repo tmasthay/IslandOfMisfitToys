@@ -7,7 +7,7 @@ def plot_data():
     out_dir = os.path.join(in_dir, 'figs')
     common = {
         'verbose': True,
-        'duration': 100,
+        'duration': 250,
         'print_freq': 10,
         'path': out_dir,
     }

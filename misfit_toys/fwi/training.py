@@ -133,6 +133,7 @@ class TrainingAbstract(ABC):
         self._pre_train()
         self._train()
         self.__post_train()
+        # torch.distributed.barrier()
 
     def step(self):
         """
