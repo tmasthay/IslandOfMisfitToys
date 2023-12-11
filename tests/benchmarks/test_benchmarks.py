@@ -1,4 +1,4 @@
-from misfit_toys.examples.marmousi.validate import main
+import misfit_toys.examples.marmousi.validate as val
 import os
 from masthay_helpers.global_helpers import DotDict
 
@@ -19,7 +19,7 @@ def test_validate():
             "clean": 'i',
         }
     )
-    res = main(args)
+    res = val.main(args)
     tol = 0.2
     diff = max([max(v) for v in res.values()])
     assert diff < tol, f"MARMOUSI TEST: diff={diff} > tol={tol}"
