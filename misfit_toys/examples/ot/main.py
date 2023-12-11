@@ -18,6 +18,7 @@ from misfit_toys.fwi.seismic_data import (
 )
 from misfit_toys.fwi.loss.w2 import W2
 from misfit_toys.examples.ot.plot_data import plot_data
+from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
 
 
 def training_stages():
@@ -120,7 +121,7 @@ def run_rank(rank, world_size):
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=W2(),
+        loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=1.0),
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
         report_spec={
