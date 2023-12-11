@@ -655,3 +655,23 @@ def check_devices(root):
             del u
     s = ctab(data, headers=headers, colors=colors)
     print(s)
+
+
+def reduce_report(*, report, path, world_size):
+    """
+    Reduce the report by loading and reducing the records for each key in the report.
+    The reduced records are then saved back to the report.
+
+    Returns:
+        None
+    """
+    for k in report:
+        record_key = f'{k}_record'
+        v = load_all(
+            record_key,
+            world_size=world_size,
+            path=path,
+        )
+        if report[k] is not None:
+            v = report[k](v)
+        save(v, record_key, rank='', path=path)

@@ -19,17 +19,19 @@ from misfit_toys.fwi.seismic_data import (
 from misfit_toys.fwi.loss.w2 import W2
 from misfit_toys.examples.ot.plot_data import plot_data
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
+from returns.curry import curry
+from misfit_toys.utils import reduce_report
 
 
 def training_stages():
     # define training stages for the training class
     def freq_preprocess(training, freq):
-        sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
-        sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
+        # sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
+        # sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
 
-        training.sos = sos
+        # training.sos = sos
 
-        training.obs_data_filt = filt(training.obs_data, sos)
+        # training.obs_data_filt = filt(training.obs_data, sos)
 
         training.reset_optimizer()
 
@@ -55,7 +57,7 @@ def training_stages():
             (
                 "epochs",
                 {
-                    "data": [0, 1],
+                    "data": list(range(2)),
                     "preprocess": epoch_preprocess,
                     "postprocess": epoch_postprocess,
                 },
@@ -67,8 +69,9 @@ def training_stages():
 # Define _step for the training class
 def _step(self):
     self.out = self.prop(1)
-    self.out_filt = filt(taper(self.out[-1]), self.sos)
-    self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+    # self.out_filt = filt(taper(self.out[-1]), self.sos)
+    # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+    self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
     self.loss.backward()
     return self.loss
 
@@ -115,13 +118,28 @@ def run_rank(rank, world_size):
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
+    @curry
+    def alpha_linear(iter, *, max_iters, _min=0.0, _max=0.01):
+        if iter > max_iters:
+            return _min
+        return _max + (_min - _max) * iter / max_iters
+
+    @curry
+    def alpha_exp(iter, *, max_iters=10, start=1.0, base=0.9, beta=1.0):
+        return start * base ** (beta * iter / max_iters)
+
+    _min = 0.0
+    _max = 1e-5
+    beta = 2.0
+    max_iters = 100 * 20
+    alpha = alpha_linear(_min=_min, _max=_max, max_iters=max_iters)
     # Define the training object
     train = Training(
         rank=rank,
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=0.0),
+        loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=alpha),
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
         report_spec={
@@ -141,11 +159,11 @@ def run_rank(rank, world_size):
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },
-            'out_filt': {
-                'update': lambda x: d2cpu(x.out_filt),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
+            # 'out_filt': {
+            #     'update': lambda x: d2cpu(x.out_filt),
+            #     'reduce': lambda x: torch.cat(x, dim=1),
+            #     'presave': torch.stack,
+            # },
         },
         _step=_step,
         _build_training_stages=training_stages,
@@ -158,6 +176,17 @@ def run(world_size):
     mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
+def gather_results():
+    path = os.path.join(os.path.dirname(__file__), 'out')
+    world_size = torch.cuda.device_count()
+    report = {
+        'loss': lambda x: torch.mean(torch.stack(x), dim=0),
+        'vp': lambda x: x[0],
+        'out': lambda x: torch.cat(x, dim=1),
+    }
+    reduce_report(report=report, world_size=world_size, path=path)
+
+
 # Main function for running the script
 def main():
     n_gpus = torch.cuda.device_count()
@@ -167,4 +196,5 @@ def main():
 # Run the script from command line
 if __name__ == "__main__":
     main()
+    gather_results()
     plot_data()

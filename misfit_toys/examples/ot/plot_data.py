@@ -21,12 +21,12 @@ def plot_data():
             'labels': ['Extent', 'Depth', 'Epoch'],
             'permute': (2, 1, 0),
         },
-        'out_record': {
-            'labels': ['Extent', 'Time', 'Shot No', 'Epoch'],
-            'permute': (3, 2, 1, 0),
-        },
+        # 'out_record': {
+        #     'labels': ['Extent', 'Time', 'Shot No', 'Epoch'],
+        #     'permute': (3, 2, 1, 0),
+        # },
     }
-    opts['out_filt_record'] = opts['out_record']
+    # opts['out_filt_record'] = opts['out_record']
     for k in opts.keys():
         opts[k].update(common)
 

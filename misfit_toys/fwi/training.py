@@ -270,9 +270,9 @@ class TrainingAbstract(ABC):
         self._save_report()
         torch.distributed.barrier()
 
-        if self.rank == 0:
-            self._reduce_report()
-        torch.distributed.barrier()
+        # if self.rank == 0:
+        #     self._reduce_report()
+        # torch.distributed.barrier()
         cleanup()
 
     def __recursive_train(self, *, level_data, depth=0, max_depth=0):
