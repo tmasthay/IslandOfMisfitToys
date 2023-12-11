@@ -17,6 +17,8 @@ sleep 30
 if git status -uno --porcelain | grep '.out$' > /dev/null; then
     echo "Adding .out files to commit..."
     git add tests/**/*.out
+    git add tests/**/*.gif
+    git add tests/**/*.jpg
 else
     echo "WARNING: No .out files found to add."
     exit $pytest_exit_code

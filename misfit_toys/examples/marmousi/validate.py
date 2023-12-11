@@ -7,9 +7,12 @@ import torch
 import numpy as np
 from functools import wraps
 from rich_tools import table_to_dicts
+import matplotlib.pyplot as plt
+from returns.curry import curry
 
 from misfit_toys.examples.marmousi.alan.fwi_parallel import main as alan
 from misfit_toys.examples.marmousi.val.fwi_parallel import main as iomt
+from masthay_helpers.typlotlib import plot_tensor2d_fast
 
 
 def extend_files(path, filenames):
@@ -81,6 +84,61 @@ def compare_output(
     return res
 
 
+def make_gifs(out_dir):
+    alan_tensors, iomt_tensors = get_output()
+
+    diff_tensors = {
+        k: alan_tensors[k] - iomt_tensors[k] for k in alan_tensors.keys()
+    }
+    tensors = {'alan': alan_tensors, 'iomt': iomt_tensors, 'diff': diff_tensors}
+
+    labels = {
+        'vp': ['Extent', 'Depth', 'Epoch'],
+        'out': ['Extent', 'Depth', 'Time'],
+        'out_filt': ['Extent', 'Depth', 'Time'],
+    }
+
+    permutations = {
+        'vp': (2, 1, 0),
+        'out': (2, 3, 1, 0),
+        'out_filt': (2, 3, 1, 0),
+    }
+
+    get = lambda x: os.path.join(out_dir, 'figs', x)
+    dirs = {
+        'alan': get('alan'),
+        'iomt': get('iomt'),
+        'diff': get('diff'),
+    }
+
+    for k, v in dirs.items():
+        os.makedirs(v, exist_ok=True)
+
+    @curry
+    def config(title, *, labels):
+        plt.title(title)
+        plt.xlabel(labels[0])
+        plt.ylabel(labels[1])
+        plt.colorbar()
+
+    for case, tensor_group in tensors.items():
+        for k, label in labels.items():
+            plot_tensor2d_fast(
+                tensor=tensor_group[k].permute(*permutations[k]),
+                labels=label,
+                config=config(labels=label),
+                cmap='seismic',
+                name=k,
+                path=dirs[case],
+            )
+        plt.clf()
+        plt.plot(range(len(tensor_group['loss'])), tensor_group['loss'])
+        plt.title(f'Loss {case}')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.savefig(os.path.join(dirs[case], 'loss.jpg'))
+
+
 def clean_output(clean, out_file_name):
     alan_files, iomt_files = get_files()
     if 'a' in clean:
@@ -130,15 +188,19 @@ def main(args):
             res.append(curr)
         return res
 
-    return compare_output(
+    res = compare_output(
         row_gen=rel_pointwise_error,
         row_gen_label='Relative Pointwise Difference',
         output_filename=args.output,
         justify=args.justify,
     )
 
+    out_dir = os.path.dirname(args.output)
+
+    make_gifs(out_dir)
+    return res
+
 
 if __name__ == "__main__":
     args = get_args()
-    input(args)
     main(args)
