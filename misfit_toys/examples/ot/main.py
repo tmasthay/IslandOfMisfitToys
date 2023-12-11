@@ -121,7 +121,7 @@ def run_rank(rank, world_size):
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=1.0),
+        loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=0.0),
         optimizer=[torch.optim.LBFGS, {}],
         verbose=2,
         report_spec={

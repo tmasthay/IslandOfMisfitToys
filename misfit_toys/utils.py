@@ -44,6 +44,27 @@ from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
 import torch.distributed as dist
 from torchaudio.functional import biquad
 import glob
+import socket
+
+
+def find_available_port(start_port, max_attempts=5):
+    """
+    Tries to find an available network port starting from 'start_port'.
+    It makes up to 'max_attempts' to find an available port.
+    Returns the first available port number or raises an exception if no available port is found.
+    """
+    port = start_port
+    for _ in range(max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("", port))
+                return port  # Port is available
+        except OSError as e:
+            if e.errno == 98:  # Port is already in use
+                print(f"Port {port} is in use, trying next port.")
+                port += 1
+            else:
+                raise  # Re-raise exception if it's not a "port in use" error
 
 
 def setup(rank, world_size, port=12355):
