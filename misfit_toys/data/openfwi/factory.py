@@ -7,6 +7,8 @@ import argparse
 
 from masthay_helpers.global_helpers import add_root_package_path, DotDict
 
+import multiprocessing as mproc
+
 curr_dir = os.path.dirname(__file__)
 add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.swiffer import sco
@@ -25,61 +27,63 @@ class Factory(DataFactory):
         self.metadata['model_urls'] = model_urls
 
     def _manufacture_data(self):
-        if self.installed(
-            "vp_true",
-            "vp_init",
-            "rho_true",
-            "src_loc_y",
-            "rec_loc_y",
-            "obs_data",
-        ):
-            return
-
         self.download_all()
-        d = DotDict(self.metadata)
-        self.tensors.vp_true = torch.load(
-            os.path.join(self.out_path, 'model1.pt')
-        )[0].squeeze()
-        self.tensors.vp = self.tensors.vp_true.to(self.device)
-        # self.tensors.vp_init = torch.tensor(
-        #     1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
+        # pass
+        # if self.installed(
+        #     "vp_true",
+        #     "vp_init",
+        #     "rho_true",
+        #     "src_loc_y",
+        #     "rec_loc_y",
+        #     "obs_data",
+        # ):
+        #     return
+
+        # self.download_all()
+        # d = DotDict(self.metadata)
+        # self.tensors.vp_true = torch.load(
+        #     os.path.join(self.out_path, 'model1.pt')
+        # )[0].squeeze()
+        # self.tensors.vp = self.tensors.vp_true.to(self.device)
+        # # self.tensors.vp_init = torch.tensor(
+        # #     1 / gaussian_filter(1 / self.tensors.vp_true.cpu().numpy(), 40)
+        # # )
+        # self.tensors.vp_init = self.tensors.vp_true.mean() * torch.ones_like(
+        #     self.tensors.vp_true
         # )
-        self.tensors.vp_init = self.tensors.vp_true.mean() * torch.ones_like(
-            self.tensors.vp_true
-        )
-        d.ny, d.nx = self.tensors.vp_true.shape
-        self.tensors.src_loc_y = towed_src(
-            n_shots=d.n_shots,
-            src_per_shot=d.src_per_shot,
-            d_src=d.d_src,
-            fst_src=d.fst_src,
-            src_depth=d.src_depth,
-            d_intra_shot=d.d_intra_shot,
-        ).to(self.device)
-        self.tensors.rec_loc_y = fixed_rec(
-            n_shots=d.n_shots,
-            rec_per_shot=d.rec_per_shot,
-            d_rec=d.d_rec,
-            fst_rec=d.fst_rec,
-            rec_depth=d.rec_depth,
-        ).to(self.device)
-        self.tensors.src_amp_y = (
-            dw.wavelets.ricker(d.freq, d.nt, d.dt, d.peak_time)
-            .repeat(d.n_shots, d.src_per_shot, 1)
-            .to(self.device)
-        )
-        print(f"Building obs_data in {self.out_path}...", end="", flush=True)
-        self.tensors.obs_data = dw.scalar(
-            self.tensors.vp,
-            d.dy,
-            d.dt,
-            source_amplitudes=self.tensors.src_amp_y,
-            source_locations=self.tensors.src_loc_y,
-            receiver_locations=self.tensors.rec_loc_y,
-            pml_freq=d.freq,
-            accuracy=d.accuracy,
-        )[-1]
-        print("SUCCESS", flush=True)
+        # d.ny, d.nx = self.tensors.vp_true.shape
+        # self.tensors.src_loc_y = towed_src(
+        #     n_shots=d.n_shots,
+        #     src_per_shot=d.src_per_shot,
+        #     d_src=d.d_src,
+        #     fst_src=d.fst_src,
+        #     src_depth=d.src_depth,
+        #     d_intra_shot=d.d_intra_shot,
+        # ).to(self.device)
+        # self.tensors.rec_loc_y = fixed_rec(
+        #     n_shots=d.n_shots,
+        #     rec_per_shot=d.rec_per_shot,
+        #     d_rec=d.d_rec,
+        #     fst_rec=d.fst_rec,
+        #     rec_depth=d.rec_depth,
+        # ).to(self.device)
+        # self.tensors.src_amp_y = (
+        #     dw.wavelets.ricker(d.freq, d.nt, d.dt, d.peak_time)
+        #     .repeat(d.n_shots, d.src_per_shot, 1)
+        #     .to(self.device)
+        # )
+        # print(f"Building obs_data in {self.out_path}...", end="", flush=True)
+        # self.tensors.obs_data = dw.scalar(
+        #     self.tensors.vp,
+        #     d.dy,
+        #     d.dt,
+        #     source_amplitudes=self.tensors.src_amp_y,
+        #     source_locations=self.tensors.src_loc_y,
+        #     receiver_locations=self.tensors.rec_loc_y,
+        #     pml_freq=d.freq,
+        #     accuracy=d.accuracy,
+        # )[-1]
+        # print("SUCCESS", flush=True)
 
     def download_instance(self, k, indices='all'):
         prev_res = [
@@ -105,14 +109,19 @@ class Factory(DataFactory):
                 torch.save(tensor, f"{filename}.pt")
                 os.remove(f"{filename}.npy")
             except:
+                print(f'Failed to download {basename} from {url}...continuing')
                 break
 
-    def download_all(self):
+    def download_instance_packed(self, arg):
+        self.download_instance(*arg)
+
+    def get_download_indices(self):
         num_urls = self.metadata.get("num_urls", None)
         mode = self.metadata.get("mode", "front")
         N = len(self.metadata['data_urls'].keys())
         M = len(self.metadata['model_urls'].keys())
         assert N == M, 'data and model urls must be the same size'
+
         if mode == 'front':
             indices = range(num_urls)
         elif mode == 'back':
@@ -121,8 +130,22 @@ class Factory(DataFactory):
             indices = np.random.choice(range(N), size=num_urls)
         else:
             raise ValueError(f'Invalid mode: {mode}')
+
+        return indices
+
+    def download_all_sequential(self):
+        indices = self.get_download_indices()
         self.download_instance('data', indices)
         self.download_instance('model', indices)
+
+    def download_all(self):
+        indices = self.get_download_indices()
+
+        with mproc.Pool(processes=mproc.cpu_count()) as pool:
+            pool.map(
+                self.download_instance_packed,
+                [('data', indices), ('model', indices)],
+            )
 
     @staticmethod
     def get_hashes(filename):

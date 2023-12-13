@@ -56,7 +56,7 @@ def training_stages():
             (
                 "epochs",
                 {
-                    "data": list(range(10)),
+                    "data": list(range(2)),
                     "preprocess": epoch_preprocess,
                     "postprocess": epoch_postprocess,
                 },

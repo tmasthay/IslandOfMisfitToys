@@ -1,7 +1,7 @@
 from misfit_toys.data.dataset import DataFactory
 from masthay_helpers.global_helpers import iprint
 
-import os
+import sys
 
 
 def download_data(storage, exclusions):
@@ -17,7 +17,9 @@ def download_data(storage, exclusions):
 
 def main():
     storage = "conda/data"
-    exclusions = ["das_curtin"]
+    inclusions = set(sys.argv[1:])
+    all = {'das_curtin', 'marmousi', 'marmousi2', 'openfwi'}
+    exclusions = list(all - inclusions)
     download_data(storage, exclusions)
 
 
