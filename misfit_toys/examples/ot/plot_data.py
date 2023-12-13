@@ -12,7 +12,7 @@ def plot_data():
         'path': out_dir,
     }
     verbose = True
-    duration = 100
+    duration = 250
     opts = {
         'loss_record': {
             'labels': ['Epoch', 'Loss'],

@@ -39,7 +39,10 @@ class TikhonovLoss(nn.Module):
         # Total loss
         beta = self.alpha(self.iter)
         total_loss = least_squares + beta * grad_penalty
-        print(f'iter={self.iter}, beta={beta:.2e} loss={1e6 * total_loss:.2e}')
+        if self.iter % 20 == 0:
+            print(
+                f'iter={self.iter}, beta={beta:.2e} loss={1e6 * total_loss:.2e}'
+            )
         self.iter += 1
 
         return total_loss

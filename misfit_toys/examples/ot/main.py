@@ -57,7 +57,7 @@ def training_stages():
             (
                 "epochs",
                 {
-                    "data": list(range(2)),
+                    "data": list(range(120)),
                     "preprocess": epoch_preprocess,
                     "postprocess": epoch_postprocess,
                 },
@@ -131,7 +131,7 @@ def run_rank(rank, world_size):
     _min = 0.0
     _max = 1e-5
     beta = 2.0
-    max_iters = 100 * 20
+    max_iters = 550 * 20
     alpha = alpha_linear(_min=_min, _max=_max, max_iters=max_iters)
     # Define the training object
     train = Training(
@@ -141,7 +141,7 @@ def run_rank(rank, world_size):
         obs_data=data["obs_data"],
         loss_fn=TikhonovLoss(weights=prop.module.vp, alpha=alpha),
         optimizer=[torch.optim.LBFGS, {}],
-        verbose=2,
+        verbose=1,
         report_spec={
             'path': os.path.join(os.path.dirname(__file__), 'out'),
             'loss': {
