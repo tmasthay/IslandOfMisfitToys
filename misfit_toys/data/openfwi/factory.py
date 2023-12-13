@@ -133,12 +133,21 @@ class Factory(DataFactory):
 
         return indices
 
-    def download_all_sequential(self):
+    # TODO: This seems about 2x faster than downloading from Google Drive
+    #    but it seems not sure why since things aren't zipped. Check that
+    #    your "eyeball" calculations are correct on this download speed.
+    # NOTE: Google Drive limits the number of downloads per day, so users
+    #    should only use this if they only want a subset of the data.
+    def download_all(self):
         indices = self.get_download_indices()
         self.download_instance('data', indices)
         self.download_instance('model', indices)
 
-    def download_all(self):
+    # this is not useful because the network download speed
+    #    gets divided by the number of processes on each subprocess
+    #    e.g, 100 MB/s on 1 process -> 25 MB/s on 4 processes
+    #    TODO: Delete this once you are 100% sure it is not useful
+    def download_all_parallel_notuseful_deprecated(self):
         indices = self.get_download_indices()
 
         with mproc.Pool(processes=mproc.cpu_count()) as pool:
