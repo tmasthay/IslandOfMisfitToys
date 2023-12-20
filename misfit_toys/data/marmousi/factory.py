@@ -14,21 +14,17 @@ from masthay_helpers.global_helpers import DotDict
 class Factory(DataFactory):
     def _manufacture_data(self):
         if self.installed(
-            "vp_true",
-            "rho_true",
-            "src_loc_y",
-            "rec_loc_y",
-            "obs_data",
+            "vp_true", "rho_true", "src_loc_y", "rec_loc_y", "obs_data"
         ):
             return
 
         d = DotDict(self.process_web_data())
 
         d.ny, d.nx = 2301, 751
-        d.vp_true = torch.from_file(
-            f'{os.environ["HOME"]}/protect/bins/marmousi_vp.bin',
-            size=d.ny * d.nx,
-        ).reshape(d.ny, d.nx)
+        # d.vp_true = torch.from_file(
+        #     f'{os.environ["HOME"]}/protect/bins/marmousi_vp.bin',
+        #     size=d.ny * d.nx,
+        # ).reshape(d.ny, d.nx)
         self.tensors.vp_init = torch.tensor(
             1 / gaussian_filter(1 / d.vp_true.numpy(), 40)
         )
