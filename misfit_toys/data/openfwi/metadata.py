@@ -1,12 +1,12 @@
 from masthay_helpers.global_helpers import save_metadata
+import os
 
 
 @save_metadata(cli=True)
 def metadata():
     return {
         'ext': 'npy',
-        'num_urls': 60,
-        'mode': 'front',
+        'linked_root_out': f'{os.environ["IOMT_PROTECT"]}/data',
         'ny': 70,
         'nx': 70,
         'nt': 1000,
@@ -25,8 +25,7 @@ def metadata():
         'd_intra_shot': 0,
         'freq': 25,
         'peak_time': 1.5 / 25,
-        'accuracy': 8,
-        'derived': {'FlatVel_A': {}, 'CurveVel_A': {}},
+        'derived': {'CurveVel_A': {'derived': {'tiny_example': {}}}},
     }
 
 

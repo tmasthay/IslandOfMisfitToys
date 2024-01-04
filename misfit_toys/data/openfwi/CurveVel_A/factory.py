@@ -1,14 +1,20 @@
 import os
-import argparse
-
-# from masthay_helpers.global_helpers import add_root_package_path
-
-# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from misfit_toys.data.openfwi import Factory
 
 
+class FactoryNpyToTorch(Factory):
+    def __extend_init__(self):
+        super().__extend_init__()
+        u = [
+            e
+            for e in os.listdir(self.out_path)
+            if e.endswith('.pt') or e.endswith('.npy')
+        ]
+        assert len(u) >= 120, f"Only {len(u)} files in {self.out_path}"
+
+
 def main():
-    f = Factory.cli_construct(
+    f = FactoryNpyToTorch.cli_construct(
         device="cuda:0", src_path=os.path.dirname(__file__)
     )
     f.manufacture_data()

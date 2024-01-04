@@ -1,2 +1,3 @@
-__all__ = ["factory"]
+__all__ = ["factory", "tiny_example"]
 from .factory import *
+from .tiny_example import *
