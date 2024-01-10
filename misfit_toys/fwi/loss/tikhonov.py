@@ -1,3 +1,4 @@
+from typing import Callable
 import torch
 import torch.nn as nn
 from torch.nn.functional import mse_loss
@@ -6,7 +7,7 @@ from dataclasses import dataclass
 
 class TikhonovLoss(nn.Module):
     weights: torch.Tensor
-    alpha: float
+    alpha: Callable[[float, float], float]
     max_iters: int
 
     def __init__(self, weights, *, alpha, max_iters=100):
@@ -15,6 +16,8 @@ class TikhonovLoss(nn.Module):
         self.alpha = alpha
         self.max_iters = max_iters
         self.iter = 0
+        self.build_status = False
+        self.status = "uninitialized"
 
     def compute_gradient_penalty(self, param):
         """
@@ -32,16 +35,22 @@ class TikhonovLoss(nn.Module):
         model_output: output from the model
         target: ground truth or target data
         """
-        # Mean squared error
         least_squares = mse_loss(pred, target)
-
-        # Gradient penalty
         grad_penalty = self.compute_gradient_penalty(self.weights)
+        reg_strength = self.alpha(self.iter, self.max_iters)
 
-        # Total loss
         total_loss = (
             least_squares + self.alpha(self.iter, self.max_iters) * grad_penalty
         )
-        self.iters = self.iter + 1
+
+        if self.build_status:
+            self.status = (
+                f"iter={self.iter}, loss={total_loss:.2e},"
+                f" mse={least_squares:.2e},"
+                f" tik={reg_strength * grad_penalty:.2e},"
+                f" reg_strength={reg_strength:.2e}"
+            )
+
+            self.iter += 1
 
         return total_loss

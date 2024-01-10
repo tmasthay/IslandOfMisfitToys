@@ -118,6 +118,32 @@ class TrainingAbstract(ABC):
         self.print, _ = get_print(_verbose=self.verbose)
         self.training_stages = self._build_training_stages()
 
+    def __set_loss_status(self, val):
+        if hasattr(self.loss_fn, 'status'):
+            self.loss_fn.build_status = val
+
+    def _report_iteration(self):
+        """
+        Report the current iteration of training.
+
+        Returns:
+            None
+        """
+        if hasattr(self.loss_fn, 'status'):
+            s = self.loss_fn.status
+        else:
+            s = (
+                f"rank: {self.rank}, "
+                f"iter: {len(self.report['loss'])}, "
+                f"loss: {self.loss}"
+            )
+        s += (
+            f", training.loss: {self.loss:.2e}"
+            f", lr: {self.optimizer.param_groups[0]['lr']:.3e}, rank:"
+            f" {self.rank}"
+        )
+        self.print(s, verbose=1)
+
     @abstractmethod
     def _step(self) -> None:
         """Main stepping logic"""
@@ -148,9 +174,13 @@ class TrainingAbstract(ABC):
             nonlocal num_calls
             num_calls += 1
             self.optimizer.zero_grad()
+
+            self.__set_loss_status(num_calls == 1)
+
             self._step()
             if num_calls == 1:
                 self._update_records()
+                self._report_iteration()
             return self.loss
 
         self.optimizer.step(closure)
