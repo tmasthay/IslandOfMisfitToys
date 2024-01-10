@@ -1,4 +1,4 @@
-__all__ = ["renorm", "tikhonov", "w2"]
-from .renorm import *
-from .tikhonov import *
+__all__ = ["w2", "tikhonov", "renorm"]
 from .w2 import *
+from .tikhonov import *
+from .renorm import *
