@@ -111,7 +111,7 @@ def run_rank(rank, world_size):
     )
 
     # Build seismic propagation module and wrap in DDP
-    prop_data = subdict(data, exclude=["obs_data"])
+    prop_data = subdict(data, exc=["obs_data"])
     prop = SeismicProp(
         **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)

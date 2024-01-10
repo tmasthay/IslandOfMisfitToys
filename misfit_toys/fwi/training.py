@@ -112,7 +112,7 @@ class TrainingAbstract(ABC):
             }
             self.report_spec[k] = {**defaults, **v}
         self.report_spec_flip = flip_dict(
-            subdict(self.report_spec, exclude=['path'])
+            subdict(self.report_spec, exc=['path'])
         )
         self.report = DotDict({k: [] for k in self.report_spec.keys()})
         self.print, _ = get_print(_verbose=self.verbose)
