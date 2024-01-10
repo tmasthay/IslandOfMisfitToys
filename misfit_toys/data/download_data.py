@@ -18,7 +18,7 @@ def download_data(storage, exclusions):
 def main():
     storage = "conda/data"
     inclusions = set(sys.argv[1:])
-    all = {'das_curtin', 'marmousi', 'marmousi2', 'openfwi'}
+    all = {'das_curtin', 'marmousi', 'marmousi2'}
     exclusions = list(all - inclusions)
     download_data(storage, exclusions)
 
