@@ -543,7 +543,10 @@ class DataFactory(ABC):
         self.__extend_init__(**kw)
 
     def __extend_init__(self, **kw):
-        pass
+        if 'linked_root_out' in self.metadata.keys():
+            self.out_path = os.path.join(
+                self.metadata['linked_root_out'], self.append_path
+            )
 
     @abstractmethod
     def _manufacture_data(self, **kw):
@@ -767,7 +770,9 @@ class DataFactory(ABC):
             )
 
             if os.system(cmd):
+                input(cmd)
                 iraise(RuntimeError, f"{cmd} failed")
+                sys.exit(-1)
 
         if not os.path.exists(f"{src_path}/factory.py"):
             iraise(FileNotFoundError, f"No factory.py found in {src_path}")
@@ -780,7 +785,9 @@ class DataFactory(ABC):
             os.system(cmd)
         except Exception as e:
             msg = str(e)
-            iraise(type(e), f"Error in execution of {cmd}", msg)
+            # iraise(type(e), f"Error in execution of {cmd}", msg)
+            input(msg)
+            sys.exit(-1)
 
     @staticmethod
     def get_slices(metadata):
@@ -814,44 +821,3 @@ class DataFactory(ABC):
             root_path=args.root,
             **kw,
         )
-
-
-class DataFactoryTree(DataFactory):
-    """
-    data: Stores all data, with tensors being evaluated now + all the metadata
-    """
-
-    def get_parent_meta(self):
-        parent_abs_path = "/".join(self.fpath.split("/")[:-1])
-        pydict_exists = os.path.exists(
-            os.path.join(parent_abs_path, "metadata.pydict")
-        )
-        py_exists = os.path.exists(os.path.join(parent_abs_path, "metadata.py"))
-
-        if pydict_exists and not py_exists:
-            try:
-                return get_pydict(parent_abs_path)
-            except Exception as e:
-                ireraise(
-                    e,
-                    f"Error in {parent_abs_path}/metadata.pydict\n",
-                    f'IOMT USER RESPONSIBILTY: "python {parent_abs_path}',
-                    f'/metadata.py" should create a file at {parent_abs_path}',
-                    "/metadata.pydict that is a valid python dictionary.",
-                )
-        elif py_exists:
-            os.system(f"python {parent_abs_path}/metadata.py")
-            return get_pydict(parent_abs_path)
-        else:
-            iraise(FileNotFoundError, f"No metadata found in {parent_abs_path}")
-
-    class LocalFactory(DataFactory):
-        def __init__(
-            self, *, path, device=None, src_path, root_out_path, root_path
-        ):
-            super().__init__(path=path, device=device)
-            self.src_path = src_path
-            self.root_out_path = root_out_path
-            self.root_path = root_path
-            self.append_path = os.path.relpath(self.path, self.root_path)
-            self.out_path = os.path.join(self.root_out_path, self.append_path)

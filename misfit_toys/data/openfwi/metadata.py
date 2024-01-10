@@ -17,6 +17,7 @@ def metadata():
         'model_size': int(9.4 * 1024**2),
         'static_file_size': True,
         'mode': 'front',
+        'linked_root_out': f'{os.environ["IOMT_PROTECT"]}/data',
         'ny': 70,
         'nx': 70,
         'nt': 1000,
@@ -35,17 +36,7 @@ def metadata():
         'd_intra_shot': 0,
         'freq': 25,
         'peak_time': 1.5 / 25,
-        'accuracy': 8,
-        'derived': {
-            'FlatVel_A': {
-                'data_folder_id': '1arNrV9M65cl70ANkBwkg7bi7SI5JtsYQ',
-                'model_folder_id': '1IBM_04bPCBnSMO1TMdaps3EHV5dYhYJa',
-            },
-            'CurveVel_A': {
-                'data_folder_id': '1ry69BNdgG4eTIkKGbnTiYCVhjMKo0THw',
-                'model_folder_id': '1AL7z9TQVgzUdv3yrHB6f_wP2TRvVTKD0',
-            },
-        },
+        'derived': {'CurveVel_A': {'derived': {'tiny_example': {}}}},
     }
 
 

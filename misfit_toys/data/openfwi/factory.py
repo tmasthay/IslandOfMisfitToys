@@ -1,5 +1,6 @@
 import os
-from gdown import download
+from misfit_toys.data.dataset import DataFactory
+import torch
 import numpy as np
 import torch
 
@@ -141,108 +142,18 @@ class Factory(DataFactory):
         self.download_all()
 
     def download_instance(self, k, indices='all'):
-        prev_res = [
-            e
-            for e in os.listdir(self.out_path)
-            if e.endswith('.pt') and e.startswith(k)
-        ]
-        if len(prev_res) > 0:
-            print(
-                f'Already downloaded {len(prev_res)} files in'
-                f' {self.out_path}...skipping'
-            )
-            return
-        urls = self.metadata[f'{k}_urls']
-        if indices is not None:
-            urls = {f'{k}{i+1}': urls[f'{k}{i+1}'] for i in indices}
-
-        for basename, url in urls.items():
+        prev_res = [e for e in os.listdir(self.out_path) if e.endswith('.npy')]
+        for f in numpy_files:
+            self.tensors[f.replace('.npy', '')] = torch.from_numpy(
+                np.load(f)
+            ).permute(0, 1, 3, 2)
             try:
-                filename = os.path.join(self.out_path, basename)
-                download(url, f"{filename}.npy", quiet=False)
-                tensor = torch.from_numpy(np.load(f"{filename}.npy"))
-                torch.save(tensor, f"{filename}.pt")
-                os.remove(f"{filename}.npy")
-            except:
-                print(f'Failed to download {basename} from {url}...continuing')
-                break
-
-    def download_instance_packed(self, arg):
-        self.download_instance(*arg)
-
-    def get_download_indices(self):
-        num_urls = self.metadata.get("num_urls", None)
-        mode = self.metadata.get("mode", "front")
-        N = len(self.metadata['data_urls'].keys())
-        M = len(self.metadata['model_urls'].keys())
-        assert N == M, 'data and model urls must be the same size'
-
-        if mode == 'front':
-            indices = range(num_urls)
-        elif mode == 'back':
-            indices = range(N - num_urls, N)
-        elif mode == 'random':
-            indices = np.random.choice(range(N), size=num_urls)
-        else:
-            raise ValueError(f'Invalid mode: {mode}')
-
-        return indices
-
-    # TODO: This seems about 2x faster than downloading from Google Drive
-    #    but it seems not sure why since things aren't zipped. Check that
-    #    your "eyeball" calculations are correct on this download speed.
-    # NOTE: Google Drive limits the number of downloads per day, so users
-    #    should only use this if they only want a subset of the data.
-    def download_all(self):
-        common = {
-            'api_key': self.metadata['api_key'],
-            'dest': self.out_path,
-            'static_file_size': self.metadata['static_file_size'],
-            'chunk_size': self.metadata.get('chunk_size', 2048),
-            'static_file_size': self.metadata.get('static_file_size', True),
-            'num_files': self.metadata.get('num_files', 60),
-        }
-        list_and_download_public_files(
-            **common,
-            folder_id=self.metadata['model_folder_id'],
-            file_size=self.metadata.get('model_size', 0.0),
-        )
-        list_and_download_public_files(
-            **common,
-            folder_id=self.metadata['data_folder_id'],
-            file_size=self.metadata['data_size'],
-        )
-
-    @staticmethod
-    def get_hashes(filename):
-        base_lines = f"cat {filename} | grep 'Storage used: ' | grep 'tooltip'"
-
-        extract_first_cmd = base_lines + " | ".join(
-            [
-                "",
-                "head -n 1",
-                "grep -oP '<c-data.*</c-data>'",
-                "awk -F';' '{print $(NF-1)}'",
-            ]
-        )
-
-        extract_second_cmd = base_lines + " | ".join(
-            [
-                "",
-                """grep -oP 'data-id=".{10,50}" class='""",
-                """awk -F'"' '{print $2}'""",
-            ]
-        )
-
-        u = [sco(extract_first_cmd, split=False)]
-        u.extend(sco(extract_second_cmd, split=True))
-        return u
+                os.remove(f)
+            except PermissionError:
+                print(f'PermissionError: removal of {f}')
 
 
 class FactorySignalOnly(DataFactory):
-    def __extend__init(self):
-        pass
-
     def _manufacture_data(self):
         pass
 
