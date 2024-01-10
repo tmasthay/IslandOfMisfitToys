@@ -17,9 +17,9 @@ from misfit_toys.fwi.seismic_data import (
     chunk_and_deploy,
 )
 from misfit_toys.fwi.loss.w2 import W2
-from misfit_toys.examples.ot.plot_data import plot_data
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
 from returns.curry import curry
+from masthay_helpers.typlotlib import make_gifs
 
 
 def training_stages():
@@ -145,7 +145,7 @@ def run_rank(rank, world_size):
             max_iters=25,
         ),
         optimizer=[torch.optim.LBFGS, {}],
-        verbose=2,
+        verbose=1,
         report_spec={
             'path': os.path.join(os.path.dirname(__file__), 'out'),
             'loss': {
@@ -186,6 +186,43 @@ def main():
     n_gpus = torch.cuda.device_count()
     run(n_gpus)
     # torch.distributed.barrier()
+
+
+def plot_data():
+    in_dir = os.path.abspath(os.path.join(__file__, '..', 'out'))
+    out_dir = os.path.join(in_dir, 'figs')
+    common = {
+        'verbose': True,
+        'duration': 250,
+        'print_freq': 10,
+        'path': out_dir,
+    }
+    verbose = True
+    duration = 100
+    opts = {
+        'loss_record': {
+            'labels': ['Epoch', 'Loss'],
+        },
+        'vp_record': {
+            'labels': ['Extent', 'Depth', 'Epoch'],
+            'permute': (2, 1, 0),
+        },
+        'out_record': {
+            'labels': ['Extent', 'Time', 'Shot No', 'Epoch'],
+            'permute': (3, 2, 1, 0),
+        },
+    }
+    # opts['out_filt_record'] = opts['out_record']
+    for k in opts.keys():
+        opts[k].update(common)
+
+    make_gifs(
+        in_dir=in_dir,
+        out_dir=out_dir,
+        targets=list(opts.keys()),
+        opts=opts,
+        cmap='seismic',
+    )
 
 
 # Run the script from command line
