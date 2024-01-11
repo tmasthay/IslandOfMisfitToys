@@ -114,6 +114,26 @@ def reg_decay(key=None):
     return options if key is None else options[key]
 
 
+def get_loss_fn(cfg, **kw):
+    loss_cfg = cfg.exec.loss
+    options = {
+        'tik': loss_cfg.tik,
+    }
+    if loss_cfg.type not in options.keys():
+        return torch.nn.MSELoss()
+
+    chosen = options[loss_cfg.type]
+
+    if loss_cfg.type == 'tik':
+        return TikhonovLoss(
+            weights=kw['prop'].module.vp,
+            alpha=reg_decay(chosen.alpha.function)(**chosen.alpha.kw),
+            max_iters=chosen.alpha.max_iters,
+        )
+    else:
+        raise NotImplementedError(f'Loss type {loss_cfg.type} not implemented')
+
+
 # Main function for training on each rank
 def run_rank(rank, world_size, cfg):
     print(f"Running DDP on rank {rank} / {world_size}.")
@@ -159,11 +179,7 @@ def run_rank(rank, world_size, cfg):
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=TikhonovLoss(
-            weights=prop.module.vp,
-            alpha=reg_decay(cfg.exec.alpha.function)(**cfg.exec.alpha.kw),
-            max_iters=cfg.exec.alpha.max_iters,
-        ),
+        loss_fn=get_loss_fn(cfg, prop=prop),
         optimizer=[torch.optim.LBFGS, {}],
         verbose=1,
         report_spec={

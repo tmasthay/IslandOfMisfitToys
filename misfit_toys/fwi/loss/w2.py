@@ -1,21 +1,39 @@
-from typing import Callable
 import torch
-from dataclasses import dataclass
-from torch.nn.functional import mse_loss
+import torch.nn as nn
 
 
-class W2(torch.nn.Module):
-    renorm_func: Callable[[torch.Tensor], torch.Tensor] = lambda x: x
-    eps: float = 0.0
-
-    def __post_init__(self):
+class W2Loss(nn.Module):
+    def __init__(self, R):
         super().__init__()
+        self.R = R
 
-    def prep_data(self, y):
-        return self.renorm_func(y + self.eps)
+    def forward(self, f, g):
+        # Apply the transformation R
+        f_tilde = self.R(f)
+        g_tilde = self.R(g)
 
-    def forward(self, y_pred, y):
-        # y_pred = self.prep_data(y_pred)
-        # y = self.prep_data(y)
+        # Sort the distributions for inverse CDF computation
+        sorted_f, _ = torch.sort(f_tilde, dim=1)
+        sorted_g, _ = torch.sort(g_tilde, dim=1)
 
-        return mse_loss(y_pred, y)
+        # Compute the cumulative sums to approximate CDFs
+        cum_f = torch.cumsum(sorted_f, dim=1)
+        cum_g = torch.cumsum(sorted_g, dim=1)
+
+        # Compute the inverse CDFs
+        inv_cdf_f = torch.linspace(
+            0, 1, steps=f.shape[1], device=f.device
+        ).expand_as(cum_f)
+        inv_cdf_g = torch.linspace(
+            0, 1, steps=g.shape[1], device=g.device
+        ).expand_as(cum_g)
+
+        # Compute the W2 distance using the inverse CDFs
+        w2_distance = torch.sqrt(torch.sum((inv_cdf_f - inv_cdf_g) ** 2, dim=1))
+
+        return torch.mean(w2_distance)
+
+
+def R(h):
+    # Normalizing transformation R
+    return torch.abs(h) / torch.sum(torch.abs(h), dim=1, keepdim=True)
