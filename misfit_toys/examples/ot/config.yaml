@@ -6,7 +6,7 @@ exec:
   min_vel: 1000.0
   max_vel: 5000.0
   loss:
-    type: tik
+    type: w2
     tik:
       alpha:
         function: exp
@@ -16,7 +16,7 @@ exec:
           beta: 0.3
         max_iters: 10
     w2:
-      R: square
+      renorm: square
   time_pad_frac: 0.2
   epochs: 10
 io:

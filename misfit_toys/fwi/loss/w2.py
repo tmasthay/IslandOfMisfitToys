@@ -34,6 +34,12 @@ class W2Loss(nn.Module):
         return torch.mean(w2_distance)
 
 
-def R(h):
-    # Normalizing transformation R
-    return torch.abs(h) / torch.sum(torch.abs(h), dim=1, keepdim=True)
+def str_to_renorm(key):
+    def abs_renorm(y):
+        return torch.abs(y) / torch.sum(torch.abs(y), dim=1, keepdim=True)
+
+    def square_renorm(y):
+        return y**2 / torch.sum(y**2, dim=1, keepdim=True)
+
+    options = {'abs': abs_renorm, 'square': square_renorm}
+    return options[key]

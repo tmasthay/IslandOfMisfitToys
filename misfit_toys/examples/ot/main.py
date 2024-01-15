@@ -16,7 +16,7 @@ from misfit_toys.fwi.seismic_data import (
     path_builder,
     chunk_and_deploy,
 )
-from misfit_toys.fwi.loss.w2 import W2
+from misfit_toys.fwi.loss.w2 import W2Loss, str_to_renorm
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
 from returns.curry import curry
 from masthay_helpers.typlotlib import make_gifs
@@ -130,6 +130,8 @@ def get_loss_fn(cfg, **kw):
             alpha=reg_decay(chosen.alpha.function)(**chosen.alpha.kw),
             max_iters=chosen.alpha.max_iters,
         )
+    elif loss_cfg.type == 'w2':
+        return W2Loss(R=str_to_renorm(chosen.renorm))
     else:
         raise NotImplementedError(f'Loss type {loss_cfg.type} not implemented')
 
