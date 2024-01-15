@@ -16,7 +16,7 @@ from misfit_toys.fwi.seismic_data import (
     path_builder,
     chunk_and_deploy,
 )
-from misfit_toys.fwi.loss.w2 import W2Loss, str_to_renorm
+from misfit_toys.fwi.loss.w2 import W2Loss
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
 from returns.curry import curry
 from masthay_helpers.typlotlib import make_gifs
