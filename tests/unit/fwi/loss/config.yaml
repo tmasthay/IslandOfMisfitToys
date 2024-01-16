@@ -1,0 +1,12 @@
+glob:
+  filename: "test_data"
+
+gauss:
+  support: [-3, 3]
+  mu: 0.0
+  sigma: 1.0
+  shift: 2.0
+  scales: [0.1, 2.0]
+  nx: 100
+  nshifts: 50
+  nscales: 50

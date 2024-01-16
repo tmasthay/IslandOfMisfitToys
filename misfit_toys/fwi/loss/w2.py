@@ -66,7 +66,6 @@ def true_quantile(
         if dx is not None:
             cdf = cum_trap(pdf, dx=dx, dim=-1)
         else:
-            input(dx)
             cdf = cum_trap(pdf, x, dim=-1)
         indices = torch.searchsorted(cdf, p)
         indices = torch.clamp(indices, 0, len(x) - 1)
@@ -76,13 +75,13 @@ def true_quantile(
         result_shape = pdf.shape[:-1]
         results = torch.empty(result_shape + (len(p),), dtype=torch.float32)
 
-        input(results.shape)
+        input(f'results.shape: {results.shape}')
+        input(f'pdf.shape: {pdf.shape}')
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
             pdf_slice = pdf[idx]
             results[idx] = true_quantile(pdf_slice, x, p, dx=dx)
             # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
-        input(results.shape)
         # num_dims = len(results.shape)
         # permutation = (
         #     [num_dims - 2] + list(range(num_dims - 2)) + [num_dims - 1]
@@ -113,12 +112,13 @@ def w2_builder(is_const):
         def helper(f, t, *, quantiles):
             F = cum_trap(f, dx=t[1] - t[0], dim=-1, preserve_dims=True)
             off_diag = unbatch_spline_eval(quantiles, F)
+            dt = t[1].item() - t[0].item()
             while len(t.shape) < len(off_diag.shape):
-                t = t.unsqueeze(-1)
-            input(t.shape)
-            return torch.trapezoid(
-                (t - off_diag) ** 2 * f, dx=t[1] - t[0], dim=-1
-            )
+                t = t.unsqueeze(0)
+            input(f'f.shape: {f.shape}')
+            input(f't.shape: {t.shape}')
+            input(f'off_diag.shape: {off_diag.shape}')
+            return torch.trapezoid((t - off_diag) ** 2 * f, dx=dt, dim=-1)
 
     else:
 
