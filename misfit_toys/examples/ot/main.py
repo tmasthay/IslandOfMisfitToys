@@ -32,54 +32,11 @@ def training_stages(cfg):
             'postprocess': do_nothing,
         }
     }
-    # # define training stages for the training class
-    # def freq_preprocess(training, freq):
-    #     # sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
-    #     # sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
-
-    #     # training.sos = sos
-
-    #     # training.obs_data_filt = filt(training.obs_data, sos)
-
-    #     training.reset_optimizer()
-
-    # def freq_postprocess(training, freq):
-    #     pass
-
-    # def epoch_preprocess(training, epoch):
-    #     pass
-
-    # def epoch_postprocess(training, epoch):
-    #     pass
-
-    # return OrderedDict(
-    #     [
-    #         (
-    #             "freqs",
-    #             {
-    #                 "data": range(1),
-    #                 "preprocess": freq_preprocess,
-    #                 "postprocess": freq_postprocess,
-    #             },
-    #         ),
-    #         (
-    #             "epochs",
-    #             {
-    #                 "data": list(range(20)),
-    #                 "preprocess": epoch_preprocess,
-    #                 "postprocess": epoch_postprocess,
-    #             },
-    #         ),
-    #     ]
-    # )
 
 
 # Define _step for the training class
 def _step(self):
     self.out = self.prop(1)
-    # self.out_filt = filt(taper(self.out[-1]), self.sos)
-    # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    # self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
     self.loss = 1e6 * self.loss_fn(self.out[-1])
     self.loss.backward()
     return self.loss
@@ -149,7 +106,7 @@ def run_rank(rank, world_size, cfg):
     # Build data for marmousi model
     data = path_builder(
         cfg.exec.data_path,
-        remap=cfg.exec.remap,  # remap should be designed better? -> data read in doesn't have to be standardized which is nice but it makes the workflow a bit more confusing
+        remap=cfg.exec.remap,
         vp_init=ParamConstrained.delay_init(
             minv=cfg.exec.min_vel, maxv=cfg.exec.max_vel, requires_grad=True
         ),
@@ -231,7 +188,6 @@ def run_rank(rank, world_size, cfg):
         _build_training_stages=(lambda: training_stages(cfg)),
     )
     train.train()
-    # torch.distributed.barrier()
 
 
 # Main function for spawning ranks
