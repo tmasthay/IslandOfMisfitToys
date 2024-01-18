@@ -655,3 +655,32 @@ def check_devices(root):
             del u
     s = ctab(data, headers=headers, colors=colors)
     print(s)
+
+
+def bool_slice(*args, permute=None, none_dims=(), ctrl=None):
+    permute = list(permute or range(len(args)))
+    permute.reverse()
+
+    # Total number of combinations
+    total_combinations = np.prod(
+        [e for i, e in enumerate(args) if i not in none_dims]
+    )
+
+    # Initialize indices
+    idx = [slice(None) if i in none_dims else 0 for i in range(len(args))]
+
+    for combo in range(total_combinations):
+        print(f'combo={combo}')
+        if ctrl is None:
+            yield tuple(idx)
+        else:
+            yield tuple([tuple(idx)]) + (ctrl(idx, args),)
+
+        # Update indices
+        for i in permute:
+            if i in none_dims:
+                continue
+            idx[i] += 1
+            if idx[i] < args[i]:
+                break
+            idx[i] = 0

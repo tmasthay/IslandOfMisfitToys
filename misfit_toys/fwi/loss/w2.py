@@ -25,7 +25,11 @@ def unbatch_splines(coeffs):
 
 
 def unbatch_spline_eval(splines, t):
-    assert t.shape[:-1] == splines.shape
+    if t.shape[:-1] != splines.shape:
+        raise ValueError(
+            'Expected these to be equal, got --- t.shape[:-1] ='
+            f' {t.shape[:-1]}, splines.shape = {splines.shape}'
+        )
     t = t.unsqueeze(-1)
     res = torch.empty(t.shape)
     for idx in product(*map(range, t.shape[:-2])):
@@ -55,28 +59,28 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
 
 
 # Function to compute true_quantile for an arbitrary shape torch tensor along its last dimension
-def true_quantile(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-):
+def true_quantile(pdf, x, p, *, dx=None, left_edge_tol=0.0, right_edge_tol=0.0):
     if len(pdf.shape) == 1:
         if dx is not None:
-            cdf = cum_trap(pdf, dx=dx, dim=-1)
+            cdf = torch.clamp(cum_trap(pdf, dx=dx, dim=-1), min=0.0, max=1.0)
         else:
-            cdf = cum_trap(pdf, x, dim=-1)
+            cdf = torch.clamp(cum_trap(pdf, x, dim=-1), min=0.0, max=1.0)
+        left_cutoff_idx = torch.where(cdf < left_edge_tol)[0]
+        right_cutoff_idx = torch.where(cdf > 1 - right_edge_tol)[0]
+
+        left_cutoff_idx = list(left_cutoff_idx) or 0
+        right_cutoff_idx = list(right_cutoff_idx) or -1
+
         indices = torch.searchsorted(cdf, p)
         indices = torch.clamp(indices, 0, len(x) - 1)
-        return x[indices]
+        res = x[indices]
+        # res[:left_cutoff_idx] = x[0]
+        # res[right_cutoff_idx:] = x[-1]
+        return res
     else:
         # Initialize an empty tensor to store the results
         result_shape = pdf.shape[:-1]
         results = torch.empty(result_shape + (len(p),), dtype=torch.float32)
-
-        input(f'results.shape: {results.shape}')
-        input(f'pdf.shape: {pdf.shape}')
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
             pdf_slice = pdf[idx]
@@ -115,9 +119,6 @@ def w2_builder(is_const):
             dt = t[1].item() - t[0].item()
             while len(t.shape) < len(off_diag.shape):
                 t = t.unsqueeze(0)
-            input(f'f.shape: {f.shape}')
-            input(f't.shape: {t.shape}')
-            input(f'off_diag.shape: {off_diag.shape}')
             return torch.trapezoid((t - off_diag) ** 2 * f, dx=dt, dim=-1)
 
     else:
