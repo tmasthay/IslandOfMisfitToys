@@ -42,6 +42,9 @@ def plotter(
         (line,) = axes[0, 0].plot(x_star, y_star, 'r*')
         axes[0, 0].set_ylim(-1, data.gauss.shape[1] + 1)
         axes[0, 0].set_xlim(-1, data.gauss.shape[0] + 1)
+        axes[0, 0].set_xlabel('Standard deviation')
+        axes[0, 0].set_ylabel('Mean')
+        axes[0, 0].set_title('Current mean and standard deviation')
     else:
         line.set_data([x_star], [y_star])
 
@@ -107,6 +110,7 @@ def plot_data(*, data, name, x, p, duration):
         ctrl=ctrl,
     )
     fig, axes = plt.subplots(3, 2, figsize=(15, 10))
+    plt.subplots_adjust(wspace=0.5, hspace=0.5)
     frames = get_frames_bool(
         data=data,
         iter=iter,
@@ -142,7 +146,7 @@ def main():
     min_gauss = cum_gauss.min()
 
     if torch.abs(max_ref - 1.0) >= tol:
-        raise ValueError(f'max_ref = {max_ref}')
+        raise ValueError(f'max_ref = {max_ref}, should be near 1.0')
     assert torch.abs(min_ref) < tol
     assert torch.abs(max_gauss - 1.0) < tol
     assert torch.abs(min_gauss) < tol

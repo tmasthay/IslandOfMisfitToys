@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 import os
 import pickle
 from scipy.special import erfinv
+from misfit_toys.fwi.loss.w2 import cum_trap
 
 
 def gen_gauss(cfg: DotDict):
@@ -18,12 +19,30 @@ def gen_gauss(cfg: DotDict):
     )
     eps = 1e-3
     gauss = torch.exp(-((x - cfg.mu - shifts) ** 2 / (2 * scales**2))) + eps
+    gauss = (
+        torch.load(
+            '/home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/examples/ot/out/out_record.pt'
+        )
+        + eps
+    )
+    gauss = gauss[0, 0:3, 0:20]
+    gauss = torch.abs(gauss)
     gauss /= (
         torch.trapezoid(gauss, x=x, dim=-1).unsqueeze(-1).expand(*gauss.shape)
     )
+    u = torch.trapezoid(gauss, x=x, dim=-1).max()
+
     # input(x.expand(*gauss.shape).shape)
     # input(f'gauss.shape = {gauss.shape}')
-    ref = gauss[cfg.nscales // 2, cfg.nshifts // 2, :]
+    # ref = gauss[cfg.nscales // 2, cfg.nshifts // 2, :]
+    ref = gauss[1, 10, :]
+    # input(ref.shape)
+    # input(x.shape)
+    v = cum_trap(ref, x=x.squeeze(), dim=-1, preserve_dims=True)
+    # input(f'v.max() == {v.max()}')
+    # input(v.shape)
+    # input(torch.trapz(ref, x=x.squeeze(), dim=-1))
+    # input(torch.cumulative_trapezoid(ref, x=x.squeeze(), dim=-1))
     expected_output = (shifts - cfg.mu) ** 2 + (scales - cfg.sigma) ** 2
     return DotDict(
         {

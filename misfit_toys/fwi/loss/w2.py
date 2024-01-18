@@ -31,7 +31,7 @@ def unbatch_spline_eval(splines, t):
             f' {t.shape[:-1]}, splines.shape = {splines.shape}'
         )
     t = t.unsqueeze(-1)
-    res = torch.empty(t.shape)
+    res = torch.empty(t.shape).to(t.device)
     for idx in product(*map(range, t.shape[:-2])):
         # t_idx = (*idx, slice(None), slice(0, 1))
         res[idx] = splines[idx].evaluate(t[idx]).squeeze(-1)
@@ -48,7 +48,7 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
             dim = len(u.shape) + dim
         v = torch.zeros(
             [e if i != dim else e + 1 for i, e in enumerate(u.shape)]
-        )
+        ).to(u.device)
         slices = [
             slice(None) if i != dim else slice(1, None)
             for i in range(len(u.shape))
@@ -135,6 +135,29 @@ w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
 
+class W2LossConst(nn.Module):
+    def __init__(self, *, t, renorm, obs_data, p):
+        super().__init__()
+        self.obs_data = obs_data
+        self.device = obs_data.device
+        self.t = t.to(self.device)
+        self.renorm = renorm
+        self.quantiles = cts_quantile(
+            renorm(obs_data).to(self.device), t, p, dx=t[1] - t[0]
+        )
+        self.t_expand = t.expand(*self.quantiles.shape, -1)
+
+    def forward(self, f):
+        f_tilde = self.renorm(f)
+        F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
+        off_diag = unbatch_spline_eval(self.quantiles, F)
+        diff = (self.t_expand - off_diag) ** 2
+
+        integrated = torch.trapezoid(diff * f, dx=self.t[1] - self.t[0], dim=-1)
+        trace_by_trace = integrated.sum()
+        return trace_by_trace
+
+
 # class W2Loss(nn.Module):
 #     def __init__(self, t, R, quantiles):
 #         super().__init__()
@@ -180,23 +203,23 @@ w2 = w2_builder(False)
 #     return options[key]
 
 
-class W2LossAbstract(torch.nn.Module):
-    def __init__(self, *, R, quantiles, t):
-        super().__init__()
-        self.R = R
-        self.quantiles = quantiles
-        self.t = t
+# class W2LossAbstract(torch.nn.Module):
+#     def __init__(self, *, R, quantiles, t):
+#         super().__init__()
+#         self.R = R
+#         self.quantiles = quantiles
+#         self.t = t
 
-    @abstractmethod
-    def forward(self, f):
-        pass
-
-
-class W2LossConst(W2LossAbstract):
-    def forward(self, f):
-        return w2_const(f, self.t, quantiles=self.quantiles)
+#     @abstractmethod
+#     def forward(self, f):
+#         pass
 
 
-class W2Loss(W2LossAbstract):
-    def forward(self, f):
-        return w2(f, self.t, quantiles=self.quantiles)
+# class W2LossConst(W2LossAbstract):
+#     def forward(self, f):
+#         return w2_const(f, self.t, quantiles=self.quantiles)
+
+
+# class W2Loss(W2LossAbstract):
+#     def forward(self, f):
+#         return w2(f, self.t, quantiles=self.quantiles)

@@ -16,7 +16,7 @@ from misfit_toys.fwi.seismic_data import (
     path_builder,
     chunk_and_deploy,
 )
-from misfit_toys.fwi.loss.w2 import W2Loss
+from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
 from returns.curry import curry
 from masthay_helpers.typlotlib import make_gifs
@@ -79,7 +79,8 @@ def _step(self):
     self.out = self.prop(1)
     # self.out_filt = filt(taper(self.out[-1]), self.sos)
     # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
+    # self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
+    self.loss = 1e6 * self.loss_fn(self.out[-1])
     self.loss.backward()
     return self.loss
 
@@ -116,9 +117,7 @@ def reg_decay(key=None):
 
 def get_loss_fn(cfg, **kw):
     loss_cfg = cfg.exec.loss
-    options = {
-        'tik': loss_cfg.tik,
-    }
+    options = {'tik': loss_cfg.tik, 'w2': loss_cfg.w2}
     if loss_cfg.type not in options.keys():
         return torch.nn.MSELoss()
 
@@ -131,7 +130,13 @@ def get_loss_fn(cfg, **kw):
             max_iters=chosen.alpha.max_iters,
         )
     elif loss_cfg.type == 'w2':
-        return W2Loss(R=str_to_renorm(chosen.renorm))
+        device = kw['obs_data'].device
+        return W2LossConst(
+            t=kw['t'].to(device),
+            renorm=kw['renorm'],
+            obs_data=kw['obs_data'],
+            p=kw['p'].to(device),
+        )
     else:
         raise NotImplementedError(f'Loss type {loss_cfg.type} not implemented')
 
@@ -176,12 +181,27 @@ def run_rank(rank, world_size, cfg):
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
+    def my_renorm(x):
+        u = torch.abs(x)
+        return u / cum_trap(u, dx=data['meta'].dt, dim=-1)[-1].to(u.device)
+
+    used_loss_fn = get_loss_fn(
+        cfg,
+        prop=prop,
+        t=torch.linspace(0, 1.196, 300),
+        p=torch.linspace(0, 1, 300),
+        renorm=my_renorm,
+        obs_data=data["obs_data"],
+    )
+
+    print(f'Using loss function type={type(used_loss_fn)}')
+
     train = Training(
         rank=rank,
         world_size=world_size,
         prop=prop,
         obs_data=data["obs_data"],
-        loss_fn=get_loss_fn(cfg, prop=prop),
+        loss_fn=used_loss_fn,
         optimizer=[torch.optim.LBFGS, {}],
         verbose=1,
         report_spec={

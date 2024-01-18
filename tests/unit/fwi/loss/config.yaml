@@ -7,7 +7,7 @@ gauss:
   sigma: 1.0
   shift: 2.0
   scales: [0.1, 2.0]
-  nx: 1000
+  nx: 300
   nshifts: 20
   nscales: 20
   num_probs: 700
