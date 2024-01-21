@@ -25,5 +25,6 @@ io:
 plot:
   common:
     verbose: True
-    duration: 2500
+    duration: 100
     print_freq: 10
+  debug: [2, 20, 1]

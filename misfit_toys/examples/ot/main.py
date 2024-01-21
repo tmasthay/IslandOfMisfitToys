@@ -151,6 +151,8 @@ def run_rank(rank, world_size, cfg):
         obs_data=data["obs_data"],
     )
 
+    return
+
     print(f'Using loss function type={type(used_loss_fn)}')
 
     train = Training(
@@ -231,7 +233,6 @@ def main(cfg):
         n_gpus = torch.cuda.device_count()
         run(n_gpus, cfg)
     plot_data(cfg)
-    # torch.distributed.barrier()
 
 
 # Run the script from command line

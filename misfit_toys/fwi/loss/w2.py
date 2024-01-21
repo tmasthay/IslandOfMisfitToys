@@ -142,8 +142,9 @@ class W2LossConst(nn.Module):
         self.device = obs_data.device
         self.t = t.to(self.device)
         self.renorm = renorm
+        self.renorm_obs_data = renorm(obs_data).to(self.device)
         self.quantiles = cts_quantile(
-            renorm(obs_data).to(self.device), t, p, dx=t[1] - t[0]
+            self.renorm_obs_data, t, p, dx=t[1] - t[0]
         )
         self.t_expand = t.expand(*self.quantiles.shape, -1)
 
