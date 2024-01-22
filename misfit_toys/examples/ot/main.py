@@ -139,7 +139,7 @@ def run_rank(rank, world_size, cfg):
     prop = DDP(prop, device_ids=[rank])
 
     def my_renorm(x):
-        u = torch.abs(x)
+        u = x**2
         return u / cum_trap(u, dx=data['meta'].dt, dim=-1)[-1].to(u.device)
 
     used_loss_fn = get_loss_fn(
@@ -150,10 +150,6 @@ def run_rank(rank, world_size, cfg):
         renorm=my_renorm,
         obs_data=data["obs_data"],
     )
-
-    return
-
-    print(f'Using loss function type={type(used_loss_fn)}')
 
     train = Training(
         rank=rank,
