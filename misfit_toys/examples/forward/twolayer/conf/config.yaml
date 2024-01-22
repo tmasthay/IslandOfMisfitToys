@@ -1,11 +1,12 @@
-nx: 100
-ny: 100
-nt: 100
-dx: 10.0
-dy: 10.0
-dt: 0.001
-vp: [1000.0, 2000.0]
+nx: 1000
+ny: 1000
+nt: 1000
+dx: 1.0
+dy: 1.0
+dt: 0.004
+vp: [1500.0, 2000.0]
 device: cuda
+accuracy: 8
 
 src:
   n_shots: 10
@@ -23,15 +24,27 @@ rec:
   y_max: 800.0
 
 amp:
-  freq: 25.0
+  freq: 2.0
   peak_scale: 1.5
 
 plot:
   v:
     name: vp.jpg
     title: $V_p$
-    xlabel: $\lambda_{x}$
-    ylabel: $\lambda_{y}$
+    xlabel: $Extent$ (m)
+    ylabel: $Depth$ (m)
     cmap: nipy_spectral
+    imshow_kw:
+      aspect: auto
+
+  out:
+    name: out.gif
+    title: Observed Data
+    xlabel: Receiver Number
+    ylabel: Time (s)
+    cmap: nipy_spectral
+    shape: [1, 1]
+    figsize: [10, 10]
+    duration: 100
     imshow_kw:
       aspect: auto
