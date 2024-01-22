@@ -117,12 +117,16 @@ def run(cfg):
     v = torch.abs(data['obs_data']) + eps
     v /= torch.trapz(v, dx=dt, dim=-1).unsqueeze(-1)
 
+    input(v.shape)
+    input(t.shape)
+    input(p.shape)
     loss_fn = W2LossConst(
         t=t,
         renorm=(lambda x: x),
         obs_data=v,
         p=p,
     )
+    input(loss_fn.quantiles.shape)
 
     u = unbatch_spline_eval(
         loss_fn.quantiles,

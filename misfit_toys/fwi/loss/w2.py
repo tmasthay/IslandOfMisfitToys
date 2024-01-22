@@ -80,11 +80,12 @@ def true_quantile(pdf, x, p, *, dx=None, left_edge_tol=0.0, right_edge_tol=0.0):
     else:
         # Initialize an empty tensor to store the results
         result_shape = pdf.shape[:-1]
-        results = torch.empty(result_shape + (len(p),), dtype=torch.float32)
+        results = torch.empty(
+            result_shape + (p.shape[-1],), dtype=torch.float32
+        )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            pdf_slice = pdf[idx]
-            results[idx] = true_quantile(pdf_slice, x, p, dx=dx)
+            results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
             # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
         # num_dims = len(results.shape)
         # permutation = (
@@ -105,8 +106,19 @@ def cts_quantile(
     q = true_quantile(pdf, x, p, dx=dx)
     if q.shape[-1] != 1:
         q = q.unsqueeze(-1)
-    coeffs = natural_cubic_spline_coeffs(p, q)
-    splines = unbatch_splines(coeffs)
+    if len(p.shape) > 2:
+        raise ValueError(
+            f'Expected p to be a 1D or 2D tensor, got --- p.shape = {p.shape}'
+        )
+    elif len(p.shape) == 2:
+        runner = [
+            natural_cubic_spline_coeffs(p_slice, q_slice)
+            for p_slice, q_slice in zip(p, q)
+        ]
+        splines = np.stack([unbatch_splines(e) for e in runner])
+    else:
+        coeffs = natural_cubic_spline_coeffs(p, q)
+        splines = unbatch_splines(coeffs)
     return splines
 
 
@@ -146,6 +158,28 @@ class W2LossConst(nn.Module):
         self.quantiles = cts_quantile(
             self.renorm_obs_data, t, p, dx=t[1] - t[0]
         )
+        self.t_expand = t.expand(*self.quantiles.shape, -1)
+
+    def forward(self, f):
+        f_tilde = self.renorm(f)
+        F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
+        off_diag = unbatch_spline_eval(self.quantiles, F)
+        diff = (self.t_expand - off_diag) ** 2
+
+        integrated = torch.trapezoid(diff * f, dx=self.t[1] - self.t[0], dim=-1)
+        trace_by_trace = integrated.sum()
+        return trace_by_trace
+
+
+class W2Loss(nn.Module):
+    def __init__(self, *, t, renorm, obs_data, p):
+        super().__init__()
+        self.obs_data = obs_data
+        self.device = obs_data.device
+        self.t = t.to(self.device)
+        self.renorm = renorm
+        self.renorm_obs_data = renorm(obs_data).to(self.device)
+        self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
         self.t_expand = t.expand(*self.quantiles.shape, -1)
 
     def forward(self, f):
