@@ -24,7 +24,7 @@ def unbatch_splines(coeffs):
     return res
 
 
-def unbatch_spline_eval(splines, t):
+def unbatch_spline_eval(splines, t, *, deriv=False):
     if t.shape[:-1] != splines.shape:
         raise ValueError(
             'Expected these to be equal, got --- t.shape[:-1] ='
@@ -34,7 +34,10 @@ def unbatch_spline_eval(splines, t):
     res = torch.empty(t.shape).to(t.device)
     for idx in product(*map(range, t.shape[:-2])):
         # t_idx = (*idx, slice(None), slice(0, 1))
-        res[idx] = splines[idx].evaluate(t[idx]).squeeze(-1)
+        if deriv:
+            res[idx] = splines[idx].derivative(t[idx]).squeeze(-1)
+        else:
+            res[idx] = splines[idx].evaluate(t[idx]).squeeze(-1)
     return res.squeeze(-1)
 
 
@@ -85,7 +88,8 @@ def true_quantile(pdf, x, p, *, dx=None, left_edge_tol=0.0, right_edge_tol=0.0):
         )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
+            # results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
+            results[idx] = true_quantile(pdf[idx], x, p, dx=dx)
             # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
         # num_dims = len(results.shape)
         # permutation = (
@@ -182,15 +186,19 @@ class W2Loss(nn.Module):
         self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
         self.t_expand = t.expand(*self.quantiles.shape, -1)
 
-    def forward(self, f):
+    def batch_forward(self, f):
         f_tilde = self.renorm(f)
         F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
         off_diag = unbatch_spline_eval(self.quantiles, F)
         diff = (self.t_expand - off_diag) ** 2
 
         integrated = torch.trapezoid(diff * f, dx=self.t[1] - self.t[0], dim=-1)
-        trace_by_trace = integrated.sum()
-        return trace_by_trace
+        # trace_by_trace = integrated.sum()
+        # return trace_by_trace
+        return integrated
+
+    def forward(self, f):
+        return self.batch_forward(f).sum()
 
 
 # class W2Loss(nn.Module):

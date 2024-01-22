@@ -1,0 +1,26 @@
+exp_params: [1.0, 5.0, 20]
+tail_err: 1e-01
+nt: 1000
+eps: 0.0
+cutoff: 1
+
+plot:
+  name: exp_dist.gif
+  duration: 100
+  wspace: 0.5
+  hspace: 0.3
+  shape: [4, 2]
+  figsize: [20, 10]
+  right: 0.8
+  opts:
+    - color: blue
+      linestyle: "-"
+
+    - color: red
+      linestyle: "--"
+
+    - color: black
+      linestyle: ":"
+
+    - color: green
+      linestyle: "-."
