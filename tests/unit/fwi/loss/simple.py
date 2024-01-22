@@ -47,6 +47,8 @@ def make_data(*, obs, tail_err, N, eps):
     ref_pdf = obs_pdf[obs.shape[0] // 2].squeeze()
     ref_cdf = obs_cdf[obs.shape[0] // 2].squeeze()
 
+    ref_pdf.requires_grad = True
+
     loss = W2Loss(
         t=t,
         renorm=lambda x: x,
@@ -67,15 +69,19 @@ def make_data(*, obs, tail_err, N, eps):
         loss.quantiles, ref_cdf.expand(loss.quantiles.shape[-1], -1)
     )
 
-    u = loss.batch_forward(ref_pdf.expand(*loss.quantiles.shape, -1))
-
+    u = loss.batch_forward(ref_pdf.expand(*loss.quantiles.shape, -1)).detach()
+    v = loss(ref_pdf.expand(*loss.quantiles.shape, -1))
+    v.backward()
+    grad = ref_pdf.grad
+    input(grad.shape)
     return DotDict(
         {
             't': t.squeeze(),
             'p': p.squeeze(),
             'obs_pdf': obs_pdf,
             'obs_cdf': obs_cdf,
-            'ref_pdf': ref_pdf,
+            'ref_pdf': ref_pdf.detach(),
+            'ref_pdf_grad': grad.detach(),
             'ref_cdf': ref_cdf,
             'loss': loss,
             'quantile_evaled': quantile_evaled.squeeze(),
@@ -231,6 +237,16 @@ def plotter(*, data, idx, fig, axes, cfg, lines=None):
         axes[3, 0].set_xlabel(r'$\lambda$')
         axes[3, 0].set_ylabel('loss')
         axes[3, 0].legend()
+
+        axes[3, 1].plot(
+            d.t,
+            d.ref_pdf_grad.squeeze(),
+            **cfg.plot.opts[0],
+            label='Computed gradient',
+        )
+        axes[3, 1].set_title('Gradient')
+        axes[3, 1].set_xlabel('t')
+        axes[3, 1].set_ylabel('dloss/dt')
 
     # else:
     #     # axes[0, 0].set_data(d.t, d.obs_pdf[idx])

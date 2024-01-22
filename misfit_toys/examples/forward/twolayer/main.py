@@ -66,7 +66,6 @@ def main(cfg):
     # out = out.reshape(cfg.nx - 2 * cfg.rec.padx, cfg.ny - 2 * cfg.rec.pady, -1)
     # out = out.permute(1, 0, 2)
     out = out.reshape(cfg.ny - 2 * cfg.rec.pady, cfg.nx - 2 * cfg.rec.padx, -1)
-    out = out.permute(1, 0, 2)
 
     plt.imshow(v.cpu().T, **cfg.plot.v.imshow_kw)
     plt.title(cfg.plot.v.title)
