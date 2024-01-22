@@ -9,10 +9,12 @@ from masthay_helpers.global_helpers import convert_config_simplest
 
 
 def out_plotter(*, data, idx, fig, axes, cfg):
-    axes.imshow(data[idx].cpu(), **cfg.plot.out.imshow_kw)
-    axes.set_title(f'{cfg.plot.out.title}, shot_no={idx[0]}')
-    axes.set_xlabel(cfg.plot.out.xlabel)
-    axes.set_ylabel(cfg.plot.out.ylabel)
+    plt.clf()
+    plt.imshow(data[idx].cpu(), **cfg.plot.out.imshow_kw)
+    plt.title(f'{cfg.plot.out.title}, time_step={idx[-1]}')
+    plt.xlabel(cfg.plot.out.xlabel)
+    plt.ylabel(cfg.plot.out.ylabel)
+    plt.colorbar()
 
     return {'cfg': cfg}
 
@@ -21,33 +23,14 @@ def out_plotter(*, data, idx, fig, axes, cfg):
 def main(cfg):
     cfg = convert_config_simplest(cfg)
 
+    vp = torch.load(cfg.path)[: cfg.nx, : cfg.ny].to(cfg.device)
     src_loc = towed_src(**cfg.src).to(cfg.device)
 
-    rec = torch.empty(
-        cfg.src.n_shots, cfg.rec.rec_per_shot, 2, device=cfg.device
-    )
-    rec[:, :, 0] = (
-        torch.round(
-            torch.linspace(
-                cfg.rec.x_min / cfg.dx,
-                cfg.rec.x_max / cfg.dx,
-                cfg.rec.rec_per_shot,
-            )
-        )
-        .to(dtype=torch.long)
-        .to(cfg.device)
-    )
-    rec[:, :, 1] = (
-        torch.round(
-            torch.linspace(
-                cfg.rec.y_min / cfg.dy,
-                cfg.rec.y_max / cfg.dy,
-                cfg.rec.rec_per_shot,
-            )
-        )
-        .to(dtype=torch.long)
-        .to(cfg.device)
-    )
+    x_rec_loc = torch.arange(cfg.rec.padx, cfg.nx - cfg.rec.padx)
+    y_rec_loc = torch.arange(cfg.rec.pady, cfg.ny - cfg.rec.pady)
+    Y, X = torch.meshgrid(y_rec_loc, x_rec_loc)
+    rec = torch.stack([X.flatten(), Y.flatten()], dim=1)
+    rec = rec.expand(cfg.src.n_shots, *rec.shape).to(cfg.device)
 
     src_amp = (
         dw.wavelets.ricker(
@@ -59,14 +42,19 @@ def main(cfg):
 
     v = torch.cat(
         [
-            torch.ones(cfg.nx // 2, cfg.ny) * cfg.vp[0],
-            torch.ones(cfg.nx // 2, cfg.ny) * cfg.vp[1],
-        ]
+            torch.ones(cfg.ny, cfg.nx // 4) * cfg.vp[0],
+            torch.ones(cfg.ny, 3 * cfg.nx // 4) * cfg.vp[1],
+        ],
+        dim=1,
     ).to(cfg.device)
+    v = v.T
+
+    if not cfg.twolayer:
+        v = vp
 
     out = dw.scalar(
         v,
-        cfg.nx,
+        cfg.dx,
         cfg.dt,
         source_amplitudes=src_amp,
         source_locations=src_loc,
@@ -75,14 +63,26 @@ def main(cfg):
         pml_freq=cfg.amp.freq,
     )[-1]
 
-    plt.imshow(v.cpu(), **cfg.plot.v.imshow_kw)
+    # out = out.reshape(cfg.nx - 2 * cfg.rec.padx, cfg.ny - 2 * cfg.rec.pady, -1)
+    # out = out.permute(1, 0, 2)
+    out = out.reshape(cfg.ny - 2 * cfg.rec.pady, cfg.nx - 2 * cfg.rec.padx, -1)
+    out = out.permute(1, 0, 2)
+
+    plt.imshow(v.cpu().T, **cfg.plot.v.imshow_kw)
     plt.title(cfg.plot.v.title)
     plt.xlabel(cfg.plot.v.xlabel)
     plt.ylabel(cfg.plot.v.ylabel)
     plt.savefig(cfg.plot.v.name)
 
     fig, axes = plt.subplots(*cfg.plot.out.shape, figsize=cfg.plot.out.figsize)
-    iter = bool_slice(*out.shape, none_dims=(1, 2), ctrl=(lambda x, y: True))
+    iter = bool_slice(
+        *out.shape,
+        none_dims=(0, 1),
+        ctrl=(lambda x, y: True),
+        start=(0, 0, cfg.plot.out.start),
+        cut=(0, 0, cfg.plot.out.cut),
+        strides=(1, 1, cfg.plot.out.downsample),
+    )
     frames = get_frames_bool(
         data=out, iter=iter, fig=fig, axes=axes, plotter=out_plotter, cfg=cfg
     )

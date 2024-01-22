@@ -657,17 +657,40 @@ def check_devices(root):
     print(s)
 
 
-def bool_slice(*args, permute=None, none_dims=(), ctrl=None):
+def bool_slice(
+    *args,
+    permute=None,
+    none_dims=(),
+    ctrl=None,
+    strides=None,
+    start=None,
+    cut=None,
+):
     permute = list(permute or range(len(args)))
     permute.reverse()
 
+    # Logic is not correct here for strides, start, cut, etc. TODO: Fix
+    strides = strides or [1 for _ in range(len(args))]
+    start = start or [0 for _ in range(len(args))]
+    cut = cut or [0 for _ in range(len(args))]
+    tmp = list(args)
+    for i in range(len(strides)):
+        if i not in none_dims:
+            tmp[i] = (tmp[i] - start[i] - cut[i]) // strides[i]
+
+    args = list(args)
+    for i in range(len(args)):
+        if i not in none_dims:
+            args[i] = args[i] - cut[i]
     # Total number of combinations
     total_combinations = np.prod(
-        [e for i, e in enumerate(args) if i not in none_dims]
+        [e for i, e in enumerate(tmp) if i not in none_dims]
     )
 
     # Initialize indices
-    idx = [slice(None) if i in none_dims else 0 for i in range(len(args))]
+    idx = [
+        slice(None) if i in none_dims else start[i] for i in range(len(args))
+    ]
 
     for combo in range(total_combinations):
         print(f'combo={combo}')
@@ -680,7 +703,7 @@ def bool_slice(*args, permute=None, none_dims=(), ctrl=None):
         for i in permute:
             if i in none_dims:
                 continue
-            idx[i] += 1
+            idx[i] += strides[i]
             if idx[i] < args[i]:
                 break
-            idx[i] = 0
+            idx[i] = start[i]
