@@ -19,6 +19,7 @@ exec:
       renorm: square
   time_pad_frac: 0.2
   epochs: 10
+  n_gpus: 1
 io:
   tensor: out
   figs: figs

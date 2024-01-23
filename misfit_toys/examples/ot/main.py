@@ -38,6 +38,12 @@ def training_stages(cfg):
 def _step(self):
     self.out = self.prop(1)
     self.loss = 1e6 * self.loss_fn(self.out[-1])
+    print(f'self.loss = {self.loss}')
+    raise ValueError(
+        f'self.loss = {self.loss}, self.out.min() = {self.out[-1].min()},'
+        f' self.out.max() = {self.out[-1].max()}, self.out.mean() ='
+        f' {self.out[-1].mean()}, self.out.std() = {self.out[-1].std()}'
+    )
     self.loss.backward()
     return self.loss
 
@@ -139,7 +145,7 @@ def run_rank(rank, world_size, cfg):
     prop = DDP(prop, device_ids=[rank])
 
     def my_renorm(x):
-        u = x**2
+        u = x**2 + 1e-3
         return u / cum_trap(u, dx=data['meta'].dt, dim=-1)[-1].to(u.device)
 
     used_loss_fn = get_loss_fn(
@@ -227,7 +233,7 @@ def plot_data(cfg):
 def main(cfg):
     if cfg.exec.run:
         n_gpus = torch.cuda.device_count()
-        run(n_gpus, cfg)
+        run(min(cfg.exec.n_gpus, n_gpus), cfg)
     plot_data(cfg)
 
 

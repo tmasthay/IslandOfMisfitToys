@@ -707,3 +707,10 @@ def bool_slice(
             if idx[i] < args[i]:
                 break
             idx[i] = start[i]
+
+
+def clean_idx(idx, show_colons=True):
+    res = [str(e) if e != slice(None) else ':' for e in idx]
+    if not show_colons:
+        res = [e for e in res if e != ':']
+    return f'({", ".join(res)})'

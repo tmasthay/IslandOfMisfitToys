@@ -208,13 +208,13 @@ def plotter(*, data, idx, fig, axes, cfg, lines=None):
         # ylim = d.quantile_inverted_deriv[idx].abs().max().item()
         axes[2, 1].plot(
             d.p,
-            torch.clamp(d.quantile_inverted_deriv[idx], max=3),
+            d.quantile_inverted_deriv[idx],
             label='Computed composition',
             **cfg.plot.opts[0],
         )
         axes[2, 1].plot(
             d.p,
-            torch.clamp(1.0 / (d.obs[idx] * (1.0 - d.ref_cdf)), max=3),
+            1.0 / (d.obs[idx] * (1.0 - d.ref_cdf)),
             label='Exact composition',
             **cfg.plot.opts[1],
         )

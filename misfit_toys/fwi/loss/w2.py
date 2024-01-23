@@ -62,12 +62,39 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
 
 
 # Function to compute true_quantile for an arbitrary shape torch tensor along its last dimension
-def true_quantile(pdf, x, p, *, dx=None, left_edge_tol=0.0, right_edge_tol=0.0):
+def true_quantile(
+    pdf,
+    x,
+    p,
+    *,
+    dx=None,
+    left_edge_tol=0.0,
+    right_edge_tol=0.0,
+    atol=1e-3,
+    err_top=50,
+):
     if len(pdf.shape) == 1:
         if dx is not None:
-            cdf = torch.clamp(cum_trap(pdf, dx=dx, dim=-1), min=0.0, max=1.0)
+            cdf = cum_trap(pdf, dx=dx, dim=-1)
+            cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
         else:
-            cdf = torch.clamp(cum_trap(pdf, x, dim=-1), min=0.0, max=1.0)
+            cdf = cum_trap(pdf, x, dim=-1)
+            cdf_verify = torch.trapezoid(pdf, x, dim=-1)
+        if not torch.allclose(
+            cdf[..., 0], torch.zeros(1), atol=atol
+        ) or not torch.allclose(cdf[..., -1], torch.ones(1), atol=atol):
+            flattened = cdf.reshape(-1)
+            left_disc = torch.topk(flattened, err_top, largest=False)[0]
+            right_disc = torch.topk(flattened, err_top, largest=True)[0]
+
+            raise ValueError(
+                'CDFs should theoretically be in [0.0, 1.0] and in practice be'
+                f' in [{atol}, {1.0 - atol}], observed\n    MIN EXTREME:'
+                f' {left_disc}\n    MAX EXTREME: {right_disc}\n   '
+                f' cum_trap(pdf)[-1]={cdf[-1]}\n    torch.trapezoid(pdf, x,'
+                f' dim=-1)={cdf_verify}'
+            )
+
         left_cutoff_idx = torch.where(cdf < left_edge_tol)[0]
         right_cutoff_idx = torch.where(cdf > 1 - right_edge_tol)[0]
 
