@@ -41,7 +41,8 @@ def metadata():
                         "n_shots": 16,
                         'derived': {
                             'twolayer': {'beta': 1.0},
-                            'twolayer_strong': {'beta': 2.0},
+                            'twolayer_strong': {'beta': 3.0},
+                            'twolayer_verystrong': {'beta': 10.0},
                         },
                     }
                 },

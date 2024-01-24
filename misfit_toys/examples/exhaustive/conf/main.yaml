@@ -1,10 +1,10 @@
 data:
   path:
-    "true": /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16
-    init: /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer
+    "true": /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer_strong
+    init: /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer_verystrong
 
 preproc:
-  renorm_perturb: 1.0e-05
+  renorm_perturb: 1.0e-03
 
 meta:
   ny: 600
@@ -48,12 +48,12 @@ plt:
     - color: orange
       linestyle: "-."
   order: null
-  static_ylim: False
+  static_ylim: True
   sel:
     none_dims: [2]
     start: [14, 0, 0]
     cut: [0, 0, 0]
-    strides: [1, 20, 1]
+    strides: [1, 5, 1]
   path: plots/main.gif
-  duration: 100
+  duration: 500
   depth_scaling: 2.0
