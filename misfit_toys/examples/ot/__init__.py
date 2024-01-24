@@ -5,7 +5,6 @@ __all__ = [
     "debug",
     "final_outputs",
     "out",
-    "backup_tests",
     "plots",
     "conf",
 ]
@@ -15,6 +14,5 @@ from .main import *
 from .debug import *
 from .final_outputs import *
 from .out import *
-from .backup_tests import *
 from .plots import *
 from .conf import *
