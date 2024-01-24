@@ -37,7 +37,13 @@ def metadata():
                 "n_shots": 20,
                 "rec_per_shot": 100,
                 "derived": {
-                    "shots16": {"n_shots": 16, 'derived': {'twolayer': {}}}
+                    "shots16": {
+                        "n_shots": 16,
+                        'derived': {
+                            'twolayer': {'beta': 1.0},
+                            'twolayer_strong': {'beta': 2.0},
+                        },
+                    }
                 },
             }
         },

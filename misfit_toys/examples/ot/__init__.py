@@ -1,2 +1,20 @@
-__all__ = ["main"]
+__all__ = [
+    "dummy",
+    "go",
+    "main",
+    "debug",
+    "final_outputs",
+    "out",
+    "backup_tests",
+    "plots",
+    "conf",
+]
+from .dummy import *
+from .go import *
 from .main import *
+from .debug import *
+from .final_outputs import *
+from .out import *
+from .backup_tests import *
+from .plots import *
+from .conf import *
