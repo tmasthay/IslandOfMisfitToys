@@ -714,3 +714,30 @@ def clean_idx(idx, show_colons=True):
     if not show_colons:
         res = [e for e in res if e != ':']
     return f'({", ".join(res)})'
+
+
+def tensor_summary(t, num=5):
+    d = {
+        'shape': t.shape,
+        'dtype': t.dtype,
+        'min': t.min(),
+        'max': t.max(),
+        'mean': t.mean() if t.dtype == torch.float32 else None,
+        'std': t.std() if t.dtype == torch.float32 else None,
+        f'top {num} values': torch.topk(t.reshape(-1), num, largest=True)[0],
+        f'bottom {num} values': torch.topk(t.reshape(-1), num, largest=False)[
+            0
+        ],
+    }
+    s = ''
+    for k, v in d.items():
+        s += f'{k}\n    {v}\n'
+    return s
+
+
+def pull_data(path):
+    d = {}
+    keys = [e.replace('.pt', '') for e in os.listdir(path) if e.endswith('.pt')]
+    for k in keys:
+        d[k] = torch.load(os.path.join(path, k + '.pt'))
+    return DotDict(d)

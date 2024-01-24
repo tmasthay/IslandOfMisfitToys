@@ -1,0 +1,59 @@
+data:
+  path:
+    "true": /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16
+    init: /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer
+
+preproc:
+  renorm_perturb: 1.0e-05
+
+meta:
+  ny: 600
+  nx: 250
+  nt: 300
+  dy: 4.0
+  dx: 4.0
+  dt: 0.004
+  n_shots: 16
+  src_per_shot: 1
+  d_src: 20
+  fst_src: 10
+  src_depth: 2
+  rec_per_shot: 100
+  d_rec: 6
+  fst_rec: 0
+  rec_depth: 2
+  d_intra_shot: 0
+  freq: 25
+  peak_time: 0.06
+  accuracy: 8
+
+plt:
+  subplot:
+    shape: [3, 2]
+    kwargs:
+      figsize: [20, 10]
+    adjust:
+      hspace: 0.5
+      wspace: 0.5
+  imshow:
+    cmap: gray
+    aspect: "auto"
+  trace:
+    - color: black
+      linestyle: "-"
+    - color: red
+      linestyle: ":"
+    - color: blue
+      linestyle: "--"
+    - color: green
+      linestyle: "-."
+  order: null
+  static_ylim: False
+  sel:
+    none_dims: [2]
+    start: [14, 0, 0]
+    cut: [0, 0, 0]
+    strides: [1, 20, 1]
+  path: plots/main.gif
+  duration: 100
+  depth_scaling: 2.0

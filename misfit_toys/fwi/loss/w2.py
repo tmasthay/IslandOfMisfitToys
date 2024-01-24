@@ -5,6 +5,7 @@ from torchcubicspline import natural_cubic_spline_coeffs, NaturalCubicSpline
 
 import numpy as np
 from itertools import product
+from misfit_toys.utils import tensor_summary
 
 
 def unbatch_splines(coeffs):
@@ -81,18 +82,20 @@ def true_quantile(
             cdf = cum_trap(pdf, x, dim=-1)
             cdf_verify = torch.trapezoid(pdf, x, dim=-1)
         if not torch.allclose(
-            cdf[..., 0], torch.zeros(1), atol=atol
-        ) or not torch.allclose(cdf[..., -1], torch.ones(1), atol=atol):
+            cdf[..., 0], torch.zeros(1).to(cdf.device), atol=atol
+        ) or not torch.allclose(
+            cdf[..., -1], torch.ones(1).to(cdf.device), atol=atol
+        ):
             flattened = cdf.reshape(-1)
             left_disc = torch.topk(flattened, err_top, largest=False)[0]
             right_disc = torch.topk(flattened, err_top, largest=True)[0]
+            pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
+            pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
 
             raise ValueError(
                 'CDFs should theoretically be in [0.0, 1.0] and in practice be'
-                f' in [{atol}, {1.0 - atol}], observed\n    MIN EXTREME:'
-                f' {left_disc}\n    MAX EXTREME: {right_disc}\n   '
-                f' cum_trap(pdf)[-1]={cdf[-1]}\n    torch.trapezoid(pdf, x,'
-                f' dim=-1)={cdf_verify}'
+                f' in [{atol}, {1.0 - atol}], observed info below\nCDF\n\n'
+                f' {tensor_summary(cdf)}\nPDF\n\n{tensor_summary(pdf)}\n'
             )
 
         left_cutoff_idx = torch.where(cdf < left_edge_tol)[0]
