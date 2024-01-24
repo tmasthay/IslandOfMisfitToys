@@ -41,17 +41,37 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         cfg.true.rescaled_obs[idx[0], :, :].T,
         **cfg.plt.imshow,
     )
-    plt.plot(idx[1], cfg.meta.rec_per_shot // 2, 'r*')
+    plt.plot(
+        idx[1] * torch.ones(cfg.meta.nt),
+        torch.arange(cfg.meta.nt),
+        **cfg.plt.trace[3],
+    )
+    plt.plot(idx[1], cfg.meta.nt - 1, 'r*')
     lplot('Depth-scaled obs data', 'Receiver Index', 'Time Index')
 
     set_plot(2)
     plt.imshow(cfg.init.rescaled_obs[idx[0], :, :].T, **cfg.plt.imshow)
-    plt.plot(idx[1], cfg.meta.rec_per_shot // 2, 'r*')
+    plt.plot(
+        idx[1] * torch.ones(cfg.meta.nt),
+        torch.arange(cfg.meta.nt),
+        **cfg.plt.trace[3],
+    )
     lplot('Depth-scaled init data', 'Receiver Index', 'Time Index')
 
     set_plot(3)
-    plt.plot(cfg.t, cfg.true.obs_data[idx], **cfg.plt.trace[0])
-    plt.plot(cfg.t, cfg.init.obs_data[idx], **cfg.plt.trace[1])
+    plt.plot(
+        cfg.t,
+        cfg.true.obs_data[idx],
+        **cfg.plt.trace[0],
+        label=r'$\mathcal{R}^{-1}(g)$',
+    )
+    plt.plot(
+        cfg.t,
+        cfg.init.obs_data[idx],
+        **cfg.plt.trace[1],
+        label=r'$\mathcal{R}^{-1}(f)$',
+    )
+    plt.legend()
     lplot(
         'Raw obs data trace',
         'Time',
@@ -61,8 +81,13 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     )
 
     set_plot(4)
-    plt.plot(cfg.t, cfg.true.obs_data_renorm[idx], **cfg.plt.trace[0])
-    plt.plot(cfg.t, cfg.init.obs_data_renorm[idx], **cfg.plt.trace[1])
+    plt.plot(
+        cfg.t, cfg.true.obs_data_renorm[idx], **cfg.plt.trace[0], label=r'$g$'
+    )
+    plt.plot(
+        cfg.t, cfg.init.obs_data_renorm[idx], **cfg.plt.trace[1], label=r'$f$'
+    )
+    plt.legend()
     lplot(
         'Renormed data trace',
         'Time',
@@ -72,8 +97,13 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     )
 
     set_plot(5)
-    plt.plot(cfg.t, cfg.true.obs_data_cdf[idx], **cfg.plt.trace[0])
-    plt.plot(cfg.t, cfg.init.obs_data_cdf[idx], **cfg.plt.trace[1])
+    plt.plot(
+        cfg.t, cfg.true.obs_data_cdf[idx], **cfg.plt.trace[0], label=r'$G(t)$'
+    )
+    plt.plot(
+        cfg.t, cfg.init.obs_data_cdf[idx], **cfg.plt.trace[1], label=r'$F(t)$'
+    )
+    plt.legend()
     lplot(
         'CDF trace',
         't',
@@ -83,8 +113,19 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     )
 
     set_plot(6)
-    plt.plot(cfg.p, cfg.quantiles[idx], **cfg.plt.trace[0])
-    plt.plot(cfg.p, cfg.init.quantiles[idx], **cfg.plt.trace[1])
+    plt.plot(
+        cfg.p,
+        cfg.quantiles[idx],
+        **cfg.plt.trace[0],
+        label=r'$G^{-1}(p)$',
+    )
+    plt.plot(
+        cfg.p,
+        cfg.init.quantiles[idx],
+        **cfg.plt.trace[1],
+        label=r'$F^{-1}(p)$',
+    )
+    plt.legend()
     lplot(
         'Quantiles',
         'p',
@@ -92,6 +133,23 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         cbar=False,
         yext=rec_extremes(cfg.quantiles),
     )
+
+    set_plot(7)
+    plt.plot(
+        cfg.t,
+        cfg.transport_maps[idx],
+        **cfg.plt.trace[0],
+        label=r'$T(t) = G^{-1}(F(t))$',
+    )
+    plt.plot(cfg.t, cfg.t, **cfg.plt.trace[1], label=r'$I(t) = t$')
+    lplot(
+        'Transport maps',
+        't',
+        't',
+        cbar=False,
+        yext=(cfg.t.min().item(), cfg.t.max().item()),
+    )
+    plt.legend()
 
     return {'cfg': cfg}
 
@@ -141,6 +199,9 @@ def main(cfg: DictConfig) -> None:
     )
     cfg.quantiles = unbatch_spline_eval(
         cfg.loss_fn.quantiles, cfg.p.expand(*cfg.loss_fn.quantiles.shape, -1)
+    )
+    cfg.transport_maps = unbatch_spline_eval(
+        cfg.loss_fn.quantiles, cfg.init.obs_data_cdf
     )
 
     fig, axes = plt.subplots(*cfg.plt.subplot.shape, **cfg.plt.subplot.kwargs)

@@ -29,7 +29,7 @@ meta:
 
 plt:
   subplot:
-    shape: [3, 2]
+    shape: [4, 2]
     kwargs:
       figsize: [20, 10]
     adjust:
@@ -39,13 +39,13 @@ plt:
     cmap: gray
     aspect: "auto"
   trace:
-    - color: black
-      linestyle: "-"
     - color: red
-      linestyle: ":"
+      linestyle: "-"
     - color: blue
-      linestyle: "--"
+      linestyle: ":"
     - color: green
+      linestyle: "--"
+    - color: orange
       linestyle: "-."
   order: null
   static_ylim: False
