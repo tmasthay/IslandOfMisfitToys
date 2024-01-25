@@ -20,6 +20,8 @@ repos:
         # types: [text]
         pass_filenames: false
 
+  # Note that you don't need the id hook for commit message verification anymore.
+  #     This is because you have integrated the same logic into the gitlint hook.
   - repo: https://github.com/tmasthay/GitHookEm
     rev: main
     hooks:
@@ -49,17 +51,17 @@ repos:
       - id: check-xml
       - id: detect-private-key
 
-  # - repo: https://github.com/pycqa/isort
-  #   rev: 5.12.0
-  #   hooks:
-  #     - id: isort
-  #       args: ["--profile", "black"]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
 
-  # - repo: https://github.com/pycqa/flake8
-  #   rev: 3.9.2
-  #   hooks:
-  #     - id: flake8
-  #    args: [--extend-ignore=F403, --extend-ignore=F405, --max-line-length=82]
+  - repo: https://github.com/pycqa/flake8
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        args: [--extend-ignore=F403, --extend-ignore=F405, --max-line-length=82]
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.26.3
