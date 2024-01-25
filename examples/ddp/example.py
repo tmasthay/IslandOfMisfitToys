@@ -1,12 +1,13 @@
-from misfit_toys.fwi.modules.distribution import cleanup, setup
-
-from abc import ABC, abstractmethod
 import os
-import torch
-import torch.multiprocessing as mp
-import torch.distributed as dist
-import matplotlib.pyplot as plt
+from abc import ABC, abstractmethod
 from warnings import warn
+
+import matplotlib.pyplot as plt
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+from misfit_toys.fwi.modules.distribution import cleanup, setup
 
 # config -- ignore
 

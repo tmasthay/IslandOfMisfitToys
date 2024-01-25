@@ -1,25 +1,22 @@
-import os
-import torch
-from warnings import warn
-import deepwave as dw
-from scipy.ndimage import gaussian_filter
 import copy
+import os
 import sys
-from masthay_helpers.global_helpers import add_root_package_path
+from warnings import warn
 
-add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
-from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
-from masthay_helpers.global_helpers import DotDict
+import deepwave as dw
+import torch
+
+# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
+from masthay_helpers.global_helpers import DotDict, add_root_package_path
+from scipy.ndimage import gaussian_filter
+
+from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
 
 
 class Factory(DataFactory):
     def _manufacture_data(self):
         if self.installed(
-            "vp_true",
-            "rho_true",
-            "src_loc_y",
-            "rec_loc_y",
-            "obs_data",
+            "vp_true", "rho_true", "src_loc_y", "rec_loc_y", "obs_data"
         ):
             return
 

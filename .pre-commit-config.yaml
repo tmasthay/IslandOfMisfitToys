@@ -55,13 +55,17 @@ repos:
     rev: 5.12.0
     hooks:
       - id: isort
-        args: ["--profile", "black"]
+        args:
+          - "--profile=black"
+          - "--line-length=80"
 
   - repo: https://github.com/pycqa/flake8
     rev: 3.9.2
     hooks:
       - id: flake8
-        args: [--extend-ignore=F403, --extend-ignore=F405, --max-line-length=82]
+        args:
+          - --extend-ignore=F403,F401,F405,E501
+          - --max-line-length=82
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.26.3

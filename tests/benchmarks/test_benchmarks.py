@@ -1,6 +1,8 @@
-import misfit_toys.examples.marmousi.validate as val
 import os
+
 from masthay_helpers.global_helpers import DotDict
+
+import misfit_toys.examples.marmousi.validate as val
 
 # import logging
 # import pytest

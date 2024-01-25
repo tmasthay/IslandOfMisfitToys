@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from typing import Callable
+
 import torch
 import torch.nn as nn
 from torch.nn.functional import mse_loss
-from dataclasses import dataclass
 
 
 class TikhonovLoss(nn.Module):

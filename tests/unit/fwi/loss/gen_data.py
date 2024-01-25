@@ -1,9 +1,11 @@
-import torch
-from masthay_helpers.global_helpers import hydra_kw, DotDict
-from omegaconf import DictConfig
 import os
 import pickle
+
+import torch
+from masthay_helpers.global_helpers import DotDict, hydra_kw
+from omegaconf import DictConfig
 from scipy.special import erfinv
+
 from misfit_toys.fwi.loss.w2 import cum_trap
 
 
@@ -30,7 +32,7 @@ def gen_gauss(cfg: DotDict):
     gauss /= (
         torch.trapezoid(gauss, x=x, dim=-1).unsqueeze(-1).expand(*gauss.shape)
     )
-    u = torch.trapezoid(gauss, x=x, dim=-1).max()
+    # u = torch.trapezoid(gauss, x=x, dim=-1).max()
 
     # input(x.expand(*gauss.shape).shape)
     # input(f'gauss.shape = {gauss.shape}')
@@ -38,7 +40,7 @@ def gen_gauss(cfg: DotDict):
     ref = gauss[1, 10, :]
     # input(ref.shape)
     # input(x.shape)
-    v = cum_trap(ref, x=x.squeeze(), dim=-1, preserve_dims=True)
+    # v = cum_trap(ref, x=x.squeeze(), dim=-1, preserve_dims=True)
     # input(f'v.max() == {v.max()}')
     # input(v.shape)
     # input(torch.trapz(ref, x=x.squeeze(), dim=-1))

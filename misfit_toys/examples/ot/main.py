@@ -1,32 +1,33 @@
 import os
+from collections import OrderedDict
 
+import hydra
 import torch
 import torch.multiprocessing as mp
+from masthay_helpers.global_helpers import clean_kwargs, subdict
+from masthay_helpers.typlotlib import make_gifs
+from returns.curry import curry
 from scipy.signal import butter
-from collections import OrderedDict
-from masthay_helpers.global_helpers import subdict, clean_kwargs
-from misfit_toys.utils import setup, filt, taper, tensor_summary
-from misfit_toys.fwi.training import Training
-
+from torch.nn import MSELoss
 from torch.nn.parallel import DistributedDataParallel as DDP
+
+from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
+from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap
 from misfit_toys.fwi.seismic_data import (
-    SeismicProp,
     Param,
     ParamConstrained,
-    path_builder,
+    SeismicProp,
     chunk_and_deploy,
+    path_builder,
 )
-from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap
-from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
-from returns.curry import curry
-from masthay_helpers.typlotlib import make_gifs
-import hydra
-
-from torch.nn import MSELoss
+from misfit_toys.fwi.training import Training
+from misfit_toys.utils import filt, setup, taper, tensor_summary
 
 
 def training_stages(cfg):
-    do_nothing = lambda x, y: None
+    def do_nothing(x, y):
+        return None
+
     return {
         'epochs': {
             'data': list(range(cfg.exec.epochs)),
@@ -234,9 +235,7 @@ def plot_data(cfg):
     in_dir = os.path.relpath(cfg.io.tensor, start=os.path.dirname(__file__))
     common = {**cfg.plot.common, 'path': os.path.join(in_dir, cfg.io.figs)}
     opts = {
-        'loss_record': {
-            'labels': ['Epoch', 'Loss'],
-        },
+        'loss_record': {'labels': ['Epoch', 'Loss']},
         'vp_record': {
             'labels': ['Extent', 'Depth', 'Epoch'],
             'permute': (2, 1, 0),

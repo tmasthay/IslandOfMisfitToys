@@ -1,6 +1,7 @@
+from masthay_helpers.global_helpers import iprint
+
 import misfit_toys
 from misfit_toys.data.dataset import DataFactory
-from masthay_helpers.global_helpers import iprint
 
 
 def download_data(storage, exclusions):

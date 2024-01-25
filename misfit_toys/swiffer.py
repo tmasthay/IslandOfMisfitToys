@@ -14,10 +14,10 @@ Functions:
 """
 
 import subprocess
-from subprocess import check_output as co
-from subprocess import CalledProcessError
-from datetime import timedelta
 import textwrap
+from datetime import timedelta
+from subprocess import CalledProcessError
+from subprocess import check_output as co
 
 
 def sco(s, split=True):
@@ -138,16 +138,16 @@ def see_fields(obj, *, field, member_paths, idt="    ", level=0):
         p = p.split(".")
         c = obj
         s = ""
-        for l, e in enumerate(p):
+        for lvl, e in enumerate(p):
             if not hasattr(c, e):
                 raise ValueError(
                     f"{c.__class__} does not have member {e}"
-                    + f" at level {l} of path {p}"
+                    + f" at level {lvl} of path {p}"
                 )
             c = getattr(c, e)
-            s += f"{l*idt}{e}\n"
+            s += f"{lvl*idt}{e}\n"
             if hasattr(c, field):
-                s += f"{(l+1)*idt}{field}: {getattr(c, field)}\n"
+                s += f"{(lvl+1)*idt}{field}: {getattr(c, field)}\n"
         history.append(s)
     return "\n".join(history)
 

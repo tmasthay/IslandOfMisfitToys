@@ -8,11 +8,11 @@ __all__ = [
     "plots",
     "conf",
 ]
+from .conf import *
+from .debug import *
 from .dummy import *
+from .final_outputs import *
 from .go import *
 from .main import *
-from .debug import *
-from .final_outputs import *
 from .out import *
 from .plots import *
-from .conf import *

@@ -1,9 +1,9 @@
 import os
-from masthay_helpers.global_helpers import add_root_package_path
 
-add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
-from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
-from masthay_helpers.global_helpers import DotDict
+# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
+from masthay_helpers.global_helpers import DotDict, add_root_package_path
+
+from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
 
 
 class Factory(DataFactory):

@@ -1,17 +1,19 @@
-from gen_data import gen_data
-import torch
-import pytest
-from masthay_helpers.global_helpers import hydra_kw, DotDict
 import os
-from misfit_toys.fwi.loss.w2 import (
-    w2_const,
-    cts_quantile,
-    w2,
-    unbatch_spline_eval,
-)
-from masthay_helpers.typlotlib import plot_tensor2d_subplot, plot_tensor2d_fast
+
 import matplotlib.pyplot as plt
+import pytest
+import torch
+from gen_data import gen_data
+from masthay_helpers.global_helpers import DotDict, hydra_kw
+from masthay_helpers.typlotlib import plot_tensor2d_fast, plot_tensor2d_subplot
 from scipy.special import erfinv
+
+from misfit_toys.fwi.loss.w2 import (
+    cts_quantile,
+    unbatch_spline_eval,
+    w2,
+    w2_const,
+)
 
 
 # Fixture to generate data
@@ -31,6 +33,7 @@ def test_quantile(tdata):
         tdata.gauss, tdata.x, tdata.p, dx=tdata.x[1] - tdata.x[0]
     )
     res = unbatch_spline_eval(quantiles, tdata.p)
+    print(res)
 
 
 @hydra_kw(use_cfg=True)

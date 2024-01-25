@@ -15,9 +15,10 @@ Functions:
 """
 
 import torch
-from deepwave import scalar, elastic
+from deepwave import elastic, scalar
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from masthay_helpers.global_helpers import DotDict
+
 from misfit_toys.data.dataset import get_data3, get_pydict
 
 

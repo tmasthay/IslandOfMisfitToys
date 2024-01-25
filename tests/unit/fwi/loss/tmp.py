@@ -1,24 +1,25 @@
+import os
 import pickle
+from functools import wraps
 from time import time
 from typing import Any
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-from misfit_toys.fwi.loss.w2 import cts_quantile, unbatch_spline_eval, cum_trap
+from gen_data import gen_data
+from masthay_helpers.global_helpers import DotDict
 from masthay_helpers.typlotlib import (
-    slice_iter_bool,
     get_frames_bool,
     save_frames,
+    slice_iter_bool,
 )
-from misfit_toys.utils import bool_slice
-from gen_data import gen_data
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from functools import wraps
-from returns.curry import curry
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from masthay_helpers.global_helpers import DotDict
+from returns.curry import curry
+
+from misfit_toys.fwi.loss.w2 import cts_quantile, cum_trap, unbatch_spline_eval
+from misfit_toys.utils import bool_slice
 
 # def omit_none_slices(func):
 #     @wraps(func)
@@ -35,7 +36,7 @@ def plotter(
 ):
     if ylim is None:
         ylim = (x.min(), x.max())
-    plot_call_start = time()
+    # plot_call_start = time()
     x_star, y_star = idx[0], idx[1]
 
     if idx[0] + idx[1] == 0:
@@ -51,7 +52,7 @@ def plotter(
     axes[0, 1].cla()
     try:
         axes[0, 1].plot(p, data.quantile_clean[idx], label=r'$Q(p)$')
-    except:
+    except Exception:
         input(f'idx = {idx}')
         input(f'p.shape = {p.shape}')
         input(f'data.quantile_clean.shape = {data.quantile_clean.shape}')

@@ -5,20 +5,21 @@ Classes:
     Training: Subclass of TrainingAbstract where abstract methods supplied in __init__.
 """
 
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, Callable
+
 import torch
 from masthay_helpers.global_helpers import (
-    get_print,
-    flip_dict,
-    subdict,
     DotDict,
+    flip_dict,
+    get_print,
+    subdict,
 )
 from torch.optim.lr_scheduler import ChainedScheduler
-from misfit_toys.utils import load_all, save, cleanup, filt, taper
-from typing import Callable, Any
-from abc import ABC, abstractmethod
 
+from misfit_toys.utils import cleanup, filt, load_all, save, taper
 
 # TODO: Consider using a Protocol here
 #   and encapsulate _step, _pre_train, _post_train inside of it.

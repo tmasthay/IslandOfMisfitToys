@@ -1,25 +1,22 @@
-import torch
+import argparse
+import copy
 import os
-import numpy as np
-from obspy.io.segy.segy import _read_segy
-import torch
-from subprocess import check_output as co
-import os
-import time
-import sys
-import torch
-from ..swiffer import sco, istr, iraise, ireraise, iprint
 import re
-from warnings import warn
-import deepwave as dw
+import sys
+import time
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path, get_pydict, downsample_any
-import copy
+from subprocess import check_output as co
 from warnings import warn
-from ..swiffer import iraise, ireraise
-from masthay_helpers.global_helpers import prettify_dict, path_up, DotDict, bstr
-import argparse
+
+import deepwave as dw
+import numpy as np
+import torch
+from masthay_helpers.global_helpers import DotDict, bstr, path_up, prettify_dict
+from obspy.io.segy.segy import _read_segy
+
+from ..swiffer import iprint, iraise, ireraise, istr, sco
+from ..utils import auto_path, downsample_any, get_pydict, parse_path
 
 
 def fetch_warn():
@@ -168,8 +165,7 @@ def fetch_data(d, *, path, unzip=True):
                     func = v[0]
                     args = v[1]
                     kwargs = v[2]
-                    clos = lambda: func(*args, path=path, **kwargs)
-                    calls.append(clos)
+                    calls.append(lambda: func(*args, path=path, **kwargs))
     return calls
 
 
@@ -202,7 +198,7 @@ def check_data_installation(path):
             u = torch.load(file)
             print(f'SUCCESS "{file}" shape={u.shape}')
             res["success"].append(file)
-        except:
+        except Exception:
             print(f'FAILURE "{file}"')
             res["failure"].append(file)
     return res
@@ -253,7 +249,7 @@ def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
 
 
 def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     datasets = {
         "marmousi": {
             "url": (
@@ -277,7 +273,7 @@ def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
             "peak_time": 1.5 / 25,
             "vp": {},
             "rho": {},
-            "obs_data": (create_obs_marm_dw, (), {"device": device}),
+            # "obs_data": (create_obs_marm_dw, (), {"device": device}),
         },
         "marmousi2": {
             "url": "http://www.agl.uh.edu/downloads/",
@@ -535,7 +531,7 @@ class DataFactory(ABC):
             iraise(
                 FileNotFoundError,
                 f"\n\nNo metadata found in {self.src_path}\n.",
-                f'For directories "X" without metadata.py, we populate ',
+                'For directories "X" without metadata.py, we populate ',
                 "X/metadata.pydict with the metadata from the parent ",
                 "prior to generating a DataFactory object",
             )

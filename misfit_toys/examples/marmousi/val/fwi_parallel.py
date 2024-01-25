@@ -1,21 +1,21 @@
 import os
+from collections import OrderedDict
 
 import torch
 import torch.multiprocessing as mp
-from scipy.signal import butter
-from collections import OrderedDict
 from masthay_helpers.global_helpers import subdict
-from misfit_toys.utils import setup, filt, taper
-from misfit_toys.fwi.training import Training
-
+from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
+
 from misfit_toys.fwi.seismic_data import (
-    SeismicProp,
     Param,
     ParamConstrained,
-    path_builder,
+    SeismicProp,
     chunk_and_deploy,
+    path_builder,
 )
+from misfit_toys.fwi.training import Training
+from misfit_toys.utils import filt, setup, taper
 
 
 def training_stages():

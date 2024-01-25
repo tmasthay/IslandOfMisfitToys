@@ -37,10 +37,7 @@ def metadata():
                 "n_shots": 20,
                 "rec_per_shot": 100,
             },
-            "medium": {
-                "ny": 2301,
-                "nx": 751,
-            },
+            "medium": {"ny": 2301, "nx": 751},
         },
     }
 

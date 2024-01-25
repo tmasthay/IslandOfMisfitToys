@@ -1,10 +1,11 @@
 from abc import abstractmethod
-import torch
-import torch.nn as nn
-from torchcubicspline import natural_cubic_spline_coeffs, NaturalCubicSpline
+from itertools import product
 
 import numpy as np
-from itertools import product
+import torch
+import torch.nn as nn
+from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
+
 from misfit_toys.utils import tensor_summary
 
 
@@ -77,25 +78,24 @@ def true_quantile(
     if len(pdf.shape) == 1:
         if dx is not None:
             cdf = cum_trap(pdf, dx=dx, dim=-1)
-            cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
+            # cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
         else:
             cdf = cum_trap(pdf, x, dim=-1)
-            cdf_verify = torch.trapezoid(pdf, x, dim=-1)
+            # cdf_verify = torch.trapezoid(pdf, x, dim=-1)
         if not torch.allclose(
             cdf[..., 0], torch.zeros(1).to(cdf.device), atol=atol
         ) or not torch.allclose(
             cdf[..., -1], torch.ones(1).to(cdf.device), atol=atol
         ):
-            flattened = cdf.reshape(-1)
-            left_disc = torch.topk(flattened, err_top, largest=False)[0]
-            right_disc = torch.topk(flattened, err_top, largest=True)[0]
-            pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
-            pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
-
+            # flattened = cdf.reshape(-1)
+            # left_disc = torch.topk(flattened, err_top, largest=False)[0]
+            # right_disc = torch.topk(flattened, err_top, largest=True)[0]
+            # pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
+            # pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
             raise ValueError(
                 'CDFs should theoretically be in [0.0, 1.0] and in practice be'
                 f' in [{atol}, {1.0 - atol}], observed info below\nCDF\n\n'
-                f' {tensor_summary(cdf)}\nPDF\n\n{tensor_summary(pdf)}\n'
+                f' {tensor_summary(cdf, err_top)}\nPDF\n\n{tensor_summary(pdf, err_top)}\n'
             )
 
         left_cutoff_idx = torch.where(cdf < left_edge_tol)[0]
@@ -130,13 +130,7 @@ def true_quantile(
         return results
 
 
-def cts_quantile(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-):
+def cts_quantile(pdf, x, p, *, dx=None):
     q = true_quantile(pdf, x, p, dx=dx)
     if q.shape[-1] != 1:
         q = q.unsqueeze(-1)

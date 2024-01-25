@@ -20,31 +20,21 @@ Functions:
 - mem_report: Generate a memory report.
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
+import glob
 import os
+import socket
+from typing import Annotated as Ant
+from typing import Any
+
 import deepwave as dw
-from typing import Annotated as Ant, Any
-from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
-import torch.distributed as dist
-from torchaudio.functional import biquad
 
 # Rest of the code...
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-from typing import Annotated as Ant, Any
-
-import deepwave as dw
-import os
-
-from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
 import torch.distributed as dist
+from masthay_helpers.global_helpers import DotDict, ctab, find_files, vco
 from torchaudio.functional import biquad
-import glob
-import socket
 
 
 def find_available_port(start_port, max_attempts=5):
@@ -356,7 +346,10 @@ def run_verbosity(*, verbosity, levels):
         Callable: The decorator function.
     """
     levels = clean_levels(levels)
-    v2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
+
+    def v2i(x):
+        verbosity_str_to_int(verbosity=x, levels=levels)
+
     verbosity_int = v2i(verbosity)
 
     def helper(f):
@@ -389,7 +382,10 @@ def mem_report(*args, precision=2, sep=", ", rep=None):
     if rep is None:
         rep = []
     [rep.append("unknown") for _ in range(len(args) - len(rep))]
-    add = lambda x, i: filtered_args.append(x + " (" + rep[i] + ")")
+
+    def add(x, i):
+        filtered_args.append(x + " (" + rep[i] + ")")
+
     for i, arg in enumerate(args):
         if 1e18 < arg:
             add(f"{arg/1e18:.{precision}f} EB", i)
@@ -497,7 +493,7 @@ class SlotMeta(type):
 
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
-            class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
+            # class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
 
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
@@ -597,7 +593,12 @@ def canonical_reduce(reduce=None, exclude=None, extra=None):
     default = dict()
 
     for name in canon:
-        has_key = lambda *x: any([e in name for e in x])
+
+        def has_key(x):
+            # original was lambda *x: ... --- unsure if this works,
+            #     THIS CODE IS DEPRECATED ANYWAY
+            any([e in name for e in x])
+
         if has_key("cat", "filt", "record"):
             default[name] = "cat"
         elif has_key("stack"):
@@ -652,7 +653,7 @@ def check_devices(root):
             del u
         except Exception as e:
             data.append([file, '', str(e)])
-            del u
+            # del u
     s = ctab(data, headers=headers, colors=colors)
     print(s)
 

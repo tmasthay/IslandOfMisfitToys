@@ -1,21 +1,20 @@
+import os
+from copy import deepcopy
+
+import hydra
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from masthay_helpers.global_helpers import DotDict, convert_config_simplest
+from masthay_helpers.typlotlib import get_frames_bool, save_frames
+
 from misfit_toys.fwi.loss.w2 import (
-    W2LossConst,
     W2Loss,
+    W2LossConst,
     cum_trap,
     unbatch_spline_eval,
 )
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import hydra
-from masthay_helpers.global_helpers import DotDict, convert_config_simplest
-from masthay_helpers.typlotlib import (
-    get_frames_bool,
-    save_frames,
-)
 from misfit_toys.utils import bool_slice
-from copy import deepcopy
 
 
 def make_data(*, obs, tail_err, N, eps):
@@ -49,12 +48,7 @@ def make_data(*, obs, tail_err, N, eps):
 
     ref_pdf.requires_grad = True
 
-    loss = W2Loss(
-        t=t,
-        renorm=lambda x: x,
-        obs_data=obs_pdf,
-        p=p,
-    )
+    loss = W2Loss(t=t, renorm=lambda x: x, obs_data=obs_pdf, p=p)
     quantile_evaled = unbatch_spline_eval(
         loss.quantiles, p.expand(*loss.quantiles.shape, -1).clone()
     )
@@ -83,7 +77,7 @@ def make_data(*, obs, tail_err, N, eps):
             'ref_pdf': ref_pdf.detach(),
             'ref_pdf_grad': grad.detach(),
             'ref_cdf': ref_cdf,
-            'loss': loss,
+            # 'loss': loss,
             'quantile_evaled': quantile_evaled.squeeze(),
             'quantile_evaled_deriv': quantile_evaled_deriv.squeeze(),
             'quantile_inverted': quantile_inverted.squeeze(),
@@ -104,16 +98,10 @@ def plotter(*, data, idx, fig, axes, cfg, lines=None):
                 ee.clear()
         lines = [[None, None], [None, None], [None], [None, None, None, None]]
         (lines[0][0],) = axes[0, 0].plot(
-            d.t,
-            d.obs_pdf[idx],
-            label='obs_pdf',
-            **cfg.plot.opts[0],
+            d.t, d.obs_pdf[idx], label='obs_pdf', **cfg.plot.opts[0]
         )
         (lines[0][1],) = axes[0, 0].plot(
-            d.t,
-            d.ref_pdf.squeeze(),
-            label='ref_pdf',
-            **cfg.plot.opts[1],
+            d.t, d.ref_pdf.squeeze(), label='ref_pdf', **cfg.plot.opts[1]
         )
         axes[0, 0].legend()
         axes[0, 0].set_title(f'PDFs: idx={idx}, mean={d.obs[idx].item():.2f}')
@@ -121,16 +109,10 @@ def plotter(*, data, idx, fig, axes, cfg, lines=None):
         axes[0, 0].set_ylabel('Prob. density')
 
         (lines[1][0],) = axes[0, 1].plot(
-            d.t,
-            d.obs_cdf[idx],
-            label='obs_cdf',
-            **cfg.plot.opts[0],
+            d.t, d.obs_cdf[idx], label='obs_cdf', **cfg.plot.opts[0]
         )
         (lines[1][1],) = axes[0, 1].plot(
-            d.t,
-            d.ref_cdf.squeeze(),
-            label='ref_cdf',
-            **cfg.plot.opts[1],
+            d.t, d.ref_cdf.squeeze(), label='ref_cdf', **cfg.plot.opts[1]
         )
         axes[0, 1].legend()
         axes[0, 1].set_title('CDFs')

@@ -1,18 +1,19 @@
+import argparse
 import os
 import sys
-from rich.table import Table
-from rich.console import Console
-import argparse
-import torch
-import numpy as np
 from functools import wraps
-from rich_tools import table_to_dicts
+
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from masthay_helpers.typlotlib import plot_tensor2d_fast
 from returns.curry import curry
+from rich.console import Console
+from rich.table import Table
+from rich_tools import table_to_dicts
 
 from misfit_toys.examples.marmousi.alan.fwi_parallel import main as alan
 from misfit_toys.examples.marmousi.val.fwi_parallel import main as iomt
-from masthay_helpers.typlotlib import plot_tensor2d_fast
 
 
 def extend_files(path, filenames):
@@ -104,12 +105,10 @@ def make_gifs(out_dir):
         'out_filt': (2, 3, 1, 0),
     }
 
-    get = lambda x: os.path.join(out_dir, 'figs', x)
-    dirs = {
-        'alan': get('alan'),
-        'iomt': get('iomt'),
-        'diff': get('diff'),
-    }
+    def get(x):
+        return os.path.join(out_dir, 'figs', x)
+
+    dirs = {'alan': get('alan'), 'iomt': get('iomt'), 'diff': get('diff')}
 
     for k, v in dirs.items():
         os.makedirs(v, exist_ok=True)

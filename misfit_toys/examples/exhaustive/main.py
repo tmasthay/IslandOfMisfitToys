@@ -1,18 +1,19 @@
 import hydra
-from omegaconf import DictConfig
-from masthay_helpers.global_helpers import DotDict, convert_config_simplest
-from misfit_toys.utils import bool_slice, clean_idx, pull_data, tensor_summary
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
 import matplotlib.pyplot as plt
+import torch
+from masthay_helpers.global_helpers import DotDict, convert_config_simplest
+from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from omegaconf import DictConfig
 from returns.curry import curry
+from torch.nn import MSELoss
+
 from misfit_toys.fwi.loss.w2 import (
     W2Loss,
+    cts_quantile,
     cum_trap,
     unbatch_spline_eval,
-    cts_quantile,
 )
-import torch
-from torch.nn import MSELoss
+from misfit_toys.utils import bool_slice, clean_idx, pull_data, tensor_summary
 
 
 def plotter(*, data=None, idx, fig, axes, cfg):
@@ -125,25 +126,13 @@ def plotter(*, data=None, idx, fig, axes, cfg):
 
     set_plot(6)
     plt.plot(
-        cfg.p,
-        cfg.quantiles[idx],
-        **cfg.plt.trace[0],
-        label=r'$G^{-1}(p)$',
+        cfg.p, cfg.quantiles[idx], **cfg.plt.trace[0], label=r'$G^{-1}(p)$'
     )
     plt.plot(
-        cfg.p,
-        cfg.init.quantiles[idx],
-        **cfg.plt.trace[1],
-        label=r'$F^{-1}(p)$',
+        cfg.p, cfg.init.quantiles[idx], **cfg.plt.trace[1], label=r'$F^{-1}(p)$'
     )
     leg(6)
-    lplot(
-        'Quantiles',
-        'p',
-        't',
-        cbar=False,
-        yext=rec_extremes(cfg.quantiles),
-    )
+    lplot('Quantiles', 'p', 't', cbar=False, yext=rec_extremes(cfg.quantiles))
 
     set_plot(7)
     plt.plot(
@@ -190,12 +179,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         **cfg.plt.marker[1].kwargs,
     )
     leg(8)
-    lplot(
-        r'$W_2^2$ loss',
-        'Receiver Index',
-        r'$W_2^2$',
-        cbar=False,
-    )
+    lplot(r'$W_2^2$ loss', 'Receiver Index', r'$W_2^2$', cbar=False)
 
     set_plot(9)
     plt.imshow(cfg.init.vp_true, **cfg.plt.vp.imshow)

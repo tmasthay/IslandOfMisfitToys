@@ -1,33 +1,32 @@
 import os
-from matplotlib import pyplot as plt
+from collections import OrderedDict
 
+import hydra
 import torch
 import torch.multiprocessing as mp
+from masthay_helpers.global_helpers import DotDict, clean_kwargs, subdict
+from masthay_helpers.typlotlib import (
+    get_frames_bool,
+    make_gifs,
+    save_frames,
+    slice_iter_bool,
+)
+from matplotlib import pyplot as plt
+from returns.curry import curry
 from scipy.signal import butter
-from collections import OrderedDict
-from masthay_helpers.global_helpers import subdict, clean_kwargs
-from misfit_toys.utils import setup, filt, taper, bool_slice
-from misfit_toys.fwi.training import Training
-
 from torch.nn.parallel import DistributedDataParallel as DDP
+
+from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
+from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap, unbatch_spline_eval
 from misfit_toys.fwi.seismic_data import (
-    SeismicProp,
     Param,
     ParamConstrained,
-    path_builder,
+    SeismicProp,
     chunk_and_deploy,
+    path_builder,
 )
-from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap, unbatch_spline_eval
-from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
-from returns.curry import curry
-from masthay_helpers.typlotlib import make_gifs
-import hydra
-from masthay_helpers.typlotlib import (
-    slice_iter_bool,
-    get_frames_bool,
-    save_frames,
-)
-from masthay_helpers.global_helpers import DotDict
+from misfit_toys.fwi.training import Training
+from misfit_toys.utils import bool_slice, filt, setup, taper
 
 
 @curry
@@ -120,17 +119,11 @@ def run(cfg):
     input(v.shape)
     input(t.shape)
     input(p.shape)
-    loss_fn = W2LossConst(
-        t=t,
-        renorm=(lambda x: x),
-        obs_data=v,
-        p=p,
-    )
+    loss_fn = W2LossConst(t=t, renorm=(lambda x: x), obs_data=v, p=p)
     input(loss_fn.quantiles.shape)
 
     u = unbatch_spline_eval(
-        loss_fn.quantiles,
-        p.expand(*loss_fn.quantiles.shape, -1),
+        loss_fn.quantiles, p.expand(*loss_fn.quantiles.shape, -1)
     )
     cdf = cum_trap(v, dx=dt, dim=-1)
 
@@ -160,9 +153,7 @@ def run(cfg):
         t=torch.linspace(0, 1, 300),
         p=torch.linspace(0, 1, 300),
     )
-    save_frames(
-        frames, path=f'quantiles.gif', duration=cfg.plot.common.duration
-    )
+    save_frames(frames, path='quantiles.gif', duration=cfg.plot.common.duration)
 
 
 # Main function for running the script

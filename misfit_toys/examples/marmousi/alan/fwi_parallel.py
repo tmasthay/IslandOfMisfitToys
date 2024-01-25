@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import deepwave
 import matplotlib.pyplot as plt
@@ -10,9 +11,9 @@ from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
-from misfit_toys.utils import parse_path
+
 from misfit_toys.data import download_data
-import shutil
+from misfit_toys.utils import parse_path
 
 
 def setup(rank, world_size):
@@ -100,7 +101,10 @@ def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
     path = os.path.dirname(__file__)
-    get = lambda x: os.path.join(path, x)
+
+    def get(x):
+        return os.path.join(path, x)
+
     ny = 2301
     nx = 751
     dx = 4.0

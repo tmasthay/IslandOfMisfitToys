@@ -1,11 +1,12 @@
-import torch
-from misfit_toys.data.dataset import towed_src
-import hydra
 import deepwave as dw
+import hydra
 import matplotlib.pyplot as plt
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
-from misfit_toys.utils import bool_slice
+import torch
 from masthay_helpers.global_helpers import convert_config_simplest
+from masthay_helpers.typlotlib import get_frames_bool, save_frames
+
+from misfit_toys.data.dataset import towed_src
+from misfit_toys.utils import bool_slice
 
 
 def out_plotter(*, data, idx, fig, axes, cfg):
