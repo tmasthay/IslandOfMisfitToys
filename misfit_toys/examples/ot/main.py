@@ -22,6 +22,8 @@ from returns.curry import curry
 from masthay_helpers.typlotlib import make_gifs
 import hydra
 
+from torch.nn import MSELoss
+
 
 def training_stages(cfg):
     do_nothing = lambda x, y: None
@@ -37,7 +39,7 @@ def training_stages(cfg):
 # Define _step for the training class
 def _step(self):
     self.out = self.prop(1)
-    self.loss = 1e6 * self.loss_fn(self.out[-1])
+    self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
     if self.loss.item() < 0.0:
         raise ValueError(
             'Negative loss encountered:'
@@ -157,12 +159,19 @@ def run_rank(rank, world_size, cfg):
     #     u = x**2 + 1e-3
     #     return u / cum_trap(u, dx=data['meta'].dt, dim=-1)[-1].to(u.device)
 
-    def my_renorm(x):
+    def my_renorm2(x):
         u = x**2 + 1e-3
         c = torch.trapz(u, dx=data['meta'].dt, dim=-1)
         if torch.count_nonzero(c) != c.numel():
             raise ValueError(f'Zero integral encountered: {tensor_summary(c)}')
         return u / c.unsqueeze(-1)
+
+    def my_renorm(x):
+        u = torch.abs(x) + 1e-3
+        c = torch.trapz(u, dx=data['meta'].dt, dim=-1).unsqueeze(-1)
+        if torch.count_nonzero(c) != c.numel():
+            raise ValueError(f'Zero integral encountered: {tensor_summary(c)}')
+        return u / c
 
     # raise ValueError(
     #     f'{tensor_summary(data["obs_data"])}\n{tensor_summary(my_renorm(data["obs_data"]))}'
@@ -176,6 +185,8 @@ def run_rank(rank, world_size, cfg):
         renorm=my_renorm,
         obs_data=data["obs_data"],
     )
+
+    used_loss_fn = MSELoss()
 
     train = Training(
         rank=rank,

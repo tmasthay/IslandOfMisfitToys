@@ -65,4 +65,6 @@ repos:
     rev: v1.26.3
     hooks:
       - id: yamllint
-        args: ["--format=auto"]
+        args:
+          - "--format=auto"
+          - "--config-data={extends: default, rules: {line-length: {max: 120, level: warning}}}"

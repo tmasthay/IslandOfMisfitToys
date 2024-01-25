@@ -200,7 +200,9 @@ class W2LossConst(nn.Module):
         off_diag = unbatch_spline_eval(self.quantiles, F)
         diff = (self.t_expand - off_diag) ** 2
 
-        integrated = torch.trapezoid(diff * f, dx=self.t[1] - self.t[0], dim=-1)
+        integrated = torch.trapezoid(
+            diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
+        )
         trace_by_trace = integrated.sum()
         return trace_by_trace
 
@@ -222,7 +224,9 @@ class W2Loss(nn.Module):
         off_diag = unbatch_spline_eval(self.quantiles, F)
         diff = (self.t_expand - off_diag) ** 2
 
-        integrated = torch.trapezoid(diff * f, dx=self.t[1] - self.t[0], dim=-1)
+        integrated = torch.trapezoid(
+            diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
+        )
         # trace_by_trace = integrated.sum()
         # return trace_by_trace
         return integrated

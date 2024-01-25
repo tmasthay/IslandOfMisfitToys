@@ -6,12 +6,13 @@ from masthay_helpers.typlotlib import get_frames_bool, save_frames
 import matplotlib.pyplot as plt
 from returns.curry import curry
 from misfit_toys.fwi.loss.w2 import (
-    W2LossConst,
+    W2Loss,
     cum_trap,
     unbatch_spline_eval,
     cts_quantile,
 )
 import torch
+from torch.nn import MSELoss
 
 
 def plotter(*, data=None, idx, fig, axes, cfg):
@@ -35,11 +36,16 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     def set_plot(i):
         plt.subplot(*cfg.plt.subplot.shape, cfg.plt.order[i - 1])
 
+    def leg(i):
+        plt.legend(**cfg.plt.legend[cfg.plt.order[i - 1] % len(cfg.plt.legend)])
+
     plt.clf()
     set_plot(1)
     plt.imshow(
         cfg.true.rescaled_obs[idx[0], :, :].T,
         **cfg.plt.imshow,
+        vmin=cfg.true.rescaled_obs[idx[0], :, :].min().item(),
+        vmax=cfg.true.rescaled_obs[idx[0], :, :].max().item(),
     )
     plt.plot(
         idx[1] * torch.ones(cfg.meta.nt),
@@ -50,7 +56,12 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     lplot('Depth-scaled obs data', 'Receiver Index', 'Time Index')
 
     set_plot(2)
-    plt.imshow(cfg.init.rescaled_obs[idx[0], :, :].T, **cfg.plt.imshow)
+    plt.imshow(
+        cfg.init.rescaled_obs[idx[0], :, :].T,
+        **cfg.plt.imshow,
+        vmin=cfg.init.rescaled_obs[idx[0], :, :].min().item(),
+        vmax=cfg.init.rescaled_obs[idx[0], :, :].max().item(),
+    )
     plt.plot(
         idx[1] * torch.ones(cfg.meta.nt),
         torch.arange(cfg.meta.nt),
@@ -71,7 +82,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         **cfg.plt.trace[1],
         label=r'$\mathcal{R}^{-1}(f)$',
     )
-    plt.legend()
+    leg(3)
     lplot(
         'Raw obs data trace',
         'Time',
@@ -87,7 +98,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     plt.plot(
         cfg.t, cfg.init.obs_data_renorm[idx], **cfg.plt.trace[1], label=r'$f$'
     )
-    plt.legend()
+    leg(4)
     lplot(
         'Renormed data trace',
         'Time',
@@ -103,7 +114,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
     plt.plot(
         cfg.t, cfg.init.obs_data_cdf[idx], **cfg.plt.trace[1], label=r'$F(t)$'
     )
-    plt.legend()
+    leg(5)
     lplot(
         'CDF trace',
         't',
@@ -125,7 +136,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         **cfg.plt.trace[1],
         label=r'$F^{-1}(p)$',
     )
-    plt.legend()
+    leg(6)
     lplot(
         'Quantiles',
         'p',
@@ -149,7 +160,66 @@ def plotter(*, data=None, idx, fig, axes, cfg):
         cbar=False,
         yext=(cfg.t.min().item(), cfg.t.max().item()),
     )
-    plt.legend()
+    leg(7)
+
+    set_plot(8)
+    w2_normed = cfg.w2_losses[idx[0], :] / cfg.w2_losses[idx[0], :].max()
+    l2_normed = cfg.l2_losses[idx[0], :] / cfg.l2_losses[idx[0], :].max()
+    plt.plot(
+        range(cfg.meta.rec_per_shot),
+        w2_normed,
+        **cfg.plt.trace[0],
+        label=r'Relative $W_2^2(f,g)$',
+    )
+    plt.plot(
+        range(cfg.meta.rec_per_shot),
+        l2_normed,
+        **cfg.plt.trace[1],
+        label=r'Relative $L_2^2$ loss',
+    )
+    plt.plot(
+        idx[1],
+        w2_normed[idx[1]],
+        *cfg.plt.marker[0].args,
+        **cfg.plt.marker[0].kwargs,
+    )
+    plt.plot(
+        idx[1],
+        l2_normed[idx[1]],
+        *cfg.plt.marker[1].args,
+        **cfg.plt.marker[1].kwargs,
+    )
+    leg(8)
+    lplot(
+        r'$W_2^2$ loss',
+        'Receiver Index',
+        r'$W_2^2$',
+        cbar=False,
+    )
+
+    set_plot(9)
+    plt.imshow(cfg.init.vp_true, **cfg.plt.vp.imshow)
+    lplot('Initial $v_p$', 'x', 'z', cbar=True)
+
+    set_plot(10)
+    plt.imshow(cfg.true.vp_init, **cfg.plt.vp.imshow)
+    lplot('True $v_p$', 'x', 'z', cbar=True)
+
+    set_plot(11)
+    plt.imshow(cfg.w2_gradients[idx[0], :, :].T, **cfg.plt.vp.imshow)
+    lplot(r'$W_2$ gradients', 'Receiver Index', 'Time Index', cbar=True)
+
+    set_plot(12)
+    plt.plot(cfg.t, cfg.w2_gradients[idx], **cfg.plt.trace[0])
+    lplot(r'$W_2$ gradients', 't', 'gradient', cbar=False)
+
+    set_plot(13)
+    plt.imshow(cfg.l2_gradients[idx[0], :, :].T, **cfg.plt.vp.imshow)
+    lplot(r'$L_2$ gradients', 'Receiver Index', 'Time Index', cbar=True)
+
+    set_plot(14)
+    plt.plot(cfg.t, cfg.l2_gradients[idx], **cfg.plt.trace[0])
+    lplot(r'$L_2$ gradients', 't', 'gradient', cbar=False)
 
     return {'cfg': cfg}
 
@@ -173,6 +243,9 @@ def main(cfg: DictConfig) -> None:
     cfg.true.rescaled_obs = cfg.true.obs_data * cfg.t_scaled
     cfg.init.rescaled_obs = cfg.init.obs_data * cfg.t_scaled
 
+    input(torch.unique(cfg.true.vp_init))
+    input(torch.unique(cfg.init.vp_true))
+
     # print('TRUE')
     # for k, v in true.items():
     #     print(f'{k}\n{tensor_summary(v)}')
@@ -194,7 +267,7 @@ def main(cfg: DictConfig) -> None:
         init_quantile_cts, cfg.p.expand(*init_quantile_cts.shape, -1)
     )
 
-    cfg.loss_fn = W2LossConst(
+    cfg.loss_fn = W2Loss(
         renorm=renorm, p=cfg.p, t=cfg.t, obs_data=cfg.true.obs_data
     )
     cfg.quantiles = unbatch_spline_eval(
@@ -203,6 +276,25 @@ def main(cfg: DictConfig) -> None:
     cfg.transport_maps = unbatch_spline_eval(
         cfg.loss_fn.quantiles, cfg.init.obs_data_cdf
     )
+
+    cfg.w2_losses = cfg.loss_fn.batch_forward(cfg.init.obs_data)
+    cfg.l2_losses = torch.sum(
+        (cfg.true.obs_data - cfg.init.obs_data) ** 2, dim=-1
+    )
+
+    cfg.init.obs_data.requires_grad = True
+    u = cfg.loss_fn(cfg.init.obs_data)
+    u.backward()
+    cfg.w2_gradients = cfg.init.obs_data.grad
+
+    tmp = cfg.init.obs_data.detach().clone()
+    tmp.requires_grad = True
+    my_loss = MSELoss()
+    u = my_loss(tmp, cfg.true.obs_data)
+    u.backward()
+    cfg.l2_gradients = tmp.grad
+
+    cfg.init.obs_data.requires_grad = False
 
     fig, axes = plt.subplots(*cfg.plt.subplot.shape, **cfg.plt.subplot.kwargs)
     plt.subplots_adjust(**cfg.plt.subplot.adjust)
