@@ -3,6 +3,7 @@ from itertools import product
 
 import numpy as np
 import torch
+import torch.autograd as autograd
 import torch.nn as nn
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
@@ -175,30 +176,90 @@ w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
 
-class W2LossConst(nn.Module):
-    def __init__(self, *, t, renorm, obs_data, p):
-        super().__init__()
-        self.obs_data = obs_data
-        self.device = obs_data.device
-        self.t = t.to(self.device)
-        self.renorm = renorm
-        self.renorm_obs_data = renorm(obs_data).to(self.device)
-        self.quantiles = cts_quantile(
-            self.renorm_obs_data, t, p, dx=t[1] - t[0]
-        )
-        self.t_expand = t.expand(*self.quantiles.shape, -1)
+# class W2LossConst(nn.Module):
+#     def __init__(self, *, t, renorm, obs_data, p):
+#         super().__init__()
+#         self.obs_data = obs_data
+#         self.device = obs_data.device
+#         self.t = t.to(self.device)
+#         self.renorm = renorm
+#         self.renorm_obs_data = renorm(obs_data).to(self.device)
+#         self.quantiles = cts_quantile(
+#             self.renorm_obs_data, t, p, dx=t[1] - t[0]
+#         )
+#         self.t_expand = t.expand(*self.quantiles.shape, -1)
 
-    def forward(self, f):
-        f_tilde = self.renorm(f)
-        F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
-        off_diag = unbatch_spline_eval(self.quantiles, F)
-        diff = (self.t_expand - off_diag) ** 2
+#     def forward(self, f):
+#         f_tilde = self.renorm(f)
+#         F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
+#         off_diag = unbatch_spline_eval(self.quantiles, F)
+#         diff = (self.t_expand - off_diag) ** 2
 
-        integrated = torch.trapezoid(
-            diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
-        )
-        trace_by_trace = integrated.sum()
-        return trace_by_trace
+#         integrated = torch.trapezoid(
+#             diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
+#         )
+#         trace_by_trace = integrated.sum()
+#         return trace_by_trace
+
+
+# class W2Loss(nn.Module):
+#     def __init__(self, *, t, renorm, obs_data, p):
+#         super().__init__()
+#         self.obs_data = obs_data
+#         self.device = obs_data.device
+#         self.t = t.to(self.device)
+#         self.renorm = renorm
+#         self.renorm_obs_data = renorm(obs_data).to(self.device)
+#         self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
+#         self.t_expand = t.expand(*self.quantiles.shape, -1)
+
+#     def batch_forward(self, f):
+#         f_tilde = self.renorm(f)
+#         F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
+#         off_diag = unbatch_spline_eval(self.quantiles, F)
+#         diff = (self.t_expand - off_diag) ** 2
+
+#         integrated = torch.trapezoid(
+#             diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
+#         )
+#         # trace_by_trace = integrated.sum()
+#         # return trace_by_trace
+#         return integrated
+
+#     def forward(self, f):
+#         return self.batch_forward(f).sum()
+
+
+class W2LossFunction(autograd.Function):
+    @staticmethod
+    def forward(ctx, f, t, renorm, quantiles):
+        # Unpack non-tensor arguments from args
+
+        # Perform the forward computation
+        t_expand = t.expand(*quantiles.shape, -1)
+        f_tilde = renorm(f)
+        F = cum_trap(f_tilde, dx=t[1] - t[0]).to(f.device)
+        off_diag = unbatch_spline_eval(quantiles, F)
+        diff = (t_expand - off_diag) ** 2
+        integrated = torch.trapezoid(diff * f_tilde, dx=t[1] - t[0], dim=-1)
+
+        # Save variables for backward pass
+        ctx.save_for_backward(f, f_tilde, diff, integrated)
+        ctx.renorm = renorm
+
+        return integrated.sum()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        # Retrieve saved variables
+        # f, f_tilde, diff, integrated = ctx.saved_tensors
+        # renorm = ctx.renorm
+
+        # # Compute custom gradient
+        # # grad_input = ... (implement custom gradient computation)
+
+        # return grad_input
+        return ctx + grad_output
 
 
 class W2Loss(nn.Module):
@@ -210,24 +271,18 @@ class W2Loss(nn.Module):
         self.renorm = renorm
         self.renorm_obs_data = renorm(obs_data).to(self.device)
         self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
-        self.t_expand = t.expand(*self.quantiles.shape, -1)
-
-    def batch_forward(self, f):
-        f_tilde = self.renorm(f)
-        F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
-        off_diag = unbatch_spline_eval(self.quantiles, F)
-        diff = (self.t_expand - off_diag) ** 2
-
-        integrated = torch.trapezoid(
-            diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
-        )
-        # trace_by_trace = integrated.sum()
-        # return trace_by_trace
-        return integrated
 
     def forward(self, f):
-        return self.batch_forward(f).sum()
+        # Call the custom autograd function
+        return W2LossFunction.apply(
+            f, self.obs_data, self.t, self.renorm, self.quantiles
+        )
 
+
+# Usage example
+# w2_loss = W2Loss(...)
+# loss = w2_loss(input_tensor)
+# loss.backward()
 
 # class W2Loss(nn.Module):
 #     def __init__(self, t, R, quantiles):
