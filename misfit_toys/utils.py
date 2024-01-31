@@ -693,12 +693,16 @@ def bool_slice(
         slice(None) if i in none_dims else start[i] for i in range(len(args))
     ]
 
+    if ctrl is None:
+
+        def ctrl_default(*args):
+            return True
+
+        ctrl = ctrl_default
+
     for combo in range(total_combinations):
         print(f'combo={combo}')
-        if ctrl is None:
-            yield tuple(idx)
-        else:
-            yield tuple([tuple(idx)]) + (ctrl(idx, args),)
+        yield tuple([tuple(idx)]) + (ctrl(idx, args),)
 
         # Update indices
         for i in permute:
@@ -732,7 +736,7 @@ def tensor_summary(t, num=5):
     }
     s = ''
     for k, v in d.items():
-        s += f'{k}\n    {v}\n'
+        s += f'{k}:    {v}\n'
     return s
 
 

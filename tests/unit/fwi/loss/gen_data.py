@@ -9,8 +9,12 @@ from scipy.special import erfinv
 from misfit_toys.fwi.loss.w2 import cum_trap
 
 
+def gen_domain(support, nx):
+    return torch.linspace(*support, nx)
+
+
 def gen_gauss(cfg: DotDict):
-    x = torch.linspace(*cfg.support, cfg.nx).expand(1, 1, cfg.nx)
+    x = gen_domain(cfg.support, cfg.nx)
     shifts = (
         torch.linspace(-cfg.shift, cfg.shift, cfg.nshifts)
         .unsqueeze(0)

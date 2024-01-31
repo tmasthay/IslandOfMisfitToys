@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
+from scipy.ndimage import median_filter, uniform_filter
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import tensor_summary
@@ -12,7 +13,11 @@ from misfit_toys.utils import tensor_summary
 
 def unbatch_splines(coeffs):
     assert len(coeffs) == 5
-    assert coeffs[1].shape[-1] == 1
+    if coeffs[1].shape[-1] != 1:
+        raise ValueError(
+            'Expected coeffs[1].shape[-1] to be 1, got ---'
+            f' coeffs[1].shape = {coeffs[1].shape}'
+        )
     target_shape = coeffs[1].shape[:-2]
     res = np.empty(target_shape, dtype=object)
     for idx in product(*map(range, target_shape)):
@@ -28,10 +33,12 @@ def unbatch_splines(coeffs):
 
 
 def unbatch_spline_eval(splines, t, *, deriv=False):
+    if len(t.shape) == 1:
+        t = t.expand(*splines.shape, -1)
     if t.shape[:-1] != splines.shape:
         raise ValueError(
-            'Expected these to be equal, got --- t.shape[:-1] ='
-            f' {t.shape[:-1]}, splines.shape = {splines.shape}'
+            'Expected t.shape[:-1] to be equal to splines.shape, got ---'
+            f' t.shape = {t.shape}, splines.shape = {splines.shape}'
         )
     t = t.unsqueeze(-1)
     res = torch.empty(t.shape).to(t.device)
@@ -73,7 +80,7 @@ def true_quantile(
     dx=None,
     left_edge_tol=0.0,
     right_edge_tol=0.0,
-    atol=1e-3,
+    atol=1e-2,
     err_top=50,
 ):
     if len(pdf.shape) == 1:
@@ -131,8 +138,14 @@ def true_quantile(
         return results
 
 
-def cts_quantile(pdf, x, p, *, dx=None):
-    q = true_quantile(pdf, x, p, dx=dx)
+def cts_quantile(pdf, x, p, *, dx=None, filter_func=None):
+    if filter_func is None:
+
+        def my_filter(x):
+            return torch.from_numpy(median_filter(x.detach().numpy(), size=25))
+
+        filter_func = my_filter
+    q = filter_func(true_quantile(pdf, x, p, dx=dx))
     if q.shape[-1] != 1:
         q = q.unsqueeze(-1)
     if len(p.shape) > 2:
