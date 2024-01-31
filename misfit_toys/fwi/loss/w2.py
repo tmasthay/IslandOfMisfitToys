@@ -296,13 +296,24 @@ class W2Loss(nn.Module):
 
 
 def eval_w2(quantiles):
-    def helper(pdf, t, cdf=None):
+    def helper(*, pdf, t, cdf=None, return_all=True):
         t_expand = t.expand(*quantiles.shape, -1)
         if cdf is None:
             cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
-        off_diag = unbatch_spline_eval(quantiles, cdf)
-        diff = (t_expand - off_diag) ** 2
-        return torch.trapezoid(diff * pdf, dx=t[1] - t[0], dim=-1)
+        transport_map = unbatch_spline_eval(quantiles, cdf)
+        diff = t_expand - transport_map
+        res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
+        if return_all:
+            return DotDict(
+                {
+                    'res': res,
+                    'diff': diff,
+                    'transport': transport_map,
+                    'cdf': cdf,
+                }
+            )
+        else:
+            return res
 
     return helper
 
@@ -311,7 +322,7 @@ def eval_w2_grad(q, qd):
     def helper(*, pdf, cdf, transport, t):
         t_expand = t.expand(*q.shape, -1)
         diff = t_expand - transport
-        integrand = -2 * diff * pdf * qd(cdf)
+        integrand = -2 * diff * pdf * unbatch_spline_eval(qd, cdf)
         integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
         reverse_integral = integral[..., -1].unsqueeze(-1) - integral
         res = diff**2 + reverse_integral
@@ -324,15 +335,21 @@ def wass2(q, qd):
     return DotDict({'eval': eval_w2(q), 'grad': eval_w2_grad(q, qd)})
 
 
-def quantile_deriv(pdfs, x, p, *, filter_func=None):
-    if filter_func is None:
+def quantile_deriv(pdfs, x, p, *, filter_func=None, deriv_filter_func=None):
+    def iden(x):
+        return x
 
-        def my_filter(x):
-            return x
+    filter_func = iden if filter_func is None else filter_func
+    deriv_filter_func = iden if deriv_filter_func is None else deriv_filter_func
 
-        filter_func = my_filter
-    q = cts_quantile(pdfs, x, p)
+    filtered_pdfs = filter_func(pdfs)
+    filtered_pdfs = filtered_pdfs / torch.trapezoid(
+        filtered_pdfs, dx=x[1] - x[0], dim=-1
+    ).unsqueeze(-1)
+    q = cts_quantile(filtered_pdfs, x, p)
     filtered_deriv = filter_func(unbatch_spline_eval(q, p, deriv=True))
+    if filtered_deriv.shape[-1] != 1:
+        filtered_deriv = filtered_deriv.unsqueeze(-1)
     coeffs = natural_cubic_spline_coeffs(p, filtered_deriv)
     q_deriv = unbatch_splines(coeffs)
     return q, q_deriv
