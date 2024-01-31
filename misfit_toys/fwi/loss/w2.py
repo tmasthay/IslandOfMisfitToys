@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
+from masthay_helpers.global_helpers import DotDict
 from scipy.ndimage import median_filter, uniform_filter
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
@@ -140,9 +141,11 @@ def true_quantile(
 
 def cts_quantile(pdf, x, p, *, dx=None, filter_func=None):
     if filter_func is None:
+        # def my_filter(x):
+        #     return torch.from_numpy(median_filter(x.detach().numpy(), size=25))
 
         def my_filter(x):
-            return torch.from_numpy(median_filter(x.detach().numpy(), size=25))
+            return x
 
         filter_func = my_filter
     q = filter_func(true_quantile(pdf, x, p, dx=dx))
@@ -290,6 +293,49 @@ class W2Loss(nn.Module):
         return W2LossFunction.apply(
             f, self.obs_data, self.t, self.renorm, self.quantiles
         )
+
+
+def eval_w2(quantiles):
+    def helper(pdf, t, cdf=None):
+        t_expand = t.expand(*quantiles.shape, -1)
+        if cdf is None:
+            cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
+        off_diag = unbatch_spline_eval(quantiles, cdf)
+        diff = (t_expand - off_diag) ** 2
+        return torch.trapezoid(diff * pdf, dx=t[1] - t[0], dim=-1)
+
+    return helper
+
+
+def eval_w2_grad(q, qd):
+    def helper(*, pdf, cdf, transport, t):
+        t_expand = t.expand(*q.shape, -1)
+        diff = t_expand - transport
+        integrand = -2 * diff * pdf * qd(cdf)
+        integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
+        reverse_integral = integral[..., -1].unsqueeze(-1) - integral
+        res = diff**2 + reverse_integral
+        return res
+
+    return helper
+
+
+def wass2(q, qd):
+    return DotDict({'eval': eval_w2(q), 'grad': eval_w2_grad(q, qd)})
+
+
+def quantile_deriv(pdfs, x, p, *, filter_func=None):
+    if filter_func is None:
+
+        def my_filter(x):
+            return x
+
+        filter_func = my_filter
+    q = cts_quantile(pdfs, x, p)
+    filtered_deriv = filter_func(unbatch_spline_eval(q, p, deriv=True))
+    coeffs = natural_cubic_spline_coeffs(p, filtered_deriv)
+    q_deriv = unbatch_splines(coeffs)
+    return q, q_deriv
 
 
 # Usage example
