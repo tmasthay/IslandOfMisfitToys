@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 from masthay_helpers.global_helpers import DotDict, ctab, find_files, vco
 from torchaudio.functional import biquad
 
@@ -746,3 +747,32 @@ def pull_data(path):
     for k in keys:
         d[k] = torch.load(os.path.join(path, k + '.pt'))
     return DotDict(d)
+
+
+def mean_filter_1d(y, kernel_size):
+    num_elems = y.numel() // y.shape[-1]
+    input_tensor = y.reshape(num_elems, 1, y.shape[-1])
+    kernel = torch.ones((kernel_size,)).unsqueeze(0).unsqueeze(0) / kernel_size
+    kernel = kernel.to(input_tensor.device)
+
+    padding_size = kernel_size // 2
+    if kernel_size % 2 == 0:
+        left_padding, right_padding = padding_size, padding_size - 1
+    else:
+        left_padding, right_padding = padding_size, padding_size
+
+    if padding_size > 0:
+        input_tensor = F.pad(
+            input_tensor, (left_padding, right_padding), mode='reflect'
+        )
+
+    mean_filter = torch.nn.Conv1d(
+        1, 1, kernel_size, bias=False, padding=0, groups=1
+    )
+    mean_filter.weight.data = kernel
+    mean_filter.weight.requires_grad = False
+
+    output_tensor = mean_filter(input_tensor)
+    output_tensor = output_tensor.reshape(y.size())
+
+    return output_tensor

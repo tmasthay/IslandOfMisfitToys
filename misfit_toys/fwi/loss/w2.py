@@ -52,6 +52,16 @@ def unbatch_spline_eval(splines, t, *, deriv=False):
     return res.squeeze(-1)
 
 
+def spline_func(t, y):
+    coeffs = natural_cubic_spline_coeffs(t, y)
+    splines = unbatch_splines(coeffs)
+
+    def helper(t, *, deriv=False):
+        return unbatch_spline_eval(splines, t, deriv=deriv)
+
+    return helper
+
+
 def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
     if dx is not None:
         u = torch.cumulative_trapezoid(y, dx=dx, dim=dim)
@@ -79,8 +89,8 @@ def true_quantile(
     p,
     *,
     dx=None,
-    left_edge_tol=0.0,
-    right_edge_tol=0.0,
+    ltol=0.0,
+    rtol=0.0,
     atol=1e-2,
     err_top=50,
 ):
@@ -107,8 +117,93 @@ def true_quantile(
                 f' {tensor_summary(cdf, err_top)}\nPDF\n\n{tensor_summary(pdf, err_top)}\n'
             )
 
-        left_cutoff_idx = torch.where(cdf < left_edge_tol)[0]
-        right_cutoff_idx = torch.where(cdf > 1 - right_edge_tol)[0]
+        indices = torch.searchsorted(cdf, p)
+
+        last_low_idx = (cdf <= ltol).nonzero(as_tuple=True)[0][-1] + 1
+        fst_hi_idx = (cdf >= 1 - rtol).nonzero(as_tuple=True)[0][0] - 1
+
+        # input((cdf <= ltol).nonzero(as_tuple=True)[0][-1])
+
+        # last_low_idx = 0
+        # fst_hi_idx = len(x) - 2
+        indices = torch.clamp(
+            indices, last_low_idx, min(fst_hi_idx, len(x) - 2)
+        )
+
+        # integral = torch.floor(indices)
+        # remainder = indices - integral
+        # right_indices = (integral + 1).long()
+        # integral = integral.long()
+        # res = (1 - remainder) * x[integral] + remainder * x[right_indices]
+
+        res = x[indices.long()]
+
+        return res
+    else:
+        # Initialize an empty tensor to store the results
+        result_shape = pdf.shape[:-1]
+        results = torch.empty(
+            result_shape + (p.shape[-1],), dtype=torch.float32
+        )
+        # Loop through the dimensions
+        for idx in product(*map(range, result_shape)):
+            # results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
+            results[idx] = true_quantile(
+                pdf[idx],
+                x,
+                p,
+                dx=dx,
+                atol=atol,
+                err_top=err_top,
+                ltol=ltol,
+                rtol=rtol,
+            )
+            # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
+        # num_dims = len(results.shape)
+        # permutation = (
+        #     [num_dims - 2] + list(range(num_dims - 2)) + [num_dims - 1]
+        # )
+
+        # return results.permute(*permutation)
+        return results
+
+
+def true_quantile_choppy(
+    pdf,
+    x,
+    p,
+    *,
+    dx=None,
+    ltol=0.0,
+    rtol=0.0,
+    atol=1e-2,
+    err_top=50,
+):
+    if len(pdf.shape) == 1:
+        if dx is not None:
+            cdf = cum_trap(pdf, dx=dx, dim=-1)
+            # cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
+        else:
+            cdf = cum_trap(pdf, x, dim=-1)
+            # cdf_verify = torch.trapezoid(pdf, x, dim=-1)
+        if not torch.allclose(
+            cdf[..., 0], torch.zeros(1).to(cdf.device), atol=atol
+        ) or not torch.allclose(
+            cdf[..., -1], torch.ones(1).to(cdf.device), atol=atol
+        ):
+            # flattened = cdf.reshape(-1)
+            # left_disc = torch.topk(flattened, err_top, largest=False)[0]
+            # right_disc = torch.topk(flattened, err_top, largest=True)[0]
+            # pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
+            # pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
+            raise ValueError(
+                'CDFs should theoretically be in [0.0, 1.0] and in practice be'
+                f' in [{atol}, {1.0 - atol}], observed info below\nCDF\n\n'
+                f' {tensor_summary(cdf, err_top)}\nPDF\n\n{tensor_summary(pdf, err_top)}\n'
+            )
+
+        left_cutoff_idx = torch.where(cdf < ltol)[0]
+        right_cutoff_idx = torch.where(cdf > 1 - rtol)[0]
 
         left_cutoff_idx = list(left_cutoff_idx) or 0
         right_cutoff_idx = list(right_cutoff_idx) or -1
@@ -139,16 +234,27 @@ def true_quantile(
         return results
 
 
-def cts_quantile(pdf, x, p, *, dx=None, filter_func=None):
-    if filter_func is None:
-        # def my_filter(x):
-        #     return torch.from_numpy(median_filter(x.detach().numpy(), size=25))
-
-        def my_filter(x):
-            return x
-
-        filter_func = my_filter
-    q = filter_func(true_quantile(pdf, x, p, dx=dx))
+def cts_quantile(
+    pdf,
+    x,
+    p,
+    *,
+    dx=None,
+    ltol=0.0,
+    rtol=0.0,
+    atol=1e-2,
+    err_top=50,
+):
+    q = true_quantile(
+        pdf,
+        x,
+        p,
+        dx=dx,
+        ltol=ltol,
+        rtol=rtol,
+        atol=atol,
+        err_top=err_top,
+    )
     if q.shape[-1] != 1:
         q = q.unsqueeze(-1)
     if len(p.shape) > 2:
@@ -165,6 +271,34 @@ def cts_quantile(pdf, x, p, *, dx=None, filter_func=None):
         coeffs = natural_cubic_spline_coeffs(p, q)
         splines = unbatch_splines(coeffs)
     return splines
+
+
+def quantile(
+    pdf,
+    x,
+    p,
+    *,
+    dx=None,
+    ltol=0.0,
+    rtol=0.0,
+    atol=1e-2,
+    err_top=50,
+):
+    splines = cts_quantile(
+        pdf,
+        x,
+        p,
+        dx=dx,
+        ltol=ltol,
+        rtol=rtol,
+        atol=atol,
+        err_top=err_top,
+    )
+
+    def helper(t, *, deriv=False):
+        return unbatch_spline_eval(splines, t, deriv=deriv)
+
+    return helper
 
 
 def w2_builder(is_const):
@@ -347,9 +481,10 @@ def quantile_deriv(pdfs, x, p, *, filter_func=None, deriv_filter_func=None):
         filtered_pdfs, dx=x[1] - x[0], dim=-1
     ).unsqueeze(-1)
     q = cts_quantile(filtered_pdfs, x, p)
-    filtered_deriv = filter_func(unbatch_spline_eval(q, p, deriv=True))
+    filtered_deriv = deriv_filter_func(unbatch_spline_eval(q, p, deriv=True))
     if filtered_deriv.shape[-1] != 1:
         filtered_deriv = filtered_deriv.unsqueeze(-1)
+    # raise ValueError(filtered_deriv.norm())
     coeffs = natural_cubic_spline_coeffs(p, filtered_deriv)
     q_deriv = unbatch_splines(coeffs)
     return q, q_deriv
