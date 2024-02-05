@@ -82,6 +82,14 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
     return u
 
 
+def get_cdf(y, x=None, *, dx=None, dim=-1):
+    if dx is not None:
+        u = cum_trap(y, dx=dx, dim=dim)
+    else:
+        u = cum_trap(y, x, dim=dim)
+    return u / u[..., -1].unsqueeze(-1)
+
+
 # Function to compute true_quantile for an arbitrary shape torch tensor along its last dimension
 def true_quantile(
     pdf,
@@ -326,61 +334,7 @@ w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
 
-# class W2LossConst(nn.Module):
-#     def __init__(self, *, t, renorm, obs_data, p):
-#         super().__init__()
-#         self.obs_data = obs_data
-#         self.device = obs_data.device
-#         self.t = t.to(self.device)
-#         self.renorm = renorm
-#         self.renorm_obs_data = renorm(obs_data).to(self.device)
-#         self.quantiles = cts_quantile(
-#             self.renorm_obs_data, t, p, dx=t[1] - t[0]
-#         )
-#         self.t_expand = t.expand(*self.quantiles.shape, -1)
-
-#     def forward(self, f):
-#         f_tilde = self.renorm(f)
-#         F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
-#         off_diag = unbatch_spline_eval(self.quantiles, F)
-#         diff = (self.t_expand - off_diag) ** 2
-
-#         integrated = torch.trapezoid(
-#             diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
-#         )
-#         trace_by_trace = integrated.sum()
-#         return trace_by_trace
-
-
-# class W2Loss(nn.Module):
-#     def __init__(self, *, t, renorm, obs_data, p):
-#         super().__init__()
-#         self.obs_data = obs_data
-#         self.device = obs_data.device
-#         self.t = t.to(self.device)
-#         self.renorm = renorm
-#         self.renorm_obs_data = renorm(obs_data).to(self.device)
-#         self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
-#         self.t_expand = t.expand(*self.quantiles.shape, -1)
-
-#     def batch_forward(self, f):
-#         f_tilde = self.renorm(f)
-#         F = cum_trap(f_tilde, dx=self.t[1] - self.t[0]).to(self.device)
-#         off_diag = unbatch_spline_eval(self.quantiles, F)
-#         diff = (self.t_expand - off_diag) ** 2
-
-#         integrated = torch.trapezoid(
-#             diff * f_tilde, dx=self.t[1] - self.t[0], dim=-1
-#         )
-#         # trace_by_trace = integrated.sum()
-#         # return trace_by_trace
-#         return integrated
-
-#     def forward(self, f):
-#         return self.batch_forward(f).sum()
-
-
-class W2LossFunction(autograd.Function):
+class W2LossFunctionLegacy(autograd.Function):
     @staticmethod
     def forward(ctx, f, t, renorm, quantiles):
         # Unpack non-tensor arguments from args
@@ -412,7 +366,7 @@ class W2LossFunction(autograd.Function):
         return ctx + grad_output
 
 
-class W2Loss(nn.Module):
+class W2LossLegacy(nn.Module):
     def __init__(self, *, t, renorm, obs_data, p):
         super().__init__()
         self.obs_data = obs_data
@@ -490,73 +444,44 @@ def quantile_deriv(pdfs, x, p, *, filter_func=None, deriv_filter_func=None):
     return q, q_deriv
 
 
-# Usage example
-# w2_loss = W2Loss(...)
-# loss = w2_loss(input_tensor)
-# loss.backward()
+class W2LossFunction(autograd.Function):
+    @staticmethod
+    def forward(ctx, obs_data, t, renorm, q, qd):
+        pdf = renorm(obs_data)
+        cdf = get_cdf(pdf, x=t, dim=-1)
+        transport = q(cdf)
+        diff = t.expand(transport.shape) - transport
+        res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1).sum()
+        ctx.save_for_backward(t, pdf, cdf, transport, diff)
+        ctx.qd = qd
+        return res
 
-# class W2Loss(nn.Module):
-#     def __init__(self, t, R, quantiles):
-#         super().__init__()
-#         self.R = R
-#         self.quantiles = quantiles
-#         self.t = t
-
-#     def forward(self, f, g):
-#         # Apply the transformation R
-#         f_tilde = self.R(f, dt=self.t[1] - self.t[0])
-#         transport = self.q
-
-#         # Sort the distributions for inverse CDF computation
-#         sorted_f, _ = torch.sort(f_tilde, dim=1)
-#         sorted_g, _ = torch.sort(g_tilde, dim=1)
-
-#         # Compute the cumulative sums to approximate CDFs
-#         cum_f = torch.cumsum(sorted_f, dim=1)
-#         cum_g = torch.cumsum(sorted_g, dim=1)
-
-#         # Compute the inverse CDFs
-#         inv_cdf_f = torch.linspace(
-#             0, 1, steps=f.shape[1], device=f.device
-#         ).expand_as(cum_f)
-#         inv_cdf_g = torch.linspace(
-#             0, 1, steps=g.shape[1], device=g.device
-#         ).expand_as(cum_g)
-
-#         # Compute the W2 distance using the inverse CDFs
-#         w2_distance = torch.sqrt(torch.sum((inv_cdf_f - inv_cdf_g) ** 2, dim=1))
-
-#         return torch.mean(w2_distance)
+    @staticmethod
+    def backward(ctx, grad_output):
+        t, pdf, cdf, transport, diff = ctx.saved_tensors
+        qd = ctx.qd
+        diff = t.expand(transport.shape) - transport
+        integrand = -2 * diff * pdf * qd(cdf)
+        integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
+        reverse_integral = integral[..., -1].unsqueeze(-1) - integral
+        res = diff**2 + reverse_integral
+        return res * grad_output, None, None, None, None
 
 
-# def str_to_renorm(key):
-#     def abs_renorm(y):
-#         return torch.abs(y) / torch.sum(torch.abs(y), dim=1, keepdim=True)
+class W2Loss(torch.nn.Module):
+    def __init__(
+        self, *, t, p, renorm, obs_data, smoother=None, ltol=1.0e-2, rtol=1.0e-2
+    ):
+        super().__init__()
+        self.t = t
+        self.renorm = renorm
+        self.obs_data = obs_data
+        self.obs_data_renorm = renorm(obs_data)
+        self.q = quantile(self.obs_data_renorm, t, p, ltol=ltol, rtol=rtol)
+        deriv = self.q(deriv=True)
+        if smoother is not None:
+            deriv = smoother(deriv)
+        self.qd = spline_func(p, deriv)
 
-#     def square_renorm(y):
-#         return y**2 / torch.sum(y**2, dim=1, keepdim=True)
-
-#     options = {'abs': abs_renorm, 'square': square_renorm}
-#     return options[key]
-
-
-# class W2LossAbstract(torch.nn.Module):
-#     def __init__(self, *, R, quantiles, t):
-#         super().__init__()
-#         self.R = R
-#         self.quantiles = quantiles
-#         self.t = t
-
-#     @abstractmethod
-#     def forward(self, f):
-#         pass
-
-
-# class W2LossConst(W2LossAbstract):
-#     def forward(self, f):
-#         return w2_const(f, self.t, quantiles=self.quantiles)
-
-
-# class W2Loss(W2LossAbstract):
-#     def forward(self, f):
-#         return w2(f, self.t, quantiles=self.quantiles)
+    def forward(self, traces):
+        return W2LossFunction.apply(traces, self.t, self.renorm, self.q)

@@ -11,11 +11,10 @@ from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
     SeismicProp,
-    chunk_and_deploy,
     path_builder,
 )
 from misfit_toys.fwi.training import Training
-from misfit_toys.utils import filt, setup, taper
+from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
 
 
 def training_stages():

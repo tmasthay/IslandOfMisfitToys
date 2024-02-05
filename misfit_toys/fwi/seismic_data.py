@@ -12,6 +12,7 @@ Functions:
     chunk_tensors: Chunks the tensors based on the rank and world size.
     deploy_data: Deploys the data to the specified rank.
     chunk_and_deploy: Chunks and deploys the data based on the rank and world size.
+
 """
 
 import torch
@@ -20,6 +21,7 @@ from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from masthay_helpers.global_helpers import DotDict
 
 from misfit_toys.data.dataset import get_data3, get_pydict
+from misfit_toys.utils import tensor_summary
 
 
 def path_builder(path, *, remap=None, **kw):
@@ -46,86 +48,6 @@ def path_builder(path, *, remap=None, **kw):
     for k in remap:
         d[remap[k]] = d.pop(k)
     return d
-
-
-def chunk_params(rank, world_size, *, params, chunk_keys):
-    """
-    Chunks the parameters based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        params (dict): A dictionary containing the parameters.
-        chunk_keys (list): A list of keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked parameters.
-
-    """
-    for k in chunk_keys:
-        params[k].p.data = torch.chunk(params[k].p.data, world_size)[rank]
-    return params
-
-
-def chunk_tensors(rank, world_size, *, data, chunk_keys):
-    """
-    Chunks the tensors based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        data (dict): A dictionary containing the tensors.
-        chunk_keys (list): A list of keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked tensors.
-
-    """
-    for k in chunk_keys:
-        data[k] = torch.chunk(data[k], world_size)[rank]
-    return data
-
-
-def deploy_data(rank, data):
-    """
-    Deploys the data to the specified rank.
-
-    Args:
-        rank (int): The rank to deploy the data to.
-        data (dict): A dictionary containing the data.
-
-    Returns:
-        dict: A dictionary containing the deployed data.
-
-    """
-    for k, v in data.items():
-        if k != 'meta':
-            data[k] = v.to(rank)
-    return data
-
-
-def chunk_and_deploy(rank, world_size, *, data, chunk_keys):
-    """
-    Chunks and deploys the data based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        data (dict): A dictionary containing the data.
-        chunk_keys (dict): A dictionary containing the keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked and deployed data.
-
-    """
-    data = chunk_tensors(
-        rank, world_size, data=data, chunk_keys=chunk_keys['tensors']
-    )
-    data = chunk_params(
-        rank, world_size, params=data, chunk_keys=chunk_keys['params']
-    )
-    data = deploy_data(rank, data)
-    return data
 
 
 class Param(torch.nn.Module):
@@ -182,6 +104,24 @@ class Param(torch.nn.Module):
 
         """
         return lambda p: cls(p=p, **kw)
+
+    @classmethod
+    def clone(cls, obj, *, requires_grad=None, **kw):
+        """
+        Clones the parameter.
+
+        Args:
+            p (torch.Tensor): The parameter tensor.
+            **kw: Additional keyword arguments.
+
+        Returns:
+            Param: The cloned parameter.
+
+        """
+        requires_grad = (
+            obj.p.requires_grad if requires_grad is None else requires_grad
+        )
+        return cls(p=obj.p.clone(), requires_grad=requires_grad, **kw)
 
 
 class ParamConstrained(Param):
@@ -378,10 +318,9 @@ class SeismicProp(torch.nn.Module):
         self,
         *,
         vp,
+        meta,
         vs=None,
         rho=None,
-        model='acoustic',
-        meta,
         src_amp_y=None,
         src_loc_y=None,
         rec_loc_y=None,
@@ -394,7 +333,7 @@ class SeismicProp(torch.nn.Module):
         self.vp = vp
         self.vs = vs
         self.rho = rho
-        self.model = model.lower()
+        self.model = 'acoustic' if vs is None else 'elastic'
         self.meta = meta
         self.src_amp_y = src_amp_y
         self.src_loc_y = src_loc_y
@@ -463,6 +402,9 @@ class SeismicProp(torch.nn.Module):
 
         """
         if self.model.lower() == 'acoustic':
+            v = self.vp()
+            if torch.isnan(v).any() or torch.isinf(v).any():
+                raise ValueError(f'Invalid vp: {tensor_summary(v)}')
             return scalar(
                 self.vp(),
                 self.meta.dx,

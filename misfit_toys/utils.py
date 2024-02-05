@@ -776,3 +776,109 @@ def mean_filter_1d(y, kernel_size):
     output_tensor = output_tensor.reshape(y.size())
 
     return output_tensor
+
+
+def get_tensors(path, device='cpu'):
+    d = DotDict({})
+    files = [e[:-3] for e in os.listdir(path) if e.endswith('.pt')]
+    for f in files:
+        d[f] = torch.load(f'{path}/{f}.pt')
+        if device is not None:
+            d[f] = d[f].to(device)
+    return d
+
+
+def d2cpu(x):
+    return x.detach().cpu()
+
+
+def chunk_params(rank, world_size, *, params, chunk_keys):
+    """
+    Chunks the parameters based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        params (dict): A dictionary containing the parameters.
+        chunk_keys (list): A list of keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked parameters.
+
+    """
+    for k in chunk_keys:
+        params[k].p.data = torch.chunk(params[k].p.data, world_size)[rank]
+    return params
+
+
+def chunk_tensors(rank, world_size, *, data, chunk_keys):
+    """
+    Chunks the tensors based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        data (dict): A dictionary containing the tensors.
+        chunk_keys (list): A list of keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked tensors.
+
+    """
+    for k in chunk_keys:
+        data[k] = torch.chunk(data[k], world_size)[rank]
+    return data
+
+
+def deploy_data(rank, data):
+    """
+    Deploys the data to the specified rank.
+
+    Args:
+        rank (int): The rank to deploy the data to.
+        data (dict): A dictionary containing the data.
+
+    Returns:
+        dict: A dictionary containing the deployed data.
+
+    """
+    for k, v in data.items():
+        if k != 'meta':
+            data[k] = v.to(rank)
+    return data
+
+
+def chunk_and_deploy(rank, world_size, *, data, chunk_keys):
+    """
+    Chunks and deploys the data based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        data (dict): A dictionary containing the data.
+        chunk_keys (dict): A dictionary containing the keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked and deployed data.
+
+    """
+    data = chunk_tensors(
+        rank, world_size, data=data, chunk_keys=chunk_keys['tensors']
+    )
+    data = chunk_params(
+        rank, world_size, params=data, chunk_keys=chunk_keys['params']
+    )
+    data = deploy_data(rank, data)
+    return data
+
+
+def read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw):
+    remap = remap or {}
+    d = get_tensors(path)
+    for k, v in remap.items():
+        d[remap[k]] = d.pop(k)
+    for k, v in kw.items():
+        d[k] = v(d[k])
+    d.meta = DotDict(eval(open(f'{path}/metadata.pydict', 'r').read()))
+    chunk_and_deploy(rank, world_size, data=d, chunk_keys=chunk_keys)
+    return d

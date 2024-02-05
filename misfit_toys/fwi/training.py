@@ -3,6 +3,7 @@
 Classes:
     TrainingAbstract: Abstract base class for training modules.
     Training: Subclass of TrainingAbstract where abstract methods supplied in __init__.
+
 """
 
 from abc import ABC, abstractmethod
@@ -75,7 +76,7 @@ class TrainingAbstract(ABC):
 
     def __post_init__(self):
         """
-        Perform post-initialization tasks for the training class.
+        Perform post-initialization tasks.
 
         Parameters:
             None
@@ -138,10 +139,15 @@ class TrainingAbstract(ABC):
                 f"iter: {len(self.report['loss'])}, "
                 f"loss: {self.loss}"
             )
+        out_norm = (
+            self.out[-1].norm() if type(self.out) is tuple else self.out.norm()
+        )
         s += (
             f", training.loss: {self.loss:.2e}"
-            f", lr: {self.optimizer.param_groups[0]['lr']:.3e}, rank:"
-            f" {self.rank}"
+            f", lr: {self.optimizer.param_groups[0]['lr']:.3e}"
+            f", obs_data.norm: {self.obs_data.norm():.2e}"
+            f", out.norm: {out_norm:.2e}"
+            f", rank: {self.rank}"
         )
         self.print(s, verbose=1)
 

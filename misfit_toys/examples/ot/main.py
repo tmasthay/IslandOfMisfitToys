@@ -12,16 +12,21 @@ from torch.nn import MSELoss
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from misfit_toys.fwi.loss.tikhonov import TikhonovLoss
-from misfit_toys.fwi.loss.w2 import W2LossConst, cum_trap
+from misfit_toys.fwi.loss.w2 import cum_trap
 from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
     SeismicProp,
-    chunk_and_deploy,
     path_builder,
 )
 from misfit_toys.fwi.training import Training
-from misfit_toys.utils import filt, setup, taper, tensor_summary
+from misfit_toys.utils import (
+    chunk_and_deploy,
+    filt,
+    setup,
+    taper,
+    tensor_summary,
+)
 
 
 def training_stages(cfg):
@@ -39,8 +44,8 @@ def training_stages(cfg):
 
 # Define _step for the training class
 def _step(self):
-    self.out = self.prop(1)
-    self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
+    self.out = self.prop(1)[-1]
+    self.loss = 1e6 * self.loss_fn(self.out, self.obs_data)
     if self.loss.item() < 0.0:
         raise ValueError(
             'Negative loss encountered:'
@@ -105,13 +110,14 @@ def get_loss_fn(cfg, **kw):
             max_iters=chosen.alpha.max_iters,
         )
     elif loss_cfg.type == 'w2':
-        device = kw['obs_data'].device
-        return W2LossConst(
-            t=kw['t'].to(device),
-            renorm=kw['renorm'],
-            obs_data=kw['obs_data'],
-            p=kw['p'].to(device),
-        )
+        # device = kw['obs_data'].device
+        # return W2LossConst(
+        #     t=kw['t'].to(device),
+        #     renorm=kw['renorm'],
+        #     obs_data=kw['obs_data'],
+        #     p=kw['p'].to(device),
+        # )
+        return MSELoss()
     else:
         raise NotImplementedError(f'Loss type {loss_cfg.type} not implemented')
 
