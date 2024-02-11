@@ -1,0 +1,42 @@
+filt:
+  eval:
+    name: approx
+    size: 3
+    apps: 10
+
+  deriv:
+    name: median
+    size: 10
+    apps: 10
+    clamp: [0, 10]
+
+t: [-5, 5, 1000]
+shift: [-2, 2, 3]
+scale: [0.5, 1.5, 5]
+np: 500
+ref_idx: [0.5, 0.5]
+eps: 0.0
+neps: 100
+
+tol: 1.0e-6
+ltol: 1.0e-03
+rtol: 1.0e-03
+atol: 1.0e-02
+err_top: 10
+smooth: 1.0
+
+downsample: 5
+decay:
+  frac: 0.0
+  rate: 1.0
+
+k: 3
+
+test_tol:
+  eval:
+    atol: 0.01
+    rtol: 0.1
+
+plt:
+  path: cfg/plots
+  eval: True
