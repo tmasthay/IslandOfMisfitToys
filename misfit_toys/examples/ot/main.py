@@ -44,8 +44,8 @@ def training_stages(cfg):
 
 # Define _step for the training class
 def _step(self):
-    self.out = self.prop(1)[-1]
-    self.loss = 1e6 * self.loss_fn(self.out, self.obs_data)
+    self.out = self.prop(1)
+    self.loss = 1e6 * self.loss_fn(self.out[-1], self.obs_data)
     if self.loss.item() < 0.0:
         raise ValueError(
             'Negative loss encountered:'

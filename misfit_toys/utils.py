@@ -681,6 +681,7 @@ def bool_slice(
             tmp[i] = (tmp[i] - start[i] - cut[i]) // strides[i]
 
     args = list(args)
+    none_dims = [i if i >= 0 else len(args) + i for i in none_dims]
     for i in range(len(args)):
         if i not in none_dims:
             args[i] = args[i] - cut[i]
