@@ -432,7 +432,7 @@ def eval_w2_correct(quantiles):
     return helper
 
 
-def eval_w2(quantiles):
+def eval_w2_nonpickable(quantiles):
     def helper(*, pdf, t, cdf=None, return_all=True):
         t_expand = t.expand(*pdf.shape[:-1], -1)
         if cdf is None:
@@ -481,17 +481,74 @@ def eval_w2(quantiles):
 
 
 # check order of passing of parameters
-def eval_w2_grad(q, qd):
-    def helper(*, pdf, cdf, transport, t):
-        t_expand = t.expand(*pdf.shape[:-1], -1)
-        diff = t_expand - transport
-        integrand = -2 * diff * pdf * qd(cdf)
-        integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
-        reverse_integral = integral[..., -1].unsqueeze(-1) - integral
-        res = diff**2 + reverse_integral
+# def eval_w2_grad(q, qd):
+#     def helper(*, pdf, cdf, transport, t):
+#         t_expand = t.expand(*pdf.shape[:-1], -1)
+#         diff = t_expand - transport
+#         integrand = -2 * diff * pdf * qd(cdf)
+#         integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
+#         reverse_integral = integral[..., -1].unsqueeze(-1) - integral
+#         res = diff**2 + reverse_integral
+#         return res
+
+#     return helper
+
+
+@curry
+def eval_w2(quantiles, *, pdf, t, cdf=None, return_all=True):
+    t_expand = t.expand(*pdf.shape[:-1], -1)
+    if cdf is None:
+        cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
+    transport_map = quantiles(cdf)
+    dtransport = torch.diff(transport_map, dim=-1)
+    tol = 1e-5
+    dt = t[1] - t[0]
+    start_time = time()
+    for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
+        curr = 0
+        currd = dtransport[idx]
+        while currd[curr] < tol:
+            curr += 1
+        curr_slice = [*idx[:-1], slice(0, curr)]
+        right_val = transport_map[idx][curr]
+        slope = currd[curr : (curr + 100)].mean() / dt
+        interpolant = slope * (t[:curr] - t[curr]) + right_val
+        transport_map[curr_slice] = interpolant
+    for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
+        currd = dtransport[idx]
+        curr = len(currd) - 1
+        while currd[curr] < tol:
+            curr -= 1
+        curr_slice = [*idx[:-1], slice(curr, None)]
+        left_val = transport_map[idx][curr]
+        slope = currd[(curr - 100) : curr].mean() / dt
+        interpolant = slope * (t[curr:] - t[curr]) + left_val
+        transport_map[curr_slice] = interpolant
+    print(f'Elapsed time = {time() - start_time}')
+    diff = t_expand - transport_map
+    res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
+    if return_all:
+        return DotDict(
+            {
+                'res': res,
+                'diff': diff,
+                'transport': transport_map,
+                'cdf': cdf,
+            }
+        )
+    else:
         return res
 
-    return helper
+
+@curry
+def eval_w2_grad(q, qd, *, pdf, cdf, transport, t):
+    t_expand = t.expand(*pdf.shape[:-1], -1)
+    diff = t_expand - transport
+    integrand = -2 * diff * pdf * qd(cdf)
+    integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
+    reverse_integral = integral[..., -1].unsqueeze(-1) - integral
+    res = diff**2 + reverse_integral
+    return res
 
 
 def wass2(q, qd):

@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 import pytest
@@ -129,6 +130,7 @@ def ref():
         w = splev(c.p.numpy(), u, der=1)
         splines[idx] = torch.from_numpy(v)
         splines_deriv[idx] = torch.from_numpy(w)
+
     q = spline_func(c.p, splines.unsqueeze(-1))
     qd = spline_func(c.p, splines_deriv.unsqueeze(-1))
 
@@ -189,6 +191,9 @@ def test_eval(evaluation):
     # beta = shifts / c.ref_scale
     # gamma = ds + beta
     exp_output = shifts**2 + shifts * ds + ds**2 / 3.0
+    # exp_output = (ds + shifts) ** 2 * 10.0
+    torch.save(exp_output, 'exp_output.pt')
+    # raise ValueError(f'({ds.min(), ds.max()})')
     exp_grad = None
     if c.plt.eval:
         plot_eval(

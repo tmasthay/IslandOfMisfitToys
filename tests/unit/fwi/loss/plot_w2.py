@@ -61,10 +61,10 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
                 pc.shift.max(),
             ],
         )
-        y = [curr_shift, curr_shift]
-        x = [pc.scale.min(), pc.scale.max()]
-        # y = [pc.shift.min(), pc.shift.max()]
-        # x = [curr_scale, curr_scale]
+        # y = [curr_shift, curr_shift]
+        # x = [pc.scale.min(), pc.scale.max()]
+        y = [pc.shift.min(), pc.shift.max()]
+        x = [curr_scale, curr_scale]
         plt.plot(x, y, color='orange', linestyle='-.')
         plt.plot([curr_scale], [curr_shift], 'x', color='red', markersize=10)
         plt.xlabel('Scale')
@@ -73,12 +73,19 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.colorbar()
 
         set_plot(2)
-        plt.plot(d.misfit.res[:, idx[1]], **c.opts[0])
-        plt.plot(exp_output[:, idx[1]], **c.opts[1])
+        plt.plot(pc.shift, d.misfit.res[:, idx[1]], **c.opts[0])
+        plt.plot(pc.shift, exp_output[:, idx[1]], **c.opts[1])
+        plt.plot(
+            [curr_shift],
+            [d.misfit.res[idx[0], idx[1]]],
+            'o',
+            color='green',
+            markersize=10,
+        )
         plt.legend(**c.legend[0])
         plt.xlabel('Shift')
         plt.ylabel('Misfit')
-        plt.title('Misfit vs Shift')
+        plt.title(f'Misfit vs Shift: {d.misfit.res[:, idx[1]].min()}')
         plt.ylim(
             min(d.misfit.res.min(), exp_output.min()),
             max(d.misfit.res.max(), exp_output.max()),
@@ -127,6 +134,14 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
 
         set_plot(6)
         plt.plot(pc.t, d.misfit.transport[idx], **c.opts[0])
+        plt.plot(
+            pc.t,
+            (pc.t - d.misfit.transport[idx]) ** 2
+            * pc.t
+            * (pc.t >= 0)
+            * (pc.t <= 1),
+            **c.opts[3],
+        )
 
         transport_opts = {k: v for k, v in c.opts[1].items()}
         transport_opts['label'] = 'Identity'
@@ -159,6 +174,22 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.legend(**c.legend[0])
 
         plt.tight_layout()
+
+        set_plot(9)
+        plt.imshow(
+            torch.abs(exp_output - d.misfit.res),
+            **c.imshow.kw,
+            extent=[
+                pc.scale.min(),
+                pc.scale.max(),
+                pc.shift.min(),
+                pc.shift.max(),
+            ],
+        )
+        plt.colorbar()
+        plt.title('Absolute Error')
+        plt.xlabel('Scale')
+        plt.ylabel('Shift')
         return {}
 
     iter = bool_slice(*Q.shape, **c.iter[0])

@@ -11,8 +11,8 @@ filt:
     clamp: [0, 10]
 
 t: [-5, 5, 1000]
-shift: [-2, 2, 3]
-scale: [0.5, 1.5, 5]
+shift: [-3, 3, 101]
+scale: [0.1, 1.0, 101]
 np: 500
 ref_idx: [0.5, 0.5]
 eps: 0.0
@@ -40,3 +40,7 @@ test_tol:
 plt:
   path: cfg/plots
   eval: True
+
+fresh: false
+data_paths:
+  ref: /tmp/ref.pt
