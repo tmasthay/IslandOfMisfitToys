@@ -24,6 +24,34 @@ from misfit_toys.utils import tensor_summary
 c = DotDict(easy_cfg(os.path.join(os.path.dirname(__file__), 'cfg')))
 
 
+def rerr(s):
+    raise ValueError(s)
+
+
+def rctx(ctx):
+    d = {k: v for k, v in ctx.items() if not k.startswith('_')}
+    raise ValueError(DotDict(d))
+
+
+def rtens(ctx, toi=torch.Tensor, reduce=(lambda x: x)):
+    d = {}
+
+    def helper(k, v):
+        if isinstance(v, toi):
+            return {k: reduce(v)}
+        elif isinstance(v, dict):
+            u = {k: helper(kk, vv) for kk, vv in v.items()}
+            u = {k: v for k, v in u.items() if v}
+            return u
+        else:
+            return {}
+
+    for k, v in ctx.items():
+        d.update(helper(k, v))
+
+    raise ValueError(DotDict(d))
+
+
 def dnumpy(f):
     def helper(x, *args, **kwargs):
         return torch.from_numpy(f(x.numpy(), *args, **kwargs))
@@ -78,9 +106,10 @@ def ref():
     mask = (c.t >= c.shift[:, None]) & (
         c.t <= c.shift[:, None] + c.scale[:, None, None]
     )
-    uniform_pdfs = mask.float() / c.scale[:, None, None]
-    uniform_pdfs[:, :, : c.neps] = c.eps
-    uniform_pdfs[:, :, -(1 + c.neps) :] = c.eps
+    hat_function = c.eps * torch.exp(
+        -((c.t - c.t[len(c.t) // 2]) ** 2) / (2 * c.sig**2)
+    )
+    uniform_pdfs = mask.float() / c.scale[:, None, None] + hat_function
     uniform_pdfs = uniform_pdfs / torch.trapz(
         uniform_pdfs, dx=c.t[1] - c.t[0], dim=-1
     ).unsqueeze(-1)
@@ -128,9 +157,10 @@ def ref():
         )
         v = splev(c.p.numpy(), u)
         w = splev(c.p.numpy(), u, der=1)
+        for _ in range(c.filt.deriv.apps):
+            w = uniform_filter(w, size=c.filt.deriv.size)
         splines[idx] = torch.from_numpy(v)
         splines_deriv[idx] = torch.from_numpy(w)
-
     q = spline_func(c.p, splines.unsqueeze(-1))
     qd = spline_func(c.p, splines_deriv.unsqueeze(-1))
 
@@ -182,19 +212,39 @@ def test_shapes(evaluation):
 
 def test_eval(evaluation):
     d = evaluation
-    shifts, scales = c.shift[:, None], c.scale[None, :]
+    bshifts = c.shift[:, None, None]
+    bscales = c.scale[None, :, None]
+    bt = c.t[None, None, :]
     # raise ValueError(shifts)
     assert abs(c.ref_left) < c.tol
     # assert abs(c.ref_scale - 1.0) < c.tol
-    ds = scales - c.ref_scale
+    ds = bscales - c.ref_scale
+    ref_shift = c.shift[len(c.shift) // 2]
+    dshift = bshifts - ref_shift
     # alpha = ds / c.ref_scale
-    # beta = shifts / c.ref_scale
+    # rerr({**locals(), **globals()}.keys())
+    # beta = bshifts / c.ref_scale
     # gamma = ds + beta
-    exp_output = shifts**2 + shifts * ds + ds**2 / 3.0
+    exp_output = bshifts**2 + bshifts * ds + ds**2 / 3.0
+    exp_output = exp_output[..., 0]
     # exp_output = (ds + shifts) ** 2 * 10.0
     torch.save(exp_output, 'exp_output.pt')
-    # raise ValueError(f'({ds.min(), ds.max()})')
-    exp_grad = None
+    # raise ValueError(f'({ds.min(), ds.max()})')b
+
+    exp_grad = (
+        (bt < ref_shift) * (dshift - bt) ** 2
+        + bscales * (bshifts + ds)
+        + (bt >= ref_shift)
+        * (bt <= ref_shift + c.ref_scale)
+        * (
+            (ds**2 - bscales * ds) * bt**2
+            + (2 * bshifts * ds - bscales * bshifts) * bt
+            + bshifts**2
+            + bscales * bshifts
+            + bscales * ds
+        )
+        + (bt > ref_shift + c.ref_scale) * (dshift - bt) ** 2
+    )
     if c.plt.eval:
         plot_eval(
             d,

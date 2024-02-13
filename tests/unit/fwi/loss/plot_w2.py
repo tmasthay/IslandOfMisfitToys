@@ -14,6 +14,11 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
     # c = convert_config_correct(c)
     pc = pytest_cfg
     c = convert_dictconfig(c)
+    c.order = (
+        list(range(1, 1 + c.sub.shape[0] * c.sub.shape[1]))
+        if c.order is None
+        else c.order
+    )
 
     # Q = unbatch_spline_eval(d.q, pc.p)
     # Qd = unbatch_spline_eval(d.qd, pc.p)
@@ -129,19 +134,19 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.xlabel('p')
         plt.ylabel('Qd')
         plt.title('Quantile Derivative')
-        plt.ylim(Qd.min(), Qd.max())
+        plt.ylim(0.0, 5.0)
         plt.legend(**c.legend[0])
 
         set_plot(6)
         plt.plot(pc.t, d.misfit.transport[idx], **c.opts[0])
-        plt.plot(
-            pc.t,
-            (pc.t - d.misfit.transport[idx]) ** 2
-            * pc.t
-            * (pc.t >= 0)
-            * (pc.t <= 1),
-            **c.opts[3],
-        )
+        # plt.plot(
+        #     pc.t,
+        #     (pc.t - d.misfit.transport[idx]) ** 2
+        #     * pc.t
+        #     * (pc.t >= 0)
+        #     * (pc.t <= 1),
+        #     **c.opts[3],
+        # )
 
         transport_opts = {k: v for k, v in c.opts[1].items()}
         transport_opts['label'] = 'Identity'
@@ -169,7 +174,7 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         set_plot(8)
         # u = -d.grad[idx]
         plt.plot(pc.t, -d.grad[idx], **c.opts[0])
-        # plt.plot(pc.t, exp_grad[idx], **c.opts[1])
+        plt.plot(pc.t, exp_grad[idx], **c.opts[1])
         plt.ylim(-d.grad.max(), -d.grad.min())
         plt.legend(**c.legend[0])
 

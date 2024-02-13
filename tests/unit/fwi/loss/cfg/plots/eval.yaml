@@ -7,7 +7,8 @@ sub:
     hspace: 0.2
 
 suptitle: "Uniform Distribution $W_2^2$ Verification"
-order: [1, 3, 5, 4, 6, 7, 8, 9, 2, 10]
+# order: [1, 3, 5, 4, 6, 7, 8, 9, 2, 10]
+order: null
 
 imshow:
   kw:
@@ -35,10 +36,10 @@ legend:
 
 iter:
   - none_dims: [2]
-    strides: [10, 10, 1]
+    strides: [1, 1, 1]
     permute: [1, 0, 2]
 
 save:
   path: out/eval
   movie_format: gif
-  duration: 250
+  duration: 1000

@@ -129,47 +129,8 @@ def true_quantile(
             )
 
         indices = torch.searchsorted(cdf, p)
-        last_low_idx = (cdf <= ltol).nonzero(as_tuple=True)[0]
-        fst_hi_idx = (cdf >= 1 - rtol).nonzero(as_tuple=True)[0]
-
-        # assert (
-        #     len(last_low_idx) > 0
-        # ), f'last_low_idx = {last_low_idx}, min = {cdf.min()}'
-
-        # if len(last_low_idx) == 0:
-        #     msg = f'last_low = {last_low_idx}, min = {cdf.min()}, ltol={ltol}'
-        #     raise ValueError(msg)
-        # if len(fst_hi_idx) == 0:
-        #     msg = f'fst_hi = {fst_hi_idx}, max = {cdf.max()}, rtol={rtol}'
-        #     raise ValueError(msg)
-
-        # last_low_idx = [0]
-        if len(last_low_idx) == 0:
-            last_low_idx = 0
-        else:
-            last_low_idx = last_low_idx[-1] + 1
-        if len(fst_hi_idx) == 0:
-            fst_hi_idx = len(x) - 1
-        else:
-            fst_hi_idx = fst_hi_idx[0] - 1
-
-        # raise ValueError(last_low_idx)
-
-        # input((cdf <= ltol).nonzero(as_tuple=True)[0][-1])
-
-        # last_low_idx = 0
-        # fst_hi_idx = len(x) - 2
-        indices = torch.clamp(
-            indices, last_low_idx, min(fst_hi_idx, len(x) - 1)
-        )
-
-        # integral = torch.floor(indices)
-        # remainder = indices - integral
-        # right_indices = (integral + 1).long()
-        # integral = integral.long()
-        # res = (1 - remainder) * x[integral] + remainder * x[right_indices]
-
-        res = x[indices.long()]
+        indices = torch.clamp(indices, 0, len(x) - 1)
+        res = torch.tensor([x[i] for i in indices])
 
         return res
     else:
@@ -438,31 +399,31 @@ def eval_w2_nonpickable(quantiles):
         if cdf is None:
             cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
         transport_map = quantiles(cdf)
-        dtransport = torch.diff(transport_map, dim=-1)
-        tol = 1e-5
-        dt = t[1] - t[0]
-        start_time = time()
-        for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-            curr = 0
-            currd = dtransport[idx]
-            while currd[curr] < tol:
-                curr += 1
-            curr_slice = [*idx[:-1], slice(0, curr)]
-            right_val = transport_map[idx][curr]
-            slope = currd[curr : (curr + 100)].mean() / dt
-            interpolant = slope * (t[:curr] - t[curr]) + right_val
-            transport_map[curr_slice] = interpolant
-        for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-            currd = dtransport[idx]
-            curr = len(currd) - 1
-            while currd[curr] < tol:
-                curr -= 1
-            curr_slice = [*idx[:-1], slice(curr, None)]
-            left_val = transport_map[idx][curr]
-            slope = currd[(curr - 100) : curr].mean() / dt
-            interpolant = slope * (t[curr:] - t[curr]) + left_val
-            transport_map[curr_slice] = interpolant
-        print(f'Elapsed time = {time() - start_time}')
+        # dtransport = torch.diff(transport_map, dim=-1)
+        # tol = 1e-5
+        # dt = t[1] - t[0]
+        # start_time = time()
+        # for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
+        #     curr = 0
+        #     currd = dtransport[idx]
+        #     while currd[curr] < tol:
+        #         curr += 1
+        #     curr_slice = [*idx[:-1], slice(0, curr)]
+        #     right_val = transport_map[idx][curr]
+        #     slope = currd[curr : (curr + 100)].mean() / dt
+        #     interpolant = slope * (t[:curr] - t[curr]) + right_val
+        #     transport_map[curr_slice] = interpolant
+        # for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
+        #     currd = dtransport[idx]
+        #     curr = len(currd) - 1
+        #     while currd[curr] < tol:
+        #         curr -= 1
+        #     curr_slice = [*idx[:-1], slice(curr, None)]
+        #     left_val = transport_map[idx][curr]
+        #     slope = currd[(curr - 100) : curr].mean() / dt
+        #     interpolant = slope * (t[curr:] - t[curr]) + left_val
+        #     transport_map[curr_slice] = interpolant
+        # print(f'Elapsed time = {time() - start_time}')
         diff = t_expand - transport_map
         res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
         if return_all:

@@ -35,6 +35,7 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 from masthay_helpers.global_helpers import DotDict, ctab, find_files, vco
+from returns.curry import curry
 from torchaudio.functional import biquad
 
 
@@ -723,7 +724,21 @@ def clean_idx(idx, show_colons=True):
     return f'({", ".join(res)})'
 
 
-def tensor_summary(t, num=5):
+@curry
+def tensor_summary(t, num=5, inc='all', exc=None):
+    num = min(num, t.numel())
+    if inc == 'all':
+        inc = [
+            'shape',
+            'dtype',
+            'min',
+            'max',
+            'mean',
+            'std',
+            f'top {num} values',
+            f'bottom {num} values',
+        ]
+    inc = set(inc).difference(exc or [])
     d = {
         'shape': t.shape,
         'dtype': t.dtype,
@@ -736,6 +751,7 @@ def tensor_summary(t, num=5):
             0
         ],
     }
+    d = {k: v for k, v in d.items() if k in inc}
     s = ''
     for k, v in d.items():
         s += f'{k}:    {v}\n'
