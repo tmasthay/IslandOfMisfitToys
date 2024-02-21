@@ -665,7 +665,7 @@ class DataFactory(ABC):
             # input(f"Broadcasting {k} to {self.out_path}")
             os.makedirs(f"{self.out_path}/{k}", exist_ok=True)
             with open(f"{self.out_path}/{k}/metadata.pydict", "w") as f:
-                f.write(v)
+                f.write(str(v))
 
     def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, "..")
