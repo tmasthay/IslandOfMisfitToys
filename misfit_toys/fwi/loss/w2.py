@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
-from masthay_helpers.global_helpers import DotDict
+from mh.core import DotDict
 from returns.curry import curry
 from scipy.ndimage import median_filter, uniform_filter
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
@@ -319,308 +319,25 @@ def w2_builder(is_const):
 w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
-
-class W2LossFunctionLegacy(autograd.Function):
-    @staticmethod
-    def forward(ctx, f, t, renorm, quantiles):
-        # Unpack non-tensor arguments from args
-
-        # Perform the forward computation
-        t_expand = t.expand(*quantiles.shape, -1)
-        f_tilde = renorm(f)
-        F = cum_trap(f_tilde, dx=t[1] - t[0]).to(f.device)
-        off_diag = unbatch_spline_eval(quantiles, F)
-        diff = (t_expand - off_diag) ** 2
-        integrated = torch.trapezoid(diff * f_tilde, dx=t[1] - t[0], dim=-1)
-
-        # Save variables for backward pass
-        ctx.save_for_backward(f, f_tilde, diff, integrated)
-        ctx.renorm = renorm
-
-        return integrated.sum()
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        # Retrieve saved variables
-        # f, f_tilde, diff, integrated = ctx.saved_tensors
-        # renorm = ctx.renorm
-
-        # # Compute custom gradient
-        # # grad_input = ... (implement custom gradient computation)
-
-        # return grad_input
-        return ctx + grad_output
-
-
-class W2LossLegacy(nn.Module):
-    def __init__(self, *, t, renorm, obs_data, p):
-        super().__init__()
-        self.obs_data = obs_data
-        self.device = obs_data.device
-        self.t = t.to(self.device)
-        self.renorm = renorm
-        self.renorm_obs_data = renorm(obs_data).to(self.device)
-        self.quantiles = cts_quantile(self.renorm_obs_data, t, p)
-
-    def forward(self, f):
-        # Call the custom autograd function
-        return W2LossFunction.apply(
-            f, self.obs_data, self.t, self.renorm, self.quantiles
-        )
-
-
-# Check order of passing of parameters
-def eval_w2_correct(quantiles):
-    def helper(*, pdf, t, cdf=None, return_all=True):
-        t_expand = t.expand(*pdf.shape[:-1], -1)
-        if cdf is None:
-            cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
-        transport_map = quantiles(cdf)
-        diff = t_expand - transport_map
-        res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
-        if return_all:
-            return DotDict(
-                {
-                    'res': res,
-                    'diff': diff,
-                    'transport': transport_map,
-                    'cdf': cdf,
-                }
-            )
-        else:
-            return res
-
-    return helper
-
-
-def eval_w2_nonpickable(quantiles):
-    def helper(*, pdf, t, cdf=None, return_all=True):
-        t_expand = t.expand(*pdf.shape[:-1], -1)
-        if cdf is None:
-            cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
-        transport_map = quantiles(cdf)
-        # dtransport = torch.diff(transport_map, dim=-1)
-        # tol = 1e-5
-        # dt = t[1] - t[0]
-        # start_time = time()
-        # for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-        #     curr = 0
-        #     currd = dtransport[idx]
-        #     while currd[curr] < tol:
-        #         curr += 1
-        #     curr_slice = [*idx[:-1], slice(0, curr)]
-        #     right_val = transport_map[idx][curr]
-        #     slope = currd[curr : (curr + 100)].mean() / dt
-        #     interpolant = slope * (t[:curr] - t[curr]) + right_val
-        #     transport_map[curr_slice] = interpolant
-        # for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-        #     currd = dtransport[idx]
-        #     curr = len(currd) - 1
-        #     while currd[curr] < tol:
-        #         curr -= 1
-        #     curr_slice = [*idx[:-1], slice(curr, None)]
-        #     left_val = transport_map[idx][curr]
-        #     slope = currd[(curr - 100) : curr].mean() / dt
-        #     interpolant = slope * (t[curr:] - t[curr]) + left_val
-        #     transport_map[curr_slice] = interpolant
-        # print(f'Elapsed time = {time() - start_time}')
-        diff = t_expand - transport_map
-        res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
-        if return_all:
-            return DotDict(
-                {
-                    'res': res,
-                    'diff': diff,
-                    'transport': transport_map,
-                    'cdf': cdf,
-                }
-            )
-        else:
-            return res
-
-    return helper
-
-
-# check order of passing of parameters
-# def eval_w2_grad(q, qd):
-#     def helper(*, pdf, cdf, transport, t):
-#         t_expand = t.expand(*pdf.shape[:-1], -1)
-#         diff = t_expand - transport
-#         integrand = -2 * diff * pdf * qd(cdf)
-#         integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
-#         reverse_integral = integral[..., -1].unsqueeze(-1) - integral
-#         res = diff**2 + reverse_integral
-#         return res
-
-#     return helper
-
-
-@curry
-def eval_w2(quantiles, *, pdf, t, cdf=None, return_all=True):
-    t_expand = t.expand(*pdf.shape[:-1], -1)
-    if cdf is None:
-        cdf = cum_trap(pdf, dx=t[1] - t[0], dim=-1)
-    transport_map = quantiles(cdf)
-    dtransport = torch.diff(transport_map, dim=-1)
-    tol = 1e-5
-    dt = t[1] - t[0]
-    start_time = time()
-    for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-        curr = 0
-        currd = dtransport[idx]
-        while currd[curr] < tol:
-            curr += 1
-        curr_slice = [*idx[:-1], slice(0, curr)]
-        right_val = transport_map[idx][curr]
-        slope = currd[curr : (curr + 100)].mean() / dt
-        interpolant = slope * (t[:curr] - t[curr]) + right_val
-        transport_map[curr_slice] = interpolant
-    for idx, _ in bool_slice(*dtransport.shape, none_dims=[-1]):
-        currd = dtransport[idx]
-        curr = len(currd) - 1
-        while currd[curr] < tol:
-            curr -= 1
-        curr_slice = [*idx[:-1], slice(curr, None)]
-        left_val = transport_map[idx][curr]
-        slope = currd[(curr - 100) : curr].mean() / dt
-        interpolant = slope * (t[curr:] - t[curr]) + left_val
-        transport_map[curr_slice] = interpolant
-    print(f'Elapsed time = {time() - start_time}')
-    diff = t_expand - transport_map
-    res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1)
-    if return_all:
-        return DotDict(
-            {
-                'res': res,
-                'diff': diff,
-                'transport': transport_map,
-                'cdf': cdf,
-            }
-        )
-    else:
-        return res
-
-
-@curry
-def eval_w2_grad(q, qd, *, pdf, cdf, transport, t):
-    t_expand = t.expand(*pdf.shape[:-1], -1)
-    diff = t_expand - transport
-    integrand = -2 * diff * pdf * qd(cdf)
-    integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
-    reverse_integral = integral[..., -1].unsqueeze(-1) - integral
-    res = diff**2 + reverse_integral
-    return res
-
-
-def wass2(q, qd):
-    return DotDict({'eval': eval_w2(q), 'grad': eval_w2_grad(q, qd)})
-
-
-def quantile_deriv(
-    pdfs,
-    x,
-    p,
-    *,
-    filter_func=None,
-    deriv_filter_func=None,
-    ltol=0.0,
-    rtol=0.0,
-    atol=1.0e-2,
-    err_top=50,
-):
-    def iden(x):
-        return x
-
-    filter_func = iden if filter_func is None else filter_func
-    deriv_filter_func = iden if deriv_filter_func is None else deriv_filter_func
-
-    filtered_pdfs = filter_func(pdfs)
-    filtered_pdfs = filtered_pdfs / torch.trapezoid(
-        filtered_pdfs, dx=x[1] - x[0], dim=-1
-    ).unsqueeze(-1)
-    q = quantile(
-        filtered_pdfs, x, p, ltol=ltol, rtol=rtol, atol=atol, err_top=err_top
-    )
-    filtered_deriv = deriv_filter_func(q(p, deriv=True))
-    if filtered_deriv.shape[-1] != 1:
-        filtered_deriv = filtered_deriv.unsqueeze(-1)
-    q_deriv = spline_func(p, filtered_deriv)
-    return q, q_deriv
-
-
-class W2LossFunction(autograd.Function):
-    @staticmethod
-    def forward(ctx, obs_data, renorm, t, q, qd):
-        pdf = renorm(obs_data)
-        cdf = get_cdf(pdf, x=t, dim=-1)
-        # torch.save(cdf, f'cdf.pt')
-        transport = q(cdf)
-        diff = t.expand(transport.shape) - transport
-        # torch.save(pdf, 'pdf.pt')
-        # torch.save(diff, 'diff.pt')
-        # torch.save(transport, 'transport.pt')
-        # torch.save(t, 't.pt')
-        # torch.save(obs_data, 'obs_data.pt')
-        # raise ValueError('---')
-        res = torch.trapezoid(diff**2 * pdf, dx=t[1] - t[0], dim=-1).sum()
-        ctx.save_for_backward(t, pdf, cdf, transport, diff)
-        ctx.qd = qd
-        return res
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        t, pdf, cdf, transport, diff = ctx.saved_tensors
-        qd = ctx.qd
-        diff = t.expand(transport.shape) - transport
-        integrand = -2 * diff * pdf * qd(cdf)
-        integral = cum_trap(integrand, dx=t[1] - t[0], dim=-1)
-        reverse_integral = integral[..., -1].unsqueeze(-1) - integral
-        res = diff**2 + reverse_integral
-        return res * grad_output, None, None, None, None
-
-
 class W2Loss(torch.nn.Module):
-    def __init__(
-        self,
-        *,
-        t,
-        p,
-        renorm,
-        obs_data,
-        smoother=None,
-        ltol=1.0e-2,
-        rtol=1.0e-2,
-    ):
+    def __init__(self, *, t, p, obs_data, renorm, gen_deriv, down=1):
         super().__init__()
-        self.t = t
+        self.obs_data = renorm(obs_data)
         self.renorm = renorm
-        self.obs_data = obs_data
-        self.obs_data_renorm = renorm(obs_data)
-        self.q = quantile(self.obs_data_renorm, t, p, ltol=ltol, rtol=rtol)
-        deriv = self.q(p, deriv=True)
-        if smoother is not None:
-            deriv = smoother(deriv)
-        self.qd = spline_func(p, deriv.unsqueeze(-1))
+        self.q_raw = true_quantile(
+            self.obs_data, t, p, rtol=0.0, ltol=0.0, err_top=10
+        )
+        self.p = p
+        self.t = t
+        self.q = spline_func(
+            self.p[::down], self.q_raw[..., ::down].unsqueeze(-1)
+        )
+        self.qd = gen_deriv(q=self.q, p=self.p)
 
     def forward(self, traces):
-        return W2LossFunction.apply(
-            traces, self.renorm, self.t, self.q, self.qd
-        )
-
-
-@curry
-def abs_renorm(u, *, dx=1.0, eps=1.0e-03):
-    v = torch.abs(u) + eps
-    return v / torch.trapezoid(v, dx=dx, dim=-1).unsqueeze(-1)
-
-
-@curry
-def square_renorm(u, *, dx=1.0, eps=1.0e-03):
-    v = u**2 + eps
-    return v / torch.trapezoid(v, dx=dx, dim=-1).unsqueeze(-1)
-
-
-@curry
-def exp_renorm(u, *, dx=1.0, c=1.0):
-    v = torch.exp(c * u)
-    return v / torch.trapezoid(v, dx=dx, dim=-1).unsqueeze(-1)
+        pdf = self.renorm(traces)
+        cdf = cum_trap(pdf, self.t)
+        transport = self.q(cdf)
+        diff = self.t - transport
+        loss = torch.trapz(diff**2 * pdf, self.t, dim=-1)
+        return loss

@@ -12,12 +12,8 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 import torch
-from masthay_helpers.global_helpers import (
-    DotDict,
-    flip_dict,
-    get_print,
-    subdict,
-)
+from mh.core import DotDict, flip_dict, get_print
+from mh.core_legacy import subdict
 from torch.optim.lr_scheduler import ChainedScheduler
 
 from misfit_toys.utils import cleanup, filt, load_all, save, taper

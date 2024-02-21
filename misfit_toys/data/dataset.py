@@ -12,7 +12,7 @@ from warnings import warn
 import deepwave as dw
 import numpy as np
 import torch
-from masthay_helpers.global_helpers import DotDict, bstr, path_up, prettify_dict
+from mh.core import DotDict
 from obspy.io.segy.segy import _read_segy
 
 from ..swiffer import iprint, iraise, ireraise, istr, sco
@@ -217,7 +217,7 @@ def store_metadata(*, path, metadata):
         for k1, v1 in v.items():
             res[k][k1] = lean(v1)
         json_path = os.path.join(path, k, "metadata.json")
-        res_str = prettify_dict(res, jsonify=True)
+        res_str = str(res)
         sep = 80 * "*" + "\n"
         s = sep
         s += f"Storing metadata for {k} in {json_path}\n"
@@ -489,9 +489,11 @@ class DataFactory(ABC):
         self, *, device=None, src_path, root_out_path, root_path, **kw
     ):
         if device is None:
-            self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+            num_gpus = torch.cuda.device_count()
+            self.device = f"cuda:{num_gpus - 1}" if num_gpus > 0 else "cpu"
         else:
             self.device = device
+
         self.src_path = src_path
         self.parent_path = os.path.dirname(self.src_path)
         self.root_out_path = root_out_path
@@ -663,7 +665,7 @@ class DataFactory(ABC):
             # input(f"Broadcasting {k} to {self.out_path}")
             os.makedirs(f"{self.out_path}/{k}", exist_ok=True)
             with open(f"{self.out_path}/{k}/metadata.pydict", "w") as f:
-                f.write(prettify_dict(v))
+                f.write(v)
 
     def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, "..")

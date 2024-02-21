@@ -1,7 +1,7 @@
 import os
 
 # add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
-from masthay_helpers.global_helpers import DotDict, add_root_package_path
+from mh.core import DotDict
 
 from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
 

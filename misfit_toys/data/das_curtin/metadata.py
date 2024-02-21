@@ -1,4 +1,4 @@
-from masthay_helpers.global_helpers import save_metadata
+from mh.core_legacy import save_metadata
 
 
 @save_metadata(cli=True)

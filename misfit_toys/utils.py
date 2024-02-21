@@ -34,7 +34,8 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-from masthay_helpers.global_helpers import DotDict, ctab, find_files, vco
+from mh.core import DotDict
+from mh.core_legacy import ctab, find_files, vco
 from returns.curry import curry
 from torchaudio.functional import biquad
 
