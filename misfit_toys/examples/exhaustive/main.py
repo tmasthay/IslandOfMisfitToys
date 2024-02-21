@@ -1,8 +1,8 @@
 import hydra
 import matplotlib.pyplot as plt
 import torch
-from masthay_helpers.global_helpers import DotDict, convert_config_simplest
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from mh.core import DotDict, convert_dictconfig
+from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig
 from returns.curry import curry
 from torch.nn import MSELoss
@@ -209,7 +209,7 @@ def plotter(*, data=None, idx, fig, axes, cfg):
 
 
 def convert_cfg(cfg):
-    cfg = convert_config_simplest(cfg)
+    cfg = convert_dictconfig(cfg)
     cfg.t = torch.linspace(0.0, cfg.meta.nt * cfg.meta.dt, cfg.meta.nt)
     cfg.p = torch.linspace(0.0, 1.0, cfg.meta.nt)
     cfg.plt.order = cfg.plt.order or range(

@@ -176,7 +176,6 @@ def run_rank(rank, world_size):
     receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
         rank
     )
-    
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(model, dx, dt, freq).to(rank)
