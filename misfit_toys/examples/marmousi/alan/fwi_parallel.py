@@ -176,10 +176,15 @@ def run_rank(rank, world_size):
     receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
         rank
     )
+    
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(model, dx, dt, freq).to(rank)
+
+    print(rank, flush=True)
     prop = DDP(prop, device_ids=[rank])
+
+    raise ValueError('yo')
 
     # Setup optimiser to perform inversion
     loss_fn = torch.nn.MSELoss()
@@ -198,7 +203,9 @@ def run_rank(rank, world_size):
     def get_epoch(i, j):
         return j + i * n_epochs
 
+    raise ValueError(freqs)
     for i, cutoff_freq in enumerate(freqs):
+        print(i, flush=True)
         sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
