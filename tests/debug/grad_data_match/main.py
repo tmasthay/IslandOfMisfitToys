@@ -13,6 +13,7 @@ from hydra import utils
 
 torch.set_printoptions(precision=3, threshold=10)
 
+
 class W2Loss(torch.nn.Module):
     def __init__(self, *, t, p, obs_data, renorm, gen_deriv, down=1):
         super().__init__()
@@ -44,7 +45,7 @@ class MSEOpt(torch.nn.Module):
         self.t = t
         self.pdf_true = pdf_true
         self.pdf = pdf
-        self.renorm = (lambda x : x)
+        self.renorm = lambda x: x
 
     def forward(self, pdf):
         loss = self.loss_fn(pdf, self.pdf_true)
@@ -94,6 +95,7 @@ def derived_cfg(c: DotDict) -> DotDict:
             u = mf(u, 10)
         qd = spline_func(p, u.unsqueeze(-1))
         return qd
+
     dm = c.derived_meta
     c.pdf_true = torch.zeros_like(c.t)
     c.pdf = torch.zeros_like(c.t)
@@ -105,7 +107,6 @@ def derived_cfg(c: DotDict) -> DotDict:
     c.pdf = torch.nn.Parameter(renorm(c.pdf))
 
     c.history = [c.pdf.clone().detach().cpu()]
-
 
     c.gen_deriv = gen_deriv
     c.renorm = renorm
@@ -150,6 +151,7 @@ def plotter(*, data, idx, fig, axes, c):
 
     plt.subplot(2, 1, 2)
     plt.plot(c.loss_history)
+    plt.plot([idx[0]], [c.loss_history[idx[0]]], "ro")
     plt.title("Loss")
     return {"c": c}
 
