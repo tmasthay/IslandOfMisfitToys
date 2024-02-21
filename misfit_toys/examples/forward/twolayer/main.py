@@ -2,8 +2,8 @@ import deepwave as dw
 import hydra
 import matplotlib.pyplot as plt
 import torch
-from masthay_helpers.global_helpers import convert_config_simplest
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from mh.core import convert_dictconfig
+from mh.typlotlib import get_frames_bool, save_frames
 
 from misfit_toys.data.dataset import towed_src
 from misfit_toys.utils import bool_slice
