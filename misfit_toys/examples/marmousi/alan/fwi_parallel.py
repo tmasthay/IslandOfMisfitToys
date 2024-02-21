@@ -142,7 +142,7 @@ def run_rank(rank, world_size):
         return deepwave.common.cosine_taper_end(x, 100)
 
     # Select portion of data for inversion
-    n_shots = 12
+    n_shots = 16
     n_receivers_per_shot = 100
     nt = 300
 
@@ -213,7 +213,6 @@ def run_rank(rank, world_size):
         observed_data_filt = filt(observed_data)
         optimiser = torch.optim.LBFGS(prop.parameters())
         for epoch in range(n_epochs):
-            # optimiser = torch.optim.LBFGS(prop.parameters())
             num_calls = 0
 
             def closure():
