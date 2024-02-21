@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data import download_data
-from misfit_toys.utils import parse_path
+from misfit_toys.utils import parse_path, get_gpu_memory
 
 
 def setup(rank, world_size):
@@ -142,9 +142,10 @@ def run_rank(rank, world_size):
         return deepwave.common.cosine_taper_end(x, 100)
 
     # Select portion of data for inversion
-    n_shots = 16
+    n_shots = 12
     n_receivers_per_shot = 100
     nt = 300
+
     observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
 
     # source_locations
@@ -212,6 +213,7 @@ def run_rank(rank, world_size):
         observed_data_filt = filt(observed_data)
         optimiser = torch.optim.LBFGS(prop.parameters())
         for epoch in range(n_epochs):
+            # optimiser = torch.optim.LBFGS(prop.parameters())
             num_calls = 0
 
             def closure():
@@ -225,7 +227,7 @@ def run_rank(rank, world_size):
                 loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                 loss.backward()
                 if num_calls == 1:
-                    loss_record.append(loss)
+                    loss_record.append(loss.detach().cpu())
                     v_record.append(prop.module.model().detach().cpu())
                     out_record.append(out[-1].detach().cpu())
                     out_filt_record.append(out_filt.detach().cpu())
@@ -237,6 +239,7 @@ def run_rank(rank, world_size):
                 return loss
 
             optimiser.step(closure)
+            torch.cuda.empty_cache()
 
     save(torch.tensor(loss_record), 'loss_record.pt', rank=rank)
     save(torch.stack(v_record), 'vp_record.pt', rank=rank)
