@@ -1,0 +1,28 @@
+# plt:
+iter:
+  none_dims: [-1]
+  strides: [100, 1]
+
+sub:
+  shape: [2, 1]
+  adjust:
+    hspace: 0.5
+    wspace: 0.5
+  kw:
+    figsize: [10, 10]
+
+gauss:
+  ref:
+    label: "True"
+    color: "red"
+    linestyle: "solid"
+
+  pred:
+    label: "Predicted"
+    color: "blue"
+    linestyle: "solid"
+
+  save:
+    path: "out/out"
+    movie_format: "gif"
+    duration: 100
