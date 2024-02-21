@@ -4,8 +4,9 @@ from collections import OrderedDict
 import hydra
 import torch
 import torch.multiprocessing as mp
-from masthay_helpers.global_helpers import clean_kwargs, subdict
-from masthay_helpers.typlotlib import make_gifs
+from mh.core import clean_kwargs
+from mh.core_legacy import subdict
+from mh.typlotlib import make_gifs
 from returns.curry import curry
 from scipy.signal import butter
 from torch.nn import MSELoss

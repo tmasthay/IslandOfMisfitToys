@@ -16,4 +16,4 @@ scipy>=1.11.1
 setuptools>=68.0.0
 torch>=2.0.1
 torchaudio>=2.0.2
-git+https://github.com/patrick-kidger/torchcubicspline.git
+# git+https://github.com/patrick-kidger/torchcubicspline.git

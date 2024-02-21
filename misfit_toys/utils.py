@@ -900,3 +900,19 @@ def read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw):
     d.meta = DotDict(eval(open(f'{path}/metadata.pydict', 'r').read()))
     chunk_and_deploy(rank, world_size, data=d, chunk_keys=chunk_keys)
     return d
+
+
+def get_gpu_memory(rank):
+    torch.cuda.synchronize()  # Synchronizes all kernels and operations to ensure correct memory readings
+    total_memory = torch.cuda.get_device_properties(rank).total_memory
+    allocated_memory = torch.cuda.memory_allocated(rank)
+    cached_memory = torch.cuda.memory_reserved(rank)
+    available_memory = total_memory - max(allocated_memory, cached_memory)
+
+    return {
+        'rank': rank,
+        'total_memory_GB': total_memory / (1024**3),  # Convert to GB
+        'allocated_memory_GB': allocated_memory / (1024**3),
+        'cached_memory_GB': cached_memory / (1024**3),
+        'available_memory_GB': available_memory / (1024**3),
+    }

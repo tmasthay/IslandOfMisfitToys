@@ -5,7 +5,8 @@ from typing import Callable, List
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from pympler import asizeof
+
+# from pympler import asizeof
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 

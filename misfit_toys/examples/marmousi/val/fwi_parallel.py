@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import torch
 import torch.multiprocessing as mp
-from mh.core import subdict
+from mh.core_legacy import subdict
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 

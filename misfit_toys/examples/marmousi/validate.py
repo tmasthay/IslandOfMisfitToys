@@ -6,7 +6,7 @@ from functools import wraps
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from masthay_helpers.typlotlib import plot_tensor2d_fast
+from mh.typlotlib_legacy import plot_tensor2d_fast
 from returns.curry import curry
 from rich.console import Console
 from rich.table import Table

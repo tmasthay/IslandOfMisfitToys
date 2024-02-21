@@ -1,18 +1,16 @@
 __all__ = [
-    "dummy",
     "go",
     "main",
+    "a",
     "debug",
-    "final_outputs",
     "out",
     "plots",
-    "conf",
+    "cfg"
 ]
-from .conf import *
-from .debug import *
-from .dummy import *
-from .final_outputs import *
 from .go import *
 from .main import *
+from .a import *
+from .debug import *
 from .out import *
 from .plots import *
+from .cfg import *
