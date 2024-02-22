@@ -1,0 +1,8 @@
+retrain: true
+max_iters: 25
+
+loss:
+  type: self.dep.train.loss.TikhonovLoss
+  reg:
+    scale: 1.0e-06
+    min: 1.0e-07
