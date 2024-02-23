@@ -4,3 +4,5 @@ defaults:
   - plt: plt
   - train: train
   - data: data
+
+np: self.prop.module.meta.nt

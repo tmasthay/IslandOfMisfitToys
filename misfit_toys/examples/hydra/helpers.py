@@ -1,5 +1,7 @@
 from misfit_toys.fwi.loss.w2 import true_quantile, spline_func, cum_trap
 import torch
+from mh.core import DotDict
+from misfit_toys.utils import taper
 
 
 class W2Loss(torch.nn.Module):
@@ -9,7 +11,7 @@ class W2Loss(torch.nn.Module):
         self.renorm = renorm
         self.q_raw = true_quantile(
             self.obs_data, t, p, rtol=0.0, ltol=0.0, err_top=10
-        )
+        ).to(self.obs_data.device)
         self.p = p
         self.t = t
         self.q = spline_func(
@@ -22,33 +24,27 @@ class W2Loss(torch.nn.Module):
         cdf = cum_trap(pdf, self.t)
         transport = self.q(cdf)
         diff = self.t - transport
-        loss = torch.trapz(diff**2 * pdf, self.t, dim=-1)
+        loss = torch.trapz(diff**2 * pdf, self.t, dim=-1).sum()
         return loss
 
-    {
-        'plt': {
-            'vp': {
-                'sub': {
-                    'shape': [1, 1],
-                    'kw': {'figsize': [10, 10]},
-                    'adjust': {},
-                },
-                'iter': {'none_dims': [-2, -1]},
-                'save': {
-                    'path': 'figs/vp',
-                    'movie_format': 'gif',
-                    'duration': 1000,
-                },
-                'plts': {
-                    'vp': {
-                        'main': {'opts': {'type': 'imshow', 'cmap': 'seismic'}}
-                    }
-                },
-            }
-        },
-        'vp': {
-            'save': {
-                'path': '/home/tyler/Documents/repos/IslandOfMisfitToys/tests/debug/fwi/outputs/2024-02-21/15-14-05/figs/vp'
-            }
-        },
-    }
+
+def relu_renorm(t):
+    def helper(x):
+        eps = 1.0e-03
+        u = torch.relu(x) + eps
+        return u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
+
+    return helper
+
+
+def hydra_build(c: DotDict, *, down):
+    d = DotDict({})
+    meta = c.prop.module.meta
+    d.obs_data = taper(c.obs_data)
+    device = d.obs_data.device
+    d.t = torch.linspace(0, meta.dt * meta.nt, meta.nt).to(device)
+    d.p = torch.linspace(0, 1, c.np).to(device)
+    d.gen_deriv = lambda *args, **kwargs: None
+    d.renorm = relu_renorm(d.t)
+    d.down = down
+    return [], d

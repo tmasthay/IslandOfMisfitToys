@@ -1,28 +1,7 @@
+defaults:
+  - _self_
+  - loss: tik
+  - optimizer: lbfgs
+
 retrain: true
 max_iters: 25
-
-loss:
-  chosen: tik
-  tik:
-    chosen: lin_reg_drop
-    type: self.dep.train.loss.TikhonovLoss
-    lin_reg_drop:
-      func: self.dep.train.loss.lin_reg_drop
-      args: []
-      kw:
-        scale: 1.0e-06
-        _min: 1.0e-07
-
-optimizer:
-  chosen: lbfgs
-  lbfgs:
-    type: "eval(lambda *args, **kw: [torch.optim.LBFGS, kw])"
-    args: []
-    kw:
-      lr: 1.0
-      max_iter: 20
-      max_eval: null
-      tolerance_grad: 1.0e-07
-      tolerance_change: 1.0e-09
-      history_size: 100
-      line_search_fn: null

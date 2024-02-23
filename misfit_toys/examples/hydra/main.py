@@ -25,8 +25,10 @@ from mh.core import DotDict, convert_dictconfig, hydra_out, exec_imports
 import matplotlib.pyplot as plt
 from time import time
 
+torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
 
-def apply(lcl, gbl):
+
+def apply_legacy(lcl, gbl):
     chosen = lcl[lcl.chosen.lower()]
     if 'chosen' not in chosen.keys():
         if 'type' not in chosen.keys():
@@ -51,6 +53,18 @@ def apply(lcl, gbl):
     return obj
 
 
+def apply(lcl, gbl):
+    builder = lcl.builder
+    print(builder, flush=True)
+    if 'func' in builder.keys():
+        args, kwargs = builder.func(gbl, *builder.args, **builder.kw)
+    else:
+        args = builder.get('args', [])
+        kwargs = builder.get('kw', {}) or builder.get('kwargs', {})
+    obj = lcl.type(*args, **kwargs)
+    return obj
+
+
 def training_stages(c):
     def helper():
         def do_nothing(training, epoch):
@@ -71,10 +85,11 @@ def training_stages(c):
 def _step(self):
     self.out = self.prop(1)
     # self.out_filt = filt(taper(self.out[-1]), self.sos)
-    self.out_filt = taper(self.out[-1])
-    self.obs_data_filt = taper(self.obs_data)
+    # self.out_filt = taper(self.out[-1])
+    # self.obs_data_filt = taper(self.obs_data)
     # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+    # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+    self.loss = 1.0e6 * self.loss_fn(self.out[-1])
     self.loss.backward()
     return self.loss
 
@@ -90,7 +105,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     setup(rank, world_size)
 
     start_pre = time()
-    c = preprocess_cfg(c, serial=False)
+    c = resolve(c, relax=True)
     print(f"Preprocessing took {time() - start_pre:.2f} seconds.", flush=True)
     # Build data for marmousi model
     data = path_builder(
@@ -119,11 +134,12 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
+    c.obs_data = data["obs_data"]
     c.prop = SeismicProp(
         **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)
     c.prop = DDP(c.prop, device_ids=[rank])
-
+    c = resolve(c, relax=False)
     # loss_fn = c.train.loss.type(
     #     weights=c.prop.module.vp,
     #     alpha=get_reg_strength(c),
@@ -162,11 +178,11 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },
-            'out_filt': {
-                'update': lambda x: d2cpu(x.out_filt),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
+            # 'out_filt': {
+            #     'update': lambda x: d2cpu(x.out_filt),
+            #     'reduce': lambda x: torch.cat(x, dim=1),
+            #     'presave': torch.stack,
+            # },
         },
         _step=_step,
         _build_training_stages=training_stages(c),
@@ -179,16 +195,18 @@ def run(world_size: int, c: DotDict) -> None:
     mp.spawn(run_rank, args=(world_size, c), nprocs=world_size, join=True)
 
 
-def preprocess_cfg(cfg: DictConfig, serial=True) -> DotDict:
-    if serial:
-        c = convert_dictconfig(cfg)
-        for k, v in c.plt.items():
-            c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
-        c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
+def preprocess_cfg(cfg: DictConfig) -> DotDict:
+    c = convert_dictconfig(cfg)
+    for k, v in c.plt.items():
+        c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
+    c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
 
-    else:
-        c = exec_imports(cfg)
-        c.self_ref_resolve(gbl=globals(), lcl=locals())
+    return c
+
+
+def resolve(c: DotDict, relax) -> DotDict:
+    c = exec_imports(c)
+    c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
     return c
 
 
@@ -213,7 +231,7 @@ def plotter(*, data, idx, fig, axes, c):
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig) -> None:
-    c = preprocess_cfg(cfg, serial=True)
+    c = preprocess_cfg(cfg)
 
     out_dir = os.path.join(os.path.dirname(__file__), 'out')
 

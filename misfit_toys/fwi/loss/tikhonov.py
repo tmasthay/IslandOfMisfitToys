@@ -59,6 +59,26 @@ class TikhonovLoss(nn.Module):
 
 
 def lin_reg_drop(c: DotDict, *, scale, _min) -> Callable[[int, int], float]:
+    def reg_strength(iters, max_iters):
+        return max(
+            scale * (1 - iters / max_iters),
+            _min,
+        )
+
+    kw = DotDict(
+        {
+            'weights': c.prop.module.vp,
+            'alpha': reg_strength,
+            'max_iters': c.train.max_iters,
+        }
+    )
+
+    return [], kw
+
+
+def lin_reg_drop_legacy(
+    c: DotDict, *, scale, _min
+) -> Callable[[int, int], float]:
     if c.train.loss.chosen.lower() != 'tik':
         raise ValueError(
             f"c.loss.chosen.lower() = {c.loss.chosen.lower()} != 'tik'"
