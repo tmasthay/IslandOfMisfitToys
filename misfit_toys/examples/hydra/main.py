@@ -28,6 +28,13 @@ from time import time
 
 def apply(lcl, gbl):
     chosen = lcl[lcl.chosen.lower()]
+    if 'chosen' not in chosen.keys():
+        if 'type' not in chosen.keys():
+            raise ValueError(
+                f'Expected type key in {chosen} since no chosen key. Consider restructuring config.'
+            )
+        obj = chosen.type(*chosen.args, **chosen.kw)
+        return obj
     sub_chosen = chosen[chosen.chosen.lower()]
     args = sub_chosen.get('args', [])
     kwargs = sub_chosen.get('kw', {}) or sub_chosen.get('kwargs', {})
@@ -123,6 +130,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     #     max_iters=c.train.max_iters,
     # )
     loss_fn = apply(c.train.loss, c)
+    optimizer = apply(c.train.optimizer, c)
     # loss_fn = c.train.loss.tik.type(
     #     weights=c.prop.module.vp,
     #     alpha=lin_reg_tmp(c),
@@ -135,10 +143,10 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         prop=c.prop,
         obs_data=data["obs_data"],
         loss_fn=loss_fn,
-        optimizer=[torch.optim.LBFGS, {}],
+        optimizer=optimizer,
         verbose=2,
         report_spec={
-            'path': os.path.join(os.path.dirname(__file__), 'out', 'parallel'),
+            'path': os.path.join(os.path.dirname(__file__), 'out'),
             'loss': {
                 'update': lambda x: d2cpu(x.loss),
                 'reduce': lambda x: torch.mean(torch.stack(x), dim=0),
@@ -180,7 +188,7 @@ def preprocess_cfg(cfg: DictConfig, serial=True) -> DotDict:
 
     else:
         c = exec_imports(cfg)
-        c.self_ref_resolve()
+        c.self_ref_resolve(gbl=globals(), lcl=locals())
     return c
 
 
@@ -207,7 +215,7 @@ def plotter(*, data, idx, fig, axes, c):
 def main(cfg: DictConfig) -> None:
     c = preprocess_cfg(cfg, serial=True)
 
-    out_dir = os.path.join(os.path.dirname(__file__), 'out', 'parallel')
+    out_dir = os.path.join(os.path.dirname(__file__), 'out')
 
     def get_data():
         files = [
