@@ -84,12 +84,21 @@ def training_stages(c):
 # Define _step for the training class
 def _step(self):
     self.out = self.prop(1)
+
+    # IGNORE LINE BELOW FOR NOW -- THIS IS FREQ-FILTERING FROM ALAN'S CODE
     # self.out_filt = filt(taper(self.out[-1]), self.sos)
-    # self.out_filt = taper(self.out[-1])
-    # self.obs_data_filt = taper(self.obs_data)
-    # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    # self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    self.loss = 1.0e6 * self.loss_fn(self.out[-1])
+
+    # FOR TIKHONOV
+    #     UNCOMMENT BLOCK BELOW
+    #     COMMENT OUT THE "FOR W2" BLOCK BELOW
+    self.out_filt = taper(self.out[-1])
+    self.obs_data_filt = taper(self.obs_data)
+    self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+
+    # FOR W2
+    #    COMMENT OUT EVERYTHING IN THE BLOCK ABOVE
+    #    AND UNCOMMENT THE BELOW
+    # self.loss = 1.0e6 * self.loss_fn(self.out[-1])
     self.loss.backward()
     return self.loss
 
