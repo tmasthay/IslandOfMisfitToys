@@ -4,6 +4,7 @@ from typing import Callable
 import torch
 import torch.nn as nn
 from torch.nn.functional import mse_loss
+from mh.core import DotDict
 
 
 class TikhonovLoss(nn.Module):
@@ -55,3 +56,41 @@ class TikhonovLoss(nn.Module):
             self.iter += 1
 
         return total_loss
+
+
+def lin_reg_drop(c: DotDict, *, scale, _min) -> Callable[[int, int], float]:
+    if c.train.loss.chosen.lower() != 'tik':
+        raise ValueError(
+            f"c.loss.chosen.lower() = {c.loss.chosen.lower()} != 'tik'"
+        )
+    if c.train.loss.tik.chosen.lower() != 'lin_reg_drop':
+        raise ValueError(
+            f"c.loss.tik.chosen.lower() = {c.loss.tik.chosen.lower()}"
+            " != 'lin_reg_drop'"
+        )
+
+    def reg_strength(iters, max_iters):
+        return max(
+            scale * (1 - iters / max_iters),
+            _min,
+        )
+
+    kw = DotDict(
+        {
+            'weights': c.prop.module.vp,
+            'alpha': reg_strength,
+            'max_iters': c.train.max_iters,
+        }
+    )
+
+    return [], kw
+
+
+def lin_reg_tmp(c: DotDict):
+    def reg_strength(iters, max_iters):
+        return max(
+            c.train.loss.tik.lin_reg_drop.kw.scale * (1 - iters / max_iters),
+            c.train.loss.tik.lin_reg_drop.kw._min,
+        )
+
+    return reg_strength

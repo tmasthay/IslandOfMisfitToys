@@ -1,2 +1,0 @@
-train:
-  loss: ^^misfit_toys.fwi.loss.tikhonov

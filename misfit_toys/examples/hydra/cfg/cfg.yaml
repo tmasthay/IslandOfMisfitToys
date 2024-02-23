@@ -1,6 +1,0 @@
-defaults:
-  - dep: dep
-  - _self_
-  - plt: plt
-  - train: train
-  - data: data
