@@ -83,7 +83,7 @@ def training_stages(c):
 
 # Define _step for the training class
 def _step(self):
-    self.out = self.prop(1)
+    self.out = self.prop(None)
 
     # IGNORE LINE BELOW FOR NOW -- THIS IS FREQ-FILTERING FROM ALAN'S CODE
     # self.out_filt = filt(taper(self.out[-1]), self.sos)
@@ -122,7 +122,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         c.data.path,
         remap={"vp_init": "vp"},
         vp_init=ParamConstrained.delay_init(
-            minv=1000, maxv=5000, requires_grad=True
+            minv=1000, maxv=2500, requires_grad=True
         ),
         src_amp_y=Param.delay_init(requires_grad=False),
         obs_data=None,

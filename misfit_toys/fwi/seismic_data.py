@@ -411,7 +411,7 @@ class SeismicProp(torch.nn.Module):
             msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
             raise ValueError(f'Tensor {name} invalid: {msg}')
 
-    def forward(self, dummy):
+    def forward(self, s):
         """
         Performs forward propagation based on the model type.
 
@@ -422,6 +422,7 @@ class SeismicProp(torch.nn.Module):
             torch.Tensor: The output tensor.
 
         """
+        s = s if s is not None else slice(None)
         if self.model.lower() == 'acoustic':
             if torch.isnan(self.vp.p).any():
                 raise ValueError(
@@ -441,22 +442,28 @@ class SeismicProp(torch.nn.Module):
                 self.vp(),
                 self.meta.dx,
                 self.meta.dt,
-                source_amplitudes=self.src_amp_y(),
-                source_locations=self.src_loc_y,
-                receiver_locations=self.rec_loc_y,
+                source_amplitudes=self.src_amp_y()[s],
+                source_locations=self.src_loc_y[s],
+                receiver_locations=self.rec_loc_y[s],
                 **self.extra_forward,
             )
         elif self.model.lower() == 'elastic':
             lame_params = get_lame(self.vp(), self.vs(), self.rho())
+            src_amp_y = self.__get_optional_param__('src_amp_y')
+            src_loc_y = self.__get_optional_param__('src_loc_y')
+            rec_loc_y = self.__get_optional_param__('rec_loc_y')
+            src_amp_x = self.__get_optional_param__('src_amp_x')
+            src_loc_x = self.__get_optional_param__('src_loc_x')
+            rec_loc_x = self.__get_optional_param__('rec_loc_x')
             return elastic(
                 *lame_params,
-                self.dx,
-                self.dt,
-                source_amplitudes_y=self.__get_optional_param__('src_amp_y'),
-                source_locations_y=self.__get_optional_param__('src_loc_y'),
-                receiver_locations_y=self.__get_optional_param__('rec_loc_y'),
-                source_amplitudes_x=self.__get_optional_param__('src_amp_x'),
-                source_locations_x=self.__get_optional_param__('src_loc_x'),
-                receiver_locations_x=self.__get_optional_param__('rec_loc_x'),
+                self.meta.dx,
+                self.meta.dt,
+                source_amplitudes_y=src_amp_y[s],
+                source_locations_y=src_loc_y[s],
+                receiver_locations_y=rec_loc_y[s],
+                source_amplitudes_x=src_amp_x[s],
+                source_locations_x=src_loc_x[s],
+                receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )
