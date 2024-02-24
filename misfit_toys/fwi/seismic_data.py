@@ -143,6 +143,12 @@ class ParamConstrained(Param):
             minv=minv,
             maxv=maxv,
         )
+        if torch.isnan(self.p).any():
+            msg = f'Failed to initialize ParamConstrained with minv={minv}, maxv={maxv}'
+            passed_min, passed_max = p.min().item(), p.max().item()
+            msg += f'\nTrue max/min of passed data:\n    min={passed_min}, max={passed_max}'
+            msg += f'\nConstrained max/min passed into constructor:\n    min={minv}, max={maxv}'
+            raise ValueError(msg)
 
     def forward(self):
         """
@@ -330,6 +336,9 @@ class SeismicProp(torch.nn.Module):
         **kw,
     ):
         super().__init__()
+        self.__check_nan_inf__(vp if vp is None else vp.p, 'vp')
+        self.__check_nan_inf__(vs if vs is None else vs.p, 'vs')
+        self.__check_nan_inf__(rho if rho is None else rho.p, 'rho')
         self.vp = vp
         self.vs = vs
         self.rho = rho
@@ -390,6 +399,18 @@ class SeismicProp(torch.nn.Module):
         else:
             return getattr(self, name)()
 
+    def __check_nan_inf__(self, tensor, name=''):
+        if tensor is None:
+            return
+        num_nans = torch.isnan(tensor).sum().item()
+        num_infs = torch.isinf(tensor).sum().item()
+        prop_nans = num_nans / tensor.numel()
+        prop_infs = num_infs / tensor.numel()
+        if num_nans > 0 or num_infs > 0:
+            msg = f'num_nans={num_nans}, prop_nans={prop_nans}'
+            msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+            raise ValueError(f'Tensor {name} invalid: {msg}')
+
     def forward(self, dummy):
         """
         Performs forward propagation based on the model type.
@@ -402,9 +423,20 @@ class SeismicProp(torch.nn.Module):
 
         """
         if self.model.lower() == 'acoustic':
+            if torch.isnan(self.vp.p).any():
+                raise ValueError(
+                    f'Invalid vp before composition due to nan: {tensor_summary(self.vp.p)}'
+                )
             v = self.vp()
             if torch.isnan(v).any() or torch.isinf(v).any():
-                raise ValueError(f'Invalid vp: {tensor_summary(v)}')
+                msg = f'Invalid vp due to nan or inf: {tensor_summary(v)}'
+                num_nans = torch.isnan(v).sum().item()
+                prop_nans = num_nans / v.numel()
+                num_infs = torch.isinf(v).sum().item()
+                prop_infs = num_infs / v.numel()
+                msg += f'\nnum_nans={num_nans}, prop_nans={prop_nans}'
+                msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+                raise ValueError(msg)
             return scalar(
                 self.vp(),
                 self.meta.dx,

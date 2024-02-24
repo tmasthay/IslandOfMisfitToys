@@ -117,11 +117,12 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     c = resolve(c, relax=True)
     print(f"Preprocessing took {time() - start_pre:.2f} seconds.", flush=True)
     # Build data for marmousi model
+    # raise ValueError(c.data.path)
     data = path_builder(
         c.data.path,
         remap={"vp_init": "vp"},
         vp_init=ParamConstrained.delay_init(
-            minv=1000, maxv=2500, requires_grad=True
+            minv=1000, maxv=5000, requires_grad=True
         ),
         src_amp_y=Param.delay_init(requires_grad=False),
         obs_data=None,
@@ -140,6 +141,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
             "params": ["src_amp_y"],
         },
     )
+
+    if torch.isnan(data['vp'].p).any():
+        raise ValueError("NaNs in vp")
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
