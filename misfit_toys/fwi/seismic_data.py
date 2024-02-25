@@ -438,15 +438,25 @@ class SeismicProp(torch.nn.Module):
                 msg += f'\nnum_nans={num_nans}, prop_nans={prop_nans}'
                 msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
                 raise ValueError(msg)
-            return scalar(
-                self.vp(),
-                self.meta.dx,
-                self.meta.dt,
-                source_amplitudes=self.src_amp_y()[s],
-                source_locations=self.src_loc_y[s],
-                receiver_locations=self.rec_loc_y[s],
-                **self.extra_forward,
-            )
+
+            try:
+                return scalar(
+                    self.vp(),
+                    self.meta.dx,
+                    self.meta.dt,
+                    source_amplitudes=self.src_amp_y()[s],
+                    source_locations=self.src_loc_y[s],
+                    receiver_locations=self.rec_loc_y[s],
+                    **self.extra_forward,
+                )
+            except Exception as e:
+                raise ValueError(
+                    f'Original error: {e}\n'
+                    f'\nsrc_loc_y.shape={self.src_loc_y.shape}',
+                    f'\nsrc_amp_y.shape={self.src_amp_y().shape}',
+                    f'\nrec_loc_y.shape={self.rec_loc_y.shape}',
+                    f'\ns={s}',
+                )
         elif self.model.lower() == 'elastic':
             lame_params = get_lame(self.vp(), self.vs(), self.rho())
             src_amp_y = self.__get_optional_param__('src_amp_y')
