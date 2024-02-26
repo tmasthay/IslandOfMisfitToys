@@ -1,12 +1,12 @@
 __all__ = [
-    "swiffer",
     "utils",
-    "fwi",
+    "swiffer",
     "data",
+    "fwi",
     "examples"
 ]
-from .swiffer import *
 from .utils import *
-from .fwi import *
+from .swiffer import *
 from .data import *
+from .fwi import *
 from .examples import *

@@ -4,5 +4,6 @@ defaults:
   - plt: plt
   - train: train
   - data: data
+  - preprocess: preprocess
 
 np: self.prop.module.meta.nt
