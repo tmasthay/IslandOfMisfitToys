@@ -122,7 +122,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         c.data.path,
         remap={"vp_init": "vp"},
         vp_init=ParamConstrained.delay_init(
-            minv=1000, maxv=2500, requires_grad=True
+            minv=c.preprocess.minv, maxv=c.preprocess.maxv, requires_grad=True
         ),
         src_amp_y=Param.delay_init(requires_grad=False),
         obs_data=None,
@@ -149,7 +149,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     prop_data = subdict(data, exc=["obs_data"])
     c.obs_data = data["obs_data"]
     c.prop = SeismicProp(
-        **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
+        **prop_data, max_vel=c.preprocess.maxv, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)
     c.prop = DDP(c.prop, device_ids=[rank])
     c = resolve(c, relax=False)
