@@ -2,8 +2,8 @@ import os
 
 import matplotlib.pyplot as plt
 import torch
-from masthay_helpers.global_helpers import convert_dictconfig, hydra_kw
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from mh.core import convert_dictconfig, hydra_kw
+from mh.typlotlib import get_frames_bool, save_frames
 
 from misfit_toys.fwi.loss.w2 import cum_trap, true_quantile, unbatch_spline_eval
 from misfit_toys.utils import bool_slice, clean_idx
