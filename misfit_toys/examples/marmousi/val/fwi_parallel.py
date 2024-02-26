@@ -62,7 +62,7 @@ def training_stages():
 
 # Define _step for the training class
 def _step(self):
-    self.out = self.prop(1)
+    self.out = self.prop(None)
     self.out_filt = filt(taper(self.out[-1]), self.sos)
     self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
     self.loss.backward()
