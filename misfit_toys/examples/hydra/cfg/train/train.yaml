@@ -2,6 +2,8 @@ defaults:
   - _self_
   - loss: tik
   - optimizer: lbfgs
+  - step: tik
+  - stages: vanilla
 
 retrain: true
 max_iters: 25

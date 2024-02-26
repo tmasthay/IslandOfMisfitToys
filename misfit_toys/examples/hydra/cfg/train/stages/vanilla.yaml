@@ -1,0 +1,4 @@
+type: ^^null|misfit_toys.workflows.stages|vanilla_stages
+builder:
+  kw:
+    max_iters: self.train.max_iters
