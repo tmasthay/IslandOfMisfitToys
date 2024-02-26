@@ -921,3 +921,20 @@ def get_gpu_memory(rank):
         'cached_memory_GB': cached_memory / (1024**3),
         'available_memory_GB': available_memory / (1024**3),
     }
+
+
+def apply(lcl, gbl):
+    builder = lcl.builder
+    print(builder, flush=True)
+    if 'func' in builder.keys():
+        args, kwargs = builder.func(gbl, *builder.args, **builder.kw)
+    else:
+        args = builder.get('args', [])
+        kwargs = builder.get('kw', {}) or builder.get('kwargs', {})
+    obj = lcl.type(*args, **kwargs)
+    return obj
+
+
+# Syntactic sugar for converting from device to cpu
+def d2cpu(x):
+    return x.detach().cpu()

@@ -31,52 +31,11 @@ from misfit_toys.utils import (
     filt,
     setup,
     taper,
+    apply,
+    d2cpu,
 )
 
 torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
-
-
-def apply_legacy(lcl, gbl):
-    chosen = lcl[lcl.chosen.lower()]
-    if 'chosen' not in chosen.keys():
-        if 'type' not in chosen.keys():
-            raise ValueError(
-                f'Expected type key in {chosen} since no chosen key. Consider'
-                ' restructuring config.'
-            )
-        obj = chosen.type(*chosen.args, **chosen.kw)
-        return obj
-    sub_chosen = chosen[chosen.chosen.lower()]
-    args = sub_chosen.get('args', [])
-    kwargs = sub_chosen.get('kw', {}) or sub_chosen.get('kwargs', {})
-    obj = sub_chosen.func(gbl, *args, **kwargs)
-    if 'type' in chosen.keys():
-        if type(obj) == tuple:
-            args2, kwargs2 = obj
-        else:
-            args2 = obj['args']
-            if 'kw' not in obj.keys() and 'kwargs' not in obj.keys():
-                raise ValueError(f'Need kw or kwargs in {obj}')
-            kwargs2 = obj.get('kw', {}) or obj.get('kwargs', {})
-        obj = chosen.type(*args2, **kwargs2)
-    return obj
-
-
-def apply(lcl, gbl):
-    builder = lcl.builder
-    print(builder, flush=True)
-    if 'func' in builder.keys():
-        args, kwargs = builder.func(gbl, *builder.args, **builder.kw)
-    else:
-        args = builder.get('args', [])
-        kwargs = builder.get('kw', {}) or builder.get('kwargs', {})
-    obj = lcl.type(*args, **kwargs)
-    return obj
-
-
-# Syntactic sugar for converting from device to cpu
-def d2cpu(x):
-    return x.detach().cpu()
 
 
 # Main function for training on each rank
@@ -207,7 +166,6 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
     c.rank_out = hydra_out(c.get('rank_out', 'rank'))
-
     return c
 
 
