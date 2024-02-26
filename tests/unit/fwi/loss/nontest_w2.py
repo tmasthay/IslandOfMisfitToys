@@ -12,7 +12,6 @@ from scipy.interpolate import splev, splrep
 from scipy.ndimage import median_filter, uniform_filter
 
 from misfit_toys.fwi.loss.w2 import (
-    quantile_deriv,
     spline_func,
     true_quantile,
     wass2,
