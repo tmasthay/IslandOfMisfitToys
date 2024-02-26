@@ -60,7 +60,7 @@ def find_available_port(start_port, max_attempts=5):
                 raise  # Re-raise exception if it's not a "port in use" error
 
 
-def setup(rank, world_size, port=12355):
+def setup(rank, world_size, port=12358):
     """
     Set up the distributed training environment.
 
@@ -153,8 +153,13 @@ def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
         path (str, optional): The directory path. Defaults to "out/parallel".
         ext (str, optional): The file extension. Defaults to ".pt".
     """
+    if name == 'path_record':
+        return
     os.makedirs(path, exist_ok=True)
-    torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
+    filename = get_file(name, rank=rank, path=path, ext=ext)
+    torch.save(tensor, filename)
+    if not os.path.exists(filename):
+        raise ValueError(f'{name}, {type(tensor)}, {filename}')
 
 
 def savefig(name, *, path="out/parallel", ext=".pt"):

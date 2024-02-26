@@ -1,6 +1,10 @@
-from misfit_toys.fwi.loss.w2 import true_quantile, spline_func, cum_trap
+import logging
+import sys
+
 import torch
 from mh.core import DotDict
+
+from misfit_toys.fwi.loss.w2 import cum_trap, spline_func, true_quantile
 from misfit_toys.utils import taper
 
 
@@ -30,9 +34,14 @@ class W2Loss(torch.nn.Module):
 
 def relu_renorm(t):
     def helper(x):
-        eps = 1.0e-03
-        u = torch.relu(x) + eps
-        return u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
+        eps = 1.0e-05
+        # u = torch.abs(x) + eps
+        c = 0.5
+        u = torch.exp(c * x) + eps
+        v = u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
+        if (v < 0).any():
+            raise ValueError(f'v is not positive: min={v.min()}')
+        return v
 
     return helper
 
@@ -48,3 +57,42 @@ def hydra_build(c: DotDict, *, down):
     d.renorm = relu_renorm(d.t)
     d.down = down
     return [], d
+
+
+class StdoutLogger(object):
+    def __init__(self, logger, level):
+        """Initialize with a logger and a log level."""
+        self.logger = logger
+        self.level = level
+
+    def write(self, message):
+        """Write the message to the logger."""
+        if message.rstrip() != "":
+            self.logger.log(self.level, message.rstrip())
+
+    def flush(self):
+        """Flush the stream."""
+        pass
+
+
+def setup_logger():
+    logger = logging.getLogger('stdout_logger')
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
+
+def main():
+    # Set up the logger
+
+    # Now, print statements will go to the logger instead
+    print("This is a test message.")
+
+
+if __name__ == "__main__":
+    main()

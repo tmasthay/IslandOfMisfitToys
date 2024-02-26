@@ -113,6 +113,7 @@ class TrainingAbstract(ABC):
             subdict(self.report_spec, exc=['path'])
         )
         self.report = DotDict({k: [] for k in self.report_spec.keys()})
+        self.report.path = self.report_spec['path']
         self.print, _ = get_print(_verbose=self.verbose)
         self.training_stages = self._build_training_stages()
 
@@ -259,11 +260,14 @@ class TrainingAbstract(ABC):
         Returns:
             None
         """
+        # tmp = {k: v.shape for k, v in self.report}
+        # raise ValueError(f'My report = {self.report.path}')
         for k, v in self.report.items():
             if k in self.report_spec_flip['presave'].keys():
                 print(f"Presaving {k}", flush=True)
-                print(f"v={v}", flush=True)
+                # print(f"v={v}", flush=True)
                 v = self.report_spec_flip['presave'][k](v)
+                # raise ValueError(f"v={v}")
             save(
                 v, f'{k}_record', rank=self.rank, path=self.report_spec['path']
             )

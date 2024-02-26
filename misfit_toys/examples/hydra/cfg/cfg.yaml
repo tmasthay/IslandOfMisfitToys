@@ -1,5 +1,4 @@
 defaults:
-  - dep: dep
   - _self_
   - plt: plt
   - train: train
@@ -7,3 +6,4 @@ defaults:
   - preprocess: preprocess
 
 np: self.prop.module.meta.nt
+dupe: true

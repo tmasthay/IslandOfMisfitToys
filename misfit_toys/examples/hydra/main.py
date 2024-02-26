@@ -1,12 +1,22 @@
+import logging
 import os
+import sys
 from collections import OrderedDict
+from time import time
 
+import hydra
+import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
+from helpers import StdoutLogger, W2Loss, setup_logger
+from mh.core import DotDict, convert_dictconfig, exec_imports, hydra_out
 from mh.core_legacy import subdict
+from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
+from omegaconf import DictConfig
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from misfit_toys.fwi.loss.tikhonov import TikhonovLoss, lin_reg_tmp
 from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
@@ -14,16 +24,14 @@ from misfit_toys.fwi.seismic_data import (
     path_builder,
 )
 from misfit_toys.fwi.training import Training
-from misfit_toys.utils import chunk_and_deploy, filt, setup, taper, clean_idx
-from helpers import W2Loss
-from misfit_toys.fwi.loss.tikhonov import TikhonovLoss, lin_reg_tmp
-import hydra
-from omegaconf import DictConfig
-from mh.typlotlib import get_frames_bool, save_frames, apply_subplot
-from misfit_toys.utils import bool_slice
-from mh.core import DotDict, convert_dictconfig, hydra_out, exec_imports
-import matplotlib.pyplot as plt
-from time import time
+from misfit_toys.utils import (
+    bool_slice,
+    chunk_and_deploy,
+    clean_idx,
+    filt,
+    setup,
+    taper,
+)
 
 torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
 
@@ -33,7 +41,8 @@ def apply_legacy(lcl, gbl):
     if 'chosen' not in chosen.keys():
         if 'type' not in chosen.keys():
             raise ValueError(
-                f'Expected type key in {chosen} since no chosen key. Consider restructuring config.'
+                f'Expected type key in {chosen} since no chosen key. Consider'
+                ' restructuring config.'
             )
         obj = chosen.type(*chosen.args, **chosen.kw)
         return obj
@@ -98,6 +107,7 @@ def _step(self):
     # FOR W2
     #    COMMENT OUT EVERYTHING IN THE BLOCK ABOVE
     #    AND UNCOMMENT THE BELOW
+    # self.loss = 1.0e6 * self.loss_fn(taper(self.out[-1]))
     # self.loss = 1.0e6 * self.loss_fn(self.out[-1])
     self.loss.backward()
     return self.loss
@@ -112,6 +122,18 @@ def d2cpu(x):
 def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
+
+    if c.get('dupe', False):
+        out_file = f'{c.rank_out}_{rank}.out'
+        err_file = f'{c.rank_out}_{rank}.err'
+
+        print(
+            f'Now duping stdout and stderr on rank {rank} to files below:\n\n'
+            f'    {out_file}\n\n    {err_file}.',
+            flush=True,
+        )
+        sys.stdout = open(out_file, 'w')
+        sys.stderr = open(err_file, 'w')
 
     start_pre = time()
     c = resolve(c, relax=True)
@@ -131,7 +153,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     )
 
     # preprocess data like Alan and then deploy slices onto GPUs
-    data["obs_data"] = taper(data["obs_data"])
+    # data["obs_data"] = taper(data["obs_data"])
     data = chunk_and_deploy(
         rank,
         world_size,
@@ -149,7 +171,10 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     prop_data = subdict(data, exc=["obs_data"])
     c.obs_data = data["obs_data"]
     c.prop = SeismicProp(
-        **prop_data, max_vel=c.preprocess.maxv, pml_freq=data["meta"].freq, time_pad_frac=0.2
+        **prop_data,
+        max_vel=c.preprocess.maxv,
+        pml_freq=data["meta"].freq,
+        time_pad_frac=0.2,
     ).to(rank)
     c.prop = DDP(c.prop, device_ids=[rank])
     c = resolve(c, relax=False)
@@ -160,6 +185,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     # )
     loss_fn = apply(c.train.loss, c)
     optimizer = apply(c.train.optimizer, c)
+    pre_time = time() - start_pre
+    print(f"Preprocess time rank {rank}: {pre_time:.2f} seconds.", flush=True)
     # loss_fn = c.train.loss.tik.type(
     #     weights=c.prop.module.vp,
     #     alpha=lin_reg_tmp(c),
@@ -173,9 +200,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         obs_data=data["obs_data"],
         loss_fn=loss_fn,
         optimizer=optimizer,
-        verbose=2,
+        verbose=1,
         report_spec={
-            'path': os.path.join(os.path.dirname(__file__), 'out'),
+            'path': os.path.join(os.getcwd(), 'out'),
             'loss': {
                 'update': lambda x: d2cpu(x.loss),
                 'reduce': lambda x: torch.mean(torch.stack(x), dim=0),
@@ -200,7 +227,10 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         _step=_step,
         _build_training_stages=training_stages(c),
     )
+    train_start = time()
     train.train()
+    train_time = time() - train_start
+    print(f"Train time rank {rank}: {train_time:.2f} seconds.", flush=True)
 
 
 # Main function for spawning ranks
@@ -213,6 +243,7 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     for k, v in c.plt.items():
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
+    c.rank_out = hydra_out(c.get('rank_out', 'rank'))
 
     return c
 
@@ -239,6 +270,13 @@ def plotter(*, data, idx, fig, axes, c):
     apply_subplot(
         data=c.vp_true.squeeze(), cfg=c.plt.vp, name='vp_true', layer='main'
     )
+    plt.subplot(*c.plt.vp.sub.shape, 4)
+    plt.plot(c.loss)
+    plt.scatter(idx[0], c.loss[idx[0]], color='r', s=100, marker='o')
+    plt.title('Loss')
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.tight_layout()
     return {'c': c}
 
 
@@ -263,21 +301,24 @@ def main(cfg: DictConfig) -> None:
         run(n_gpus, c)
         data = get_data()
 
+    c.plt = resolve(c.plt, relax=False)
     iter = bool_slice(*data.vp.shape, **c.plt.vp.iter)
     fig, axes = plt.subplots(*c.plt.vp.sub.shape, **c.plt.vp.sub.kw)
     if c.plt.vp.sub.adjust:
         plt.subplots_adjust(**c.plt.vp.sub.adjust)
-    data.vp = data.vp.permute(0, 2, 1)
+    # data.vp = data.vp.permute(0, 2, 1)
+    # input(data.keys())
     vp_true = torch.load(
         os.path.join(
-            os.environ["CONDA_PREFIX"],
-            "data/marmousi/deepwave_example/shots16",
+            c.data.path,
             "vp_true.pt",
         )
     )
-    c.vp_true = vp_true.T.unsqueeze(0)
+    # c.vp_true = vp_true.T.unsqueeze(0)
+    c.vp_true = vp_true.unsqueeze(0)
     c.rel_diff = data.vp - c.vp_true
     c.rel_diff = c.rel_diff / torch.abs(c.vp_true) * 100.0
+    c.loss = data.loss
     frames = get_frames_bool(
         data=data.vp,
         iter=iter,
@@ -290,6 +331,9 @@ def main(cfg: DictConfig) -> None:
 
     for k, v in c.plt.items():
         print(f"Plot {k} stored in {v.save.path}")
+
+    print('To see all output run the following in terminal:\n')
+    print(f'    cd {hydra_out("")}')
 
 
 # Run the script from command line
