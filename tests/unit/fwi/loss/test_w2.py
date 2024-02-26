@@ -6,7 +6,7 @@ import pytest
 import torch
 from hypothesis import given
 from hypothesis.strategies import floats, tuples
-from masthay_helpers.global_helpers import DotDict, easy_cfg
+from mh.core import DotDict, easy_cfg
 from plot_w2 import plot_eval
 from scipy.interpolate import splev, splrep
 from scipy.ndimage import median_filter, uniform_filter
