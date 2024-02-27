@@ -1,1 +1,5 @@
+defaults:
+  - _self_
+  - preprocess/constrained_vel
+
 path: conda/data/marmousi/deepwave_example/shots16

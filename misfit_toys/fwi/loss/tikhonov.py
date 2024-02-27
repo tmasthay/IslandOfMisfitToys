@@ -67,7 +67,7 @@ def lin_reg_drop(c: DotDict, *, scale, _min) -> Callable[[int, int], float]:
 
     kw = DotDict(
         {
-            'weights': c.prop.module.vp,
+            'weights': c.runtime.prop.module.vp,
             'alpha': reg_strength,
             'max_iters': c.train.max_iters,
         }

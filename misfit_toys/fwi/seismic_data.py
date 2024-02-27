@@ -45,7 +45,7 @@ def path_builder(path, *, remap=None, **kw):
         else:
             d[k] = v(get_data3(field=k, path=path))
     d['meta'] = get_pydict(path=path, as_class=True)
-    for k in remap:
+    for k in remap.keys():
         d[remap[k]] = d.pop(k)
     return d
 

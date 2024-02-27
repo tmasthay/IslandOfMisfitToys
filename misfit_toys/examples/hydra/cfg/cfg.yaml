@@ -2,8 +2,7 @@ defaults:
   - _self_
   - plt: plt
   - train: train
-  - data: data
-  - preprocess: preprocess
+  - data: shots16
 
-np: self.prop.module.meta.nt
+np: self.runtime.prop.module.meta.nt
 dupe: true
