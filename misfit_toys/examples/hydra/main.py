@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
 from helpers import StdoutLogger, W2Loss, setup_logger
-from mh.core import DotDict, convert_dictconfig, exec_imports, hydra_out
+from mh.core import DotDict, convert_dictconfig, hydra_out
 from mh.core_legacy import subdict
 from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
@@ -33,7 +33,9 @@ from misfit_toys.utils import (
     taper,
     apply,
     d2cpu,
+    resolve,
 )
+from misfit_toys.swiffer import dupe
 
 torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
 
@@ -44,22 +46,12 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     setup(rank, world_size)
 
     if c.get('dupe', False):
-        out_file = f'{c.rank_out}_{rank}.out'
-        err_file = f'{c.rank_out}_{rank}.err'
-
-        print(
-            f'Now duping stdout and stderr on rank {rank} to files below:\n\n'
-            f'    {out_file}\n\n    {err_file}.',
-            flush=True,
-        )
-        sys.stdout = open(out_file, 'w')
-        sys.stderr = open(err_file, 'w')
+        dupe(f'{c.rank_out}_{rank}')
 
     start_pre = time()
     c = resolve(c, relax=True)
     print(f"Preprocessing took {time() - start_pre:.2f} seconds.", flush=True)
-    # Build data for marmousi model
-    # raise ValueError(c.data.path)
+
     data = path_builder(
         c.data.path,
         remap={"vp_init": "vp"},
@@ -72,16 +64,16 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         rec_loc_y=None,
     )
 
-    # preprocess data like Alan and then deploy slices onto GPUs
-    # data["obs_data"] = taper(data["obs_data"])
-    data = chunk_and_deploy(
-        rank,
-        world_size,
-        data=data,
-        chunk_keys={
-            "tensors": ["obs_data", "src_loc_y", "rec_loc_y"],
-            "params": ["src_amp_y"],
-        },
+    data = DotDict(
+        chunk_and_deploy(
+            rank,
+            world_size,
+            data=data,
+            chunk_keys={
+                "tensors": ["obs_data", "src_loc_y", "rec_loc_y"],
+                "params": ["src_amp_y"],
+            },
+        )
     )
 
     if torch.isnan(data['vp'].p).any():
@@ -89,37 +81,27 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
-    c.obs_data = data["obs_data"]
+    c.obs_data = data.obs_data
     c.prop = SeismicProp(
         **prop_data,
         max_vel=c.preprocess.maxv,
-        pml_freq=data["meta"].freq,
-        time_pad_frac=0.2,
+        pml_freq=data.meta.freq,
+        time_pad_frac=c.preprocess.time_pad_frac,
     ).to(rank)
     c.prop = DDP(c.prop, device_ids=[rank])
     c = resolve(c, relax=False)
-    # loss_fn = c.train.loss.type(
-    #     weights=c.prop.module.vp,
-    #     alpha=get_reg_strength(c),
-    #     max_iters=c.train.max_iters,
-    # )
     loss_fn = apply(c.train.loss, c)
     optimizer = apply(c.train.optimizer, c)
     step = apply(c.train.step, c)
     training_stages = apply(c.train.stages, c)
     pre_time = time() - start_pre
     print(f"Preprocess time rank {rank}: {pre_time:.2f} seconds.", flush=True)
-    # loss_fn = c.train.loss.tik.type(
-    #     weights=c.prop.module.vp,
-    #     alpha=lin_reg_tmp(c),
-    #     max_iters=c.train.max_iters,
-    # )
-    # Define the training object
+
     train = Training(
         rank=rank,
         world_size=world_size,
         prop=c.prop,
-        obs_data=data["obs_data"],
+        obs_data=data.obs_data,
         loss_fn=loss_fn,
         optimizer=optimizer,
         verbose=1,
@@ -166,12 +148,6 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
     c.rank_out = hydra_out(c.get('rank_out', 'rank'))
-    return c
-
-
-def resolve(c: DotDict, relax) -> DotDict:
-    c = exec_imports(c)
-    c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
     return c
 
 
@@ -227,15 +203,13 @@ def main(cfg: DictConfig) -> None:
     fig, axes = plt.subplots(*c.plt.vp.sub.shape, **c.plt.vp.sub.kw)
     if c.plt.vp.sub.adjust:
         plt.subplots_adjust(**c.plt.vp.sub.adjust)
-    # data.vp = data.vp.permute(0, 2, 1)
-    # input(data.keys())
+
     vp_true = torch.load(
         os.path.join(
             c.data.path,
             "vp_true.pt",
         )
     )
-    # c.vp_true = vp_true.T.unsqueeze(0)
     c.vp_true = vp_true.unsqueeze(0)
     c.rel_diff = data.vp - c.vp_true
     c.rel_diff = c.rel_diff / torch.abs(c.vp_true) * 100.0

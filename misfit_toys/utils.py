@@ -34,7 +34,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-from mh.core import DotDict
+from mh.core import DotDict, exec_imports
 from mh.core_legacy import ctab, find_files, vco
 from returns.curry import curry
 from torchaudio.functional import biquad
@@ -938,3 +938,9 @@ def apply(lcl, gbl):
 # Syntactic sugar for converting from device to cpu
 def d2cpu(x):
     return x.detach().cpu()
+
+
+def resolve(c: DotDict, relax) -> DotDict:
+    c = exec_imports(c)
+    c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
+    return c

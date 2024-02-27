@@ -18,6 +18,7 @@ import textwrap
 from datetime import timedelta
 from subprocess import CalledProcessError
 from subprocess import check_output as co
+import sys
 
 
 def sco(s, split=True):
@@ -251,3 +252,15 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
         + cpl * "*"
     )
     raise exception_type(full)
+
+
+def dupe(base, verbose=True):
+    out_file = f'{base}.out'
+    err_file = f'{base}.err'
+
+    if verbose:
+        print(
+            f'Duping stdout, stderr to files below\n\n{out_file}\n{err_file}\n\n'
+        )
+    sys.stdout = open(out_file, 'w')
+    sys.stderr = open(err_file, 'w')
