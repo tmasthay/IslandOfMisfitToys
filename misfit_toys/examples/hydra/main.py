@@ -1,42 +1,28 @@
-import logging
 import os
-import sys
-from collections import OrderedDict
 from time import time
 
 import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
-from helpers import StdoutLogger, W2Loss, setup_logger
 from mh.core import DotDict, convert_dictconfig, hydra_out
 from mh.core_legacy import subdict
 from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
-from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from misfit_toys.fwi.loss.tikhonov import TikhonovLoss, lin_reg_tmp
-from misfit_toys.fwi.seismic_data import (
-    Param,
-    ParamConstrained,
-    SeismicProp,
-    path_builder,
-)
+from misfit_toys.fwi.seismic_data import SeismicProp, path_builder
 from misfit_toys.fwi.training import Training
 from misfit_toys.utils import (
     bool_slice,
     chunk_and_deploy,
     clean_idx,
-    filt,
     setup,
-    taper,
     apply,
     d2cpu,
     resolve,
 )
 from misfit_toys.swiffer import dupe
-import yaml
 
 torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
 
@@ -136,6 +122,16 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
             },
             'out': {
                 'update': lambda x: d2cpu(x.out),
+                'reduce': lambda x: torch.cat(x, dim=1),
+                'presave': torch.stack,
+            },
+            'obs_data_renorm': {
+                'update': lambda x: d2cpu(x.loss_fn.obs_data),
+                'reduce': lambda x: torch.cat(x, dim=1),
+                'presave': torch.stack,
+            },
+            'pdf': {
+                'update': lambda x: d2cpu(x.loss_fn.pdf),
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },

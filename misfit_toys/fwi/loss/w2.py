@@ -319,6 +319,7 @@ def w2_builder(is_const):
 w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
+
 class W2Loss(torch.nn.Module):
     def __init__(self, *, t, p, obs_data, renorm, gen_deriv, down=1):
         super().__init__()

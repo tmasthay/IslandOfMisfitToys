@@ -266,7 +266,11 @@ class TrainingAbstract(ABC):
             if k in self.report_spec_flip['presave'].keys():
                 print(f"Presaving {k}", flush=True)
                 # print(f"v={v}", flush=True)
-                v = self.report_spec_flip['presave'][k](v)
+                try:
+                    v = self.report_spec_flip['presave'][k](v)
+                except Exception as e:
+                    msg = f"Error in presave for k: v={k}: {v}"
+                    raise ValueError(f'{e}\n\n{msg}')
                 # raise ValueError(f"v={v}")
             save(
                 v, f'{k}_record', rank=self.rank, path=self.report_spec['path']

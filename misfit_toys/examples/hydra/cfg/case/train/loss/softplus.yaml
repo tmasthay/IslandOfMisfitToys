@@ -10,3 +10,5 @@ kw:
     num_probs: self.np
     down: 1
     eps: 0.5
+    beta: 1.0e-03
+    track: true
