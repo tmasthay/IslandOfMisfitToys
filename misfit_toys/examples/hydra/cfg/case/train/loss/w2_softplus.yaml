@@ -1,0 +1,13 @@
+defaults:
+  - _self_
+  - builder: softplus
+
+dep:
+  mod: ^^cwd|helpers|null
+
+obj:
+  runtime_func: self.train.loss.dep.mod.W2Loss
+  kw:
+    runtime_func: self.train.dep.loss.hydra_build_two
+    kw:
+      down: 1

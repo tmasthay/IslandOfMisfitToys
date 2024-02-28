@@ -923,7 +923,7 @@ def get_gpu_memory(rank):
     }
 
 
-def apply(lcl, gbl):
+def apply_builder(lcl, gbl):
     builder = lcl.builder
     print(builder, flush=True)
     if 'func' in builder.keys():
@@ -933,6 +933,34 @@ def apply(lcl, gbl):
         kwargs = builder.get('kw', {}) or builder.get('kwargs', {})
     obj = lcl.type(*args, **kwargs)
     return obj
+
+
+def apply(lcl, relax=True):
+    print(f'Entry={lcl}', flush=True)
+    if 'runtime_func' not in lcl.keys() and relax:
+        return lcl
+    elif 'runtime_func' not in lcl.keys() and not relax:
+        raise ValueError(
+            f"To apply lcl, we need runtime_func to be a key"
+            f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
+        )
+    args = lcl.get('args', [])
+    kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
+    for i, e in enumerate(args):
+        if isinstance(e, DotDict) or isinstance(e, dict):
+            args[i] = apply(e, relax=True)
+
+    for k, v in kwargs.items():
+        if isinstance(v, DotDict) or isinstance(v, dict):
+            kwargs[k] = apply(v, relax=True)
+
+    keys = set(kwargs.keys())
+    is_reducible = keys.issubset(set(['args', 'kwargs', 'kw', 'runtime_func']))
+    if is_reducible:
+        kwargs = apply(kwargs, relax=True)
+    lcl = lcl.runtime_func(*args, **kwargs)
+    print(f'Exit={lcl}', flush=True)
+    return lcl
 
 
 # Syntactic sugar for converting from device to cpu

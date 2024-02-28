@@ -1,5 +1,0 @@
-defaults:
-  - _self_
-  - builder: lbfgs_defaults.yaml
-
-type: "eval(lambda *args, **kw: [torch.optim.LBFGS, kw])"

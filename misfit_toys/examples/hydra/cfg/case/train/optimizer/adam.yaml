@@ -1,5 +1,1 @@
-defaults:
-  - _self_
-  - builder: adam_defaults
-
 type: "eval(lambda *args, **kw: [torch.optim.Adam, kw])"

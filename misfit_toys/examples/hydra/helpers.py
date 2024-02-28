@@ -79,7 +79,7 @@ def hydra_build_two(c: DotDict, *, down):
     d.gen_deriv = lambda *args, **kwargs: None
     d.renorm = softplus(d.t)
     d.down = down
-    return [], d
+    return d
 
 
 class StdoutLogger(object):

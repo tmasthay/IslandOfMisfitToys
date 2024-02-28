@@ -58,7 +58,29 @@ class TikhonovLoss(nn.Module):
         return total_loss
 
 
-def lin_reg_drop(c: DotDict, *, scale, _min) -> Callable[[int, int], float]:
+def lin_reg_drop(
+    *, weights, max_iters, scale, _min
+) -> Callable[[int, int], float]:
+    def reg_strength(iters, max_iters):
+        return max(
+            scale * (1 - iters / max_iters),
+            _min,
+        )
+
+    kw = DotDict(
+        {
+            'weights': weights,
+            'alpha': reg_strength,
+            'max_iters': max_iters,
+        }
+    )
+
+    return kw
+
+
+def lin_reg_drop_legacy2(
+    c: DotDict, *, scale, _min
+) -> Callable[[int, int], float]:
     def reg_strength(iters, max_iters):
         return max(
             scale * (1 - iters / max_iters),

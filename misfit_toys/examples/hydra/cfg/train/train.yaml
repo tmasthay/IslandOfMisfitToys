@@ -1,9 +1,0 @@
-defaults:
-  - _self_
-  - loss: ${loss_case}
-  - optimizer: ${opt_case}
-  - step: ${loss_case}
-  - stages: vanilla
-
-retrain: true
-max_iters: 25
