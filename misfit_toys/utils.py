@@ -936,7 +936,6 @@ def apply_builder(lcl, gbl):
 
 
 def apply(lcl, relax=True):
-    print(f'Entry={lcl}', flush=True)
     if 'runtime_func' not in lcl.keys() and relax:
         return lcl
     elif 'runtime_func' not in lcl.keys() and not relax:
@@ -959,7 +958,6 @@ def apply(lcl, relax=True):
     if is_reducible:
         kwargs = apply(kwargs, relax=True)
     lcl = lcl.runtime_func(*args, **kwargs)
-    print(f'Exit={lcl}', flush=True)
     return lcl
 
 

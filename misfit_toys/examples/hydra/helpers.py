@@ -69,13 +69,12 @@ def hydra_build(c: DotDict, *, down):
     return [], d
 
 
-def hydra_build_two(c: DotDict, *, down):
+def hydra_build_two(*, obs_data, meta, num_probs, down):
     d = DotDict({})
-    meta = c.prop.module.meta
-    d.obs_data = taper(c.obs_data)
+    d.obs_data = taper(obs_data)
     device = d.obs_data.device
     d.t = torch.linspace(0, meta.dt * meta.nt, meta.nt).to(device)
-    d.p = torch.linspace(0, 1, c.np).to(device)
+    d.p = torch.linspace(0, 1, num_probs).to(device)
     d.gen_deriv = lambda *args, **kwargs: None
     d.renorm = softplus(d.t)
     d.down = down
