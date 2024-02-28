@@ -1,0 +1,7 @@
+defaults:
+  - _self_
+  - builder: softplus
+
+dep:
+  mod: ^^cwd|helpers|null
+type: self.train.loss.dep.mod.W2Loss

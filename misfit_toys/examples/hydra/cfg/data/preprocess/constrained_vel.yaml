@@ -11,8 +11,8 @@ path_builder_kw:
     type: self.data.preprocess.dep.ParamConstrained.delay_init
     builder:
       kw:
-        minv: self.data.preprocess.minv
-        maxv: self.data.preprocess.maxv
+        minv: ${data.preprocess.minv}
+        maxv: ${data.preprocess.maxv}
         requires_grad: true
   src_amp_y:
     type: self.data.preprocess.dep.Param.delay_init

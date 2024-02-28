@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - loss: tik
+  - loss: ${chosen}
   - optimizer: lbfgs
-  - step: tik
+  - step: ${chosen}
   - stages: vanilla
 
 retrain: true

@@ -1,4 +1,4 @@
-func: self.dep.train.loss.hydra_build
+func: self.train.dep.loss.hydra_build
 args: []
 kw:
   # renorm: "eval(lambda x : torch.relu(x) + 1.0e-03)"

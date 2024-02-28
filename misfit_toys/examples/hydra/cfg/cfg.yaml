@@ -3,6 +3,7 @@ defaults:
   - plt: plt
   - train: train
   - data: shots16
+  - chosen: tik_default
 
 np: self.runtime.prop.module.meta.nt
 dupe: true
