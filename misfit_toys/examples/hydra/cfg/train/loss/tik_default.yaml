@@ -1,7 +1,0 @@
-defaults:
-  - _self_
-  - builder: lin_reg_drop
-
-dep:
-  mod: ^^misfit_toys.fwi.loss.tikhonov
-type: self.train.loss.dep.mod.TikhonovLoss

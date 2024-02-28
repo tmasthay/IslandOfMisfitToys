@@ -1,9 +1,10 @@
 defaults:
   - _self_
+  - loss_case: tik
+  - opt_case: lbfgs
   - plt: plt
   - train: train
   - data: shots16
-  - chosen: tik_default
 
 np: self.runtime.prop.module.meta.nt
 dupe: true

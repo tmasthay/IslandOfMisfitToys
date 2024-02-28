@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - loss: ${chosen}
-  - optimizer: lbfgs
-  - step: ${chosen}
+  - loss: ${loss_case}
+  - optimizer: ${opt_case}
+  - step: ${loss_case}
   - stages: vanilla
 
 retrain: true
