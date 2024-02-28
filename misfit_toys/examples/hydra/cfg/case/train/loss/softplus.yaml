@@ -9,3 +9,4 @@ kw:
     obs_data: self.obs_data
     num_probs: self.np
     down: 1
+    eps: 0.5

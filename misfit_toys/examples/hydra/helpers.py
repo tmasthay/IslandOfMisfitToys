@@ -46,10 +46,9 @@ def relu_renorm(t):
     return helper
 
 
-def softplus(t):
+def softplus(t, eps):
     def helper(x):
-        eps = 1.0
-        u = torch.log(1.0 + torch.exp(eps * x))
+        u = torch.log(1.0 + torch.exp(eps * x)) + eps
         v = u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
         return v
 
@@ -69,14 +68,14 @@ def hydra_build(c: DotDict, *, down):
     return [], d
 
 
-def hydra_build_two(*, obs_data, meta, num_probs, down):
+def hydra_build_two(*, obs_data, meta, num_probs, down, eps):
     d = DotDict({})
     d.obs_data = taper(obs_data)
     device = d.obs_data.device
     d.t = torch.linspace(0, meta.dt * meta.nt, meta.nt).to(device)
     d.p = torch.linspace(0, 1, num_probs).to(device)
     d.gen_deriv = lambda *args, **kwargs: None
-    d.renorm = softplus(d.t)
+    d.renorm = softplus(d.t, eps)
     d.down = down
     return d
 

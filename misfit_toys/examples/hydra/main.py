@@ -135,7 +135,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                 'presave': torch.stack,
             },
             'out': {
-                'update': lambda x: d2cpu(x.out[-1]),
+                'update': lambda x: d2cpu(x.out),
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },
@@ -194,6 +194,38 @@ def plotter(*, data, idx, fig, axes, c):
     return {'c': c}
 
 
+def trace_plotter(*, data, idx, fig, axes, c):
+    plt.clf()
+    num_samples = data.out.shape[0]
+    for i in range(num_samples):
+        plt.subplot(*c.plt.trace.sub.shape, i + 1)
+        even = 2 * i
+        odd = 2 * i + 1
+
+        ls = c.plt.trace.linestyles
+        colors = c.plt.trace.color_seq
+        n_ls = len(ls)
+        n_colors = len(colors)
+        plt.plot(
+            data.obs_data[i, :],
+            label='obs',
+            color=colors[odd % n_colors],
+            linestyle=ls[odd % n_ls],
+        )
+        plt.plot(
+            data.out[i, idx[1], :],
+            label='pred',
+            color=colors[even % n_colors],
+            linestyle=ls[even % n_ls],
+        )
+        plt.xlabel(c.plt.trace.xlabel)
+        plt.ylabel(c.plt.trace.ylabel)
+        plt.legend(**c.plt.trace.legend)
+    plt.suptitle(f'{c.plt.trace.suptitle}\nIteration {idx[1]}')
+    plt.tight_layout()
+    return {'c': c}
+
+
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig) -> None:
     c = preprocess_cfg(cfg)
@@ -207,7 +239,14 @@ def main(cfg: DictConfig) -> None:
             if e.endswith('_record.pt')
         ]
         keys = [e.replace('_record.pt', '').split('/')[-1] for e in files]
-        return DotDict({k: torch.load(f) for k, f in zip(keys, files)})
+        d = DotDict({k: torch.load(f) for k, f in zip(keys, files)})
+        d.obs_data = torch.load(
+            os.path.join(
+                c.data.path,
+                "obs_data.pt",
+            )
+        )
+        return d
 
     data = get_data()
     if not data or c.train.retrain:
@@ -240,6 +279,34 @@ def main(cfg: DictConfig) -> None:
         c=c,
     )
     save_frames(frames, **c.plt.vp.save)
+
+    num_samples = c.plt.trace.sub.shape[0] * c.plt.trace.sub.shape[1]
+    rand_indices = torch.stack(
+        [torch.randint(0, e, (num_samples,)) for e in data.obs_data.shape[:-1]],
+        dim=-1,
+    )
+    rand_indices = [[slice(ee, ee + 1) for ee in e] for e in rand_indices]
+    traces = torch.stack([data.obs_data[s].squeeze() for s in rand_indices])
+    out_traces = torch.stack(
+        [data.out[[slice(None), *s]].squeeze() for s in rand_indices]
+    )
+    d = DotDict(
+        {
+            'obs_data': traces,
+            'out': out_traces,
+        }
+    )
+    trace_iter = bool_slice(*d.out.shape, **c.plt.trace.iter)
+    fig, axes = plt.subplots(*c.plt.trace.sub.shape, **c.plt.trace.sub.kw)
+    trace_frames = get_frames_bool(
+        data=d,
+        iter=trace_iter,
+        fig=fig,
+        axes=axes,
+        plotter=trace_plotter,
+        c=c,
+    )
+    save_frames(trace_frames, **c.plt.trace.save)
 
     for k, v in c.plt.items():
         print(f"Plot {k} stored in {v.save.path}")

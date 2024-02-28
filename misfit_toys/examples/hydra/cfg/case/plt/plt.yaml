@@ -49,3 +49,23 @@ vp:
         xlabel: Rec Location (m)
         ylabel: Depth (m)
         colorbar: true
+
+trace:
+  sub:
+    shape: [2,2]
+    kw:
+      figsize: [10, 10]
+  iter:
+    none_dims: [0, -1]
+  save:
+    path: figs/random_traces.gif
+    duration: 1000
+  xlabel: Time (s)
+  ylabel: Displacement (m)
+  title: Observed Data at Receiver Location
+  color_seq: [red, blue]
+  linestyles: [solid, dashed]
+  legend: 
+    loc: upper right
+    framealpha: 0.5
+  suptitle: Observed Data at Random Receiver Locations
