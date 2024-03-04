@@ -69,6 +69,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     check_keys(c, c.runtime.data)
 
+    # Split data into chunks and deploy to GPUs
     c.runtime.data = DotDict(
         chunk_and_deploy(
             rank,
@@ -77,9 +78,6 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
             chunk_keys=c.data.preprocess.chunk_keys,
         )
     )
-
-    if torch.isnan(c.runtime.data.vp.p).any():
-        raise ValueError("NaNs in vp")
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(c.runtime.data, exc=["obs_data"])
