@@ -126,26 +126,6 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },
-            # 'obs_data_renorm': {
-            #     'update': lambda x: d2cpu(x.loss_fn.obs_data),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
-            # 'pdf': {
-            #     'update': lambda x: d2cpu(x.loss_fn.pdf),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
-            # 'obs_data': {
-            #     'update': lambda x: d2cpu(x.loss_fn.org_obs_data),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
-            # 'out_filt': {
-            #     'update': lambda x: d2cpu(x.out_filt),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
         },
         _step=step,
         _build_training_stages=training_stages,
