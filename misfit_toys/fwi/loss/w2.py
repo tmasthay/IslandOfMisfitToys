@@ -142,6 +142,7 @@ def true_quantile(
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
             # results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
+            print(idx)
             results[idx] = true_quantile(
                 pdf[idx],
                 x,

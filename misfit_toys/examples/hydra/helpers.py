@@ -13,6 +13,34 @@ class W2Loss(torch.nn.Module):
         self, *, t, p, obs_data, renorm, gen_deriv, down=1, track=False
     ):
         super().__init__()
+        self.org_obs_data = obs_data
+        self.obs_data = renorm(obs_data)
+        self.renorm = renorm
+        self.q_raw = true_quantile(
+            self.obs_data, t, p, rtol=0.0, ltol=0.0, err_top=10
+        ).to(self.obs_data.device)
+        self.p = p
+        self.t = t
+        self.q = spline_func(
+            self.p[::down], self.q_raw[..., ::down].unsqueeze(-1)
+        )
+        self.qd = gen_deriv(q=self.q, p=self.p)
+
+    def forward(self, traces):
+        pdf = self.renorm(traces)
+        cdf = cum_trap(pdf, self.t)
+        transport = self.q(cdf)
+        diff = self.t - transport
+        loss = torch.trapz(diff**2 * pdf, self.t, dim=-1).sum()
+        return loss
+
+
+class W2LossTracker(torch.nn.Module):
+    def __init__(
+        self, *, t, p, obs_data, renorm, gen_deriv, down=1, track=False
+    ):
+        super().__init__()
+        self.org_obs_data = obs_data
         self.obs_data = renorm(obs_data)
         self.renorm = renorm
         self.q_raw = true_quantile(

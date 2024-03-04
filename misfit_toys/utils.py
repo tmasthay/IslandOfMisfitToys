@@ -970,3 +970,19 @@ def resolve(c: DotDict, relax) -> DotDict:
     c = exec_imports(c)
     c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
     return c
+
+
+def git_dump_info(exc=None):
+    exc = exc or ['outputs', 'multirun', '__pycache__']
+    s = ''
+    s += f'HASH: {vco("git rev-parse HEAD")}\n'
+    s += f'BRANCH: {vco("git rev-parse --abbrev-ref HEAD")}\n\n'
+    untracked_files_cmd = 'git ls-files --others'
+    for e in exc:
+        untracked_files_cmd += f' | grep -v "^{e}"'
+    s += f'UNTRACKED FILES: {vco(untracked_files_cmd)}\n\n'
+    s += 80 * '*' + '\n'
+    s += f'DIFF: {vco("git diff")}\n'
+    s += 80 * '*' + '\n'
+
+    return s

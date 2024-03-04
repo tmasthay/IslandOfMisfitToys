@@ -21,6 +21,7 @@ from misfit_toys.utils import (
     apply,
     d2cpu,
     resolve,
+    git_dump_info,
 )
 from misfit_toys.swiffer import dupe
 
@@ -125,16 +126,21 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                 'reduce': lambda x: torch.cat(x, dim=1),
                 'presave': torch.stack,
             },
-            'obs_data_renorm': {
-                'update': lambda x: d2cpu(x.loss_fn.obs_data),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
-            'pdf': {
-                'update': lambda x: d2cpu(x.loss_fn.pdf),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
+            # 'obs_data_renorm': {
+            #     'update': lambda x: d2cpu(x.loss_fn.obs_data),
+            #     'reduce': lambda x: torch.cat(x, dim=1),
+            #     'presave': torch.stack,
+            # },
+            # 'pdf': {
+            #     'update': lambda x: d2cpu(x.loss_fn.pdf),
+            #     'reduce': lambda x: torch.cat(x, dim=1),
+            #     'presave': torch.stack,
+            # },
+            # 'obs_data': {
+            #     'update': lambda x: d2cpu(x.loss_fn.org_obs_data),
+            #     'reduce': lambda x: torch.cat(x, dim=1),
+            #     'presave': torch.stack,
+            # },
             # 'out_filt': {
             #     'update': lambda x: d2cpu(x.out_filt),
             #     'reduce': lambda x: torch.cat(x, dim=1),
@@ -224,6 +230,9 @@ def trace_plotter(*, data, idx, fig, axes, c):
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig) -> None:
+    with open(hydra_out('git_info.txt'), 'w') as f:
+        f.write(git_dump_info())
+
     c = preprocess_cfg(cfg)
 
     out_dir = os.path.join(os.path.dirname(__file__), 'out')
