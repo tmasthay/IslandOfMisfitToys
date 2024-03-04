@@ -78,6 +78,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
             chunk_keys=c.data.preprocess.chunk_keys,
         )
     )
+
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(c.runtime.data, exc=["obs_data"])
     c.obs_data = c.runtime.data.obs_data
