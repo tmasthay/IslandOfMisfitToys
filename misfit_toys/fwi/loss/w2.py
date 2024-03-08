@@ -328,7 +328,7 @@ class W2Loss(torch.nn.Module):
         self.renorm = renorm
         self.q_raw = true_quantile(
             self.obs_data, t, p, rtol=0.0, ltol=0.0, err_top=10
-        )
+        ).to(self.obs_data.device)
         self.p = p
         self.t = t
         self.q = spline_func(

@@ -1,0 +1,120 @@
+device: cuda:1
+
+x:
+  runtime_func: ^^null|data.domain|gen_domain
+  args: [-1.0, 1.0, 100]
+  kw:
+    device: self.device
+
+p:
+  runtime_func: ^^null|data.domain|gen_probs
+  kw:
+    t: self.x
+    device: self.device
+    upsample: 1
+
+y:
+  gm:
+    signal:
+      runtime_func: ^^null|data.signal|gaussian_mixture
+      kw:
+        x: self.x
+        mus: [0, 0.5]
+        sigs: [0.1, 0.1]
+        weights: [0.5, 0.5]
+        normalize: true
+        device: self.device
+    noise:
+      runtime_func: ^^null|data.noise|gaussian
+      kw:
+        x: self.y.gm.signal
+        mu: 0
+        sigma: 0.0
+        device: self.device
+    init_guess:
+      runtime_func: ^^null|data.guess|sine
+      kw:
+        x: self.x
+        freq: 0.1
+        device: self.device
+train:
+  loss:
+    runtime_func: ^^null|train.loss|w2_generator
+    kw:
+      t: self.x
+      p: self.p
+      renorm:
+        runtime_func: ^^null|train.renorm|softplus
+        kw:
+          t: self.x
+          sharpness: 1.0
+
+  opt:
+    runtime_func: ^^null|train.opt|build_simple
+    kw:
+      type: ^^null|torch.optim|SGD
+      lr: 0.1
+
+  max_iters: 10000
+  print_freq: 10
+
+plt:
+  callback: ^^null|plotters.default|monitor
+  gm:
+    save:
+      path: gm.gif
+      duration: 1000
+    sub:
+      shape: [2, 2]
+      kw:
+        figsize: [10, 10]
+    iter:
+      none_dims: [-1]
+      strides: [100, 1]
+    order: [soln, grad, loss, grad_norm]
+    plts:
+      loss:
+        main:
+          opts:
+            linestyle: "-"
+            color: "red"
+          xlabel: Iteration
+          ylabel: Loss
+          title: Loss History
+          dot:
+            args: [bo]
+            kw: {}
+      soln:
+        curr:
+          opts:
+            linestyle: "--"
+            color: "red"
+
+        obs_data:
+          opts:
+            linestyle: "-"
+            color: "green"
+          xlabel: Time (s)
+          ylabel: Amplitude
+          title: Current solution
+
+      grad_norm:
+        main:
+          opts:
+            linestyle: "-"
+            color: "red"
+          xlabel: Iteration
+          ylabel: Grad Norm
+          title: Grad Norm History
+          dot:
+            args: [bo]
+            kw: {}
+
+      grad:
+        curr:
+          opts:
+            linestyle: "-"
+            color: "green"
+          xlabel: Time (s)
+          ylabel: Gradient
+          title: Current solution

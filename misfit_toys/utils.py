@@ -940,7 +940,7 @@ def apply(lcl, relax=True):
         return lcl
     elif 'runtime_func' not in lcl.keys() and not relax:
         raise ValueError(
-            f"To apply lcl, we need runtime_func to be a key"
+            f"To apply lcl, we need runtime_func to be a key "
             f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
         )
     args = lcl.get('args', [])
@@ -958,6 +958,19 @@ def apply(lcl, relax=True):
     if is_reducible:
         kwargs = apply(kwargs, relax=True)
     lcl = lcl.runtime_func(*args, **kwargs)
+    return lcl
+
+
+def apply_all(lcl, relax=True, exc=None):
+    exc = exc or []
+    for k, v in lcl.items():
+        if k in exc:
+            continue
+        elif isinstance(v, DotDict) or isinstance(v, dict):
+            if 'runtime_func' in v.keys():
+                lcl[k] = apply(v, relax=relax)
+            else:
+                lcl[k] = apply_all(v, relax=relax, exc=exc)
     return lcl
 
 
