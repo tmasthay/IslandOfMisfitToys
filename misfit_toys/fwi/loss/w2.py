@@ -321,6 +321,34 @@ w2_const = w2_builder(True)
 w2 = w2_builder(False)
 
 
+def simple_quantile(cdf_spline, *, p, tol=1e-4, max_iter=100, start, end):
+    q = torch.zeros(p.shape).to(p.device)
+    for i, prob in enumerate(p):
+        left, right = start, end
+        for iter in range(max_iter):
+            mid = (left + right) / 2
+            cdf_val = cdf_spline(mid)
+
+            # Check if current mid value meets the probability with tolerance
+            if abs(cdf_val - prob) < tol:
+                q[i] = mid
+                break
+
+            # Adjust search space
+            if cdf_val < prob:
+                left = mid
+                if cdf_spline(right) < prob:
+                    right = (right + end) / 2
+            else:
+                right = mid
+        if iter == max_iter - 1:
+            raise ValueError(
+                f"Quantile calculation did not converge for probability {prob}"
+            )
+
+    return q
+
+
 class W2Loss(torch.nn.Module):
     def __init__(self, *, t, p, obs_data, renorm, gen_deriv, down=1):
         super().__init__()

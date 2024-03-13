@@ -34,6 +34,7 @@ def extend_cfg(c: DotDict) -> DotDict:
         c.rt[k].train.soln_history[0] = soln.detach().cpu()
         c.rt[k].train.grad_history[0] = torch.zeros(soln.shape)
         for epoch in range(1, 1 + c.train.max_iters):
+            c.rt[k].train.opt.zero_grad()
             loss = c.rt[k].train.loss(soln)
             loss.backward()
             c.rt[k].train.loss_history[epoch] = loss.detach().cpu()

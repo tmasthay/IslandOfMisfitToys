@@ -39,6 +39,7 @@ y:
         device: self.device
 train:
   loss:
+    # ^^null|train.loss|MSEFixed
     runtime_func: ^^null|train.loss|w2_generator
     kw:
       t: self.x
@@ -55,7 +56,7 @@ train:
       type: ^^null|torch.optim|SGD
       lr: 0.1
 
-  max_iters: 10000
+  max_iters: 100000
   print_freq: 10
 
 plt:
@@ -63,14 +64,14 @@ plt:
   gm:
     save:
       path: gm.gif
-      duration: 1000
+      duration: 100
     sub:
       shape: [2, 2]
       kw:
         figsize: [10, 10]
     iter:
       none_dims: [-1]
-      strides: [100, 1]
+      strides: [1000, 1]
     order: [soln, grad, loss, grad_norm]
     plts:
       loss:

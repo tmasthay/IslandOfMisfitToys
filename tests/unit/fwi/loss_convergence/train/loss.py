@@ -19,6 +19,7 @@ def w2_generator(*, t, p, renorm):
 class MSEFixed(torch.nn.Module):
     def __init__(self, *, obs_data):
         super().__init__()
+
         self.obs_data = obs_data
 
     def forward(self, curr):
