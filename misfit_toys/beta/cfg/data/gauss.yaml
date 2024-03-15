@@ -1,6 +1,6 @@
+path: ""
 pkg: misfit_toys.beta.data.${case.name}
 lambda: direct_quantile
-# runtime_func: ^^null|misfit_toys.beta.data.gauss|direct_quantile
-runtime_func: ^^null|${.pkg}|${.lambda}
+runtime_func: ^^${.path}|${.pkg}|${.lambda}
 kw:
   plotter: self.plotter.runtime_func
