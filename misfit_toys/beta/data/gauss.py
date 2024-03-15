@@ -6,6 +6,7 @@ from misfit_toys.utils import bool_slice
 from mh.typlotlib import get_frames_bool, save_frames
 import os
 from ..helpers import pdf, cdf, cts_quantile
+from ..plotter import gauss_plotter as plotter
 
 
 def main4():
@@ -47,39 +48,6 @@ def main4():
     # Qref = [norm.ppf(p, loc=m, scale=s) for m, s in combos(mu, sig, flat=True)]
     # Qref = np.array(Qref).reshape(*Qcomp.shape)
 
-    def plotter(*, data, idx, fig, axes, shape):
-        plt.clf()
-        plt.suptitle(
-            r'$\mu={:.2f}, \sigma={:.2f}$'.format(
-                data.mu[idx[0]], data.sig[idx[1]]
-            )
-        )
-        plt.subplot(*shape, 1)
-        plt.plot(data.x, data.raw[idx], label='Computed PDF')
-        plt.plot(
-            data.x, data.pdf_ref[idx], 'ro', label='Analytic PDF', markersize=1
-        )
-        plt.ylim(data.raw.min(), data.raw.max())
-        plt.title('PDF')
-
-        plt.subplot(*shape, 2)
-        plt.plot(data.x, data.cdf[idx], label='Computed CDF')
-        plt.plot(
-            data.x, data.cdf_ref[idx], 'ro', label='Analytic CDF', markersize=1
-        )
-        plt.title('CDF')
-
-        plt.subplot(*shape, 3)
-        plt.plot(data.p, data.Q[idx], label=r'$Q$')
-        plt.plot(
-            data.p, data.Qref[idx], 'ro', markersize=1, label=r'Analytic $Q$'
-        )
-        plt.legend(framealpha=0.3)
-        plt.title('Quantile')
-        plt.ylim(data.x.min(), data.x.max())
-        plt.tight_layout()
-        return {'shape': shape}
-
     d = DotDict(
         dict(
             x=x,
@@ -107,7 +75,7 @@ def main4():
     )
     save_frames(frames, path='prob4.gif', duration=1000)
 
-    out_file = os.path.join(__file__, '..', 'prob4.gif')
+    out_file = os.path.join(os.getcwd(), 'prob4.gif')
     out_file = os.path.abspath(out_file)
     print(f'\nSee {out_file}\n')
 
