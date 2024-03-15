@@ -125,7 +125,6 @@ def cts_quantile_legacy(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
 
 def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
     cdf_splines = unbatch_splines(x, cdfs).flatten()
-    draise(cdf_splines.shape, cdf_splines[0])
     q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
     for i in range(cdf_splines.shape[0]):
         print(f'{i}/{cdf_splines.shape[0]}')
