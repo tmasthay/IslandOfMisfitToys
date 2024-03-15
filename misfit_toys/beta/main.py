@@ -13,7 +13,6 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     exec_imports(c)
     c.self_ref_resolve()
     c = apply_all(c, exc=['plotter'])
-    draise(c, type(c))
 
     # for k, v in c.plt:
     #     c[f'{k}.save.path'] = hydra_out(c[f'{k}.save.path'])
@@ -51,7 +50,7 @@ def postprocess_cfg(c: DotDict) -> Any:
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig) -> None:
     c = preprocess_cfg(cfg)
-    print(c)
+    # print(c)
 
 
 if __name__ == "__main__":

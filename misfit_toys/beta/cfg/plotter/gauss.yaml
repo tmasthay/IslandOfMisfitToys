@@ -1,1 +1,4 @@
-runtime_func: ^^null|misfit_toys.beta.plotter|gauss_plotter
+path: ""
+pkg: misfit_toys.beta.plotter
+lambda: ${case.name}_plotter
+runtime_func: ^^${.path}|${.pkg}|${.lambda}

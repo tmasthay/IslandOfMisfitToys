@@ -86,10 +86,49 @@ def disc_quantile(cdfs, x, *, p):
     return left_vals + alpha * (right_vals - left_vals)
 
 
-def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
+# This is a performance bottleneck
+#     May consider using cython or numba
+#     -> numba doesn't work with pytorch
+#
+# Another approach that might be faster since it crank on GPU...
+#     Simply upsample cdfs until the max(torch.diff(cdfs) < tol) is satisfied
+#     Then use torch.searchsorted...this would guarantee that the quantile is
+#         no worse than tol.
+def cts_quantile_legacy(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
     cdf_splines = unbatch_splines(x, cdfs).flatten()
     q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
     for i in range(cdf_splines.shape[0]):
+        print(f'{i}/{cdf_splines.shape[0]}')
+        start, end = x[0], x[-1]
+        for j, pp in enumerate(p):
+            for guesses in range(max_iters):
+                mid = (start + end) / 2
+                left = cdf_splines[i].evaluate(start)
+                right = cdf_splines[i].evaluate(end)
+                curr = cdf_splines[i].evaluate(mid)
+                if pp < left:
+                    start = (x[0] + mid) / 2
+                elif pp > right:
+                    end = (x[-1] + mid) / 2
+                elif abs(pp - curr) < tol:
+                    q[i, j] = mid
+                    break
+                elif pp < curr:
+                    end = mid
+                else:
+                    start = mid
+            if guesses >= max_iters - 1:
+                raise ValueError(
+                    f"Quantile not found for p = {pp}, left={left}, right={right}, curr={curr}, start={start}, end={end}, mid={mid}"
+                )
+
+
+def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
+    cdf_splines = unbatch_splines(x, cdfs).flatten()
+    draise(cdf_splines.shape, cdf_splines[0])
+    q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
+    for i in range(cdf_splines.shape[0]):
+        print(f'{i}/{cdf_splines.shape[0]}')
         start, end = x[0], x[-1]
         for j, pp in enumerate(p):
             for guesses in range(max_iters):
