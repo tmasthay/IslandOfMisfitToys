@@ -1,14 +1,14 @@
 __all__ = [
-    "download_data",
     "dataset",
+    "download_data",
     "marmousi",
-    "das_curtin",
     "marmousi2",
+    "das_curtin",
     "custom"
 ]
-from .download_data import *
 from .dataset import *
+from .download_data import *
 from .marmousi import *
-from .das_curtin import *
 from .marmousi2 import *
+from .das_curtin import *
 from .custom import *
