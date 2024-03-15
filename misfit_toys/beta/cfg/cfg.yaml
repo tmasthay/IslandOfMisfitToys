@@ -1,0 +1,6 @@
+defaults:
+  - global
+  - _self_
+  - case: gauss
+  - plotter: ${case}
+  - data: ${case}
