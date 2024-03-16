@@ -940,7 +940,7 @@ def apply(lcl, relax=True):
         return lcl
     elif 'runtime_func' not in lcl.keys() and not relax:
         raise ValueError(
-            f"To apply lcl, we need runtime_func to be a key "
+            "To apply lcl, we need runtime_func to be a key "
             f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
         )
     args = lcl.get('args', [])
@@ -972,11 +972,6 @@ def apply_all(lcl, relax=True, exc=None):
             else:
                 lcl[k] = apply_all(v, relax=relax, exc=exc)
     return lcl
-
-
-# Syntactic sugar for converting from device to cpu
-def d2cpu(x):
-    return x.detach().cpu()
 
 
 def resolve(c: DotDict, relax) -> DotDict:
