@@ -1,0 +1,3 @@
+- dep.train.loss='^^cwd|helpers|null'
+- train.loss.type=self.dep.train.loss.W2Loss
+- train/loss/builder=relu_shift

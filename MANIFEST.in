@@ -1,0 +1,18 @@
+include *.jpg
+include *.py
+include *.sh
+include *.txt
+recursive-include docs *.bat
+recursive-include docs *.rst
+recursive-include docs Makefile
+recursive-include examples *.gif
+recursive-include examples *.out
+recursive-include examples *.pt
+recursive-include examples *.py
+recursive-include examples *.sh
+recursive-include examples *.txt
+recursive-include misfit_toys *.gitkeep
+recursive-include misfit_toys *.html
+recursive-include misfit_toys *.ipynb
+recursive-include misfit_toys *.py
+recursive-include misfit_toys *.pydict

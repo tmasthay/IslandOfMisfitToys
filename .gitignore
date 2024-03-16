@@ -1,0 +1,16 @@
+*.jpg
+!IslandOfMisfitToys.jpg
+__pycache__
+*.bin
+/build/
+/IslandOfMisfitToys.egg-info/
+*tmp*
+*.pt
+*.npy
+.*
+.gitlint
+.gitlint_rules
+!.gitignore
+!.gitattributes
+!.gitmodules
+!.github

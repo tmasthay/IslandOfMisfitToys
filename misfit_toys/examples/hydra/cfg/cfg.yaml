@@ -1,0 +1,14 @@
+defaults:
+  - _self_
+  - case: tik
+
+goats:
+  football:
+    qb:
+      - name: Tom Brady
+        team:
+          location: Boston
+          name: NE
+          mascot: Patriots
+      - name: Aaron Rodgers
+        team: GB
