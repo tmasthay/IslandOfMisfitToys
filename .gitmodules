@@ -1,4 +1,0 @@
-[submodule "GitHookEm"]
-	path = GitHookEm
-	url = git@github.com:tmasthay/GitHookEm.git
-	branch = main
