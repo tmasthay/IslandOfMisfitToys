@@ -168,6 +168,3 @@ def ref_quantile(plotter):
     print(f'\nSee {out_file}\n')
 
     return d
-
-def w2_tester(plotter):
-    
