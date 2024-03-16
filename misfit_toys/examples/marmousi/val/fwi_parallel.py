@@ -1,21 +1,20 @@
 import os
+from collections import OrderedDict
 
 import torch
 import torch.multiprocessing as mp
+from mh.core_legacy import subdict
 from scipy.signal import butter
-from collections import OrderedDict
-from masthay_helpers.global_helpers import subdict
-from misfit_toys.utils import setup, filt, taper
-from misfit_toys.fwi.training import Training
-
 from torch.nn.parallel import DistributedDataParallel as DDP
+
 from misfit_toys.fwi.seismic_data import (
-    SeismicProp,
     Param,
     ParamConstrained,
+    SeismicProp,
     path_builder,
-    chunk_and_deploy,
 )
+from misfit_toys.fwi.training import Training
+from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
 
 
 def training_stages():
@@ -63,7 +62,7 @@ def training_stages():
 
 # Define _step for the training class
 def _step(self):
-    self.out = self.prop(1)
+    self.out = self.prop(None)
     self.out_filt = filt(taper(self.out[-1]), self.sos)
     self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
     self.loss.backward()
@@ -106,7 +105,7 @@ def run_rank(rank, world_size):
     )
 
     # Build seismic propagation module and wrap in DDP
-    prop_data = subdict(data, exclude=["obs_data"])
+    prop_data = subdict(data, exc=["obs_data"])
     prop = SeismicProp(
         **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)

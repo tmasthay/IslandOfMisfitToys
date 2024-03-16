@@ -12,13 +12,16 @@ Functions:
     chunk_tensors: Chunks the tensors based on the rank and world size.
     deploy_data: Deploys the data to the specified rank.
     chunk_and_deploy: Chunks and deploys the data based on the rank and world size.
+
 """
 
 import torch
-from deepwave import scalar, elastic
+from deepwave import elastic, scalar
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from masthay_helpers.global_helpers import DotDict
+from mh.core import DotDict
+
 from misfit_toys.data.dataset import get_data3, get_pydict
+from misfit_toys.utils import tensor_summary
 
 
 def path_builder(path, *, remap=None, **kw):
@@ -42,89 +45,9 @@ def path_builder(path, *, remap=None, **kw):
         else:
             d[k] = v(get_data3(field=k, path=path))
     d['meta'] = get_pydict(path=path, as_class=True)
-    for k in remap:
+    for k in remap.keys():
         d[remap[k]] = d.pop(k)
     return d
-
-
-def chunk_params(rank, world_size, *, params, chunk_keys):
-    """
-    Chunks the parameters based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        params (dict): A dictionary containing the parameters.
-        chunk_keys (list): A list of keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked parameters.
-
-    """
-    for k in chunk_keys:
-        params[k].p.data = torch.chunk(params[k].p.data, world_size)[rank]
-    return params
-
-
-def chunk_tensors(rank, world_size, *, data, chunk_keys):
-    """
-    Chunks the tensors based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        data (dict): A dictionary containing the tensors.
-        chunk_keys (list): A list of keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked tensors.
-
-    """
-    for k in chunk_keys:
-        data[k] = torch.chunk(data[k], world_size)[rank]
-    return data
-
-
-def deploy_data(rank, data):
-    """
-    Deploys the data to the specified rank.
-
-    Args:
-        rank (int): The rank to deploy the data to.
-        data (dict): A dictionary containing the data.
-
-    Returns:
-        dict: A dictionary containing the deployed data.
-
-    """
-    for k, v in data.items():
-        if k != 'meta':
-            data[k] = v.to(rank)
-    return data
-
-
-def chunk_and_deploy(rank, world_size, *, data, chunk_keys):
-    """
-    Chunks and deploys the data based on the rank and world size.
-
-    Args:
-        rank (int): The rank of the current process.
-        world_size (int): The total number of processes.
-        data (dict): A dictionary containing the data.
-        chunk_keys (dict): A dictionary containing the keys to chunk.
-
-    Returns:
-        dict: A dictionary containing the chunked and deployed data.
-
-    """
-    data = chunk_tensors(
-        rank, world_size, data=data, chunk_keys=chunk_keys['tensors']
-    )
-    data = chunk_params(
-        rank, world_size, params=data, chunk_keys=chunk_keys['params']
-    )
-    data = deploy_data(rank, data)
-    return data
 
 
 class Param(torch.nn.Module):
@@ -182,6 +105,24 @@ class Param(torch.nn.Module):
         """
         return lambda p: cls(p=p, **kw)
 
+    @classmethod
+    def clone(cls, obj, *, requires_grad=None, **kw):
+        """
+        Clones the parameter.
+
+        Args:
+            p (torch.Tensor): The parameter tensor.
+            **kw: Additional keyword arguments.
+
+        Returns:
+            Param: The cloned parameter.
+
+        """
+        requires_grad = (
+            obj.p.requires_grad if requires_grad is None else requires_grad
+        )
+        return cls(p=obj.p.clone(), requires_grad=requires_grad, **kw)
+
 
 class ParamConstrained(Param):
     """
@@ -202,6 +143,12 @@ class ParamConstrained(Param):
             minv=minv,
             maxv=maxv,
         )
+        if torch.isnan(self.p).any():
+            msg = f'Failed to initialize ParamConstrained with minv={minv}, maxv={maxv}'
+            passed_min, passed_max = p.min().item(), p.max().item()
+            msg += f'\nTrue max/min of passed data:\n    min={passed_min}, max={passed_max}'
+            msg += f'\nConstrained max/min passed into constructor:\n    min={minv}, max={maxv}'
+            raise ValueError(msg)
 
     def forward(self):
         """
@@ -377,10 +324,9 @@ class SeismicProp(torch.nn.Module):
         self,
         *,
         vp,
+        meta,
         vs=None,
         rho=None,
-        model='acoustic',
-        meta,
         src_amp_y=None,
         src_loc_y=None,
         rec_loc_y=None,
@@ -390,10 +336,13 @@ class SeismicProp(torch.nn.Module):
         **kw,
     ):
         super().__init__()
+        self.__check_nan_inf__(vp if vp is None else vp.p, 'vp')
+        self.__check_nan_inf__(vs if vs is None else vs.p, 'vs')
+        self.__check_nan_inf__(rho if rho is None else rho.p, 'rho')
         self.vp = vp
         self.vs = vs
         self.rho = rho
-        self.model = model.lower()
+        self.model = 'acoustic' if vs is None else 'elastic'
         self.meta = meta
         self.src_amp_y = src_amp_y
         self.src_loc_y = src_loc_y
@@ -450,7 +399,19 @@ class SeismicProp(torch.nn.Module):
         else:
             return getattr(self, name)()
 
-    def forward(self, dummy):
+    def __check_nan_inf__(self, tensor, name=''):
+        if tensor is None:
+            return
+        num_nans = torch.isnan(tensor).sum().item()
+        num_infs = torch.isinf(tensor).sum().item()
+        prop_nans = num_nans / tensor.numel()
+        prop_infs = num_infs / tensor.numel()
+        if num_nans > 0 or num_infs > 0:
+            msg = f'num_nans={num_nans}, prop_nans={prop_nans}'
+            msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+            raise ValueError(f'Tensor {name} invalid: {msg}')
+
+    def forward(self, s):
         """
         Performs forward propagation based on the model type.
 
@@ -461,27 +422,58 @@ class SeismicProp(torch.nn.Module):
             torch.Tensor: The output tensor.
 
         """
+        s = s if s is not None else slice(None)
         if self.model.lower() == 'acoustic':
-            return scalar(
-                self.vp(),
-                self.meta.dx,
-                self.meta.dt,
-                source_amplitudes=self.src_amp_y(),
-                source_locations=self.src_loc_y,
-                receiver_locations=self.rec_loc_y,
-                **self.extra_forward,
-            )
+            if torch.isnan(self.vp.p).any():
+                raise ValueError(
+                    f'Invalid vp before composition due to nan: {tensor_summary(self.vp.p)}'
+                )
+            v = self.vp()
+            if torch.isnan(v).any() or torch.isinf(v).any():
+                msg = f'Invalid vp due to nan or inf: {tensor_summary(v)}'
+                num_nans = torch.isnan(v).sum().item()
+                prop_nans = num_nans / v.numel()
+                num_infs = torch.isinf(v).sum().item()
+                prop_infs = num_infs / v.numel()
+                msg += f'\nnum_nans={num_nans}, prop_nans={prop_nans}'
+                msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+                raise ValueError(msg)
+
+            try:
+                return scalar(
+                    self.vp(),
+                    self.meta.dx,
+                    self.meta.dt,
+                    source_amplitudes=self.src_amp_y()[s],
+                    source_locations=self.src_loc_y[s],
+                    receiver_locations=self.rec_loc_y[s],
+                    **self.extra_forward,
+                )
+            except Exception as e:
+                raise ValueError(
+                    f'Original error: {e}\n'
+                    f'\nsrc_loc_y.shape={self.src_loc_y.shape}',
+                    f'\nsrc_amp_y.shape={self.src_amp_y().shape}',
+                    f'\nrec_loc_y.shape={self.rec_loc_y.shape}',
+                    f'\ns={s}',
+                )
         elif self.model.lower() == 'elastic':
             lame_params = get_lame(self.vp(), self.vs(), self.rho())
+            src_amp_y = self.__get_optional_param__('src_amp_y')
+            src_loc_y = self.__get_optional_param__('src_loc_y')
+            rec_loc_y = self.__get_optional_param__('rec_loc_y')
+            src_amp_x = self.__get_optional_param__('src_amp_x')
+            src_loc_x = self.__get_optional_param__('src_loc_x')
+            rec_loc_x = self.__get_optional_param__('rec_loc_x')
             return elastic(
                 *lame_params,
-                self.dx,
-                self.dt,
-                source_amplitudes_y=self.__get_optional_param__('src_amp_y'),
-                source_locations_y=self.__get_optional_param__('src_loc_y'),
-                receiver_locations_y=self.__get_optional_param__('rec_loc_y'),
-                source_amplitudes_x=self.__get_optional_param__('src_amp_x'),
-                source_locations_x=self.__get_optional_param__('src_loc_x'),
-                receiver_locations_x=self.__get_optional_param__('rec_loc_x'),
+                self.meta.dx,
+                self.meta.dt,
+                source_amplitudes_y=src_amp_y[s],
+                source_locations_y=src_loc_y[s],
+                receiver_locations_y=rec_loc_y[s],
+                source_amplitudes_x=src_amp_x[s],
+                source_locations_x=src_loc_x[s],
+                receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )

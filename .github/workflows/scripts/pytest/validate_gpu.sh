@@ -9,13 +9,9 @@ conda activate dw
 pytest tests
 pytest_exit_code=$?
 
-echo "SLEEPING FOR 30 SECONDS"
-echo "CANCEL NOW IF YOU NEED TO CANCEL AUTO-COMMIT"
-sleep 30
-
 # Check if there are any .out files to add
 if git status -uno --porcelain | grep '.out$' > /dev/null; then
-    echo "Adding .out files to commit..."
+    echo "Adding output files to commit..."
     git add tests/**/*.out
 else
     echo "WARNING: No .out files found to add."

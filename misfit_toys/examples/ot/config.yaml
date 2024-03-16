@@ -1,0 +1,31 @@
+exec:
+  run: True
+  data_path: conda/data/marmousi/deepwave_example/shots16
+  remap:
+    vp_init: vp
+  min_vel: 1000.0
+  max_vel: 5000.0
+  loss:
+    type: tik
+    tik:
+      alpha:
+        function: exp
+        kw:
+          _min: 0.0
+          _max: 1.0
+          beta: 0.3
+        max_iters: 10
+    w2:
+      renorm: square
+  time_pad_frac: 0.2
+  epochs: 10
+  n_gpus: 2
+io:
+  tensor: out
+  figs: figs
+plot:
+  common:
+    verbose: True
+    duration: 100
+    print_freq: 10
+  debug: [2, 20, 1]

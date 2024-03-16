@@ -1,13 +1,12 @@
-from misfit_toys.data.dataset import DataFactory
-from masthay_helpers.global_helpers import iprint
+import sys
 
-import os
+from misfit_toys.data.dataset import DataFactory
 
 
 def download_data(storage, exclusions):
     DataFactory.create_database(storage=storage, exclusions=exclusions)
 
-    iprint(
+    print(
         "To see more examples, look at the source code located in"
         f" {__file__}.\n",
         "You can still access those examples directly through misfit_toys."
@@ -17,7 +16,9 @@ def download_data(storage, exclusions):
 
 def main():
     storage = "conda/data"
-    exclusions = ["das_curtin"]
+    inclusions = set(sys.argv[1:])
+    all = {'das_curtin', 'marmousi', 'marmousi2'}
+    exclusions = list(all - inclusions)
     download_data(storage, exclusions)
 
 

@@ -1,0 +1,86 @@
+dep:
+  train:
+    loss: ^^misfit_toys.fwi.loss.tikhonov
+np: self.prop.module.meta.nt
+plt:
+  vp:
+    sub:
+      shape:
+      - 3
+      - 1
+      kw:
+        figsize:
+        - 10
+        - 10
+      adjust:
+        hspace: 0.5
+        wspace: 0.5
+    iter:
+      none_dims:
+      - -2
+      - -1
+    save:
+      path: figs/vp.gif
+      movie_format: gif
+      duration: 1000
+    order:
+    - vp
+    - vp_true
+    - rel_diff
+    plts:
+      vp:
+        main:
+          opts:
+            cmap: gray
+            aspect: auto
+          title: $v_p$
+          type: imshow
+          xlabel: Rec Location (m)
+          ylabel: Depth (m)
+          colorbar: true
+          vp: null
+      rel_diff:
+        main:
+          opts:
+            cmap: gray
+            aspect: auto
+          title: Relative Difference (%)
+          type: imshow
+          xlabel: Rec Location (m)
+          ylabel: Depth (m)
+          colorbar: true
+      vp_true:
+        main:
+          opts:
+            cmap: gray
+            aspect: auto
+          title: $v_{true}$
+          type: imshow
+          xlabel: Rec Location (m)
+          ylabel: Depth (m)
+          colorbar: true
+train:
+  retrain: true
+  max_iters: 25
+  loss:
+    type: self.dep.train.loss.TikhonovLoss
+    builder:
+      func: self.dep.train.loss.lin_reg_drop
+      args: []
+      kw:
+        scale: 1.0e-06
+        _min: 1.0e-07
+  optimizer:
+    type: 'eval(lambda *args, **kw: [torch.optim.LBFGS, kw])'
+    builder:
+      args: []
+      kw:
+        lr: 1.0
+        max_iter: 20
+        max_eval: null
+        tolerance_grad: 1.0e-07
+        tolerance_change: 1.0e-09
+        history_size: 100
+        line_search_fn: null
+data:
+  path: conda/data/marmousi/deepwave_example/shots16

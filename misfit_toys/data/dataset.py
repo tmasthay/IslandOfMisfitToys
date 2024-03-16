@@ -1,25 +1,22 @@
-import torch
+import argparse
+import copy
 import os
-import numpy as np
-from obspy.io.segy.segy import _read_segy
-import torch
-from subprocess import check_output as co
-import os
-import time
-import sys
-import torch
-from ..swiffer import sco, istr, iraise, ireraise, iprint
 import re
-from warnings import warn
-import deepwave as dw
+import sys
+import time
 from abc import ABC, abstractmethod
 from importlib import import_module
-from ..utils import auto_path, parse_path, get_pydict, downsample_any
-import copy
+from subprocess import check_output as co
 from warnings import warn
-from ..swiffer import iraise, ireraise
-from masthay_helpers.global_helpers import prettify_dict, path_up, DotDict, bstr
-import argparse
+
+import deepwave as dw
+import numpy as np
+import torch
+from mh.core import DotDict
+from obspy.io.segy.segy import _read_segy
+
+from ..swiffer import iprint, iraise, ireraise, istr, sco
+from ..utils import auto_path, downsample_any, get_pydict, parse_path
 
 
 def fetch_warn():
@@ -168,8 +165,7 @@ def fetch_data(d, *, path, unzip=True):
                     func = v[0]
                     args = v[1]
                     kwargs = v[2]
-                    clos = lambda: func(*args, path=path, **kwargs)
-                    calls.append(clos)
+                    calls.append(lambda: func(*args, path=path, **kwargs))
     return calls
 
 
@@ -202,7 +198,7 @@ def check_data_installation(path):
             u = torch.load(file)
             print(f'SUCCESS "{file}" shape={u.shape}')
             res["success"].append(file)
-        except:
+        except Exception:
             print(f'FAILURE "{file}"')
             res["failure"].append(file)
     return res
@@ -221,7 +217,7 @@ def store_metadata(*, path, metadata):
         for k1, v1 in v.items():
             res[k][k1] = lean(v1)
         json_path = os.path.join(path, k, "metadata.json")
-        res_str = prettify_dict(res, jsonify=True)
+        res_str = str(res)
         sep = 80 * "*" + "\n"
         s = sep
         s += f"Storing metadata for {k} in {json_path}\n"
@@ -253,7 +249,7 @@ def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
 
 
 def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     datasets = {
         "marmousi": {
             "url": (
@@ -277,7 +273,7 @@ def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
             "peak_time": 1.5 / 25,
             "vp": {},
             "rho": {},
-            "obs_data": (create_obs_marm_dw, (), {"device": device}),
+            # "obs_data": (create_obs_marm_dw, (), {"device": device}),
         },
         "marmousi2": {
             "url": "http://www.agl.uh.edu/downloads/",
@@ -493,9 +489,11 @@ class DataFactory(ABC):
         self, *, device=None, src_path, root_out_path, root_path, **kw
     ):
         if device is None:
-            self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+            num_gpus = torch.cuda.device_count()
+            self.device = f"cuda:{num_gpus - 1}" if num_gpus > 0 else "cpu"
         else:
             self.device = device
+
         self.src_path = src_path
         self.parent_path = os.path.dirname(self.src_path)
         self.root_out_path = root_out_path
@@ -535,7 +533,7 @@ class DataFactory(ABC):
             iraise(
                 FileNotFoundError,
                 f"\n\nNo metadata found in {self.src_path}\n.",
-                f'For directories "X" without metadata.py, we populate ',
+                'For directories "X" without metadata.py, we populate ',
                 "X/metadata.pydict with the metadata from the parent ",
                 "prior to generating a DataFactory object",
             )
@@ -543,7 +541,10 @@ class DataFactory(ABC):
         self.__extend_init__(**kw)
 
     def __extend_init__(self, **kw):
-        pass
+        if 'linked_root_out' in self.metadata.keys():
+            self.out_path = os.path.join(
+                self.metadata['linked_root_out'], self.append_path
+            )
 
     @abstractmethod
     def _manufacture_data(self, **kw):
@@ -664,7 +665,7 @@ class DataFactory(ABC):
             # input(f"Broadcasting {k} to {self.out_path}")
             os.makedirs(f"{self.out_path}/{k}", exist_ok=True)
             with open(f"{self.out_path}/{k}/metadata.pydict", "w") as f:
-                f.write(prettify_dict(v))
+                f.write(str(v))
 
     def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, "..")
@@ -767,7 +768,9 @@ class DataFactory(ABC):
             )
 
             if os.system(cmd):
+                input(cmd)
                 iraise(RuntimeError, f"{cmd} failed")
+                sys.exit(-1)
 
         if not os.path.exists(f"{src_path}/factory.py"):
             iraise(FileNotFoundError, f"No factory.py found in {src_path}")
@@ -780,7 +783,9 @@ class DataFactory(ABC):
             os.system(cmd)
         except Exception as e:
             msg = str(e)
-            iraise(type(e), f"Error in execution of {cmd}", msg)
+            # iraise(type(e), f"Error in execution of {cmd}", msg)
+            input(msg)
+            sys.exit(-1)
 
     @staticmethod
     def get_slices(metadata):
@@ -814,44 +819,3 @@ class DataFactory(ABC):
             root_path=args.root,
             **kw,
         )
-
-
-class DataFactoryTree(DataFactory):
-    """
-    data: Stores all data, with tensors being evaluated now + all the metadata
-    """
-
-    def get_parent_meta(self):
-        parent_abs_path = "/".join(self.fpath.split("/")[:-1])
-        pydict_exists = os.path.exists(
-            os.path.join(parent_abs_path, "metadata.pydict")
-        )
-        py_exists = os.path.exists(os.path.join(parent_abs_path, "metadata.py"))
-
-        if pydict_exists and not py_exists:
-            try:
-                return get_pydict(parent_abs_path)
-            except Exception as e:
-                ireraise(
-                    e,
-                    f"Error in {parent_abs_path}/metadata.pydict\n",
-                    f'IOMT USER RESPONSIBILTY: "python {parent_abs_path}',
-                    f'/metadata.py" should create a file at {parent_abs_path}',
-                    "/metadata.pydict that is a valid python dictionary.",
-                )
-        elif py_exists:
-            os.system(f"python {parent_abs_path}/metadata.py")
-            return get_pydict(parent_abs_path)
-        else:
-            iraise(FileNotFoundError, f"No metadata found in {parent_abs_path}")
-
-    class LocalFactory(DataFactory):
-        def __init__(
-            self, *, path, device=None, src_path, root_out_path, root_path
-        ):
-            super().__init__(path=path, device=device)
-            self.src_path = src_path
-            self.root_out_path = root_out_path
-            self.root_path = root_path
-            self.append_path = os.path.relpath(self.path, self.root_path)
-            self.out_path = os.path.join(self.root_out_path, self.append_path)

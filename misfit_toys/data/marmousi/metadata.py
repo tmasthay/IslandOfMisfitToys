@@ -1,4 +1,4 @@
-from masthay_helpers.global_helpers import save_metadata
+from mh.core_legacy import save_metadata
 
 
 @save_metadata(cli=True)
@@ -37,7 +37,14 @@ def metadata():
                 "n_shots": 20,
                 "rec_per_shot": 100,
                 "derived": {
-                    "shots16": {"n_shots": 16, 'derived': {'twolayer': {}}}
+                    "shots16": {
+                        "n_shots": 16,
+                        'derived': {
+                            'twolayer': {'beta': 1.0},
+                            'twolayer_strong': {'beta': 3.0},
+                            'twolayer_verystrong': {'beta': 10.0},
+                        },
+                    }
                 },
             }
         },

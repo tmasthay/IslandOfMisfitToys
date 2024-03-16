@@ -1,13 +1,14 @@
 import os
-import torch
 from warnings import warn
-import deepwave as dw
-from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from masthay_helpers.global_helpers import add_root_package_path
 
-add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
-from misfit_toys.data.dataset import DataFactory, towed_src, fixed_rec
-from masthay_helpers.global_helpers import DotDict
+import deepwave as dw
+import torch
+from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
+
+# add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
+from mh.core import DotDict
+
+from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
 
 
 class Factory(DataFactory):

@@ -1,4 +1,4 @@
-from masthay_helpers.global_helpers import save_metadata
+from mh.core_legacy import save_metadata
 
 
 @save_metadata(cli=True)
@@ -37,10 +37,7 @@ def metadata():
                 "n_shots": 20,
                 "rec_per_shot": 100,
             },
-            "medium": {
-                "ny": 2301,
-                "nx": 751,
-            },
+            "medium": {"ny": 2301, "nx": 751},
         },
     }
 

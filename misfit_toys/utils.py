@@ -20,32 +20,47 @@ Functions:
 - mem_report: Generate a memory report.
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
+import glob
 import os
+import socket
+from typing import Annotated as Ant
+from typing import Any
+
 import deepwave as dw
-from typing import Annotated as Ant, Any
-from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
-import torch.distributed as dist
-from torchaudio.functional import biquad
 
 # Rest of the code...
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-from typing import Annotated as Ant, Any
-
-import deepwave as dw
-import os
-
-from masthay_helpers.global_helpers import find_files, vco, ctab, DotDict
 import torch.distributed as dist
+import torch.nn.functional as F
+from mh.core import DotDict, exec_imports
+from mh.core_legacy import ctab, find_files, vco
+from returns.curry import curry
 from torchaudio.functional import biquad
 
 
-def setup(rank, world_size, port=12355):
+def find_available_port(start_port, max_attempts=5):
+    """
+    Tries to find an available network port starting from 'start_port'.
+    It makes up to 'max_attempts' to find an available port.
+    Returns the first available port number or raises an exception if no available port is found.
+    """
+    port = start_port
+    for _ in range(max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("", port))
+                return port  # Port is available
+        except OSError as e:
+            if e.errno == 98:  # Port is already in use
+                print(f"Port {port} is in use, trying next port.")
+                port += 1
+            else:
+                raise  # Re-raise exception if it's not a "port in use" error
+
+
+def setup(rank, world_size, port=12358):
     """
     Set up the distributed training environment.
 
@@ -138,8 +153,13 @@ def save(tensor, name, *, rank="", path="out/parallel", ext=".pt"):
         path (str, optional): The directory path. Defaults to "out/parallel".
         ext (str, optional): The file extension. Defaults to ".pt".
     """
+    if name == 'path_record':
+        return
     os.makedirs(path, exist_ok=True)
-    torch.save(tensor, get_file(name, rank=rank, path=path, ext=".pt"))
+    filename = get_file(name, rank=rank, path=path, ext=ext)
+    torch.save(tensor, filename)
+    if not os.path.exists(filename):
+        raise ValueError(f'{name}, {type(tensor)}, {filename}')
 
 
 def savefig(name, *, path="out/parallel", ext=".pt"):
@@ -334,7 +354,10 @@ def run_verbosity(*, verbosity, levels):
         Callable: The decorator function.
     """
     levels = clean_levels(levels)
-    v2i = lambda x: verbosity_str_to_int(verbosity=x, levels=levels)
+
+    def v2i(x):
+        verbosity_str_to_int(verbosity=x, levels=levels)
+
     verbosity_int = v2i(verbosity)
 
     def helper(f):
@@ -367,7 +390,10 @@ def mem_report(*args, precision=2, sep=", ", rep=None):
     if rep is None:
         rep = []
     [rep.append("unknown") for _ in range(len(args) - len(rep))]
-    add = lambda x, i: filtered_args.append(x + " (" + rep[i] + ")")
+
+    def add(x, i):
+        filtered_args.append(x + " (" + rep[i] + ")")
+
     for i, arg in enumerate(args):
         if 1e18 < arg:
             add(f"{arg/1e18:.{precision}f} EB", i)
@@ -475,7 +501,7 @@ class SlotMeta(type):
 
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
-            class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
+            # class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
 
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
@@ -575,7 +601,12 @@ def canonical_reduce(reduce=None, exclude=None, extra=None):
     default = dict()
 
     for name in canon:
-        has_key = lambda *x: any([e in name for e in x])
+
+        def has_key(x):
+            # original was lambda *x: ... --- unsure if this works,
+            #     THIS CODE IS DEPRECATED ANYWAY
+            any([e in name for e in x])
+
         if has_key("cat", "filt", "record"):
             default[name] = "cat"
         elif has_key("stack"):
@@ -630,6 +661,341 @@ def check_devices(root):
             del u
         except Exception as e:
             data.append([file, '', str(e)])
-            del u
+            # del u
     s = ctab(data, headers=headers, colors=colors)
     print(s)
+
+
+def bool_slice(
+    *args,
+    permute=None,
+    none_dims=(),
+    ctrl=None,
+    strides=None,
+    start=None,
+    cut=None,
+):
+    permute = list(permute or range(len(args)))
+    permute.reverse()
+
+    # Logic is not correct here for strides, start, cut, etc. TODO: Fix
+    strides = strides or [1 for _ in range(len(args))]
+    start = start or [0 for _ in range(len(args))]
+    cut = cut or [0 for _ in range(len(args))]
+    tmp = list(args)
+    for i in range(len(strides)):
+        if i not in none_dims:
+            tmp[i] = (tmp[i] - start[i] - cut[i]) // strides[i]
+
+    args = list(args)
+    none_dims = [i if i >= 0 else len(args) + i for i in none_dims]
+    for i in range(len(args)):
+        if i not in none_dims:
+            args[i] = args[i] - cut[i]
+    # Total number of combinations
+    total_combinations = np.prod(
+        [e for i, e in enumerate(tmp) if i not in none_dims]
+    )
+
+    # Initialize indices
+    idx = [
+        slice(None) if i in none_dims else start[i] for i in range(len(args))
+    ]
+
+    if ctrl is None:
+
+        def ctrl_default(*args):
+            return True
+
+        ctrl = ctrl_default
+
+    for combo in range(total_combinations):
+        print(f'combo={combo}')
+        yield tuple([tuple(idx)]) + (ctrl(idx, args),)
+
+        # Update indices
+        for i in permute:
+            if i in none_dims:
+                continue
+            idx[i] += strides[i]
+            if idx[i] < args[i]:
+                break
+            idx[i] = start[i]
+
+
+def clean_idx(idx, show_colons=True):
+    res = [str(e) if e != slice(None) else ':' for e in idx]
+    if not show_colons:
+        res = [e for e in res if e != ':']
+    return f'({", ".join(res)})'
+
+
+@curry
+def tensor_summary(t, num=5, inc='all', exc=None):
+    num = min(num, t.numel())
+    if inc == 'all':
+        inc = [
+            'shape',
+            'dtype',
+            'min',
+            'max',
+            'mean',
+            'std',
+            f'top {num} values',
+            f'bottom {num} values',
+        ]
+    inc = set(inc).difference(exc or [])
+    d = {
+        'shape': t.shape,
+        'dtype': t.dtype,
+        'min': t.min(),
+        'max': t.max(),
+        'mean': t.mean() if t.dtype == torch.float32 else None,
+        'std': t.std() if t.dtype == torch.float32 else None,
+        f'top {num} values': torch.topk(t.reshape(-1), num, largest=True)[0],
+        f'bottom {num} values': torch.topk(t.reshape(-1), num, largest=False)[
+            0
+        ],
+    }
+    d = {k: v for k, v in d.items() if k in inc}
+    s = ''
+    for k, v in d.items():
+        s += f'{k}:    {v}\n'
+    return s
+
+
+def pull_data(path):
+    d = {}
+    keys = [e.replace('.pt', '') for e in os.listdir(path) if e.endswith('.pt')]
+    for k in keys:
+        d[k] = torch.load(os.path.join(path, k + '.pt'))
+    return DotDict(d)
+
+
+def mean_filter_1d(y, kernel_size):
+    num_elems = y.numel() // y.shape[-1]
+    input_tensor = y.reshape(num_elems, 1, y.shape[-1])
+    kernel = torch.ones((kernel_size,)).unsqueeze(0).unsqueeze(0) / kernel_size
+    kernel = kernel.to(input_tensor.device)
+
+    padding_size = kernel_size // 2
+    if kernel_size % 2 == 0:
+        left_padding, right_padding = padding_size, padding_size - 1
+    else:
+        left_padding, right_padding = padding_size, padding_size
+
+    if padding_size > 0:
+        input_tensor = F.pad(
+            input_tensor, (left_padding, right_padding), mode='reflect'
+        )
+
+    mean_filter = torch.nn.Conv1d(
+        1, 1, kernel_size, bias=False, padding=0, groups=1
+    )
+    mean_filter.weight.data = kernel
+    mean_filter.weight.requires_grad = False
+
+    output_tensor = mean_filter(input_tensor)
+    output_tensor = output_tensor.reshape(y.size())
+
+    return output_tensor
+
+
+def get_tensors(path, device='cpu'):
+    d = DotDict({})
+    files = [e[:-3] for e in os.listdir(path) if e.endswith('.pt')]
+    for f in files:
+        d[f] = torch.load(f'{path}/{f}.pt')
+        if device is not None:
+            d[f] = d[f].to(device)
+    return d
+
+
+def d2cpu(x):
+    return x.detach().cpu()
+
+
+def chunk_params(rank, world_size, *, params, chunk_keys):
+    """
+    Chunks the parameters based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        params (dict): A dictionary containing the parameters.
+        chunk_keys (list): A list of keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked parameters.
+
+    """
+    for k in chunk_keys:
+        params[k].p.data = torch.chunk(params[k].p.data, world_size)[rank]
+    return params
+
+
+def chunk_tensors(rank, world_size, *, data, chunk_keys):
+    """
+    Chunks the tensors based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        data (dict): A dictionary containing the tensors.
+        chunk_keys (list): A list of keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked tensors.
+
+    """
+    for k in chunk_keys:
+        data[k] = torch.chunk(data[k], world_size)[rank]
+    return data
+
+
+def deploy_data(rank, data):
+    """
+    Deploys the data to the specified rank.
+
+    Args:
+        rank (int): The rank to deploy the data to.
+        data (dict): A dictionary containing the data.
+
+    Returns:
+        dict: A dictionary containing the deployed data.
+
+    """
+    for k, v in data.items():
+        if k != 'meta':
+            data[k] = v.to(rank)
+    return data
+
+
+def chunk_and_deploy(rank, world_size, *, data, chunk_keys):
+    """
+    Chunks and deploys the data based on the rank and world size.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        data (dict): A dictionary containing the data.
+        chunk_keys (dict): A dictionary containing the keys to chunk.
+
+    Returns:
+        dict: A dictionary containing the chunked and deployed data.
+
+    """
+    data = chunk_tensors(
+        rank, world_size, data=data, chunk_keys=chunk_keys['tensors']
+    )
+    data = chunk_params(
+        rank, world_size, params=data, chunk_keys=chunk_keys['params']
+    )
+    data = deploy_data(rank, data)
+    return data
+
+
+def read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw):
+    remap = remap or {}
+    d = get_tensors(path)
+    for k, v in remap.items():
+        d[remap[k]] = d.pop(k)
+    for k, v in kw.items():
+        d[k] = v(d[k])
+    d.meta = DotDict(eval(open(f'{path}/metadata.pydict', 'r').read()))
+    chunk_and_deploy(rank, world_size, data=d, chunk_keys=chunk_keys)
+    return d
+
+
+def get_gpu_memory(rank):
+    torch.cuda.synchronize()  # Synchronizes all kernels and operations to ensure correct memory readings
+    total_memory = torch.cuda.get_device_properties(rank).total_memory
+    allocated_memory = torch.cuda.memory_allocated(rank)
+    cached_memory = torch.cuda.memory_reserved(rank)
+    available_memory = total_memory - max(allocated_memory, cached_memory)
+
+    return {
+        'rank': rank,
+        'total_memory_GB': total_memory / (1024**3),  # Convert to GB
+        'allocated_memory_GB': allocated_memory / (1024**3),
+        'cached_memory_GB': cached_memory / (1024**3),
+        'available_memory_GB': available_memory / (1024**3),
+    }
+
+
+def apply_builder(lcl, gbl):
+    builder = lcl.builder
+    print(builder, flush=True)
+    if 'func' in builder.keys():
+        args, kwargs = builder.func(gbl, *builder.args, **builder.kw)
+    else:
+        args = builder.get('args', [])
+        kwargs = builder.get('kw', {}) or builder.get('kwargs', {})
+    obj = lcl.type(*args, **kwargs)
+    return obj
+
+
+def apply(lcl, relax=True):
+    if 'runtime_func' not in lcl.keys() and relax:
+        return lcl
+    elif 'runtime_func' not in lcl.keys() and not relax:
+        raise ValueError(
+            f"To apply lcl, we need runtime_func to be a key "
+            f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
+        )
+    args = lcl.get('args', [])
+    kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
+    for i, e in enumerate(args):
+        if isinstance(e, DotDict) or isinstance(e, dict):
+            args[i] = apply(e, relax=True)
+
+    for k, v in kwargs.items():
+        if isinstance(v, DotDict) or isinstance(v, dict):
+            kwargs[k] = apply(v, relax=True)
+
+    keys = set(kwargs.keys())
+    is_reducible = keys.issubset(set(['args', 'kwargs', 'kw', 'runtime_func']))
+    if is_reducible:
+        kwargs = apply(kwargs, relax=True)
+    lcl = lcl.runtime_func(*args, **kwargs)
+    return lcl
+
+
+def apply_all(lcl, relax=True, exc=None):
+    exc = exc or []
+    for k, v in lcl.items():
+        if k in exc:
+            continue
+        elif isinstance(v, DotDict) or isinstance(v, dict):
+            if 'runtime_func' in v.keys():
+                lcl[k] = apply(v, relax=relax)
+            else:
+                lcl[k] = apply_all(v, relax=relax, exc=exc)
+    return lcl
+
+
+# Syntactic sugar for converting from device to cpu
+def d2cpu(x):
+    return x.detach().cpu()
+
+
+def resolve(c: DotDict, relax) -> DotDict:
+    c = exec_imports(c)
+    c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
+    return c
+
+
+def git_dump_info(exc=None):
+    exc = exc or ['outputs', 'multirun', '__pycache__']
+    s = ''
+    s += f'HASH: {vco("git rev-parse HEAD")}\n'
+    s += f'BRANCH: {vco("git rev-parse --abbrev-ref HEAD")}\n\n'
+    untracked_files_cmd = 'git ls-files --others'
+    for e in exc:
+        untracked_files_cmd += f' | grep -v "^{e}"'
+    s += f'UNTRACKED FILES: {vco(untracked_files_cmd)}\n\n'
+    s += 80 * '*' + '\n'
+    s += f'DIFF: {vco("git diff")}\n'
+    s += 80 * '*' + '\n'
+
+    return s

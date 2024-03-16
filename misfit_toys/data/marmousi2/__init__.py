@@ -1,4 +1,9 @@
-__all__ = ["metadata", "factory", "tiny", "medium"]
+__all__ = [
+    "metadata",
+    "factory",
+    "tiny",
+    "medium"
+]
 from .metadata import *
 from .factory import *
 from .tiny import *

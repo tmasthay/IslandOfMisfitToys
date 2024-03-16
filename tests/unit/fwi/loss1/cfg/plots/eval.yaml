@@ -1,0 +1,45 @@
+sub:
+  shape: [5, 2]
+  kw:
+    figsize: [10, 10]
+  adjust:
+    wspace: 0.5
+    hspace: 0.2
+
+suptitle: "Uniform Distribution $W_2^2$ Verification"
+# order: [1, 3, 5, 4, 6, 7, 8, 9, 2, 10]
+order: null
+
+imshow:
+  kw:
+    aspect: auto
+    cmap: gray
+
+opts:
+  - color: red
+    label: Computed
+    linestyle: "-"
+  - color: blue
+    label: Expected
+    linestyle: "--"
+  - color: green
+    label: Numerical Derivative
+    linestyle: ":"
+  - color: green
+    label: Difference
+    linestyle: ":"
+
+legend:
+  - loc: lower right
+    fontsize: small
+    framealpha: 0.5
+
+iter:
+  - none_dims: [2]
+    strides: [1, 1, 1]
+    permute: [1, 0, 2]
+
+save:
+  path: out/eval
+  movie_format: gif
+  duration: 1000

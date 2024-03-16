@@ -3,22 +3,20 @@
 Classes:
     TrainingAbstract: Abstract base class for training modules.
     Training: Subclass of TrainingAbstract where abstract methods supplied in __init__.
+
 """
 
-from dataclasses import dataclass
-from collections import OrderedDict
-import torch
-from masthay_helpers.global_helpers import (
-    get_print,
-    flip_dict,
-    subdict,
-    DotDict,
-)
-from torch.optim.lr_scheduler import ChainedScheduler
-from misfit_toys.utils import load_all, save, cleanup, filt, taper
-from typing import Callable, Any
 from abc import ABC, abstractmethod
+from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, Callable
 
+import torch
+from mh.core import DotDict, flip_dict, get_print
+from mh.core_legacy import subdict
+from torch.optim.lr_scheduler import ChainedScheduler
+
+from misfit_toys.utils import cleanup, filt, load_all, save, taper
 
 # TODO: Consider using a Protocol here
 #   and encapsulate _step, _pre_train, _post_train inside of it.
@@ -74,7 +72,7 @@ class TrainingAbstract(ABC):
 
     def __post_init__(self):
         """
-        Perform post-initialization tasks for the training class.
+        Perform post-initialization tasks.
 
         Parameters:
             None
@@ -112,11 +110,43 @@ class TrainingAbstract(ABC):
             }
             self.report_spec[k] = {**defaults, **v}
         self.report_spec_flip = flip_dict(
-            subdict(self.report_spec, exclude=['path'])
+            subdict(self.report_spec, exc=['path'])
         )
         self.report = DotDict({k: [] for k in self.report_spec.keys()})
+        self.report.path = self.report_spec['path']
         self.print, _ = get_print(_verbose=self.verbose)
         self.training_stages = self._build_training_stages()
+
+    def __set_loss_status(self, val):
+        if hasattr(self.loss_fn, 'status'):
+            self.loss_fn.build_status = val
+
+    def _report_iteration(self):
+        """
+        Report the current iteration of training.
+
+        Returns:
+            None
+        """
+        if hasattr(self.loss_fn, 'status'):
+            s = self.loss_fn.status
+        else:
+            s = (
+                f"rank: {self.rank}, "
+                f"iter: {len(self.report['loss'])}, "
+                f"loss: {self.loss}"
+            )
+        out_norm = (
+            self.out[-1].norm() if type(self.out) is tuple else self.out.norm()
+        )
+        s += (
+            f", training.loss: {self.loss:.2e}"
+            f", lr: {self.optimizer.param_groups[0]['lr']:.3e}"
+            f", obs_data.norm: {self.obs_data.norm():.2e}"
+            f", out.norm: {out_norm:.2e}"
+            f", rank: {self.rank}"
+        )
+        self.print(s, verbose=1)
 
     @abstractmethod
     def _step(self) -> None:
@@ -133,6 +163,7 @@ class TrainingAbstract(ABC):
         self._pre_train()
         self._train()
         self.__post_train()
+        # torch.distributed.barrier()
 
     def step(self):
         """
@@ -147,9 +178,13 @@ class TrainingAbstract(ABC):
             nonlocal num_calls
             num_calls += 1
             self.optimizer.zero_grad()
+
+            self.__set_loss_status(num_calls == 1)
+
             self._step()
             if num_calls == 1:
                 self._update_records()
+                self._report_iteration()
             return self.loss
 
         self.optimizer.step(closure)
@@ -225,11 +260,18 @@ class TrainingAbstract(ABC):
         Returns:
             None
         """
+        # tmp = {k: v.shape for k, v in self.report}
+        # raise ValueError(f'My report = {self.report.path}')
         for k, v in self.report.items():
             if k in self.report_spec_flip['presave'].keys():
                 print(f"Presaving {k}", flush=True)
-                print(f"v={v}", flush=True)
-                v = self.report_spec_flip['presave'][k](v)
+                # print(f"v={v}", flush=True)
+                try:
+                    v = self.report_spec_flip['presave'][k](v)
+                except Exception as e:
+                    msg = f"Error in presave for k: v={k}: {v}"
+                    raise ValueError(f'{e}\n\n{msg}')
+                # raise ValueError(f"v={v}")
             save(
                 v, f'{k}_record', rank=self.rank, path=self.report_spec['path']
             )

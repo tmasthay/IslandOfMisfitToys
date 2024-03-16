@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import deepwave
 import matplotlib.pyplot as plt
@@ -10,9 +11,9 @@ from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
-from misfit_toys.utils import parse_path
+
 from misfit_toys.data import download_data
-import shutil
+from misfit_toys.utils import parse_path, get_gpu_memory
 
 
 def setup(rank, world_size):
@@ -100,7 +101,10 @@ def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
     path = os.path.dirname(__file__)
-    get = lambda x: os.path.join(path, x)
+
+    def get(x):
+        return os.path.join(path, x)
+
     ny = 2301
     nx = 751
     dx = 4.0
@@ -141,6 +145,7 @@ def run_rank(rank, world_size):
     n_shots = 16
     n_receivers_per_shot = 100
     nt = 300
+
     observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
 
     # source_locations
@@ -175,6 +180,7 @@ def run_rank(rank, world_size):
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(model, dx, dt, freq).to(rank)
+
     prop = DDP(prop, device_ids=[rank])
 
     # Setup optimiser to perform inversion
@@ -195,6 +201,7 @@ def run_rank(rank, world_size):
         return j + i * n_epochs
 
     for i, cutoff_freq in enumerate(freqs):
+        print(i, flush=True)
         sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
@@ -219,7 +226,7 @@ def run_rank(rank, world_size):
                 loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                 loss.backward()
                 if num_calls == 1:
-                    loss_record.append(loss)
+                    loss_record.append(loss.detach().cpu())
                     v_record.append(prop.module.model().detach().cpu())
                     out_record.append(out[-1].detach().cpu())
                     out_filt_record.append(out_filt.detach().cpu())
@@ -231,6 +238,7 @@ def run_rank(rank, world_size):
                 return loss
 
             optimiser.step(closure)
+            torch.cuda.empty_cache()
 
     save(torch.tensor(loss_record), 'loss_record.pt', rank=rank)
     save(torch.stack(v_record), 'vp_record.pt', rank=rank)

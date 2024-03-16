@@ -1,0 +1,1 @@
+type: "eval(lambda *args, **kw: [torch.optim.Adam, kw])"

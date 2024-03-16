@@ -1,9 +1,9 @@
+# python>=3.10.12
 black>=23.9.1
 deepwave>=0.0.19
-gdown>=4.7.1
-holoviews>=1.17.1
+# holoviews>=1.17.1
 imageio>=2.31.1
-masthay-helpers>=0.2.90
+# masthay-helpers>=0.2.90
 matplotlib>=3.7.2
 matplotlib-inline>=0.1.6
 numpy>=1.25.2
@@ -11,8 +11,9 @@ obspy>=1.4.0
 python-json-logger>=2.0.7
 requests>=2.31.0
 returns>=0.22.0
-rich>=13.6.0
+# rich>=13.6.0
 scipy>=1.11.1
 setuptools>=68.0.0
 torch>=2.0.1
 torchaudio>=2.0.2
+# git+https://github.com/patrick-kidger/torchcubicspline.git
