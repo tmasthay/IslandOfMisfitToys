@@ -47,7 +47,6 @@ def unbatch_spline_eval(splines, t, *, deriv=False):
     t = t.unsqueeze(-1)
     res = torch.empty(t.shape).to(t.device)
     for idx in product(*map(range, t.shape[:-2])):
-        # t_idx = (*idx, slice(None), slice(0, 1))
         if deriv:
             res[idx] = splines[idx].derivative(t[idx]).squeeze(-1)
         else:
@@ -108,20 +107,13 @@ def true_quantile(
     if len(pdf.shape) == 1:
         if dx is not None:
             cdf = cum_trap(pdf, dx=dx, dim=-1)
-            # cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
         else:
             cdf = cum_trap(pdf, x, dim=-1)
-            # cdf_verify = torch.trapezoid(pdf, x, dim=-1)
         if not torch.allclose(
             cdf[..., 0], torch.zeros(1).to(cdf.device), atol=atol
         ) or not torch.allclose(
             cdf[..., -1], torch.ones(1).to(cdf.device), atol=atol
         ):
-            # flattened = cdf.reshape(-1)
-            # left_disc = torch.topk(flattened, err_top, largest=False)[0]
-            # right_disc = torch.topk(flattened, err_top, largest=True)[0]
-            # pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
-            # pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
             raise ValueError(
                 'CDFs should theoretically be in [0.0, 1.0] and in practice be'
                 f' in [{atol}, {1.0 - atol}], observed info below\nCDF\n\n'
@@ -141,7 +133,6 @@ def true_quantile(
         )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            # results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
             print(idx)
             results[idx] = true_quantile(
                 pdf[idx],
@@ -153,13 +144,7 @@ def true_quantile(
                 ltol=ltol,
                 rtol=rtol,
             )
-            # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
-        # num_dims = len(results.shape)
-        # permutation = (
-        #     [num_dims - 2] + list(range(num_dims - 2)) + [num_dims - 1]
-        # )
 
-        # return results.permute(*permutation)
         return results
 
 
@@ -177,20 +162,13 @@ def true_quantile_choppy(
     if len(pdf.shape) == 1:
         if dx is not None:
             cdf = cum_trap(pdf, dx=dx, dim=-1)
-            # cdf_verify = torch.trapz(pdf, dx=dx, dim=-1)
         else:
             cdf = cum_trap(pdf, x, dim=-1)
-            # cdf_verify = torch.trapezoid(pdf, x, dim=-1)
         if not torch.allclose(
             cdf[..., 0], torch.zeros(1).to(cdf.device), atol=atol
         ) or not torch.allclose(
             cdf[..., -1], torch.ones(1).to(cdf.device), atol=atol
         ):
-            # flattened = cdf.reshape(-1)
-            # left_disc = torch.topk(flattened, err_top, largest=False)[0]
-            # right_disc = torch.topk(flattened, err_top, largest=True)[0]
-            # pdf_mins = torch.topk(pdf.reshape(-1), err_top, largest=False)[0]
-            # pdf_maxs = torch.topk(pdf.reshape(-1), err_top, largest=True)[0]
             raise ValueError(
                 'CDFs should theoretically be in [0.0, 1.0] and in practice be'
                 f' in [{atol}, {1.0 - atol}], observed info below\nCDF\n\n'
@@ -206,8 +184,6 @@ def true_quantile_choppy(
         indices = torch.searchsorted(cdf, p)
         indices = torch.clamp(indices, 0, len(x) - 1)
         res = x[indices]
-        # res[:left_cutoff_idx] = x[0]
-        # res[right_cutoff_idx:] = x[-1]
         return res
     else:
         # Initialize an empty tensor to store the results
@@ -217,15 +193,8 @@ def true_quantile_choppy(
         )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            # results[idx] = true_quantile(pdf[idx], x[idx], p[idx], dx=dx)
             results[idx] = true_quantile(pdf[idx], x, p, dx=dx)
-            # results[idx] = torch.stack([x_slice, cdf_slice], dim=0)
-        # num_dims = len(results.shape)
-        # permutation = (
-        #     [num_dims - 2] + list(range(num_dims - 2)) + [num_dims - 1]
-        # )
 
-        # return results.permute(*permutation)
         return results
 
 

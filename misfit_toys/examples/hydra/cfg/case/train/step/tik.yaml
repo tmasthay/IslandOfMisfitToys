@@ -3,3 +3,5 @@ kw:
   length: 100
   num_batches: null
   scale: 1.0e+06
+
+nonexist: checking_the_yaml_format_hook

@@ -56,12 +56,6 @@ def _step(self):
             f'\nrenorm_out\n{tensor_summary(self.loss_fn.renorm(self.out[-1]))}\n'
             f' renorm_obs_data\n{tensor_summary(self.loss_fn.renorm(self.obs_data))}'
         )
-    # print(f'self.loss = {self.loss}', flush=True)
-    # raise ValueError(
-    #     f'self.loss = {self.loss}, self.out.min() = {self.out[-1].min()},'
-    #     f' self.out.max() = {self.out[-1].max()}, self.out.mean() ='
-    #     f' {self.out[-1].mean()}, self.out.std() = {self.out[-1].std()}'
-    # )
     self.loss.backward()
     return self.loss
 
@@ -111,19 +105,12 @@ def get_loss_fn(cfg, **kw):
             max_iters=chosen.alpha.max_iters,
         )
     elif loss_cfg.type == 'w2':
-        # device = kw['obs_data'].device
-        # return W2LossConst(
-        #     t=kw['t'].to(device),
-        #     renorm=kw['renorm'],
-        #     obs_data=kw['obs_data'],
-        #     p=kw['p'].to(device),
         # )
         return MSELoss()
     else:
         raise NotImplementedError(f'Loss type {loss_cfg.type} not implemented')
 
 
-# Main function for training on each rank
 def run_rank(rank, world_size, cfg):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
@@ -163,10 +150,6 @@ def run_rank(rank, world_size, cfg):
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
-    # def my_renorm(x):
-    #     u = x**2 + 1e-3
-    #     return u / cum_trap(u, dx=data['meta'].dt, dim=-1)[-1].to(u.device)
-
     def my_renorm2(x):
         u = x**2 + 1e-3
         c = torch.trapz(u, dx=data['meta'].dt, dim=-1)
@@ -180,10 +163,6 @@ def run_rank(rank, world_size, cfg):
         if torch.count_nonzero(c) != c.numel():
             raise ValueError(f'Zero integral encountered: {tensor_summary(c)}')
         return u / c
-
-    # raise ValueError(
-    #     f'{tensor_summary(data["obs_data"])}\n{tensor_summary(my_renorm(data["obs_data"]))}'
-    # )
 
     used_loss_fn = get_loss_fn(
         cfg,
@@ -216,16 +195,6 @@ def run_rank(rank, world_size, cfg):
                 'reduce': lambda x: x[0],
                 'presave': torch.stack,
             },
-            # 'out': {
-            #     'update': lambda x: d2cpu(x.out[-1]),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
-            # 'out_filt': {
-            #     'update': lambda x: d2cpu(x.out_filt),
-            #     'reduce': lambda x: torch.cat(x, dim=1),
-            #     'presave': torch.stack,
-            # },
         },
         _step=_step,
         _build_training_stages=(lambda: training_stages(cfg)),
@@ -247,12 +216,7 @@ def plot_data(cfg):
             'labels': ['Extent', 'Depth', 'Epoch'],
             'permute': (2, 1, 0),
         },
-        # 'out_record': {
-        #     'labels': ['Extent', 'Time', 'Shot No', 'Epoch'],
-        #     'permute': (3, 2, 1, 0),
-        # },
     }
-    # opts['out_filt_record'] = opts['out_record']
     for k in opts.keys():
         opts[k].update(common)
 

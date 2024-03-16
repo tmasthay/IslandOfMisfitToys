@@ -21,11 +21,6 @@ def test_validate():
             "clean": 'i',
         }
     )
-    # args = {
-    #     "output": os.path.join(curr_dir, "out", "validate.out"),
-    #     "justify": "right",
-    #     "clean": 'i',
-    # }
     res = val.main(args)
     tol = 0.2
     diff = max([max(v) for v in res.values()])

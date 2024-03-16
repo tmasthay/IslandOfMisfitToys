@@ -11,7 +11,6 @@ from misfit_toys.utils import bool_slice, clean_idx
 
 @hydra_kw(use_cfg=True)
 def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
-    # c = convert_config_correct(c)
     pc = pytest_cfg
     c = convert_dictconfig(c)
     c.order = (
@@ -20,8 +19,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         else c.order
     )
 
-    # Q = unbatch_spline_eval(d.q, pc.p)
-    # Qd = unbatch_spline_eval(d.qd, pc.p)
     Q, Qd = d.q(pc.p), d.qd(pc.p)
 
     shift_expand = pc.shift.unsqueeze(-1).expand(
@@ -40,7 +37,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         atol=pc.atol,
         err_top=pc.err_top,
     )
-    # raise ValueError(d.uniform_pdfs.shape)
 
     fig, axes = plt.subplots(*c.sub.shape, **c.sub.kw)
     plt.subplots_adjust(**c.sub.adjust)
@@ -66,8 +62,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
                 pc.shift.max(),
             ],
         )
-        # y = [curr_shift, curr_shift]
-        # x = [pc.scale.min(), pc.scale.max()]
         y = [pc.shift.min(), pc.shift.max()]
         x = [curr_scale, curr_scale]
         plt.plot(x, y, color='orange', linestyle='-.')
@@ -103,7 +97,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
             pc.p * curr_scale + curr_shift,
             **c.opts[1],
         )
-        # plt.plot(pc.p, Qdirect[idx], **c.opts[1])
         plt.ylim(min(Q.min(), Qdirect.min()), max(Q.max(), Qdirect.max()))
         plt.xlabel('p')
         plt.ylabel('Q')
@@ -119,18 +112,12 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.title('PDF')
 
         set_plot(5)
-        # num_deriv = torch.diff(Qd[idx]) / torch.diff(pc.p)
         plt.plot(pc.p, Qd[idx], **c.opts[0])
         plt.plot(
             pc.p,
             curr_scale * torch.ones_like(pc.p),
             **c.opts[1],
         )
-        # plt.plot(
-        #     pc.p[:-1],
-        #     num_deriv,
-        #     **c.opts[2],
-        # )
         plt.xlabel('p')
         plt.ylabel('Qd')
         plt.title('Quantile Derivative')
@@ -139,14 +126,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
 
         set_plot(6)
         plt.plot(pc.t, d.misfit.transport[idx], **c.opts[0])
-        # plt.plot(
-        #     pc.t,
-        #     (pc.t - d.misfit.transport[idx]) ** 2
-        #     * pc.t
-        #     * (pc.t >= 0)
-        #     * (pc.t <= 1),
-        #     **c.opts[3],
-        # )
 
         transport_opts = {k: v for k, v in c.opts[1].items()}
         transport_opts['label'] = 'Identity'
@@ -156,7 +135,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.ylabel('Transport')
         plt.title('Transport')
         plt.legend(**c.legend[0])
-        # plt.xlim(-0.1, 0.1)
 
         set_plot(7)
         plt.plot(pc.t, cum_trap(d.uniform_pdfs[idx], pc.t), **c.opts[0])
@@ -172,7 +150,6 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
         plt.legend(**c.legend[0])
 
         set_plot(8)
-        # u = -d.grad[idx]
         plt.plot(pc.t, -d.grad[idx], **c.opts[0])
         plt.plot(pc.t, exp_grad[idx], **c.opts[1])
         plt.ylim(-d.grad.max(), -d.grad.min())

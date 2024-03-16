@@ -1,17 +1,17 @@
 import os
 import sys
-from matplotlib import pyplot as plt
-import torch
 from dataclasses import dataclass
-import torch.nn.functional as F
-from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
+
 import numpy as np
+import torch
+import torch.nn.functional as F
+from matplotlib import pyplot as plt
+from mh.core import DotDict, draise, torch_stats
+from mh.typlotlib import get_frames_bool, save_frames
 from scipy.stats import norm
-from mh.core import draise
+from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice
-from mh.typlotlib import get_frames_bool, save_frames
-from mh.core import DotDict, torch_stats
 
 torch.set_printoptions(
     precision=4, sci_mode=False, callback=torch_stats(report='all')
@@ -119,7 +119,9 @@ def cts_quantile_legacy(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
                     start = mid
             if guesses >= max_iters - 1:
                 raise ValueError(
-                    f"Quantile not found for p = {pp}, left={left}, right={right}, curr={curr}, start={start}, end={end}, mid={mid}"
+                    f"Quantile not found for p = {pp}, left={left},"
+                    f" right={right}, curr={curr}, start={start}, end={end},"
+                    f" mid={mid}"
                 )
 
 
@@ -148,12 +150,13 @@ def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
                     start = mid
             if guesses >= max_iters - 1:
                 raise ValueError(
-                    f"Quantile not found for p = {pp}, left={left}, right={right}, curr={curr}, start={start}, end={end}, mid={mid}"
+                    f"Quantile not found for p = {pp}, left={left},"
+                    f" right={right}, curr={curr}, start={start}, end={end},"
+                    f" mid={mid}"
                 )
 
     q = q.view(*cdfs.shape[:-1], p.shape[0])
     Q = unbatch_splines_lambda(p, q)
-    # Q = unbatch_splines(p, q)
     return Q
 
 
