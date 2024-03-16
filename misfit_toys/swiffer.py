@@ -14,11 +14,11 @@ Functions:
 """
 
 import subprocess
+import sys
 import textwrap
 from datetime import timedelta
 from subprocess import CalledProcessError
 from subprocess import check_output as co
-import sys
 
 
 def sco(s, split=True):
@@ -260,7 +260,8 @@ def dupe(base, verbose=True):
 
     if verbose:
         print(
-            f'Duping stdout, stderr to files below\n\n{out_file}\n{err_file}\n\n'
+            'Duping stdout, stderr to files'
+            f' below\n\n{out_file}\n{err_file}\n\n'
         )
     sys.stdout = open(out_file, 'w')
     sys.stderr = open(err_file, 'w')

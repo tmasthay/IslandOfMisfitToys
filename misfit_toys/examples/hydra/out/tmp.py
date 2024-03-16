@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from mh.core import rand_slices
 from mh.typlotlib import get_frames_bool, save_frames
+
 from misfit_toys.utils import bool_slice
-import numpy as np
 
 
 def plotter(*, data, idx, fig, axes, num_samples):
@@ -29,20 +30,25 @@ def main():
     obs_data_org = torch.load('obs_data_record.pt')
 
     print(
-        f'shapes\n    out: {out.shape}\n    obs_data: {obs_data.shape}\n    pdf: {pdf.shape}'
+        f'shapes\n    out: {out.shape}\n    obs_data: {obs_data.shape}\n   '
+        f' pdf: {pdf.shape}'
     )
 
     num_samples = 4
     none_dims = [0, -1]
     idx = rand_slices(*list(out.shape), none_dims=none_dims, N=num_samples)
-    get = lambda x: torch.stack([x[e] for e in idx])
+
+    # get = lambda x: torch.stack([x[e] for e in idx])
+    def get(x):
+        return torch.stack([x[e] for e in idx])
 
     out_s = get(out)
     obs_data_s = get(obs_data)
     pdf_s = get(pdf)
     obs_data_org_s = get(obs_data_org)
     print(
-        f'shapes after slicing\n    out: {get(out).shape}\n    obs_data: {get(obs_data).shape}\n    pdf: {get(pdf).shape}'
+        f'shapes after slicing\n    out: {get(out).shape}\n    obs_data:'
+        f' {get(obs_data).shape}\n    pdf: {get(pdf).shape}'
     )
 
     def ctrl(idx, shape):

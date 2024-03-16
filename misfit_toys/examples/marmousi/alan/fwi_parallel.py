@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data import download_data
-from misfit_toys.utils import parse_path, get_gpu_memory
+from misfit_toys.utils import get_gpu_memory, parse_path
 
 
 def setup(rank, world_size):

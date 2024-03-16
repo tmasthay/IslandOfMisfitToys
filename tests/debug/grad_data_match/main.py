@@ -1,15 +1,18 @@
+import os
+
 import hydra
-from omegaconf import DictConfig
+import matplotlib.pyplot as plt
+import torch
+from hydra import utils
 from mh.core import DotDict, convert_dictconfig, hydra_out
 from mh.typlotlib import get_frames_bool, save_frames
-from misfit_toys.utils import bool_slice, mean_filter_1d as mf
-import torch
+from omegaconf import DictConfig
+from scipy.interpolate import splev, splrep
 from torch.nn import MSELoss
-import matplotlib.pyplot as plt
-from misfit_toys.fwi.loss.w2 import true_quantile, spline_func, cum_trap
-from scipy.interpolate import splrep, splev
-import os
-from hydra import utils
+
+from misfit_toys.fwi.loss.w2 import cum_trap, spline_func, true_quantile
+from misfit_toys.utils import bool_slice
+from misfit_toys.utils import mean_filter_1d as mf
 
 torch.set_printoptions(precision=3, threshold=10)
 

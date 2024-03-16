@@ -1,14 +1,17 @@
-import numpy as np
-from scipy.interpolate import splrep, BSpline
-from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
-import torch
-import matplotlib.pyplot as plt
-from masthay_helpers.typlotlib import get_frames_bool, save_frames
-from misfit_toys.utils import bool_slice, mean_filter_1d as mf
-from masthay_helpers.global_helpers import DotDict, convert_config_correct
-import hydra
 import os
+
+import hydra
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from masthay_helpers.global_helpers import DotDict, convert_config_correct
+from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from scipy.interpolate import BSpline, splrep
+from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
+
 from misfit_toys.fwi.loss.w2 import cum_trap, quantile, spline_func
+from misfit_toys.utils import bool_slice
+from misfit_toys.utils import mean_filter_1d as mf
 
 
 @hydra.main(config_path='cfg', config_name='tmp', version_base=None)
@@ -35,7 +38,7 @@ def main(c):
     d.q_exact = d.q(d.p)
     # d.q_deriv_smooth = spline_func(d.p, d.q_deriv_smooth)
 
-    tnp, tp = d.t.numpy(), d.t_pert.numpy()
+    # tnp, tp = d.t.numpy(), d.t_pert.numpy()
 
     def set_plot(i):
         plt.subplot(*c.sub.shape, c.sub.order[i - 1])
@@ -48,12 +51,12 @@ def main(c):
         # spl = BSpline(*splrep(tnp, ynp, s=0))(tp)
         # spl_s = BSpline(*splrep(tnp, ynp, s=c.s))(tp)
 
-        raw = d.obs_data[idx].squeeze()
-        pdf = d.rdata[idx].squeeze()
-        cdf = d.cdf[idx].squeeze()
+        # raw = d.obs_data[idx].squeeze()
+        # pdf = d.rdata[idx].squeeze()
+        # cdf = d.cdf[idx].squeeze()
         q = d.q_exact[idx].squeeze()
-        qd = d.q_deriv_exact[idx].squeeze()
-        qds = d.q_deriv_smooth[idx].squeeze()
+        # qd = d.q_deriv_exact[idx].squeeze()
+        # qds = d.q_deriv_smooth[idx].squeeze()
         q_rec_smooth = cum_trap(d.q_deriv_smooth[idx].squeeze(), d.p) + q[0]
         q_rec_exact = cum_trap(d.q_deriv_exact[idx].squeeze(), d.p) + q[0]
         # q_rec_smooth_err = torch.abs(q_rec_smooth - q) / (q + c.eps) * 100.0

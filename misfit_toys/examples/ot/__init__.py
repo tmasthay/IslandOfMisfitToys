@@ -1,8 +1,4 @@
-__all__ = [
-    "go",
-    "main",
-    "debug"
-]
+__all__ = ["go", "main", "debug"]
+from .debug import *
 from .go import *
 from .main import *
-from .debug import *

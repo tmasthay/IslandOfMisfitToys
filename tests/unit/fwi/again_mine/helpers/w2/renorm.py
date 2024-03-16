@@ -1,7 +1,8 @@
-import torch
-from functools import wraps
-import torch.nn.functional as F
 from dataclasses import dataclass
+from functools import wraps
+
+import torch
+import torch.nn.functional as F
 
 
 @dataclass

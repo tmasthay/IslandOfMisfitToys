@@ -1,11 +1,13 @@
-import hydra
-from omegaconf import DictConfig
-from mh.core import convert_dictconfig, DotDict, exec_imports, hydra_out
-from mh.typlotlib import get_frames_bool, save_frames, apply_subplot
-from misfit_toys.utils import bool_slice
 from typing import Any
-import torch
+
+import hydra
 import matplotlib.pyplot as plt
+import torch
+from mh.core import DotDict, convert_dictconfig, exec_imports, hydra_out
+from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
+from omegaconf import DictConfig
+
+from misfit_toys.utils import bool_slice
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:

@@ -1,12 +1,13 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from mh.core import DotDict, draise
-from misfit_toys.utils import bool_slice
-from mh.typlotlib import get_frames_bool, save_frames
 import os
-from misfit_toys.beta.helpers import pdf, cdf, cts_quantile, combos
+
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
+from mh.core import DotDict, draise
+from mh.typlotlib import get_frames_bool, save_frames
+
+from misfit_toys.beta.helpers import cdf, combos, cts_quantile, pdf
+from misfit_toys.utils import bool_slice
 
 
 def direct_quantile(plotter):
@@ -94,9 +95,9 @@ def ref_quantile(plotter):
             / (sig[None, :, None] * np.sqrt(2))
         )
     )
-    Qref = mu[:, None, None] + sig[None, :, None] * np.sqrt(2) * torch.erfinv(
-        2 * p - 1
-    )
+    # Qref = mu[:, None, None] + sig[None, :, None] * np.sqrt(2) * torch.erfinv(
+    #     2 * p - 1
+    # )
 
     def renorm(v, y):
         return v / torch.trapz(v, y, dim=-1).unsqueeze(-1)

@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import torch
 from mh.core import DotDict
-from mh.typlotlib import save_frames, get_frames_bool, apply_subplot
+from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
+
 from misfit_toys.utils import bool_slice
 
 
