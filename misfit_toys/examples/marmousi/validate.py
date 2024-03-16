@@ -44,8 +44,24 @@ def get_files():
     alan_files = extend_files(alan_out_dir, filenames)
     iomt_files = extend_files(iomt_out_dir, filenames)
     if not all_exist(alan_files.values()):
+        print("RUNNING ALAN'S VERSION")
         alan()
+        if not all_exist(alan_files.values()):
+            root = os.environ.get('ISL', 'IOMT_ROOT')
+            path = os.path.join(
+                root,
+                'misfit_toys',
+                'examples',
+                'marmousi',
+                'alan',
+                'fwi_parallel.py',
+            )
+            raise ValueError(
+                "Error: Alan's version did not generate all files\n"
+                f"See file {os.path.abspath(path)}"
+            )
     if not all_exist(iomt_files.values()):
+        print("RUNNING IOMT VERSION")
         iomt()
     if not all_exist(alan_files.values()) or not all_exist(iomt_files.values()):
         print('Error: could not generate all files')

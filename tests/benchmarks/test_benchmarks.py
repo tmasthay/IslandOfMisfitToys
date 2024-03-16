@@ -4,15 +4,8 @@ from mh.core import DotDict
 
 import misfit_toys.examples.marmousi.validate as val
 
-# import logging
-# import pytest
-
 
 def test_validate():
-    # logging.basicConfig(
-    #     level=logging.WARNING, filename='/tmp/pytest_warnings.log'
-    # )
-    # logging.captureWarnings(True)
     curr_dir = os.path.dirname(__file__)
     args = DotDict(
         {
