@@ -8,7 +8,7 @@ eval "$(conda shell.bash hook)"
 
 
 # Ensure we are not in any conda environment
-conda deactivate
+# conda deactivate
 
 # Removing the existing environment (if it exists)
 conda env remove --name dw_sandbox --yes || {
