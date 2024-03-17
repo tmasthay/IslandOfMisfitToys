@@ -30,7 +30,7 @@ jobs:
             mkdir -p ~/.sandbox
             cd ~/.sandbox
 
-            # source /home/tyler/anaconda3/etc/profile.d/conda.sh
+            source /home/tyler/anaconda3/etc/profile.d/conda.sh
             # alias conda='/home/tyler/anaconda3/bin/conda'
             /home/tyler/anaconda3/bin/conda init bash
             /home/tyler/anaconda3/bin/conda activate base
