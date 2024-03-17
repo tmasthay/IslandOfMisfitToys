@@ -28,3 +28,7 @@ setup(
     zip_safe=False,
     options={"bdist_wheel": {"universal": True}},
 )
+
+os.system(
+    'pip install git+https://github.com/patrick-kidger/torchcubicspline.git'
+)
