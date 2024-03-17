@@ -13,9 +13,7 @@ from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice
 
-# torch.set_printoptions(
-#     precision=4, sci_mode=False, callback=torch_stats(report='all')
-# )
+# ge
 
 
 @dataclass

@@ -10,10 +10,11 @@ from mh.typlotlib_legacy import plot_tensor2d_fast
 from returns.curry import curry
 from rich.console import Console
 from rich.table import Table
-from rich_tools import table_to_dicts
 
 from misfit_toys.examples.marmousi.alan.fwi_parallel import main as alan
 from misfit_toys.examples.marmousi.val.fwi_parallel import main as iomt
+
+# from rich_tools import table_to_dicts
 
 
 def extend_files(path, filenames):
@@ -93,11 +94,12 @@ def compare_output(
     else:
         console = Console(file=open(output_filename, 'w'))
     console.print(table)
-    res = list(table_to_dicts(table))
-    if len(res) > 0:
-        res = {k: [float(d[k]) for d in res] for k in res[0].keys()}
-    else:
-        res = {}
+    # res = list(table_to_dicts(table))
+    # if len(res) > 0:
+    #     res = {k: [float(d[k]) for d in res] for k in res[0].keys()}
+    # else:
+    #     res = {}
+    res = {}
     return res
 
 
