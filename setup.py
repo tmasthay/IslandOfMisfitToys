@@ -35,3 +35,4 @@ os.system(
     f'{pip_path} install'
     ' git+https://github.com/patrick-kidger/torchcubicspline.git'
 )
+os.system(f'{pip_path} install git+https://github.com/tmasthay/rich_tools.git')
