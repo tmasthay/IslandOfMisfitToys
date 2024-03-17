@@ -1,4 +1,5 @@
 import os
+from subprocess import check_output as co
 
 from setuptools import find_packages, setup
 
@@ -29,6 +30,8 @@ setup(
     options={"bdist_wheel": {"universal": True}},
 )
 
+pip_path = str(co(["which", "pip"]), "utf-8").strip()
 os.system(
-    'pip install git+https://github.com/patrick-kidger/torchcubicspline.git'
+    f'{pip_path} install'
+    ' git+https://github.com/patrick-kidger/torchcubicspline.git'
 )
