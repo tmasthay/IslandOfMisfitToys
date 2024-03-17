@@ -11,10 +11,7 @@ pytest -s
 
 pytest_exit_code=$?
 
-cd ..
-rm -rf IslandOfMisfitToys
-
-false_failure_modes=$(ls test/status)
+false_failure_modes=$(ls tests/status)
 if [ $(echo $false_failure_modes | wc -w) -gt 0 ]; then
     for mode in $false_failure_modes; do
         echo "FAIL: $mode"
