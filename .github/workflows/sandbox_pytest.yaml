@@ -31,7 +31,8 @@ jobs:
             cd ~/.sandbox
 
             # source /home/tyler/anaconda3/etc/profile.d/conda.sh
-            /home/tyler/anaconda3/bin/conda init bash
+            alias conda='/home/tyler/anaconda3/bin/conda'
+            conda init bash
             conda activate base
             # eval "$(conda shell.bash hook)"
 
