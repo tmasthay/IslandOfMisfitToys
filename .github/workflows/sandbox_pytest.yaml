@@ -30,7 +30,9 @@ jobs:
             mkdir -p ~/.sandbox
             cd ~/.sandbox
 
-            eval "$(conda shell.bash hook)"
+            # source /home/tyler/anaconda3/etc/profile.d/conda.sh
+            /home/tyler/anaconda3/bin/conda activate
+            # eval "$(conda shell.bash hook)"
 
             # Check if the sandbox directory is empty
             if [ "$(ls -A)" ]; then
