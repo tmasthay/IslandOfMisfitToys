@@ -31,10 +31,10 @@ jobs:
             cd ~/.sandbox
 
             # source /home/tyler/anaconda3/etc/profile.d/conda.sh
-            alias conda='/home/tyler/anaconda3/bin/conda'
-            conda init bash
-            conda activate base
-            # eval "$(conda shell.bash hook)"
+            # alias conda='/home/tyler/anaconda3/bin/conda'
+            /home/tyler/anaconda3/bin/conda init bash
+            /home/tyler/anaconda3/bin/conda activate base
+            # eval "$(/home/tyler/anaconda3/bin/conda shell.bash hook)"
 
             # Check if the sandbox directory is empty
             if [ "$(ls -A)" ]; then
@@ -44,22 +44,22 @@ jobs:
                 echo "Directory is empty. Proceeding with tests..."
 
                 # Ensure we are not in any conda environment
-                conda deactivate
+                /home/tyler/anaconda3/bin/conda deactivate
 
                 # Removing the existing environment (if it exists)
-                conda env remove --name dw_sandbox --yes || {
+                /home/tyler/anaconda3/bin/conda env remove --name dw_sandbox --yes || {
                     echo "FAIL: Failed to remove the existing conda environment."
                     exit 1
                 }
 
                 # Creating a new environment
-                conda create -n dw_sandbox python=3.10 --yes || {
+                /home/tyler/anaconda3/bin/conda create -n dw_sandbox python=3.10 --yes || {
                     echo "FAIL: Failed to create a new conda environment."
                     exit 1
                 }
 
                 # Activating the new environment
-                conda activate dw_sandbox
+                /home/tyler/anaconda3/bin/conda activate dw_sandbox
 
                 # Initialize a new Git repository
                 mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
