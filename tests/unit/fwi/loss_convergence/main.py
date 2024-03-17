@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 
 from misfit_toys.utils import apply, apply_all, bool_slice, resolve
 
-torch.set_printoptions(precision=3, sci_mode=False, callback=torch_stats('all'))
+# torch.set_printoptions(precision=3, sci_mode=False, callback=torch_stats('all'))
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:
