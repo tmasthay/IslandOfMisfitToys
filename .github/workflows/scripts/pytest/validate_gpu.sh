@@ -5,12 +5,16 @@ GITHUB_HASH=$1
 echo "SSH successful"
 echo "Commit: $GITHUB_HASH"
 echo "Date: $(date)!"
-source ~/.bashrc
-cd $SANDBOX
+# source ~/.bashrc
+# cd $SANDBOX
+mkdir -p ~/.sandbox
+cd ~/.sandbox
+
+eval "$(conda shell.bash hook)"
 
 # Check if the sandbox directory is empty
 if [ "$(ls -A)" ]; then
-    echo "Another job is currently running."
+    echo "FAIL: Running another job currently"
     exit 2
 else
     echo "Directory is empty. Proceeding with tests..."
@@ -31,7 +35,6 @@ else
     }
 
     # Activating the new environment
-    eval "$(conda shell.bash hook)"
     conda activate dw_sandbox
 
     # Initialize a new Git repository
