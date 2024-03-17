@@ -8,6 +8,7 @@ matplotlib>=3.7.2
 matplotlib-inline>=0.1.6
 numpy>=1.25.2
 obspy>=1.4.0
+pynvml>=11.5.0
 python-json-logger>=2.0.7
 requests>=2.31.0
 returns>=0.22.0
