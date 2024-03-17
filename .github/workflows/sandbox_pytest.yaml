@@ -28,6 +28,8 @@ jobs:
             if [ $(ls -A | wc -l) -gt 0 ]; then
                 echo "FAIL: Running another job."
                 exit 1
+            else:
+              echo "Directory is empty. Proceeding with tests..."
             fi
             mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
             git init || { echo "FAIL: Could not initialize git repository."; exit 2;}
