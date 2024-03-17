@@ -2,12 +2,6 @@
 
 GITHUB_HASH=$1
 
-echo "SSH successful"
-echo "Commit: $GITHUB_HASH"
-echo "Date: $(date)!"
-# source ~/.bashrc
-# cd $SANDBOX
-mkdir -p ~/.sandbox
 cd ~/.sandbox
 
 eval "$(conda shell.bash hook)"

@@ -23,78 +23,20 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            GITHUB_HASH=${{ github.sha }}
-            echo "SSH successful"
-            echo "Commit: $GITHUB_HASH!"
-            echo "Date: $(date)!"
             mkdir -p ~/.sandbox
             cd ~/.sandbox
-
-            source /home/tyler/anaconda3/etc/profile.d/conda.sh
-            # alias conda='/home/tyler/anaconda3/bin/conda'
-            /home/tyler/anaconda3/bin/conda init bash
-            /home/tyler/anaconda3/bin/conda activate base
-            # eval "$(/home/tyler/anaconda3/bin/conda shell.bash hook)"
-
-            # Check if the sandbox directory is empty
-            if [ "$(ls -A)" ]; then
-                echo "FAIL: Running another job currently"
-                exit 2
-            else
-                echo "Directory is empty. Proceeding with tests..."
-
-                # Ensure we are not in any conda environment
-                /home/tyler/anaconda3/bin/conda deactivate
-
-                # Removing the existing environment (if it exists)
-                /home/tyler/anaconda3/bin/conda env remove --name dw_sandbox --yes || {
-                    echo "FAIL: Failed to remove the existing conda environment."
-                    exit 1
-                }
-
-                # Creating a new environment
-                /home/tyler/anaconda3/bin/conda create -n dw_sandbox python=3.10 --yes || {
-                    echo "FAIL: Failed to create a new conda environment."
-                    exit 1
-                }
-
-                # Activating the new environment
-                /home/tyler/anaconda3/bin/conda activate dw_sandbox
-
-                # Initialize a new Git repository
-                mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
-                git init || { echo "FAIL: Failed to initialize a git repository."; exit 1; }
-
-                # Add the remote and fetch the specific commit
-                git remote add origin https://github.com/tmasthay/IslandOfMisfitToys.git
-                git fetch --depth 1 origin $GITHUB_HASH || {
-                    echo "FAIL: Failed to fetch the commit $GITHUB_HASH."
-                    exit 1
-                }
-
-                # Checkout the specific commit
-                git checkout $GITHUB_HASH || {
-                    echo "FAIL: Failed to checkout the commit $GITHUB_HASH."
-                    exit 1
-                }
-
-                echo "Successfully set up the environment and checked out the commit."
-                echo "CONDA_PREFIX=$CONDA_PREFIX"
-                echo "PWD=$PWD"
-                echo "pip=$(which pip)"
-                echo "INSTALLING IOMT"
-                time pip install -e . || {
-                    echo "FAIL: Failed to install the package."
-                    exit 3
-                }
+            if [ $(ls -A) | wc -l -gt 0 ]; then
+                echo "FAIL: Running another job."
+                exit 1
             fi
-            pytest -s
+            mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
+            git init || { echo "FAIL: Could not initialize git repository."; exit 2;}
+            git remote add origin https://github.com/tmasthay/IslandOfMisfitToys.git
+            git fetch --depth 1 origin ${{ github.sha }} || { echo "FAIL: Could not fetch from remote."; exit 3; }
+            git checkout ${{ github.sha }} || { echo "FAIL: Could not checkout commit."; exit 3; }
+            cd .github/workflows/scripts
+            ./setup_sandbox.sh ${{ github.sha }} || { echo "FAIL: Could not setup sandbox."; exit 3; }
+            cd pytest
+            ./validate_gpu.sh ${{ github.sha }}
             pytest_exit_code=$?
-            false_failure_modes=$(ls tests/status)
-            if [ $(echo $false_failure_modes | wc -w) -gt 0 ]; then
-                for mode in $false_failure_modes; do
-                    echo "FAIL: False failure mode detected: $mode"
-                done
-                exit 4
-            fi
             exit $pytest_exit_code
