@@ -25,7 +25,7 @@ jobs:
           script: |
             mkdir -p ~/.sandbox
             cd ~/.sandbox
-            if [ $(ls -A) | wc -l -gt 0 ]; then
+            if [ $(ls -A | wc -l) -gt 0 ]; then
                 echo "FAIL: Running another job."
                 exit 1
             fi
