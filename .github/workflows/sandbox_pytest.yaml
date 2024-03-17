@@ -31,7 +31,8 @@ jobs:
             cd ~/.sandbox
 
             # source /home/tyler/anaconda3/etc/profile.d/conda.sh
-            /home/tyler/anaconda3/bin/conda activate
+            /home/tyler/anaconda3/bin/conda init bash
+            conda activate base
             # eval "$(conda shell.bash hook)"
 
             # Check if the sandbox directory is empty
