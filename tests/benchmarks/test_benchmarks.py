@@ -1,11 +1,35 @@
 import os
 
+import pynvml as nvml
 from mh.core import DotDict
 
 import misfit_toys.examples.marmousi.validate as val
 
 
+def check_gpu_memory():
+    nvml.nvmlInit()
+    deviceCount = nvml.nvmlDeviceGetCount()
+    u = [0.0] * deviceCount
+    for i in range(deviceCount):
+        handle = nvml.nvmlDeviceGetHandleByIndex(i)
+        info = nvml.nvmlDeviceGetMemoryInfo(handle)
+        u[i] = info.free
+    nvml.nvmlShutdown()
+    return u
+
+
 def test_validate():
+    free_gpu = check_gpu_memory()
+    total_gpu_need = 150.0e9
+    min_mem_per_gpu = total_gpu_need / len(free_gpu)
+    if min(free_gpu) < min_mem_per_gpu:
+        with open('all_tests/tests/status/test_validate.txt', 'w'):
+            pass
+        assert False, (
+            f"Error: Not enough resources. Need {min_mem_per_gpu / 1.0e9} GB"
+            f" per GPU\nHave {free_gpu} GB on each GPU, respectively.\n"
+        )
+
     curr_dir = os.path.dirname(__file__)
     args = DotDict(
         {
