@@ -23,5 +23,4 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd $SANDBOX/IslandOfMisfitToys/.github/workflows/scripts/pytest
-            ./validate_gpu.sh $(git rev-parse HEAD)
+            ./validate_gpu.sh ${{ github.sha }}
