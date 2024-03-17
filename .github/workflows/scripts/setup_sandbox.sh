@@ -26,7 +26,8 @@ conda create -n dw_sandbox python=3.10 --yes || {
 conda activate dw_sandbox
 
 # Initialize a new Git repository
-mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
+mkdir IslandOfMisfitToys
+cd IslandOfMisfitToys
 git init || { echo "FAIL: Failed to initialize a git repository."; exit 1; }
 
 # Add the remote and fetch the specific commit
