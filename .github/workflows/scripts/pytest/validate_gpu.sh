@@ -1,48 +1,72 @@
 #!/bin/bash
 
-PERSONAL_ACCESS_TOKEN=$1
+GITHUB_HASH=$1
 
-echo "SSH successful at $(date)!"
+echo "SSH successful"
+echo "Commit: $GITHUB_HASH"
+echo "Date: $(date)!"
 source ~/.bashrc
-cd $ISL
-conda activate dw
-pytest tests
-pytest_exit_code=$?
+cd $SANDBOX
 
-# Check if there are any .out files to add
-if git status -uno --porcelain | grep '.out$' > /dev/null; then
-    echo "Adding output files to commit..."
-    git add tests/**/*.out
+# Check if the sandbox directory is empty
+if [ "$(ls -A)" ]; then
+    echo "Another job is currently running."
+    exit 2
 else
-    echo "WARNING: No .out files found to add."
+    echo "Directory is empty. Proceeding with tests..."
+
+    # Ensure we are not in any conda environment
+    conda deactivate
+
+    # Removing the existing environment (if it exists)
+    conda env remove --name dw_sandbox --yes || {
+        echo "FAIL: Failed to remove the existing conda environment."
+        exit 1
+    }
+
+    # Creating a new environment
+    conda create -n dw_sandbox python=3.10 --yes || {
+        echo "FAIL: Failed to create a new conda environment."
+        exit 1
+    }
+
+    # Activating the new environment
+    eval "$(conda shell.bash hook)"
+    conda activate dw_sandbox
+
+    # Initialize a new Git repository
+    mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
+    git init || { echo "FAIL: Failed to initialize a git repository."; exit 1; }
+
+    # Add the remote and fetch the specific commit
+    git remote add origin https://github.com/tmasthay/IslandOfMisfitToys.git
+    git fetch --depth 1 origin $GITHUB_HASH || {
+        echo "FAIL: Failed to fetch the commit $GITHUB_HASH."
+        exit 1
+    }
+
+    # Checkout the specific commit
+    git checkout $GITHUB_HASH || {
+        echo "FAIL: Failed to checkout the commit $GITHUB_HASH."
+        exit 1
+    }
+
+    echo "Successfully set up the environment and checked out the commit."
+    echo "CONDA_PREFIX=$CONDA_PREFIX"
+    echo "PWD=$PWD"
+    echo "pip=$(which pip)"
+    echo "INSTALLING IOMT"
+    time pip install -e . || {
+        echo "FAIL: Failed to install the package."
+        exit 3
+    }
+    pytest -s
+
+    pytest_exit_code=$?
+
+    cd ..
+    rm -rf IslandOfMisfitToys
+
+    false_failure_modes=$(ls test/status)
     exit $pytest_exit_code
 fi
-
-# Perform the commit
-ACTION_FILE=/tmp/github_actions.txt
-COMMENT_FILE=/tmp/github_comments.txt
-cp .git/COMMIT_EDITMSG $ACTION_FILE
-cat $ACTION_FILE | grep "#" > $COMMENT_FILE
-sed -i '/^#/d' $ACTION_FILE
-echo >> $ACTION_FILE
-echo "----- SQUASHED AUTO-COMMIT FROM GITHUB ACTIONS -----" >> $ACTION_FILE
-echo "AUTO: Adding .out files generated from pytest. [skip ci]" >> $ACTION_FILE
-cat $COMMENT_FILE >> $ACTION_FILE
-
-if git commit --amend --no-verify -m "$(cat $ACTION_FILE)"; then
-    echo "Commit successful...modified commit message below"
-    cat .git/COMMIT_EDITMSG
-else
-    echo "WARNING: Commit failed. Not pushing changes."
-    exit $pytest_exit_code
-fi
-
-# Push only if commit is successful
-if git push --force-with-lease origin HEAD; then
-    echo "Push successful."
-else
-    echo "WARNING: Push failed."
-    exit $pytest_exit_code
-fi
-
-exit $pytest_exit_code

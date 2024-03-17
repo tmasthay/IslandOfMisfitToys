@@ -20,10 +20,11 @@ def check_gpu_memory():
 
 def test_validate():
     free_gpu = check_gpu_memory()
+    # set gpu need way higher than actual need to test failure case
     total_gpu_need = 150.0e9
     min_mem_per_gpu = total_gpu_need / len(free_gpu)
     if min(free_gpu) < min_mem_per_gpu:
-        with open('all_tests/tests/status/test_validate.txt', 'w'):
+        with open('tests/status/test_validate_gpu_saturation.txt', 'w'):
             pass
         assert False, (
             f"Error: Not enough resources. Need {min_mem_per_gpu / 1.0e9} GB"
