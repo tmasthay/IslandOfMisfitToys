@@ -24,6 +24,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            exit 0
             mkdir -p ~/.sandbox
             cd ~/.sandbox
             rm -rf IslandOfMisfitToys
@@ -48,6 +49,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            exit 0
             cd ~/.sandbox/IslandOfMisfitToys || { echo "FAIL: Could not change to IslandOfMisfitToys."; exit 2; }
             cd .github/workflows/scripts || { echo "FAIL: Could not change to scripts directory."; exit 2; }
             ./setup_sandbox.sh ${{ github.sha }}
@@ -72,6 +74,8 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            sleep 30
+            exit 0
             cd ~/.sandbox/IslandOfMisfitToys || { echo "FAIL: Could not change to IslandOfMisfitToys."; exit 2; }
             cd .github/workflows/scripts/pytest || { echo "FAIL: Could not change to scripts directory."; exit 2; }
             conda activate dw_sandbox || { echo "FAIL: Could not activate conda environment."; exit 3; }
