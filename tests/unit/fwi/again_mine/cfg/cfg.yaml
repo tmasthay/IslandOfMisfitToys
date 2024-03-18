@@ -1,0 +1,5 @@
+defaults:
+  - _self_
+  - case: w2
+  - plotter: ${case}
+  - loss: ${case}  

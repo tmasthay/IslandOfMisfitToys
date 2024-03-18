@@ -1,11 +1,12 @@
 import hydra
-from mh.core import DotDict, convert_dictconfig, torch_stats, yamlfy
-from misfit_toys.utils import apply, resolve, apply_all, bool_slice
-from omegaconf import DictConfig
 import torch
+from mh.core import DotDict, convert_dictconfig, torch_stats, yamlfy
 from mh.typlotlib import get_frames_bool, save_frames
+from omegaconf import DictConfig
 
-torch.set_printoptions(precision=3, sci_mode=False, callback=torch_stats('all'))
+from misfit_toys.utils import apply, apply_all, bool_slice, resolve
+
+# torch.set_printoptions(precision=3, sci_mode=False, callback=torch_stats('all'))
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:
@@ -42,7 +43,8 @@ def extend_cfg(c: DotDict) -> DotDict:
             c.rt[k].train.grad_history[epoch] = soln.grad.detach().cpu()
             if epoch % c.train.print_freq == 1:
                 print(
-                    f'Epoch: {epoch}, Loss: {loss}, Grad norm: {soln.grad.norm()}',
+                    f'Epoch: {epoch}, Loss: {loss}, Grad norm:'
+                    f' {soln.grad.norm()}',
                     end='\r',
                 )
             c.rt[k].train.opt.step()

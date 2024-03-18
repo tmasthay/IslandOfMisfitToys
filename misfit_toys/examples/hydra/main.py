@@ -13,17 +13,17 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from misfit_toys.fwi.seismic_data import SeismicProp, path_builder
 from misfit_toys.fwi.training import Training
+from misfit_toys.swiffer import dupe
 from misfit_toys.utils import (
+    apply,
     bool_slice,
     chunk_and_deploy,
     clean_idx,
-    setup,
-    apply,
     d2cpu,
-    resolve,
     git_dump_info,
+    resolve,
+    setup,
 )
-from misfit_toys.swiffer import dupe
 
 torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
 
@@ -38,7 +38,7 @@ def check_keys(c, data):
                 required.append(v)
     if not set(required).issubset(data.keys()):
         raise ValueError(
-            f"Missing required fields in data\n "
+            "Missing required fields in data\n "
             f"    Required: {pre.required_fields}\n"
             f"    Found: {list(data.keys())}"
         )

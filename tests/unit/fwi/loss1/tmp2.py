@@ -1,9 +1,10 @@
-import numpy as np
-from scipy.interpolate import splrep, BSpline
-from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
-import torch
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from masthay_helpers.typlotlib import get_frames_bool, save_frames
+from scipy.interpolate import BSpline, splrep
+from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
+
 from misfit_toys.utils import bool_slice
 
 nx, nf, ns, eta, eta_x = 100, 5, 5, 0.1, 0.0

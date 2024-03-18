@@ -5,8 +5,6 @@ from typing import Callable, List
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-# from pympler import asizeof
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 
@@ -107,7 +105,6 @@ def get_renorm(t, s):
 
 def main():
     training_data = torch.load("out/out_record.pt")
-    # training_data = training_data[0:1, 0:2].squeeze()
     shifted_data = torch.roll(training_data, shifts=10, dims=-1)
 
     a, b = 0.0, 2.0
@@ -124,8 +121,6 @@ def main():
     preprocess_time = time() - preprocess_time
 
     offline_quantile = time()
-    # squeezed_quantile                   s = quantiles[0].reshape(
-    #     torch.prod(torch.tensor(quantiles[0].shape[:-1])), -1, 1
     # )
     squeezed_quantiles = quantiles[0].unsqueeze(-1)
     input(f'squeezed_quantiles.shape: {squeezed_quantiles.shape}')
@@ -139,8 +134,6 @@ def main():
     offline_quantile = time() - offline_quantile
 
     online_quantile = time()
-    # integrands = w2_integrand(
-    #     q=quantile_splines, pdf=shifted_data, x=t, dx=t[1] - t[0]
     # )
     online_quantile = time() - online_quantile
 
@@ -185,7 +178,6 @@ def main2():
 
     noise_level = 0.0
     noise_level *= torch.max(torch.abs(training_data))
-    # variance = noise_level * torch.rand_like(training_data)
 
     training_data += noise_level * torch.randn_like(training_data)
 
@@ -193,11 +185,6 @@ def main2():
     t = torch.linspace(a, b, training_data.shape[-1])
     p = torch.linspace(0, 1.0, training_data.shape[-1])
     # Assuming renorm_func has already been applied to training_data
-    # training_data = (
-    #     torch.abs(training_data)
-    #     / torch.sum(torch.abs(training_data), dim=-1, keepdim=True)
-    #     / (t[1] - t[0])
-    # )
     dt = t[1] - t[0]
 
     def abs_renorm(f):
@@ -215,9 +202,7 @@ def main2():
         return torch.stack([f_pos_renorm, f_neg_renorm], dim=0)
 
     chosen_renorm = abs_renorm
-    # training_data_processing = renorm_quantiles(
-    #     training_data, chosen_renorm, t, p
-    # )
+
     renorm_data = chosen_renorm(training_data)
     training_data_processing = true_quantile(renorm_data, t, p)
     quantiles = training_data_processing[0]
@@ -226,16 +211,6 @@ def main2():
     if chosen_renorm == split_renorm:
         quantiles = quantiles.squeeze(1)
         cdf = cdf.squeeze(1)
-
-    # quantile_perm = list(range(len(quantiles.shape)))
-    # tmp = quantile_perm[-2]
-    # quantile_perm[-2] = quantile_perm[-1]
-    # quantile_perm[-1] = tmp
-    # # quantiles = quantiles.permute(*quantile_perm)
-
-    # Perform cubic spline approximation for each element of training_data
-    # length, channels = t.shape[0], quantiles.shape[-1]
-    # training_data_lambdas = torch.zeros_like(training_data)
 
     multi_indices = list(product(*list(map(range, quantiles.shape[:-1]))))
     splines = [None for _ in range(len(list(multi_indices)))]
@@ -252,7 +227,6 @@ def main2():
             print(f"Finished {runner} splines")
 
     random_idx = [np.random.randint(0, i) for i in quantiles.shape[:-1]]
-    # random_slice = [slice(i, i + 1) for i in random_idx] + [slice(None)]
     runner = np.prod(random_idx)
 
     iter = 0

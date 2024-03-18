@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data import download_data
-from misfit_toys.utils import parse_path, get_gpu_memory
+from misfit_toys.utils import get_gpu_memory, parse_path
 
 
 def setup(rank, world_size):
@@ -303,14 +303,20 @@ def run(world_size):
 
 
 def main():
-    data_path = os.path.join(parse_path('conda/data'), 'marmousi')
-    lcl_path = os.path.join(os.path.dirname(__file__), 'out', 'base')
+    root = os.path.abspath(os.path.dirname(__file__))
+    data_path = os.path.abspath(
+        os.path.join(parse_path('conda/data'), 'marmousi')
+    )
+    lcl_path = os.path.abspath(os.path.join(root, 'out', 'base'))
+    out_path = os.path.abspath(os.path.join(root, 'out', 'parallel'))
+
     files = ['obs_data', 'vp']
 
     def all_exist(p):
         return all([os.path.exists(f'{p}/{f}.pt') for f in files])
 
     os.makedirs(lcl_path, exist_ok=True)
+    os.makedirs(out_path, exist_ok=True)
     if not all_exist(lcl_path):
         if not all_exist(data_path):
             download_data(

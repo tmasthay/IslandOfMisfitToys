@@ -1,16 +1,8 @@
-__all__ = [
-    "swiffer",
-    "utils",
-    "fwi",
-    "beta",
-    "workflows",
-    "data",
-    "examples"
-]
-from .swiffer import *
-from .utils import *
-from .fwi import *
+__all__ = ["swiffer", "utils", "fwi", "beta", "workflows", "data", "examples"]
 from .beta import *
-from .workflows import *
 from .data import *
 from .examples import *
+from .fwi import *
+from .swiffer import *
+from .utils import *
+from .workflows import *

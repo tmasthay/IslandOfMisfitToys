@@ -3,8 +3,8 @@ from typing import Callable
 
 import torch
 import torch.nn as nn
-from torch.nn.functional import mse_loss
 from mh.core import DotDict
+from torch.nn.functional import mse_loss
 
 
 class TikhonovLoss(nn.Module):

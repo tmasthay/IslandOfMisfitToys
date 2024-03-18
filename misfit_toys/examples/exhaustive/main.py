@@ -230,13 +230,6 @@ def main(cfg: DictConfig) -> None:
     input(torch.unique(cfg.true.vp_init))
     input(torch.unique(cfg.init.vp_true))
 
-    # print('TRUE')
-    # for k, v in true.items():
-    #     print(f'{k}\n{tensor_summary(v)}')
-    # print('INIT')
-    # for k, v in init.items():
-    #     print(f'{k}\n{tensor_summary(v)}')
-
     def renorm(x):
         u = torch.abs(x) + cfg.preproc.renorm_perturb
         c = torch.trapz(u, x=cfg.t, dim=-1).unsqueeze(-1)
