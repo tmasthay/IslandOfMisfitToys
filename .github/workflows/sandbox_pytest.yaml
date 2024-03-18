@@ -51,7 +51,12 @@ jobs:
           script: |
             cd ~/.sandbox/IslandOfMisfitToys || { echo "FAIL: Could not change to IslandOfMisfitToys."; exit 2; }
             cd .github/workflows/scripts || { echo "FAIL: Could not change to scripts directory."; exit 2; }
-            ./setup_sandbox.sh ${{ github.sha }} || { echo "FAIL: Could not setup sandbox."; exit 3; }
+            ./setup_sandbox.sh ${{ github.sha }}
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "FAIL: Could not setup sandbox. exit_code=$exit_code"
+              exit $exit_code
+            fi
 
   run_pytest:
     runs-on: ubuntu-latest
