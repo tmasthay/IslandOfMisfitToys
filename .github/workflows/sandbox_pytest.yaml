@@ -37,7 +37,7 @@ jobs:
   setup_sandbox:
     runs-on: ubuntu-latest
     needs: setup_dummy_repo
-    timeout-minutes: 1
+    timeout-minutes: 5
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
