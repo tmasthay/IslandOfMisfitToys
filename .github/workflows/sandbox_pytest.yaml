@@ -39,6 +39,7 @@ jobs:
             cd .github/workflows/scripts
             ./setup_sandbox.sh ${{ github.sha }} || { echo "FAIL: Could not setup sandbox."; exit 3; }
             cd pytest
+            conda activate dw_sandbox
             ./validate_gpu.sh ${{ github.sha }}
             pytest_exit_code=$?
             cd ~/.sandbox
