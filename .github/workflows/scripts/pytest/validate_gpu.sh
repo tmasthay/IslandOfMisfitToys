@@ -7,6 +7,8 @@ echo "Commit: $GITHUB_HASH"
 echo "Date: $(date)!"
 cd ~/.sandbox/IslandOfMisfitToys
 
+eval "$(conda shell.bash hook)"
+conda activate dw_sandbox
 pytest -s
 
 pytest_exit_code=$?
