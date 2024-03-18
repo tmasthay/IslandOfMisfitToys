@@ -2,9 +2,9 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! See [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)) if you are confused by the logo.
+Welcome to the **Island of Misfit Toys**! 
 
-[PyPI](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
+[PyPI](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
 
 This repository contains implementations of various misfit functions found in seismic literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
@@ -13,22 +13,24 @@ If you have interest in adding features, please add a pull request or contact me
 
 If you have any trouble with our code or find bugs, please let us know by filling out an issue!
 
+If you are confused by the logo, search "Misfit Toys" in [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)), see the [Marmousi model](https://en.wikipedia.org/wiki/Marmousi_model), and the context of misfits in [inverse problems](https://en.wikipedia.org/wiki/Inverse_problem#General_statement_of_the_inverse_problem).
+
 ## Table of Contents
 
 - [Getting Started](#getting-started)
-- [Misfit Functions (currently supported)](#misfit-functions)
 - [Misfit Functions (roadmap for future)](#roadmap)
 
 ## Getting Started
 
-To begin using the misfit functions in this repository, clone it to your local machine:
+To begin using the misfit functions in this repository, simply run
 
 ```bash
-git clone https://github.com/tmasthay/IslandOfMisfitToys.git
-cd IslandOfMisfitToys
+pip install IslandOfMisfitToys
 ```
 
-## Misfit Functions (roadmap for future)
+and should **should** be ready to go on any linux or arm64 MacOS system. Please let us know if you have trouble with the installation.
+
+## Roadmap
 
 (1) One-dimensional $W_1$ and $W_2$ (trace-by-trace) 
   - [Yang et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Application+of+optimal+transport+and+the+quadratic+Wasserstein+metric+to+full-waveform+inversion&btnG=)
