@@ -20,3 +20,11 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
 @pytest.fixture(scope='session')
 def cfg():
     return load_hydra_config()
+
+
+@pytest.fixture(scope='session')
+def adjust():
+    def helper(x, a, b):
+        return a + x * b
+
+    return helper

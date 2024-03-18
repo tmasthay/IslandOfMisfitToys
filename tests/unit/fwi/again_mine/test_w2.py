@@ -25,14 +25,6 @@ def test_cfg_read(cfg):
     assert len(list(cfg.keys())) != 0, "cfg is empty"
 
 
-def test_unbatch_splines(cfg):
-    assert False, "test_unbatch_splines not implemented"
-
-
-def test_unbatch_splines_lambda(cfg):
-    assert False, "test_unbatch_splines_lambda not implemented"
-
-
 def test_pdf(cfg):
     assert False, "test_pdf not implemented"
 

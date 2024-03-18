@@ -48,9 +48,12 @@ def unbatch_splines_lambda(
     splines = unbatch_splines(x, y)
     splines_flattened = splines.flatten()
 
-    def helper(z, *, sf=splines_flattened, shape=splines.shape):
+    def helper(z, *, sf=splines_flattened, shape=splines.shape, deriv=False):
         # z2 = z.expand(*shape, -1)
-        res = torch.stack([e.evaluate(z) for e in sf], dim=0)
+        if not deriv:
+            res = torch.stack([e.evaluate(z) for e in sf], dim=0)
+        else:
+            res = torch.stack([e.derivative(z) for e in sf], dim=0)
         return res.view(*shape, -1)
 
     return helper
