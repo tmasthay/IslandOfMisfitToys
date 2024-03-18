@@ -33,6 +33,7 @@ def unbatch_splines(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     coeffs = np.empty(N, dtype=object)
     z = y.reshape(-1, y.shape[-1], 1)
     for i in range(N):
+        # draise(x[i].shape, z.shape)
         coeffs[i] = natural_cubic_spline_coeffs(x[i], z[i])
         u[i] = NaturalCubicSpline(coeffs[i])
 
