@@ -37,6 +37,8 @@ def transpose(f):
 
 
 def get_files():
+    ran_alan = False
+    ran_iomt = False
     curr_dir = os.path.dirname(__file__)
     alan_out_dir = os.path.join(curr_dir, 'alan', 'out', 'parallel')
     iomt_out_dir = os.path.join(curr_dir, 'val', 'out', 'parallel')
@@ -46,6 +48,7 @@ def get_files():
     if not all_exist(alan_files.values()):
         print("RUNNING ALAN'S VERSION")
         alan()
+        ran_alan = True
         if not all_exist(alan_files.values()):
             root = os.environ.get('ISL', 'IOMT_ROOT')
             path = os.path.join(
@@ -63,10 +66,11 @@ def get_files():
     if not all_exist(iomt_files.values()):
         print("RUNNING IOMT VERSION")
         iomt()
+        ran_iomt = True
     if not all_exist(alan_files.values()) or not all_exist(iomt_files.values()):
         print('Error: could not generate all files')
         sys.exit(1)
-    return alan_files, iomt_files
+    return alan_files, iomt_files, ran_alan, ran_iomt
 
 
 def get_tensors(filenames):
@@ -74,7 +78,7 @@ def get_tensors(filenames):
 
 
 def get_output():
-    alan_files, iomt_files = get_files()
+    alan_files, iomt_files, _, _ = get_files()
     return get_tensors(alan_files), get_tensors(iomt_files)
 
 
@@ -155,11 +159,11 @@ def make_gifs(out_dir):
 
 
 def clean_output(clean, out_file_name):
-    alan_files, iomt_files = get_files()
-    if 'a' in clean:
+    alan_files, iomt_files, ran_alan, ran_iomt = get_files()
+    if 'a' in clean and not ran_alan:
         for v in alan_files.values():
             os.remove(v)
-    if 'i' in clean:
+    if 'i' in clean and not ran_iomt:
         for v in iomt_files.values():
             os.remove(v)
     if os.path.exists(out_file_name):
@@ -210,9 +214,9 @@ def main(args):
         justify=args.justify,
     )
 
-    out_dir = os.path.dirname(args.output)
-
-    make_gifs(out_dir)
+    do_plots = False
+    if do_plots:
+        make_gifs(os.path.dirname(args.output))
     return res
 
 
