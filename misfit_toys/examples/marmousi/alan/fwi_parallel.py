@@ -321,7 +321,7 @@ def main():
         if not all_exist(data_path):
             download_data(
                 os.path.dirname(data_path),
-                exclusions=['das_curtin', 'marmousi2', 'openfwi'],
+                inclusions=['marmousi'],
             )
         for f in files:
             shutil.copy(f'{data_path}/{f}.pt', f'{lcl_path}/{f}.pt')
