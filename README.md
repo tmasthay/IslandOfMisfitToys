@@ -4,8 +4,7 @@
 
 Welcome to the **Island of Misfit Toys**! 
 
-[Our PyPI page](https://pypi.org/project/IslandOfMisfitToys/)
-[Our Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
+[Our PyPI page](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
 
 This repository contains implementations of various misfit functions found in seismic inversion literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
