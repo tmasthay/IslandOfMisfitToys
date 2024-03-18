@@ -43,5 +43,5 @@ jobs:
             ./validate_gpu.sh ${{ github.sha }}
             pytest_exit_code=$?
             cd ~/.sandbox
-            # rm -rf IslandOfMisfitToys
+            rm -rf IslandOfMisfitToys
             exit $pytest_exit_code

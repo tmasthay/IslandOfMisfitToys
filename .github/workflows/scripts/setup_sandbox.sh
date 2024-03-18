@@ -26,7 +26,7 @@ conda activate dw_sandbox
 pip cache purge
 
 # Initialize a new Git repository
-mkdir IslandOfMisfitToys
+mkdir -p IslandOfMisfitToys
 cd IslandOfMisfitToys
 git init || {
     echo "FAIL: Failed to initialize a git repository."
