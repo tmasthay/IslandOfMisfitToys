@@ -1,6 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 import torch
@@ -8,6 +9,7 @@ import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from mh.core import DotDict, draise, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
+from numpy.typing import NDArray
 from scipy.stats import norm
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
@@ -23,7 +25,7 @@ class Defaults:
     cdf_tol: float = 1.0e-03
 
 
-def unbatch_splines(x, y):
+def unbatch_splines(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     N = max(1, np.prod(y.shape[:-1]))
     if x.dim() == 1:
         x = x.expand(N, -1)
@@ -39,7 +41,9 @@ def unbatch_splines(x, y):
     return u
 
 
-def unbatch_splines_lambda(x, y):
+def unbatch_splines_lambda(
+    x: torch.Tensor, y: torch.Tensor
+) -> Callable[[torch.Tensor, NaturalCubicSpline, tuple], torch.Tensor]:
     splines = unbatch_splines(x, y)
     splines_flattened = splines.flatten()
 
@@ -51,7 +55,12 @@ def unbatch_splines_lambda(x, y):
     return helper
 
 
-def pdf(u, x, *, renorm):
+def pdf(
+    u: torch.Tensor,
+    x: torch.Tensor,
+    *,
+    renorm: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+) -> torch.Tensor:
     v = u if renorm is None else renorm(u, x)
     err = torch.abs(torch.trapz(v, x, dim=-1) - 1.0)
     if torch.where(err > Defaults.cdf_tol, 1, 0).any():
@@ -59,7 +68,7 @@ def pdf(u, x, *, renorm):
     return v
 
 
-def cdf(pdf, x, *, dim=-1):
+def cdf(pdf: torch.Tensor, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
     u = torch.cumulative_trapezoid(pdf, x, dim=dim)
 
     pad = [0] * (2 * u.dim())
@@ -69,7 +78,9 @@ def cdf(pdf, x, *, dim=-1):
     return F.pad(u, pad, value=0.0)
 
 
-def disc_quantile(cdfs, x, *, p):
+def disc_quantile(
+    cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor
+) -> torch.Tensor:
     if x.dim() == 1:
         x = x.expand(cdfs.shape[:-1] + (-1,))
     indices = torch.searchsorted(
@@ -86,7 +97,14 @@ def disc_quantile(cdfs, x, *, p):
     return left_vals + alpha * (right_vals - left_vals)
 
 
-def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
+def cts_quantile(
+    cdfs: torch.Tensor,
+    x: torch.Tensor,
+    *,
+    p: torch.Tensor,
+    tol: float = 1.0e-04,
+    max_iters: int = 20,
+):
     cdf_splines = unbatch_splines(x, cdfs).flatten()
     q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
     for i in range(cdf_splines.shape[0]):
@@ -121,7 +139,15 @@ def cts_quantile(cdfs, x, *, p, tol=1.0e-04, max_iters=20):
     return Q
 
 
-def get_quantile_lambda(u, x, *, p, renorm, tol=1.0e-04, max_iters=20):
+def get_quantile_lambda(
+    u: torch.Tensor,
+    x: torch.Tensor,
+    *,
+    p: torch.Tensor,
+    renorm: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+    tol=1.0e-04,
+    max_iters=20,
+):
     PDF = pdf(u, x, renorm=renorm)
     CDF = cdf(PDF, x)
     if p.dim() != 1:
