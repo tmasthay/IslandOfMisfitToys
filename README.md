@@ -6,14 +6,16 @@ Welcome to the **Island of Misfit Toys**!
 
 [PyPI](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
 
-This repository contains implementations of various misfit functions found in seismic literature. 
+This repository contains implementations of various misfit functions found in seismic inversion literature. 
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
+We aim for a rapid prototyping environment built on top of great work by Alan Richardson, who built [deepwave](https://ausargeo.com/deepwave/), the primary dependency of our package. 
+Deepwave represents acoustic and elastic forward solvers as a neural network, freeing up all of pytorch's great optimization tools for the inverse problem.
+We must emphasize deepwave's forward solvers are **classical**; they are not a surrogate model!
+They are simply **represented** as a neural network so that pytorch's tools integrate immediately for solving seismic inversion problems.
 
-If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu.
+If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu. If you have any trouble with our code or find bugs, please let us know by filling out an issue!
 
-If you have any trouble with our code or find bugs, please let us know by filling out an issue!
-
-If you are confused by the logo, search "Misfit Toys" in [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)), see the [Marmousi model](https://en.wikipedia.org/wiki/Marmousi_model), and the context of misfits in [inverse problems](https://en.wikipedia.org/wiki/Inverse_problem#General_statement_of_the_inverse_problem).
+Finally, if you are confused by the logo, search "Misfit Toys" in [Rudolph the Red-nosed Reindeer](https://en.wikipedia.org/wiki/Rudolph_the_Red-Nosed_Reindeer_(TV_special)), see the [Marmousi model](https://en.wikipedia.org/wiki/Marmousi_model), and the context of misfits in [inverse problems](https://en.wikipedia.org/wiki/Inverse_problem#General_statement_of_the_inverse_problem).
 
 ## Table of Contents
 
