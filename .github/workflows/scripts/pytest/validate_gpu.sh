@@ -5,7 +5,7 @@ GITHUB_HASH=$1
 echo "SSH successful"
 echo "Commit: $GITHUB_HASH"
 echo "Date: $(date)!"
-cd ~/.sandbox/IslandOfMisfitToys
+cd ~/.sandbox/IslandOfMisfitToys/.github/workflows
 
 eval "$(conda shell.bash hook)"
 conda activate dw_sandbox
