@@ -5,7 +5,7 @@ import torch
 @pytest.fixture(scope='session')
 def sine_ref_data(cfg, adjust):
     def helper(freq):
-        c = cfg.unit.beta.prob.unbatch_splines
+        c = cfg.unit.beta.unbatch_splines
         freq = adjust(freq, *c.freq)
 
         x = torch.linspace(c.x.left, c.x.right, c.x.num_ref)
