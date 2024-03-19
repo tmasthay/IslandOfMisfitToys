@@ -15,7 +15,7 @@ class Prob:
 
 
 @mark.fast
-@mark.interpolate
+@mark.unit
 class TestUnbatchSplines:
     @mark.sine
     @given(
@@ -38,7 +38,7 @@ class TestUnbatchSplines:
 
 
 @mark.fast
-@mark.interpolate
+@mark.unit
 class TestUnbatchSplinesLambda:
     @mark.sine
     @given(
@@ -63,9 +63,8 @@ class TestUnbatchSplinesLambda:
 
 
 @mark.fast
-@mark.prob
+@mark.unit
 class TestPdf:
-    @mark.cfg
     @pytest.fixture(autouse=True)
     def setup(self, cfg):
         self.c = cfg.unit.beta.pdf
@@ -73,7 +72,6 @@ class TestPdf:
         self.c.atol = self.c.get("atol", cfg.atol)
         self.c.rtol = self.c.get("rtol", cfg.rtol)
 
-    @mark.gaussian
     @given(
         mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
         sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
@@ -98,8 +96,8 @@ class TestPdf:
 
 
 @mark.fast
+@mark.unit
 class TestCdf:
-    @mark.cfg
     @pytest.fixture(autouse=True)
     def setup(self, cfg):
         self.c = cfg.unit.beta.pdf
@@ -107,7 +105,6 @@ class TestCdf:
         self.c.atol = self.c.get("atol", cfg.atol)
         self.c.rtol = self.c.get("rtol", cfg.rtol)
 
-    @mark.gaussian
     @given(
         mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
         sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
