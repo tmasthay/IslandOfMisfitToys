@@ -3,6 +3,8 @@ import os
 import pytest
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf
+from mh.core import DotDict
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
@@ -14,7 +16,7 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
         # If already initialized, just compose the config
         cfg = compose(config_name=config_name)
 
-    return cfg
+    return DotDict(OmegaConf.to_container(cfg))
 
 
 @pytest.fixture(scope='session')

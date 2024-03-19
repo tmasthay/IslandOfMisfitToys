@@ -5,4 +5,7 @@ unbatch_splines:
     right: 6.28
     num_ref: 100
     upsample: 10
-  pad: 20
+  pad: 30
+
+pdf:
+  x: [-5, 5, 1000]
