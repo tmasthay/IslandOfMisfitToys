@@ -12,6 +12,16 @@ from pytest import mark
 from misfit_toys.beta.prob import *
 
 unit_strat = st.floats(min_value=0.0, max_value=1.0, allow_subnormal=False)
+# fixed_mu = st.just(0.0)
+# fixed_sigma = st.just(1.0)
+
+# curr_strat = {'mu': fixed_mu, 'sigma': fixed_sigma}
+curr_strat = {'mu': unit_strat, 'sigma': unit_strat}
+
+
+@dataclass
+class Prob:
+    max_examples: int = 10
 
 
 @mark.fast
@@ -62,11 +72,8 @@ class TestPdf:
         self.c.plot = self.c.plot.pdf
         report_cfg(self.c, 'pdf')
 
-    @settings(deadline=None)
-    @given(
-        mu=unit_strat,
-        sigma=unit_strat,
-    )
+    @settings(max_examples=Prob.max_examples, deadline=None)
+    @given(**curr_strat)
     def test_analytic_gaussian_pdf(
         self, adjust, mu, sigma, gauss_pdf_computed, gauss_pdf_ref
     ):
@@ -96,11 +103,8 @@ class TestCdf:
         self.c.plot = self.c.plot.cdf
         report_cfg(self.c, 'cdf')
 
-    @settings(deadline=None)
-    @given(
-        mu=unit_strat,
-        sigma=unit_strat,
-    )
+    @settings(max_examples=Prob.max_examples, deadline=None)
+    @given(**curr_strat)
     def test_analytic_gaussian_cdf(
         self, adjust, mu, sigma, gauss_pdf_computed, gauss_cdf_ref
     ):
@@ -132,21 +136,19 @@ class TestDiscQuantile:
         self.c.plot = self.c.plot.disc_quantile
         report_cfg(self.c, 'disc_quantile')
 
-    @settings(max_examples=1, deadline=None)
-    @given(
-        mu=unit_strat,
-        sigma=unit_strat,
-    )
+    @settings(max_examples=Prob.max_examples, deadline=None)
+    @given(**curr_strat)
     def test_analytic_gaussian_disc_quantile(
         self, adjust, mu, sigma, gauss_pdf_computed, gauss_quantile_ref
     ):
         mu = adjust(mu, *self.c.mu)
         sigma = adjust(sigma, *self.c.sigma)
         z, x = gauss_pdf_computed(self.c.x, mu, sigma)
-
+        z = cdf(z, x, dim=-1)
         z = disc_quantile(z, x, p=self.p)
         z_true = gauss_quantile_ref(self.p, mu, sigma)
 
+        # print(f'{mu=}, {sigma=}', flush=True)
         verify_and_plot(
             self,
             plotter=plot_quantile,

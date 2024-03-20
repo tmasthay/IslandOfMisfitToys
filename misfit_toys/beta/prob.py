@@ -1,6 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass
+from itertools import product
 from typing import Callable
 
 import numpy as np
@@ -82,24 +83,48 @@ def cdf(pdf: torch.Tensor, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
     return F.pad(u, pad, value=0.0)
 
 
+# def disc_quantile_legacy(
+#     cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor
+# ) -> torch.Tensor:
+#     if x.dim() == 1:
+#         x = x.expand(cdfs.shape[:-1] + (-1,))
+#     indices = torch.searchsorted(
+#         cdfs, p.expand(*cdfs.shape[:-1], -1), right=False
+#     )
+#     indices = torch.clamp(indices, 0, cdfs.shape[-1] - 1)
+#     right_indices = torch.clamp(indices + 1, 0, cdfs.shape[-1] - 1)
+#     left_vals, right_vals = x.gather(-1, indices), x.gather(-1, right_indices)
+#     left_cdfs, right_cdfs = cdfs.gather(-1, indices), cdfs.gather(
+#         -1, right_indices
+#     )
+#     denom = right_cdfs - left_cdfs
+#     denom = torch.where(denom < 1.0e-8, 1.0, denom)
+#     alpha = (p - left_cdfs) / denom
+#     # return left_vals + alpha * (right_vals - left_vals)
+#     return left_vals
+
+
 def disc_quantile(
-    cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor
+    cdfs: torch.Tensor,
+    x: torch.Tensor,
+    *,
+    p: torch.Tensor,
 ) -> torch.Tensor:
-    if x.dim() == 1:
-        x = x.expand(cdfs.shape[:-1] + (-1,))
-    indices = torch.searchsorted(
-        cdfs, p.expand(*cdfs.shape[:-1], -1), right=False
-    )
-    indices = torch.clamp(indices, 0, cdfs.shape[-1] - 1)
-    right_indices = torch.clamp(indices + 1, 0, cdfs.shape[-1] - 1)
-    left_vals, right_vals = x.gather(-1, indices), x.gather(-1, right_indices)
-    left_cdfs, right_cdfs = cdfs.gather(-1, indices), cdfs.gather(
-        -1, right_indices
-    )
-    denom = right_cdfs - left_cdfs
-    denom = torch.where(denom < 1.0e-8, 1.0, denom)
-    alpha = (p - left_cdfs) / denom
-    return left_vals + alpha * (right_vals - left_vals)
+    if len(cdfs.shape) == 1:
+        indices = torch.searchsorted(cdfs, p)
+        indices = torch.clamp(indices, 0, len(x) - 1)
+        res = torch.tensor([x[i] for i in indices])
+        return res
+    else:
+        # Initialize an empty tensor to store the results and loop through dims
+        result_shape = cdfs.shape[:-1]
+        results = torch.empty(
+            result_shape + (p.shape[-1],), dtype=torch.float32
+        )
+        for idx in product(*map(range, result_shape)):
+            results[idx] = disc_quantile(cdfs[idx], x, p=p)
+
+        return results
 
 
 def cts_quantile(
