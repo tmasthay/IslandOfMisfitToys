@@ -5,3 +5,4 @@ defaults:
 
 atol: 1e-2
 rtol: 1e-2
+verbose: 0

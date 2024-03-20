@@ -12,3 +12,13 @@ prob:
   p:
     eps: 0.01
     np: 1000
+  plot:
+    pdf:
+      mode: always
+      max: 10
+    cdf:
+      mode: always
+      max: 10
+    disc_quantile:
+      mode: fail
+      max: 10
