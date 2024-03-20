@@ -90,7 +90,8 @@ def disc_quantile(
     indices = torch.searchsorted(
         cdfs, p.expand(*cdfs.shape[:-1], -1), right=False
     )
-    right_indices = torch.clamp(indices, 0, cdfs.shape[-1] - 1)
+    indices = torch.clamp(indices, 0, cdfs.shape[-1] - 1)
+    right_indices = torch.clamp(indices + 1, 0, cdfs.shape[-1] - 1)
     left_vals, right_vals = x.gather(-1, indices), x.gather(-1, right_indices)
     left_cdfs, right_cdfs = cdfs.gather(-1, indices), cdfs.gather(
         -1, right_indices

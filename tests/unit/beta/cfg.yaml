@@ -8,6 +8,8 @@ unbatch_splines:
   pad: 30
 
 prob:
+  mu: [-1.0, 1.0]
+  sigma: [0.1, 1.0]
   x: [-5, 5, 1000]
   p:
     eps: 0.01
@@ -20,5 +22,5 @@ prob:
       mode: always
       max: 10
     disc_quantile:
-      mode: fail
+      mode: always
       max: 10

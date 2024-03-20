@@ -1,26 +1,24 @@
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
 import torch
+import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
-
+from plot_prob import *
 from pytest import mark
 
 from misfit_toys.beta.prob import *
-from plot_prob import *
-from dataclasses import dataclass
-import yaml
+
+unit_strat = st.floats(min_value=0.0, max_value=1.0, allow_subnormal=False)
 
 
 @mark.fast
 @mark.unit
 class TestUnbatchSplines:
     @mark.sine
-    @given(
-        freq=st.floats(
-            min_value=0.1, max_value=1.0, exclude_min=True, exclude_max=True
-        )
-    )
+    @given(freq=unit_strat)
     def test_sine_wave_spline_with_random_frequency(self, sine_ref_data, freq):
         x, y, x_test, y_true, y_deriv_true, atol, rtol = sine_ref_data(freq)
         splines = unbatch_splines(x, y)
@@ -38,11 +36,7 @@ class TestUnbatchSplines:
 @mark.unit
 class TestUnbatchSplinesLambda:
     @mark.sine
-    @given(
-        freq=st.floats(
-            min_value=0.1, max_value=1.0, exclude_min=True, exclude_max=True
-        )
-    )
+    @given(freq=unit_strat)
     def test_sine_wave_spline_with_random_frequency_lambda(
         self, sine_ref_data, freq
     ):
@@ -68,13 +62,16 @@ class TestPdf:
         self.c.plot = self.c.plot.pdf
         report_cfg(self.c, 'pdf')
 
+    @settings(deadline=None)
     @given(
-        mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
-        sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
+        mu=unit_strat,
+        sigma=unit_strat,
     )
     def test_analytic_gaussian_pdf(
-        self, mu, sigma, gauss_pdf_computed, gauss_pdf_ref
+        self, adjust, mu, sigma, gauss_pdf_computed, gauss_pdf_ref
     ):
+        mu = adjust(mu, *self.c.mu)
+        sigma = adjust(sigma, *self.c.sigma)
         z, x = gauss_pdf_computed(self.c.x, mu, sigma)
         z_true = gauss_pdf_ref(x, mu, sigma)
         verify_and_plot(
@@ -99,13 +96,16 @@ class TestCdf:
         self.c.plot = self.c.plot.cdf
         report_cfg(self.c, 'cdf')
 
+    @settings(deadline=None)
     @given(
-        mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
-        sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
+        mu=unit_strat,
+        sigma=unit_strat,
     )
     def test_analytic_gaussian_cdf(
-        self, mu, sigma, gauss_pdf_computed, gauss_cdf_ref
+        self, adjust, mu, sigma, gauss_pdf_computed, gauss_cdf_ref
     ):
+        mu = adjust(mu, *self.c.mu)
+        sigma = adjust(sigma, *self.c.sigma)
         z, x = gauss_pdf_computed(self.c.x, mu, sigma)
         z = cdf(z, x, dim=-1)
         z_true = gauss_cdf_ref(x, mu, sigma)
@@ -132,14 +132,16 @@ class TestDiscQuantile:
         self.c.plot = self.c.plot.disc_quantile
         report_cfg(self.c, 'disc_quantile')
 
-    @settings(max_examples=1)
+    @settings(max_examples=1, deadline=None)
     @given(
-        mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
-        sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
+        mu=unit_strat,
+        sigma=unit_strat,
     )
     def test_analytic_gaussian_disc_quantile(
-        self, mu, sigma, gauss_pdf_computed, gauss_quantile_ref
+        self, adjust, mu, sigma, gauss_pdf_computed, gauss_quantile_ref
     ):
+        mu = adjust(mu, *self.c.mu)
+        sigma = adjust(sigma, *self.c.sigma)
         z, x = gauss_pdf_computed(self.c.x, mu, sigma)
 
         z = disc_quantile(z, x, p=self.p)
@@ -153,4 +155,5 @@ class TestDiscQuantile:
             ref=z_true,
             mu=mu,
             sigma=sigma,
+            x=x,
         )

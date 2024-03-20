@@ -14,3 +14,6 @@ __pycache__
 !.gitattributes
 !.gitmodules
 !.github
+outputs/
+multirun/
+*.gif

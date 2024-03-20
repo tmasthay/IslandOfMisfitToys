@@ -1,12 +1,12 @@
 import os
+from copy import deepcopy
 
 import pytest
+import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf
 from mh.core import DotDict
-import yaml
-from copy import deepcopy
+from omegaconf import OmegaConf
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
@@ -48,7 +48,7 @@ def lcl_cfg():
 @pytest.fixture(scope='session')
 def report_cfg(cfg):
     def helper(c, name):
-        if cfg.verbose >= 1:
+        if cfg.verbose >= 2:
             s = yaml.dump(c.__dict__)
             s = s.replace("!!python/object:mh.core.DotDict", "")
             print(f'\n\n{name}\n\n{s}\n\n', flush=True)
