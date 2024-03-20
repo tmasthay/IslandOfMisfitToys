@@ -1,5 +1,6 @@
 import pytest
 import torch
+from misfit_toys.beta.prob import *
 
 
 @pytest.fixture(scope='session')
@@ -19,5 +20,51 @@ def sine_ref_data(cfg, adjust):
         atol = c.get('atol', cfg.atol)
         rtol = c.get('rtol', cfg.rtol)
         return x, y, x_test, y_true, y_deriv_true, atol, rtol
+
+    return helper
+
+
+@pytest.fixture(scope='session')
+def gauss_pdf_computed():
+    def helper(x_args, mu, sigma):
+        x = torch.linspace(*x_args)
+        z = torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
+
+        def renorm(y1, x1):
+            return y1 / torch.trapz(y1, x1, dim=-1).unsqueeze(-1)
+
+        z = pdf(z, x, renorm=renorm)
+        return z, x
+
+    return helper
+
+
+@pytest.fixture(scope='session')
+def gauss_pdf_ref():
+    def helper(x, mu, sigma):
+        z = (
+            1
+            / (sigma * np.sqrt(2 * np.pi))
+            * torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
+        )
+        return z
+
+    return helper
+
+
+@pytest.fixture(scope='session')
+def gauss_cdf_ref():
+    def helper(x, mu, sigma):
+        z = 0.5 * (1 + torch.erf((x - mu) / (sigma * np.sqrt(2))))
+        return z
+
+    return helper
+
+
+@pytest.fixture(scope='session')
+def gauss_quantile_ref():
+    def helper(p, mu, sigma):
+        z = mu + sigma * np.sqrt(2) * torch.erfinv(2 * p - 1)
+        return z
 
     return helper

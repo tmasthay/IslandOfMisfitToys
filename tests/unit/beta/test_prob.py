@@ -10,7 +10,7 @@ from misfit_toys.beta.prob import *
 
 
 @dataclass
-class Prob:
+class Global:
     max_examples: int = 5
 
 
@@ -23,7 +23,7 @@ class TestUnbatchSplines:
             min_value=0.1, max_value=1.0, exclude_min=True, exclude_max=True
         )
     )
-    @settings(max_examples=Prob.max_examples)
+    @settings(max_examples=Global.max_examples)
     def test_sine_wave_spline_with_random_frequency(self, sine_ref_data, freq):
         x, y, x_test, y_true, y_deriv_true, atol, rtol = sine_ref_data(freq)
         splines = unbatch_splines(x, y)
@@ -46,7 +46,7 @@ class TestUnbatchSplinesLambda:
             min_value=0.1, max_value=1.0, exclude_min=True, exclude_max=True
         )
     )
-    @settings(max_examples=Prob.max_examples)
+    @settings(max_examples=Global.max_examples)
     def test_sine_wave_spline_with_random_frequency_lambda(
         self, sine_ref_data, freq
     ):
@@ -66,30 +66,20 @@ class TestUnbatchSplinesLambda:
 @mark.unit
 class TestPdf:
     @pytest.fixture(autouse=True)
-    def setup(self, cfg):
-        self.c = cfg.unit.beta.pdf
+    def setup(self, cfg, lcl_cfg):
+        self.c = lcl_cfg(cfg, 'unit.beta.prob', inherit_keys=['atol', 'rtol'])
         self.cfg = cfg
-        self.c.atol = self.c.get("atol", cfg.atol)
-        self.c.rtol = self.c.get("rtol", cfg.rtol)
 
     @given(
         mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
         sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
     )
-    @settings(max_examples=Prob.max_examples)
-    def test_analytic_gaussian_pdf(self, mu, sigma):
-        x = torch.linspace(*self.c.x)
-        z = torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
-
-        def renorm(y1, x1):
-            return y1 / torch.trapz(y1, x1, dim=-1).unsqueeze(-1)
-
-        z = pdf(z, x, renorm=renorm)
-        z_true = (
-            1
-            / (sigma * np.sqrt(2 * np.pi))
-            * torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
-        )
+    @settings(max_examples=Global.max_examples)
+    def test_analytic_gaussian_pdf(
+        self, mu, sigma, gauss_pdf_computed, gauss_pdf_ref
+    ):
+        z, x = gauss_pdf_computed(self.c.x, mu, sigma)
+        z_true = gauss_pdf_ref(x, mu, sigma)
         torch.testing.assert_close(
             z, z_true, rtol=self.c.atol, atol=self.c.rtol
         )
@@ -99,27 +89,46 @@ class TestPdf:
 @mark.unit
 class TestCdf:
     @pytest.fixture(autouse=True)
-    def setup(self, cfg):
-        self.c = cfg.unit.beta.pdf
+    def setup(self, cfg, lcl_cfg):
+        self.c = lcl_cfg(cfg, 'unit.beta.prob', inherit_keys=['atol', 'rtol'])
         self.cfg = cfg
-        self.c.atol = self.c.get("atol", cfg.atol)
-        self.c.rtol = self.c.get("rtol", cfg.rtol)
 
     @given(
         mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
         sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
     )
-    @settings(max_examples=Prob.max_examples)
-    def test_analytic_gaussian_cdf(self, mu, sigma):
-        x = torch.linspace(*self.c.x)
-        z = torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
-
-        def renorm(y1, x1):
-            return y1 / torch.trapz(y1, x1, dim=-1).unsqueeze(-1)
-
-        z = pdf(z, x, renorm=renorm)
+    @settings(max_examples=Global.max_examples)
+    def test_analytic_gaussian_cdf(
+        self, mu, sigma, gauss_pdf_computed, gauss_cdf_ref
+    ):
+        z, x = gauss_pdf_computed(self.c.x, mu, sigma)
         z = cdf(z, x, dim=-1)
-        z_true = 0.5 * (1 + torch.erf((x - mu) / (sigma * np.sqrt(2))))
+        z_true = gauss_cdf_ref(x, mu, sigma)
+        torch.testing.assert_close(
+            z, z_true, rtol=self.c.atol, atol=self.c.rtol
+        )
+
+
+@mark.medium
+class TestDiscQuantile:
+    @pytest.fixture(autouse=True)
+    def setup(self, cfg, lcl_cfg):
+        self.c = lcl_cfg(cfg, 'unit.beta.prob', inherit_keys=['atol', 'rtol'])
+        self.cfg = cfg
+        self.p = torch.linspace(self.c.p.eps, 1.0 - self.c.p.eps, self.c.p.np)
+
+    @given(
+        mu=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
+        sigma=st.floats(min_value=0.1, max_value=1.0, exclude_min=True),
+    )
+    @settings(max_examples=Global.max_examples)
+    def test_analytic_gaussian_disc_quantile(
+        self, mu, sigma, gauss_pdf_computed, gauss_quantile_ref
+    ):
+        z, x = gauss_pdf_computed(self.c.x, mu, sigma)
+
+        z = disc_quantile(z, x, p=self.p)
+        z_true = gauss_quantile_ref(self.p, mu, sigma)
         torch.testing.assert_close(
             z, z_true, rtol=self.c.atol, atol=self.c.rtol
         )

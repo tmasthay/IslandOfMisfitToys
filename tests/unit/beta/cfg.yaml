@@ -7,5 +7,8 @@ unbatch_splines:
     upsample: 10
   pad: 30
 
-pdf:
+prob:
   x: [-5, 5, 1000]
+  p:
+    eps: 0.01
+    np: 1000

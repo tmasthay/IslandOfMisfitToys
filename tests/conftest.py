@@ -16,7 +16,7 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
         # If already initialized, just compose the config
         cfg = compose(config_name=config_name)
 
-    return DotDict(OmegaConf.to_container(cfg))
+    return DotDict(OmegaConf.to_container(cfg, resolve=True))
 
 
 @pytest.fixture(scope='session')
@@ -28,5 +28,16 @@ def cfg():
 def adjust():
     def helper(x, a, b):
         return a + x * b
+
+    return helper
+
+
+@pytest.fixture(scope='session')
+def lcl_cfg():
+    def helper(cfg, key, inherit_keys=None):
+        lcl_cfg = cfg[key]
+        for k in inherit_keys:
+            lcl_cfg[k] = lcl_cfg.get(k, cfg[k])
+        return lcl_cfg
 
     return helper
