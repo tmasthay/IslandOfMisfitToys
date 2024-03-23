@@ -18,7 +18,7 @@ vp:
       main:
         filt: "eval(lambda x : x.T)"
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: $v_p$
         type: imshow
@@ -30,7 +30,7 @@ vp:
       main:
         filt: transpose
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: Relative Difference (%)
         type: imshow
@@ -42,7 +42,7 @@ vp:
       main:
         filt: transpose
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: $v_{true}$
         type: imshow

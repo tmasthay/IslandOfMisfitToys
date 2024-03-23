@@ -14,13 +14,19 @@ prob:
   p:
     eps: 0.01
     np: 1000
+  renorm: ^^null|misfit_toys.beta.renorm|identity
+  mesh_perturb: 0.5
+
   plot:
     pdf:
-      mode: always
+      mode: fail
       max: 10
     cdf:
-      mode: always
+      mode: fail
       max: 10
     disc_quantile:
+      mode: fail
+      max: 10
+    cts_quantile:
       mode: always
       max: 10

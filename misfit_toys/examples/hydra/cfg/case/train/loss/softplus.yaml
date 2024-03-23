@@ -12,3 +12,5 @@ kw:
     eps: 0.5
     beta: 1.0e-03
     track: true
+    alpha: 1.0e-06
+    weights: self.runtime.prop.module.vp

@@ -6,6 +6,7 @@ import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 from mh.core import DotDict
+from misfit_toys.utils import exec_imports
 from omegaconf import OmegaConf
 
 
@@ -21,9 +22,17 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
     return DotDict(OmegaConf.to_container(cfg, resolve=True))
 
 
+def preprocess_cfg(cfg: DotDict) -> DotDict:
+    c = cfg.self_ref_resolve(gbl=globals(), lcl=locals())
+    c = exec_imports(c)
+    return c
+
+
 @pytest.fixture(scope='session')
 def cfg():
-    return load_hydra_config()
+    c = load_hydra_config()
+    c = preprocess_cfg(c)
+    return c
 
 
 @pytest.fixture(scope='session')

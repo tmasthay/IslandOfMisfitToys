@@ -45,7 +45,7 @@ def unbatch_splines(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
 def unbatch_splines_lambda(
     x: torch.Tensor, y: torch.Tensor
-) -> Callable[[torch.Tensor, NaturalCubicSpline, tuple], torch.Tensor]:
+) -> Callable[[torch.Tensor, bool], torch.Tensor]:
     splines = unbatch_splines(x, y)
     splines_flattened = splines.flatten()
 
@@ -185,6 +185,7 @@ def get_quantile_lambda(
             f"Only 1D p is supported for now, got p.shape = {p.shape}"
         )
     Q = cts_quantile(CDF, x, p=p, tol=tol, max_iters=max_iters)
+    # Q = disc_quantile(CDF, x, p=p)
     return Q
 
 

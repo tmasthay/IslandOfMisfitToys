@@ -10,7 +10,17 @@ from misfit_toys.utils import taper
 
 class W2Loss(torch.nn.Module):
     def __init__(
-        self, *, t, p, obs_data, renorm, gen_deriv, down=1, track=False
+        self,
+        *,
+        t,
+        p,
+        obs_data,
+        renorm,
+        gen_deriv,
+        down=1,
+        track=False,
+        alpha=1e-06,
+        weights,
     ):
         super().__init__()
         self.org_obs_data = obs_data
@@ -25,6 +35,19 @@ class W2Loss(torch.nn.Module):
             self.p[::down], self.q_raw[..., ::down].unsqueeze(-1)
         )
         self.qd = gen_deriv(q=self.q, p=self.p)
+        self.weights = weights
+        self.alpha = alpha
+
+    def compute_gradient_penalty(self, param):
+        """
+        Compute the gradient penalty for the parameter tensor
+        """
+        grad_x = torch.diff(param.p, dim=0)  # Gradient along x-axis (rows)
+        grad_y = torch.diff(param.p, dim=1)  # Gradient along y-axis (columns)
+
+        # Compute the norm of the gradient (you might choose L1, L2, etc.)
+        penalty = grad_x.norm() + grad_y.norm()
+        return penalty
 
     def forward(self, traces):
         pdf = self.renorm(traces)
@@ -32,7 +55,9 @@ class W2Loss(torch.nn.Module):
         transport = self.q(cdf)
         diff = self.t - transport
         loss = torch.trapz(diff**2 * pdf, self.t, dim=-1).sum()
-        return loss
+        tik_term = self.alpha * self.compute_gradient_penalty(self.weights)
+        total_loss = loss + tik_term
+        return total_loss
 
 
 class W2LossTracker(torch.nn.Module):
@@ -104,7 +129,9 @@ def hydra_build(c: DotDict, *, down):
     return [], d
 
 
-def hydra_build_two(*, obs_data, meta, num_probs, down, eps, track, beta):
+def hydra_build_two(
+    *, obs_data, meta, num_probs, down, eps, track, beta, weights, alpha
+):
     d = DotDict({})
     d.obs_data = taper(obs_data)
     device = d.obs_data.device
@@ -114,6 +141,8 @@ def hydra_build_two(*, obs_data, meta, num_probs, down, eps, track, beta):
     d.renorm = softplus(d.t, eps, beta)
     d.down = down
     d.track = track
+    d.weights = weights
+    d.alpha = alpha
     return d
 
 

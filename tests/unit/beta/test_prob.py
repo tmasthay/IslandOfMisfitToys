@@ -21,7 +21,7 @@ curr_strat = {'mu': unit_strat, 'sigma': unit_strat}
 
 @dataclass
 class Prob:
-    max_examples: int = 10
+    max_examples: int = 1
 
 
 @mark.fast
@@ -148,11 +148,56 @@ class TestDiscQuantile:
         z = disc_quantile(z, x, p=self.p)
         z_true = gauss_quantile_ref(self.p, mu, sigma)
 
-        # print(f'{mu=}, {sigma=}', flush=True)
         verify_and_plot(
             self,
             plotter=plot_quantile,
             name='disc_quantile',
+            computed=z,
+            ref=z_true,
+            mu=mu,
+            sigma=sigma,
+            x=x,
+        )
+
+
+@mark.medium
+@mark.unit
+@mark.untested_dep
+class TestGetLambda:
+    @pytest.fixture(autouse=True)
+    def setup(self, cfg, lcl_cfg, report_cfg):
+        self.c = lcl_cfg(cfg, 'unit.beta.prob', inherit_keys=['atol', 'rtol'])
+        self.cfg = cfg
+        self.p = torch.linspace(self.c.p.eps, 1.0 - self.c.p.eps, self.c.p.np)
+        self.c.plot = self.c.plot.cts_quantile
+        report_cfg(self.c, 'cts_quantile')
+
+    @settings(max_examples=Prob.max_examples, deadline=3000)
+    @given(**curr_strat)
+    def test_analytic_gaussian_get_quantile_lambda(
+        self, adjust, mu, sigma, gauss_pdf_computed, gauss_quantile_ref
+    ):
+        mu = adjust(mu, *self.c.mu)
+        sigma = adjust(sigma, *self.c.sigma)
+        z, x = gauss_pdf_computed(self.c.x, mu, sigma)
+        z = get_quantile_lambda(z, x, p=self.p, renorm=self.c.renorm)
+        self.p = (
+            self.p
+            + torch.rand_like(self.p) * self.c.mesh_perturb * self.c.p.eps
+        )
+        self.p = torch.clamp(self.p, self.c.p.eps, 1.0 - self.c.p.eps)
+        self.p = self.p.sort().values
+        self.p = torch.linspace(self.c.p.eps, 1.0 - self.c.p.eps, self.c.p.np)
+        z = z(self.p).squeeze()
+        z_true = gauss_quantile_ref(self.p, mu, sigma)
+
+        diff = torch.abs(z - z_true).mean()
+        print(f'{diff=}', flush=True)
+
+        verify_and_plot(
+            self,
+            plotter=plot_quantile,
+            name='cts_quantile',
             computed=z,
             ref=z_true,
             mu=mu,

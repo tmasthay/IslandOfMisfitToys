@@ -6,14 +6,19 @@ import torch
 
 def verify_and_plot(self, *, plotter, name, computed, ref, **kw):
     make_plots = plotter(self, name=name, computed=computed, ref=ref, **kw)
+    # mse = torch.nn.functional.mse_loss(computed, ref)
     try:
         torch.testing.assert_close(
             computed, ref, rtol=self.c.rtol, atol=self.c.atol
         )
         if self.c.plot.mode.lower() in ['always', 'success']:
+            # print(f'SUCCESS: {mse:.2e=}', flush=True)
+            print('SUCCESS', flush=True)
             make_plots('SUCCESS')
     except Exception as e:
         if self.c.plot.mode.lower() in ['always', 'fail']:
+            mse = torch.nn.functional.mse_loss(computed, ref)
+            print(f'FAILURE: {mse:.2e=}', flush=True)
             make_plots('FAILURE')
         raise e
 
