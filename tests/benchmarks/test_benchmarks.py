@@ -2,9 +2,9 @@ import os
 
 import pynvml as nvml
 from mh.core import DotDict
+from pytest import mark
 
 import misfit_toys.examples.marmousi.validate as val
-from pytest import mark
 
 
 def check_gpu_memory():

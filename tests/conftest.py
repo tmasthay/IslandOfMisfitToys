@@ -6,8 +6,9 @@ import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 from mh.core import DotDict
-from misfit_toys.utils import exec_imports
 from omegaconf import OmegaConf
+
+from misfit_toys.utils import exec_imports
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):

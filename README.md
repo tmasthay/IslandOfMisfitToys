@@ -2,13 +2,13 @@
 
 ![Island of Misfit Toys Banner](IslandOfMisfitToys.jpg)
 
-Welcome to the **Island of Misfit Toys**! 
+Welcome to the **Island of Misfit Toys**!
 
-[Our PyPI page](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html). 
+[Our PyPI page](https://pypi.org/project/IslandOfMisfitToys/) and [Documentation (work in progress)](https://islandofmisfittoys.readthedocs.io/en/latest/index.html).
 
-This repository contains implementations of various misfit functions found in seismic inversion literature. 
+This repository contains implementations of various misfit functions found in seismic inversion literature.
 Our goal is to create a comprehensive collection of these functions to aid researchers and practitioners of seismic inverse problems.
-We aim for a rapid prototyping environment built on top of [deepwave](https://ausargeo.com/deepwave/), the primary dependency of our package. 
+We aim for a rapid prototyping environment built on top of [deepwave](https://ausargeo.com/deepwave/), the primary dependency of our package.
 Deepwave represents acoustic and elastic forward solvers as a pytorch module and thus integrates pytorch's optimization packages seamlessly into an FWI workflow.
 
 If you have interest in adding features, please add a pull request or contact me directly at tyler@oden.utexas.edu. If you have any trouble with our code or find bugs, please let us know by filling out an issue!
@@ -32,7 +32,7 @@ and should **should** be ready to go on any linux or arm64 MacOS system. Please 
 
 ## Roadmap
 
-(1) One-dimensional $W_1$ and $W_2$ (trace-by-trace) 
+(1) One-dimensional $W_1$ and $W_2$ (trace-by-trace)
   - [Yang et al. 2018](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C44&q=Application+of+optimal+transport+and+the+quadratic+Wasserstein+metric+to+full-waveform+inversion&btnG=)
 
 (2) Huber

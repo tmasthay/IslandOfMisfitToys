@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from misfit_toys.beta.prob import *
 
 

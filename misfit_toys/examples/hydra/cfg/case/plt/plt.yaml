@@ -52,7 +52,7 @@ vp:
 
 trace:
   sub:
-    shape: [2,2]
+    shape: [2, 2]
     kw:
       figsize: [10, 10]
   iter:
@@ -65,7 +65,7 @@ trace:
   title: Observed Data at Receiver Location
   color_seq: [red, blue]
   linestyles: [solid, dashed]
-  legend: 
+  legend:
     loc: upper right
     framealpha: 0.5
   suptitle: Observed Data at Random Receiver Locations

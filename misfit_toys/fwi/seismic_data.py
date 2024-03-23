@@ -144,10 +144,19 @@ class ParamConstrained(Param):
             maxv=maxv,
         )
         if torch.isnan(self.p).any():
-            msg = f'Failed to initialize ParamConstrained with minv={minv}, maxv={maxv}'
+            msg = (
+                f'Failed to initialize ParamConstrained with minv={minv},'
+                f' maxv={maxv}'
+            )
             passed_min, passed_max = p.min().item(), p.max().item()
-            msg += f'\nTrue max/min of passed data:\n    min={passed_min}, max={passed_max}'
-            msg += f'\nConstrained max/min passed into constructor:\n    min={minv}, max={maxv}'
+            msg += (
+                f'\nTrue max/min of passed data:\n    min={passed_min},'
+                f' max={passed_max}'
+            )
+            msg += (
+                '\nConstrained max/min passed into constructor:\n   '
+                f' min={minv}, max={maxv}'
+            )
             raise ValueError(msg)
 
     def forward(self):
@@ -426,7 +435,8 @@ class SeismicProp(torch.nn.Module):
         if self.model.lower() == 'acoustic':
             if torch.isnan(self.vp.p).any():
                 raise ValueError(
-                    f'Invalid vp before composition due to nan: {tensor_summary(self.vp.p)}'
+                    'Invalid vp before composition due to nan:'
+                    f' {tensor_summary(self.vp.p)}'
                 )
             v = self.vp()
             if torch.isnan(v).any() or torch.isinf(v).any():

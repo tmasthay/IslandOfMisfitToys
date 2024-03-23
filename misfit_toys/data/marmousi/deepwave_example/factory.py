@@ -48,9 +48,7 @@ class Factory(DataFactory):
 
 
 def main():
-    f = Factory.cli_construct(
-        device=None, src_path=os.path.dirname(__file__)
-    )
+    f = Factory.cli_construct(device=None, src_path=os.path.dirname(__file__))
     f.manufacture_data()
 
 
