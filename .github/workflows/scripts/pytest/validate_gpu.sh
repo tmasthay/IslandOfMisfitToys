@@ -9,6 +9,7 @@ cd ~/.sandbox/IslandOfMisfitToys
 
 eval "$(conda shell.bash hook)"
 conda activate dw_sandbox
+cd tests
 pytest -s
 
 pytest_exit_code=$?
