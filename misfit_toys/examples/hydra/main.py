@@ -151,18 +151,35 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
 def plotter(*, data, idx, fig, axes, c):
     # plt.imshow(data[idx], **c.plt.vp)
     plt.clf()
+    vp_true = c.vp_true.squeeze()
+
+    extent = [0, 4.0 * vp_true.shape[1], 0, vp_true.shape[0] * 4.0]
+    lim_rel = {
+        'vmin': c.rel_diff.min(),
+        'vmax': c.rel_diff.max(),
+        'extent': extent,
+    }
+    lim_vp = {'vmin': vp_true.min(), 'vmax': vp_true.max(), 'extent': extent}
     apply_subplot(
         data=data[idx],
         cfg=c.plt.vp,
         name='vp',
         layer='main',
-        title=("", f"\n{clean_idx(idx)}"),
+        **lim_vp,
     )
     apply_subplot(
-        data=c.rel_diff[idx], cfg=c.plt.vp, name='rel_diff', layer='main'
+        data=c.rel_diff[idx],
+        cfg=c.plt.vp,
+        name='rel_diff',
+        layer='main',
+        **lim_rel,
     )
     apply_subplot(
-        data=c.vp_true.squeeze(), cfg=c.plt.vp, name='vp_true', layer='main'
+        data=c.vp_true.squeeze(),
+        cfg=c.plt.vp,
+        name='vp_true',
+        layer='main',
+        **lim_vp,
     )
     plt.subplot(*c.plt.vp.sub.shape, 4)
     plt.plot(c.loss)
@@ -170,6 +187,7 @@ def plotter(*, data, idx, fig, axes, c):
     plt.title('Loss')
     plt.xlabel('Iteration')
     plt.ylabel('Loss')
+    plt.suptitle(f'Iteration {idx[0]}')
     plt.tight_layout()
     return {'c': c}
 
