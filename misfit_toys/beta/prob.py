@@ -63,6 +63,7 @@ def pdf(
     v = u if renorm is None else renorm(u, x)
     err = torch.abs(torch.trapz(v, x, dim=-1) - 1.0)
     if torch.where(err > Defaults.cdf_tol, 1, 0).any():
+        print('PDF is not normalized: err =', err, flush=True)
         draise(f"PDF is not normalized: err = {err}")
     return v
 
