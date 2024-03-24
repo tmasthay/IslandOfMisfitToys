@@ -64,7 +64,7 @@ conv:
   init_guess:
     runtime_func: ^^null|misfit_toys.beta.data|uniform
     kw:
-      x: self.unit.conv.x
+      x: self.unit.beta.conv.x
   subtests:
     - loss_fn:
         runtime_func: ^^null|misfit_toys.beta.loss|w2
@@ -82,3 +82,4 @@ conv:
           lr: 1.0e-01
       data: self.unit.beta.conv.data
       init_guess: self.unit.beta.conv.init_guess
+      device: cuda:1
