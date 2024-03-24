@@ -6,10 +6,12 @@ import torch
 import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
-from mh.core import DotDict, draise
+from mh.core import DotDict, draise, torch_stats
 from omegaconf import OmegaConf
 
 from misfit_toys.utils import apply_all, exec_imports
+
+torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
@@ -29,22 +31,32 @@ def special_preprocess_items(c: DotDict) -> DotDict:
     c.unit.beta.w2.p = torch.linspace(
         c.unit.beta.w2.p.eps, 1.0 - c.unit.beta.w2.p.eps, c.unit.beta.w2.p.np
     )
-    c.unit.beta.conv.x = torch.linspace(*c.unit.beta.conv.x)
+    c.unit.beta.conv.x = torch.linspace(
+        *c.unit.beta.conv.x.specs, device=c.unit.beta.conv.x.device
+    )
     c.unit.beta.conv.p = torch.linspace(
         c.unit.beta.conv.p.eps,
         1.0 - c.unit.beta.conv.p.eps,
         c.unit.beta.conv.p.np,
+        device=c.unit.beta.conv.p.device,
     )
     return c
 
 
 def preprocess_cfg(cfg: DotDict) -> DotDict:
-    c = special_preprocess_items(cfg)
-    c = cfg.self_ref_resolve(gbl=globals(), lcl=locals())
-    c = exec_imports(c)
-    c = apply_all(c, relax=False)
+    # c = special_preprocess_items(cfg)
+    # c = cfg.self_ref_resolve(gbl=globals(), lcl=locals())
+    # c = exec_imports(c)
+    # c = apply_all(c, relax=False)
+    # c = c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=False)
+    # draise(c)
+    # return c
+    c = exec_imports(cfg)
+    c = special_preprocess_items(c)
+    c = c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=True)
+    c = apply_all(c, relax=True)
     c = c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=False)
-    draise(c)
+    c = apply_all(c, relax=False)
     return c
 
 

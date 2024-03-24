@@ -11,7 +11,7 @@ def w2(f, *, renorm, x, p, tol=1.0e-04, max_iters=20):
         fr, x, p=p, renorm=renorm, tol=tol, max_iters=max_iters
     )
 
-    def helper(g, renorm_func=renorm):
+    def helper(g, *, renorm_func=renorm):
         # print('PDF...', end='', flush=True)
         # tmp = pdf(g, x, renorm=renorm_func, dim=-1)
         # tmp = g / torch.trapz(g, x, dim=-1)
@@ -23,4 +23,5 @@ def w2(f, *, renorm, x, p, tol=1.0e-04, max_iters=20):
         res = torch.trapz(integrand, x, dim=-1)
         return res.sum()
 
-    return helper, Q
+    # return helper, Q
+    return helper

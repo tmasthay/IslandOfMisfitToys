@@ -962,7 +962,6 @@ def apply(lcl, relax=True):
 
 
 def apply_all(lcl, relax=True, exc=None):
-    input(lcl)
     exc = exc or []
     for k, v in lcl.items():
         if k in exc:

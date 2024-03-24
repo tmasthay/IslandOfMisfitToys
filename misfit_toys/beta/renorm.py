@@ -1,9 +1,13 @@
 import torch
+from mh.core import draise
+from returns.curry import curry
 
 
 def ensure_norm(f):
+    @curry
     def helper(u, x, **kwargs):
         v = f(u, **kwargs)
+        # draise(v.shape, x.shape)
         return v / torch.trapz(v, x, dim=-1).unsqueeze(-1)
 
     return helper

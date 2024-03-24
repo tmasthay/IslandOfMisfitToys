@@ -50,11 +50,14 @@ w2:
       max: 25
 
 conv:
-  x: [-10, 10, 1000]
+  x:
+    specs: [0.0, 1.0, 300]
+    device: cuda:1
   p:
     eps: 0.01
     np: 1000
-  nepochs: 100
+    device: cuda:1
+  nepochs: 1000
   atol: 1.0e-02
   rtol: 1.0e-02
   data:
@@ -66,7 +69,11 @@ conv:
     kw:
       x: self.unit.beta.conv.x
   subtests:
-    - loss_fn:
+    # dummy list to index with strings due to dynamic import support lacking
+    #      for lists
+    "0":
+      name: w2_sgd
+      loss_fn:
         runtime_func: ^^null|misfit_toys.beta.loss|w2
         kw:
           renorm:
@@ -79,7 +86,48 @@ conv:
       optimizer:
         runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
         kw:
+          opt_type: ^^null|torch.optim|SGD
           lr: 1.0e-01
       data: self.unit.beta.conv.data
       init_guess: self.unit.beta.conv.init_guess
       device: cuda:1
+      plot:
+        sub:
+          shape: [2, 2]
+          kw:
+            figsize: [10, 10]
+        mode: always
+        max_plots: 25
+        iter:
+          none_dims: [-1]
+          strides: [100, 1]
+        save:
+          duration: 1000
+      atol: 1.0e-02
+      rtol: 1.0e-01
+
+    "1":
+      name: mse_sgd
+      loss_fn: ^^null|misfit_toys.beta.loss|mse
+      optimizer:
+        runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
+        kw:
+          opt_type: ^^null|torch.optim|SGD
+          lr: 0.5
+      data: self.unit.beta.conv.data
+      init_guess: self.unit.beta.conv.init_guess
+      device: cuda:1
+      plot:
+        sub:
+          shape: [2, 2]
+          kw:
+            figsize: [10, 10]
+        mode: always
+        max_plots: 25
+        iter:
+          none_dims: [-1]
+          strides: [100, 1]
+        save:
+          duration: 1000
+      atol: 1.0e-02
+      rtol: 1.0e-01

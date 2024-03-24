@@ -23,7 +23,7 @@ curr_strat = {
 
 @dataclass
 class W2Local:
-    max_examples: int = 10
+    max_examples: int = 1
 
 
 @mark.fast

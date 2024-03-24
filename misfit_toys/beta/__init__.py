@@ -1,6 +1,8 @@
 __all__ = [
     "main",
     "w2",
+    "data",
+    "loss",
     "opt",
     "helpers",
     "plotter",
@@ -10,8 +12,10 @@ __all__ = [
     "cfg",
 ]
 from .cfg import *
+from .data import *
 from .data2 import *
 from .helpers import *
+from .loss import *
 from .main import *
 from .opt import *
 from .plotter import *
