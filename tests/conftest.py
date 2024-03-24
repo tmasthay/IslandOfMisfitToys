@@ -2,13 +2,14 @@ import os
 from copy import deepcopy
 
 import pytest
+import torch
 import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 from mh.core import DotDict
 from omegaconf import OmegaConf
 
-from misfit_toys.utils import exec_imports
+from misfit_toys.utils import apply_all, exec_imports
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
@@ -23,9 +24,23 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
     return DotDict(OmegaConf.to_container(cfg, resolve=True))
 
 
+def special_preprocess_items(c: DotDict) -> DotDict:
+    c.unit.beta.w2.x = torch.linspace(*c.unit.beta.w2.x)
+    c.unit.beta.w2.p = torch.linspace(
+        c.unit.beta.w2.eps, 1.0 - c.unit.beta.w2.eps, c.unit.beta.w2.np
+    )
+    c.unit.beta.conv.x = torch.linspace(*c.unit.beta.conv.x)
+    c.unit.beta.conv.p = torch.linspace(
+        c.unit.beta.conv.eps, 1.0 - c.unit.beta.conv.eps, c.unit.beta.conv.np
+    )
+    return c
+
+
 def preprocess_cfg(cfg: DotDict) -> DotDict:
+    c = special_preprocess_items(cfg)
     c = cfg.self_ref_resolve(gbl=globals(), lcl=locals())
     c = exec_imports(c)
+    c = apply_all(c, relax=False)
     return c
 
 

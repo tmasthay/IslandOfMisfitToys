@@ -1,8 +1,10 @@
 import torch
+from returns.curry import curry
 
 from misfit_toys.beta.prob import cdf, get_quantile_lambda, pdf
 
 
+@curry
 def w2(f, *, renorm, x, p, tol=1.0e-04, max_iters=20):
     fr = renorm(f, x)
     Q = get_quantile_lambda(

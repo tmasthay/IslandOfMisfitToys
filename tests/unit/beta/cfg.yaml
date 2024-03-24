@@ -48,3 +48,37 @@ w2:
     w2:
       mode: always
       max: 25
+
+conv:
+  x: [-10, 10, 1000]
+  p:
+    eps: 0.01
+    np: 1000
+  nepochs: 100
+  atol: 1.0e-02
+  rtol: 1.0e-02
+  data:
+    runtime_func: ^^null|misfit_toys.beta.data|random_trace
+    kw:
+      path: conda/data/marmousi/deepwave_example/shots16/obs_data.pt
+  init_guess:
+    runtime_func: ^^null|misfit_toys.beta.data|uniform
+    kw:
+      x: self.unit.conv.x
+  subtests:
+    - loss_fn:
+        runtime_func: ^^null|misfit_toys.beta.loss|w2
+        kw:
+          renorm:
+            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
+            kw:
+              k: 1.0
+          x: self.unit.beta.conv.x
+          p: self.unit.beta.conv.p
+          tol: 1.0e-04
+      optimizer:
+        runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
+        kw:
+          lr: 1.0e-01
+      data: self.unit.beta.conv.data
+      init_guess: self.unit.beta.conv.init_guess
