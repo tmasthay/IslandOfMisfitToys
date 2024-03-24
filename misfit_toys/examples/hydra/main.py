@@ -153,7 +153,7 @@ def plotter(*, data, idx, fig, axes, c):
     plt.clf()
     vp_true = c.vp_true.squeeze()
 
-    extent = [0, 4.0 * vp_true.shape[1], 0, vp_true.shape[0] * 4.0]
+    extent = [0.0, 4.0 * vp_true.shape[0], vp_true.shape[1] * 4.0, 0.0]
     lim_rel = {
         'vmin': c.rel_diff.min(),
         'vmax': c.rel_diff.max(),
