@@ -1,12 +1,13 @@
 import os
 from copy import deepcopy
+from datetime import datetime
 
 import pytest
 import torch
 import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
-from mh.core import DotDict, draise, torch_stats
+from mh.core import DotDict, draise, hydra_out, torch_stats
 from omegaconf import OmegaConf
 
 from misfit_toys.utils import apply_all, exec_imports
@@ -23,7 +24,20 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
         # If already initialized, just compose the config
         cfg = compose(config_name=config_name)
 
-    return DotDict(OmegaConf.to_container(cfg, resolve=True))
+    d = OmegaConf.to_container(cfg, resolve=True)
+    root_path = os.path.dirname(__file__)
+    day_folder = datetime.now().strftime('%d-%m-%Y')
+    exact_time = datetime.now().strftime('%H-%M-%S')
+    full_folder = os.path.join(root_path, 'outputs', day_folder, exact_time)
+    full_folder = os.path.abspath(full_folder)
+    os.makedirs(full_folder, exist_ok=True)
+    s = yaml.dump(d)
+    # s = s.replace('!!python/object:mh.core.DotDict', '')
+    with open(os.path.join(full_folder, 'cfg.yaml'), 'w') as f:
+        f.write(s)
+    u = DotDict(d)
+    u.hydra_out = full_folder
+    return u
 
 
 def special_preprocess_items(c: DotDict) -> DotDict:
@@ -51,6 +65,9 @@ def preprocess_cfg(cfg: DotDict) -> DotDict:
     # c = c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=False)
     # draise(c)
     # return c
+
+    # os.makedirs(os.path.join(full_folder, 'figs'), exist_ok=True)
+
     c = exec_imports(cfg)
     c = special_preprocess_items(c)
     c = c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=True)

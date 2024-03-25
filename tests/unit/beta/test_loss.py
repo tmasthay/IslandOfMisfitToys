@@ -106,6 +106,7 @@ def test_loss(cfg, subtests):
                     grad_history=grad_history.detach().cpu(),
                     mse_history=mse_history.detach().cpu(),
                     t=c.x.detach().cpu(),
+                    out_path=cfg.hydra_out,
                     **d,
                 )
             )

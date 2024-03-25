@@ -2,6 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import torch
+from mh.core import hydra_out
 from mh.typlotlib import get_frames_bool, save_frames
 
 from misfit_toys.utils import bool_slice, clean_idx
@@ -28,8 +29,9 @@ def verify_and_plot(*, plotter, d):
     return True
 
 
-def should_plot(*, status, name, max_plots):
-    path = os.path.abspath(os.path.dirname(__file__))
+def should_plot(*, status, name, max_plots, out_path):
+    path = os.path.join(out_path, 'beta/loss/figs')
+    os.makedirs(path, exist_ok=True)
     already_plotted = [
         e for e in os.listdir(path) if e.startswith(name) and e.endswith('.jpg')
     ]
@@ -66,7 +68,10 @@ def plotter_loss(*, data, idx, fig, axes):
 def plot_loss(d):
     def helper(status):
         path = should_plot(
-            status=status, name=d.name, max_plots=d.plot.max_plots
+            status=status,
+            name=d.name,
+            max_plots=d.plot.max_plots,
+            out_path=d.out_path,
         )
         if path:
             fig, axes = plt.subplots(*d.plot.sub.shape, **d.plot.sub.kw)

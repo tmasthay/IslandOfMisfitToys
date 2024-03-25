@@ -57,7 +57,7 @@ conv:
     eps: 0.01
     np: 1000
     device: cuda:1
-  nepochs: 1000
+  nepochs: 10000
   atol: 1.0e-02
   rtol: 1.0e-02
   data:
@@ -77,9 +77,7 @@ conv:
         runtime_func: ^^null|misfit_toys.beta.loss|w2
         kw:
           renorm:
-            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
-            kw:
-              k: 1.0
+            runtime_func: ^^null|misfit_toys.beta.renorm|abs_renorm
           x: self.unit.beta.conv.x
           p: self.unit.beta.conv.p
           tol: 1.0e-04
@@ -126,8 +124,41 @@ conv:
         max_plots: 25
         iter:
           none_dims: [-1]
-          strides: [100, 1]
+          strides: [1000, 1]
         save:
-          duration: 1000
+          duration: 250
+      atol: 1.0e-02
+      rtol: 1.0e-01
+
+    "2":
+      name: w2_adam
+      loss_fn:
+        runtime_func: ^^null|misfit_toys.beta.loss|w2
+        kw:
+          renorm:
+            runtime_func: ^^null|misfit_toys.beta.renorm|abs_renorm
+          x: self.unit.beta.conv.x
+          p: self.unit.beta.conv.p
+          tol: 1.0e-04
+      optimizer:
+        runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
+        kw:
+          opt_type: ^^null|torch.optim|Adam
+          lr: 1.0e-01
+      data: self.unit.beta.conv.data
+      init_guess: self.unit.beta.conv.init_guess
+      device: cuda:1
+      plot:
+        sub:
+          shape: [2, 2]
+          kw:
+            figsize: [10, 10]
+        mode: always
+        max_plots: 25
+        iter:
+          none_dims: [-1]
+          strides: [1000, 1]
+        save:
+          duration: 250
       atol: 1.0e-02
       rtol: 1.0e-01
