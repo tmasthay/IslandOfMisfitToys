@@ -3,6 +3,7 @@ from typing import Callable
 import torch
 from mh.core import DotDict
 from returns.curry import curry
+from torch import fft
 
 from misfit_toys.beta.prob import cdf, disc_quantile, get_quantile_lambda, pdf
 from misfit_toys.utils import all_detached_cpu
@@ -205,12 +206,12 @@ def quantile_match(
         # grq = disc_quantile(gr_cdf, x, p=p_dummy)
         T = frq_dummy(gr_cdf, deriv=False).squeeze() - x_dummy
 
-        left, right = 30, 30
+        left, right = 10, 10
         right = len(T) - right
         T = T[left:right]
         # gr_cdf = torch.cumulative_trapezoid(gr, x, dim=-1)
         integrand = T**2 * gr[left:right]
-        res = integrand.sum() + (f_dummy[0] - g[0]) ** 2
+        res = integrand.sum()  # + (f_dummy[0] - g[0]) ** 2
         xd = x_dummy.detach().cpu()
         grq = disc_quantile(gr_cdf, x, p=p)
         int_history = all_detached_cpu(
@@ -244,5 +245,34 @@ def quantile_match(
         # return res + first_diff, int_history
         return res, int_history
         # return torch.nn.functional.mse_loss(fr, gr), int_history
+
+    return helper
+
+
+@curry
+def sobolev(f, *, scale, x):
+    fhat = fft.fft(x)
+    N = f.shape[-1]
+    freqs = fft.fftfreq(N, d=x[1] - x[0]).to(x.device)
+    kernel = (1.0 + freqs**2) ** (scale)
+
+    def helper(
+        g,
+        *,
+        lcl_x=x,
+        lcl_fhat=fhat,
+        lcl_kernel=kernel,
+        lcl_f=f,
+    ):
+        ghat = fft(g)
+        integrand = (ghat - lcl_fhat) ** 2 * lcl_kernel
+
+        int_history = DotDict(
+            {
+                'ref': {'x': lcl_x, 'obs_data': lcl_f, 'guess': g},
+                'freq_domain': {'freqs': freqs, 'kernel': lcl_kernel},
+            }
+        )
+        return torch.trapz(integrand, freqs), int_history
 
     return helper

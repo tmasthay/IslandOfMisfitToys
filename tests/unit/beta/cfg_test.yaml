@@ -65,20 +65,23 @@ conv:
     runtime_func: ^^null|misfit_toys.beta.data|gaussian_mixture
     kw:
       x: self.unit.beta.conv.x
-      mu: [0.3, 0.7]
-      sigma: [0.01, 0.01]
-      weights: [0.5, 0.5]
-  # init_guess:
-  #   runtime_func: ^^null|misfit_toys.beta.data|sine_wave
-  #   kw:
-  #     x: self.unit.beta.conv.x
+      mu: [0.3, 0.5, 0.7]
+      sigma: [0.005, 0.005, 0.01]
+      weights: [0.2, 0.3, 0.5]
+    # runtime_func: ^^null|misfit_toys.beta.data|gaussian
+    # kw:
+    #   x: self.unit.beta.conv.x
   init_guess:
-    runtime_func: ^^null|misfit_toys.beta.data|gaussian_mixture
+    runtime_func: ^^null|misfit_toys.beta.data|sine_wave
     kw:
       x: self.unit.beta.conv.x
-      mu: [0.2, 0.6]
-      sigma: [0.01, 0.01]
-      weights: [0.1, 0.9]
+  # init_guess:
+  #   runtime_func: ^^null|misfit_toys.beta.data|gaussian_mixture
+  #   kw:
+  #     x: self.unit.beta.conv.x
+  #     mu: [0.2, 0.6]
+  #     sigma: [0.01, 0.01]
+  #     weights: [0.1, 0.9]
   subtests:
     # dummy list to index with strings due to dynamic import support lacking
     #      for lists
