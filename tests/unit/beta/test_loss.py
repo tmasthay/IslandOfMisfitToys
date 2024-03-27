@@ -99,6 +99,7 @@ def test_loss(cfg, subtests):
 
                 optimizer.step(closure)
 
+            d.data = d.data.to('cpu')
             d_pass = DotDict(
                 dict(
                     loss_history=loss_history.detach().cpu(),

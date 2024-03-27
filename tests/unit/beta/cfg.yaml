@@ -57,17 +57,27 @@ conv:
     eps: 0.01
     np: 1000
     device: cuda:1
-  nepochs: 10000
+  nepochs: 1000
   atol: 1.0e-02
   rtol: 1.0e-02
   data:
-    runtime_func: ^^null|misfit_toys.beta.data|random_trace
-    kw:
-      path: conda/data/marmousi/deepwave_example/shots16/obs_data.pt
-  init_guess:
-    runtime_func: ^^null|misfit_toys.beta.data|uniform
+    runtime_func: ^^null|misfit_toys.beta.data|gaussian_mixture
     kw:
       x: self.unit.beta.conv.x
+      mu: [0.3, 0.7]
+      sigma: [0.01, 0.01]
+      weights: [0.5, 0.5]
+  # init_guess:
+  #   runtime_func: ^^null|misfit_toys.beta.data|sine_wave
+  #   kw:
+  #     x: self.unit.beta.conv.x
+  init_guess:
+    runtime_func: ^^null|misfit_toys.beta.data|gaussian_mixture
+    kw:
+      x: self.unit.beta.conv.x
+      mu: [0.2, 0.6]
+      sigma: [0.01, 0.01]
+      weights: [0.1, 0.9]
   subtests:
     # dummy list to index with strings due to dynamic import support lacking
     #      for lists
@@ -77,7 +87,7 @@ conv:
         runtime_func: ^^null|misfit_toys.beta.loss|w2
         kw:
           renorm:
-            runtime_func: ^^null|misfit_toys.beta.renorm|abs_renorm
+            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
           x: self.unit.beta.conv.x
           p: self.unit.beta.conv.p
           tol: 1.0e-04
@@ -100,7 +110,7 @@ conv:
           none_dims: [-1]
           strides: [100, 1]
         save:
-          duration: 1000
+          duration: 100
       atol: 1.0e-02
       rtol: 1.0e-01
 
@@ -124,7 +134,7 @@ conv:
         max_plots: 25
         iter:
           none_dims: [-1]
-          strides: [1000, 1]
+          strides: [100, 1]
         save:
           duration: 250
       atol: 1.0e-02
@@ -136,14 +146,14 @@ conv:
         runtime_func: ^^null|misfit_toys.beta.loss|w2
         kw:
           renorm:
-            runtime_func: ^^null|misfit_toys.beta.renorm|abs_renorm
+            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
           x: self.unit.beta.conv.x
           p: self.unit.beta.conv.p
           tol: 1.0e-04
       optimizer:
         runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
         kw:
-          opt_type: ^^null|torch.optim|Adam
+          opt_type: ^^null|torch.optim|LBFGS
           lr: 1.0e-01
       data: self.unit.beta.conv.data
       init_guess: self.unit.beta.conv.init_guess
@@ -157,7 +167,7 @@ conv:
         max_plots: 25
         iter:
           none_dims: [-1]
-          strides: [1000, 1]
+          strides: [100, 1]
         save:
           duration: 250
       atol: 1.0e-02
