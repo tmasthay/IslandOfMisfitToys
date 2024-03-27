@@ -60,12 +60,7 @@ def direct_quantile(plotter):
     fig, axes = plt.subplots(*shape, figsize=(10, 10))
     iter = bool_slice(*Qcomp.shape, none_dims=[-1])
     frames = get_frames_bool(
-        iter=iter,
-        plotter=plotter,
-        data=d,
-        shape=shape,
-        fig=fig,
-        axes=axes,
+        iter=iter, plotter=plotter, data=d, shape=shape, fig=fig, axes=axes
     )
     save_frames(frames, path='prob4.gif', duration=1000)
 
@@ -155,12 +150,7 @@ def ref_quantile(plotter):
     fig, axes = plt.subplots(*shape, figsize=(10, 10))
     iter = bool_slice(*Qcomp.shape, none_dims=[-1], strides=strides)
     frames = get_frames_bool(
-        iter=iter,
-        plotter=plotter,
-        data=d,
-        shape=shape,
-        fig=fig,
-        axes=axes,
+        iter=iter, plotter=plotter, data=d, shape=shape, fig=fig, axes=axes
     )
     save_frames(frames, path='prob4.gif', duration=1000)
 

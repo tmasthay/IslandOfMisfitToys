@@ -63,6 +63,8 @@ def test_loss(cfg, subtests):
                 c.nepochs, *init_guess.shape, device=d.device
             )
             mse_history = torch.empty(c.nepochs, device=d.device)
+            int_history = [None for _ in range(c.nepochs)]
+            print('\n\n')
             for epoch in range(c.nepochs):
                 num_calls = 0
 
@@ -70,7 +72,18 @@ def test_loss(cfg, subtests):
                     nonlocal num_calls
                     num_calls += 1
                     optimizer.zero_grad()
-                    loss = loss_fn_fixed(init_guess)
+                    res = loss_fn_fixed(init_guess)
+                    if type(res) == tuple:
+                        loss, intermediate = res
+                        if intermediate is not None:
+                            if type(intermediate) is not DotDict:
+                                raise TypeError(
+                                    'Intermediate values must be DotDicts'
+                                    f'got {type(intermediate)} instead'
+                                )
+                    else:
+                        loss = res
+                        intermediate = None
                     loss.backward()
                     if num_calls == 1:
                         grad_history[epoch] = (
@@ -84,6 +97,7 @@ def test_loss(cfg, subtests):
                             .clone()
                             .cpu()
                         )
+                        int_history[epoch] = intermediate
                         freq = torch.inf
                         end_char = '\n' if epoch % freq == 0 else '\r'
                         print(
@@ -94,23 +108,36 @@ def test_loss(cfg, subtests):
                             flush=True,
                             end=end_char,
                         )
-                    optimizer.step()
                     return loss
 
                 optimizer.step(closure)
 
             d.data = d.data.to('cpu')
+            d.plot.iter.strides = [loss_history.shape[0] // c.num_plots, 1]
+            all_none = all([e is None for e in int_history])
+            has_int_plotter = d.plot.get('int_plotter', None) is not None
+            if all_none and has_int_plotter:
+                raise ValueError(
+                    'int_plotter supplied but all None intermediate valuesfound'
+                )
+            elif not all_none and not has_int_plotter:
+                raise ValueError(
+                    'int_plotter not supplied but non-None intermediate values'
+                    'found'
+                )
             d_pass = DotDict(
                 dict(
                     loss_history=loss_history.detach().cpu(),
                     soln_history=soln_history.detach().cpu(),
                     grad_history=grad_history.detach().cpu(),
                     mse_history=mse_history.detach().cpu(),
+                    int_history=int_history,
                     t=c.x.detach().cpu(),
                     out_path=cfg.hydra_out,
                     **d,
                 )
             )
+            print('\n\n')
             verify_and_plot(plotter=plot_loss, d=d_pass)
 
     cases = c.subtests

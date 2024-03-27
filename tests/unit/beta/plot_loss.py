@@ -62,6 +62,9 @@ def plotter_loss(*, data, idx, fig, axes):
     plt.plot(range(len(data.mse_history)), data.mse_history)
     plt.plot([idx[0]], [data.mse_history[idx[0]]], 'ro')
     plt.title('MSE')
+
+    if 'int_plotter' in data.plot:
+        data.plot.int_plotter(data=data, idx=idx, fig=fig, axes=axes)
     plt.tight_layout()
 
 
@@ -75,6 +78,7 @@ def plot_loss(d):
         )
         if path:
             fig, axes = plt.subplots(*d.plot.sub.shape, **d.plot.sub.kw)
+
             iter = bool_slice(*d.soln_history.shape, **d.plot.iter)
             frames = get_frames_bool(
                 data=d, iter=iter, fig=fig, axes=axes, plotter=plotter_loss

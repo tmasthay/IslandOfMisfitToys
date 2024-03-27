@@ -994,3 +994,13 @@ def git_dump_info(exc=None):
     s += 80 * '*' + '\n'
 
     return s
+
+
+def all_detached_cpu(d: DotDict):
+    for k, v in d.items():
+        if isinstance(v, DotDict):
+            all_detached_cpu(v)
+        elif isinstance(v, torch.Tensor):
+            d[k] = v.detach().cpu()
+
+    return d

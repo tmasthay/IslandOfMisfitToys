@@ -79,10 +79,7 @@ def cdf(pdf: torch.Tensor, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
 
 
 def disc_quantile(
-    cdfs: torch.Tensor,
-    x: torch.Tensor,
-    *,
-    p: torch.Tensor,
+    cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor
 ) -> torch.Tensor:
     if len(cdfs.shape) == 1:
         indices = torch.searchsorted(cdfs, p)

@@ -10,7 +10,7 @@ from hydra.core.global_hydra import GlobalHydra
 from mh.core import DotDict, draise, hydra_out, torch_stats
 from omegaconf import OmegaConf
 
-from misfit_toys.utils import apply_all, exec_imports
+from misfit_toys.utils import apply_all, exec_imports, git_dump_info
 
 torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
 
@@ -35,6 +35,8 @@ def load_hydra_config(config_dir='.', config_name='cfg'):
     # s = s.replace('!!python/object:mh.core.DotDict', '')
     with open(os.path.join(full_folder, 'cfg.yaml'), 'w') as f:
         f.write(s)
+    with open(os.path.join(full_folder, 'gitinfo.txt'), 'w') as f:
+        f.write(git_dump_info())
     u = DotDict(d)
     u.hydra_out = full_folder
     return u
