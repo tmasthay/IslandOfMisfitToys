@@ -57,7 +57,7 @@ conv:
     eps: 0.01
     np: 1000
     device: cuda:1
-  nepochs: 10000
+  nepochs: 1000
   num_plots: 10
   atol: 1.0e-02
   rtol: 1.0e-02
@@ -88,14 +88,15 @@ conv:
     "0":
       name: cdf_sgd
       loss_fn:
-        runtime_func: ^^null|misfit_toys.beta.loss|quantile_match
+        runtime_func: ^^null|misfit_toys.beta.loss|sobolev
         kw:
-          renorm:
-            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
-            kw:
-              k: 2.0
+          # renorm:
+          #   runtime_func: ^^null|misfit_toys.beta.renorm|softplus
+          #   kw:
+          #     k: 2.0
           x: self.unit.beta.conv.x
-          p: self.unit.beta.conv.p
+          # p: self.unit.beta.conv.p
+          scale: 0.0
       optimizer:
         runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
         kw:
@@ -147,14 +148,15 @@ conv:
     "2":
       name: pdf_adam
       loss_fn:
-        runtime_func: ^^null|misfit_toys.beta.loss|quantile_match
+        runtime_func: ^^null|misfit_toys.beta.loss|sobolev
         kw:
-          renorm:
-            runtime_func: ^^null|misfit_toys.beta.renorm|softplus
-            kw:
-              k: 1.0
+          # renorm:
+          #   runtime_func: ^^null|misfit_toys.beta.renorm|softplus
+          #   kw:
+          #     k: 1.0
           x: self.unit.beta.conv.x
-          p: self.unit.beta.conv.p
+          # p: self.unit.beta.conv.p
+          scale: 0.0
       optimizer:
         runtime_func: ^^null|misfit_toys.beta.opt|delay_opt
         kw:

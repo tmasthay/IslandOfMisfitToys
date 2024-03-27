@@ -251,7 +251,7 @@ def quantile_match(
 
 @curry
 def sobolev(f, *, scale, x):
-    fhat = fft.fft(x)
+    fhat = fft.fft(f)
     N = f.shape[-1]
     freqs = fft.fftfreq(N, d=x[1] - x[0]).to(x.device)
     kernel = (1.0 + freqs**2) ** (scale)
@@ -264,14 +264,17 @@ def sobolev(f, *, scale, x):
         lcl_kernel=kernel,
         lcl_f=f,
     ):
-        ghat = fft(g)
-        integrand = (ghat - lcl_fhat) ** 2 * lcl_kernel
+        ghat = fft.fft(g)
+        integrand = (ghat - lcl_fhat).abs() ** 2 * lcl_kernel
 
-        int_history = DotDict(
-            {
-                'ref': {'x': lcl_x, 'obs_data': lcl_f, 'guess': g},
-                'freq_domain': {'freqs': freqs, 'kernel': lcl_kernel},
-            }
+        int_history = all_detached_cpu(
+            DotDict(
+                {
+                    'ref': {'x': lcl_x, 'obs_data': lcl_f, 'guess': g},
+                    'freq_domain': {'x': freqs, 'kernel': lcl_kernel},
+                    'diff_freq': {'x': freqs, 'integrand': integrand},
+                }
+            )
         )
         return torch.trapz(integrand, freqs), int_history
 
