@@ -19,5 +19,6 @@ scipy>=1.11.1
 setuptools>=68.0.0
 torch>=2.0.1
 torchaudio>=2.0.2
+pytest-subtests>=0.12.1
 # git+https://github.com/patrick-kidger/torchcubicspline.git
 # git+https://github.com/tmasthay/rich_tools.git
