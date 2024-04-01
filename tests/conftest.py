@@ -12,7 +12,8 @@ from omegaconf import OmegaConf
 
 from misfit_toys.utils import apply_all, exec_imports, git_dump_info
 
-torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
+if os.getcwd().startswith(os.environ.get('ISL', 'isl_not_defined')):
+    torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
