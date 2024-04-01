@@ -82,8 +82,7 @@ jobs:
             if [[ $PYTEST_RESULTS =~ ^=+ ]]; then
               PYTEST_RESULTS="NO_SUMMARY_FOUND"
             fi
-            rm ~/.sandbox/IslandOfMisfitToys
-            echo "Sandbox successfully cleaned up"
+            rm -rf ~/.sandbox/IslandOfMisfitToys && echo "Deleted sandbox successfully"
             exit $exit_code
           #   echo "Generating badge"
           #   if [[ "$PYTEST_RESULTS" == "NO_SUMMARY_FOUND" ]]; then
