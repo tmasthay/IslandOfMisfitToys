@@ -84,6 +84,7 @@ jobs:
             fi
             rm ~/.sandbox/IslandOfMisfitToys
             echo "Sandbox successfully cleaned up"
+            exit $exit_code
           #   echo "Generating badge"
           #   if [[ "$PYTEST_RESULTS" == "NO_SUMMARY_FOUND" ]]; then
           #     echo "Generating NO SUMMARY badge"
