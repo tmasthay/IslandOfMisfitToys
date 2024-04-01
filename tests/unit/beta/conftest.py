@@ -28,7 +28,14 @@ def sine_ref_data(cfg, adjust):
 @pytest.fixture(scope='session')
 def gauss_pdf_computed():
     def helper(x_args, mu, sigma):
-        x = torch.linspace(*x_args)
+        # hack way around this for now
+        #     -> you have an inconsistency in your yamls
+        #     and this fixture is used in multiple tests
+
+        if isinstance(x_args, torch.Tensor):
+            x = x_args
+        else:
+            x = torch.linspace(*x_args)
         z = torch.exp(-((x - mu) ** 2) / (2 * sigma**2))
 
         def renorm(y1, x1):
