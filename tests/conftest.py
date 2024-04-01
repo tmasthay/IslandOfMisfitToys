@@ -14,6 +14,8 @@ from misfit_toys.utils import apply_all, exec_imports, git_dump_info
 
 if os.getcwd().startswith(os.environ.get('ISL', 'isl_not_defined')):
     torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
+else:
+    torch.set_printoptions(precision=2, sci_mode=True)
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):

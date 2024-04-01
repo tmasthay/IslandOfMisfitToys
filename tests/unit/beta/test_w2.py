@@ -34,7 +34,7 @@ class TestW2:
         self.c = lcl_cfg(cfg, 'unit.beta.w2', inherit_keys=['atol', 'rtol'])
         self.cfg = cfg
         self.c.plot = self.c.plot.w2
-        self.p = torch.linspace(self.c.p.eps, 1.0 - self.c.p.eps, self.c.p.np)
+        self.p = self.c.p
         report_cfg(self.c, 'w2')
 
     @settings(max_examples=W2Local.max_examples, deadline=None)
