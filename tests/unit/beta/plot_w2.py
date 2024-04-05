@@ -5,6 +5,7 @@ import torch
 
 
 def verify_and_plot(self, *, plotter, name, computed, ref, **kw):
+    print('hello', flush=True)
     make_plots = plotter(self, name=name, computed=computed, ref=ref, **kw)
     # mse = torch.nn.functional.mse_loss(computed, ref)
     try:
@@ -123,6 +124,7 @@ def plot_w2(
         plt.legend()
         plt.tight_layout()
         plt.savefig(path)
-        # print(f'{status} written to\n    {os.path.abspath(path)}', flush=True)
+
+        print(f'{status} written to\n    {os.path.abspath(path)}', flush=True)
 
     return helper

@@ -5,7 +5,7 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
-from mh.core import DotDict, convert_dictconfig, hydra_out
+from mh.core import DotDict, convert_dictconfig, hydra_out, torch_stats
 from mh.core_legacy import subdict
 from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
@@ -25,7 +25,21 @@ from misfit_toys.utils import (
     setup,
 )
 
-torch.set_printoptions(precision=3, sci_mode=True, threshold=5, linewidth=10)
+
+try:
+    # opts = 'all'
+    opts = ['shape']
+    torch.set_printoptions(
+        precision=3,
+        sci_mode=True,
+        threshold=5,
+        linewidth=10,
+        callback=torch_stats(opts),
+    )
+except Exception as e:
+    torch.set_printoptions(
+        precision=3, sci_mode=True, threshold=5, linewidth=10
+    )
 
 
 def check_keys(c, data):
@@ -47,7 +61,7 @@ def check_keys(c, data):
 # Main function for training on each rank
 def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     print(f"Running DDP on rank {rank} / {world_size}.")
-    setup(rank, world_size)
+    setup(rank, world_size, port=c.port)
 
     if c.get('dupe', False):
         dupe(f'{c.rank_out}_{rank}')

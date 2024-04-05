@@ -15,6 +15,7 @@ from scipy.stats import norm
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice
+import pickle
 
 
 @dataclass
@@ -29,12 +30,16 @@ def unbatch_splines(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     u = np.empty(N, dtype=object)
     coeffs = np.empty(N, dtype=object)
     z = y.reshape(-1, y.shape[-1], 1)
+    print_freq = N // 10
     for i in range(N):
+        if i % print_freq == 0:
+            print(f'{i=} / {N}', flush=True)
         coeffs[i] = natural_cubic_spline_coeffs(x[i], z[i])
         u[i] = NaturalCubicSpline(coeffs[i])
 
     shape = (1,) if y.dim() == 1 else y.shape[:-1]
     u = u.reshape(*shape)
+    # debug.mark -> returns with right shape (16, 100) for marmousi
     return u
 
 
@@ -43,13 +48,24 @@ def unbatch_splines_lambda(
 ) -> Callable[[torch.Tensor, bool], torch.Tensor]:
     splines = unbatch_splines(x, y)
     splines_flattened = splines.flatten()
+    # draise(splines.shape, splines_flattened.shape)
 
     def helper(z, *, sf=splines_flattened, shape=splines.shape, deriv=False):
+        # draise(z.shape)
+        z = z.view(*splines_flattened.shape, -1)
+        assert z.shape[0] == len(sf)
+        # draise(z.shape, shape)
         if not deriv:
-            res = torch.stack([e.evaluate(z) for e in sf], dim=0)
+            res = torch.stack(
+                [e.evaluate(z[i]) for i, e in enumerate(sf)], dim=0
+            )
         else:
-            res = torch.stack([e.derivative(z) for e in sf], dim=0)
-        return res.view(*shape, -1)
+            res = torch.stack(
+                [e.derivative(z[i]) for i, e in enumerate(sf)], dim=0
+            )
+        res = res.view(*shape, -1)
+        # draise(res.shape)
+        return res
 
     return helper
 
@@ -105,9 +121,24 @@ def cts_quantile(
     tol: float = 1.0e-04,
     max_iters: int = 20,
 ):
+    # temporary debugging
+    q_path = os.path.expanduser('~/important_data/q.pt')
+    if os.path.exists(q_path):
+        q = torch.load(q_path)
+        # draise(q.shape)
+        q = q.view(*cdfs.shape[:-1], p.shape[0]).to(p.device)
+        Q = unbatch_splines_lambda(p, q)
+        print('Returning cached quantile', flush=True)
+        return Q
+
     cdf_splines = unbatch_splines(x, cdfs).flatten()
     q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
+
+    # print_freq = cdf_splines.shape[0] // 10
+    print_freq = 1
     for i in range(cdf_splines.shape[0]):
+        if i % print_freq == 0:
+            print(f'cts_quantile: {i=} / {cdf_splines.shape[0]}', flush=True)
         start, end = x[0], x[-1]
         for j, pp in enumerate(p):
             for guesses in range(max_iters):
@@ -135,6 +166,11 @@ def cts_quantile(
 
     q = q.view(*cdfs.shape[:-1], p.shape[0])
     Q = unbatch_splines_lambda(p, q)
+
+    # # pickle it for caching
+    # with open('/tmp/cts_quantile.pkl', 'wb') as f:
+    #     pickle.dump(Q, f)
+    # np.save(f'/tmp/cts_quantile_{CURR_IDX}.npy', q.cpu().numpy())
     return Q
 
 

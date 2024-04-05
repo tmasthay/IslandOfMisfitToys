@@ -105,20 +105,6 @@ def w2_trunc(
     return helper
 
 
-# @curry
-# def cdf_match(f, *, renorm, x):
-#     fr = renorm(f, x)
-#     f_cdf = cdf(fr, x, dim=-1)
-
-#     def helper(g, *, renorm_func=renorm, xhat=x, CDF=f_cdf, fr=fr):
-#         gr = renorm_func(g, xhat)
-#         # g_cdf = cdf(gr, xhat, dim=-1)
-#         # return torch.nn.functional.mse_loss(CDF, g_cdf)
-#         return torch.nn.functional.mse_loss(fr, gr)
-
-#     return helper
-
-
 @curry
 def pdf_match(f, *, renorm, x):
     fr = renorm(f, x)
@@ -277,5 +263,25 @@ def sobolev(f, *, scale, x):
             )
         )
         return torch.trapz(integrand, freqs), int_history
+
+    return helper
+
+
+def huber(f, *, delta):
+    def helper(g):
+        diff = f - g
+        abs_diff = diff.abs()
+        mask = abs_diff < delta
+        return torch.where(
+            mask, abs_diff**2, 2 * delta * abs_diff - delta**2
+        ).sum()
+
+    return helper
+
+
+@curry
+def l1(f):
+    def helper(g):
+        return (f - g).abs().sum()
 
     return helper

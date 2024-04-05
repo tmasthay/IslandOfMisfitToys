@@ -1,16 +1,32 @@
-dep:
-  mod: ^^cwd|helpers|null
+# dep:
+#   mod: ^^cwd|helpers|null
 
-runtime_func: self.train.loss.dep.mod.W2Loss
+# runtime_func: self.train.loss.dep.mod.W2Loss
+# kw:
+#   runtime_func: self.train.loss.dep.mod.hydra_build_two
+#   kw:
+#     meta: self.runtime.prop.module.meta
+#     obs_data: self.obs_data
+#     num_probs: self.np
+#     down: 1
+#     eps: 0.5
+#     beta: 1.0e-03
+#     track: true
+#     alpha: 1.0e-06
+#     weights: self.runtime.prop.module.vp
+
+runtime_func: ^^null|misfit_toys.beta.w2|w2
 kw:
-  runtime_func: self.train.loss.dep.mod.hydra_build_two
-  kw:
-    meta: self.runtime.prop.module.meta
-    obs_data: self.obs_data
-    num_probs: self.np
-    down: 1
-    eps: 0.5
-    beta: 1.0e-03
-    track: true
-    alpha: 1.0e-06
-    weights: self.runtime.prop.module.vp
+  renorm: 
+    runtime_func: ^^null|misfit_toys.beta.renorm|softplus
+    kw:
+      k: 1.0
+  x:
+    runtime_func: self.train.step.mod.extract_t
+    kw:
+      module: self.runtime.prop.module
+  p:
+    runtime_func: self.train.step.mod.extract_p
+    kw:
+      module: self.runtime.prop.module
+  f: self.runtime.data.obs_data

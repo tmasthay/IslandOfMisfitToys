@@ -5,8 +5,10 @@ import pytest
 import torch
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from plot_prob import *
-from plot_w2 import plot_w2, verify_and_plot
+
+# import plot_prob
+import plot_w2
+import pytest
 from pytest import mark
 
 from misfit_toys.beta.prob import cdf, pdf
@@ -28,6 +30,7 @@ class W2Local:
 
 @mark.fast
 @mark.unit
+@mark.wass
 class TestW2:
     @pytest.fixture(autouse=True)
     def setup(self, cfg, lcl_cfg, report_cfg):
@@ -75,9 +78,9 @@ class TestW2:
         cdfComputed = CDF
         cdfRef = 0.5 * (1 + torch.erf((x2 - mu2) / (sigma2 * np.sqrt(2))))
 
-        verify_and_plot(
+        plot_w2.verify_and_plot(
             self,
-            plotter=plot_w2,
+            plotter=plot_w2.plot_w2,
             name='w2',
             computed=w2_val,
             ref=true_val,
