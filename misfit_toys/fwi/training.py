@@ -134,7 +134,7 @@ class TrainingAbstract(ABC):
             s = (
                 f"rank: {self.rank}, "
                 f"iter: {len(self.report['loss'])}, "
-                f"loss: {self.loss}"
+                f"loss: {self.loss.item():.2e}"
             )
         out_norm = (
             self.out[-1].norm() if type(self.out) is tuple else self.out.norm()

@@ -1,12 +1,74 @@
 from typing import Callable
 
 import torch
-from mh.core import DotDict
+from mh.core import DotDict, draise
 from returns.curry import curry
 from torch import fft
 
 from misfit_toys.beta.prob import cdf, disc_quantile, get_quantile_lambda, pdf
 from misfit_toys.utils import all_detached_cpu
+from functools import wraps
+
+
+def linear_combo(*, losses, weights=None):
+    if weights is None:
+        weights = torch.ones(len(losses))
+    else:
+        weights = torch.tensor(weights)
+    assert len(losses) == len(weights)
+    weights = weights / weights.sum()
+    return lambda x: sum(w * f(x) for w, f in zip(weights, losses))
+
+
+def scurry(**dec_kwargs):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            all_kwargs = {**dec_kwargs, **kwargs}
+
+            return func(*args, **all_kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def lin_decrease(*, _min=1.0e-16, max_calls):
+    num_calls = 0
+
+    def helper():
+        nonlocal num_calls
+        num_calls += 1
+        return _min + max(0.0, 1.0 - num_calls / max_calls)
+
+    return helper
+
+
+@curry
+def tik_reg(
+    f, *, model_params, base_loss, weights, penalty=None, reg_sched=None
+):
+    if weights == None:
+        weights = torch.ones(2)
+    else:
+        weights = torch.tensor(weights)
+
+    misfit = base_loss(f)
+
+    def helper(g):
+        misfit_term = misfit(g)
+
+        num_deriv = torch.diff(model_params(), dim=-1)
+
+        val = num_deriv**2
+        if penalty is not None:
+            val = penalty * val
+        reg = (num_deriv**2).mean()
+        if reg_sched is not None:
+            reg = reg_sched() * reg
+        return weights[0] * misfit_term + weights[1] * reg
+
+    return helper
 
 
 @curry
@@ -282,6 +344,6 @@ def huber(f, *, delta):
 @curry
 def l1(f):
     def helper(g):
-        return (f - g).abs().sum()
+        return (f - g).abs().mean()
 
     return helper
