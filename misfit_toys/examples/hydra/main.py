@@ -25,7 +25,6 @@ from misfit_toys.utils import (
     setup,
 )
 
-
 try:
     # opts = 'all'
     opts = ['shape']
@@ -36,7 +35,7 @@ try:
         linewidth=10,
         callback=torch_stats(opts),
     )
-except Exception as e:
+except Exception:
     torch.set_printoptions(
         precision=3, sci_mode=True, threshold=5, linewidth=10
     )
@@ -146,6 +145,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     train.train()
     train_time = time() - train_start
     print(f"Train time rank {rank}: {train_time:.2f} seconds.", flush=True)
+
+    # make multiprocessing barrier
+    # mp.barrier()
 
 
 # Main function for spawning ranks

@@ -1,3 +1,5 @@
+import inspect
+from functools import wraps
 from typing import Callable
 
 import torch
@@ -7,7 +9,6 @@ from torch import fft
 
 from misfit_toys.beta.prob import cdf, disc_quantile, get_quantile_lambda, pdf
 from misfit_toys.utils import all_detached_cpu
-from functools import wraps
 
 
 def linear_combo(*, losses, weights=None):
@@ -33,13 +34,13 @@ def scurry(**dec_kwargs):
     return decorator
 
 
-def lin_decrease(*, _min=1.0e-16, max_calls):
+def lin_decrease(*, _min=1.0e-16, _max=1.0, max_calls):
     num_calls = 0
 
     def helper():
         nonlocal num_calls
         num_calls += 1
-        return _min + max(0.0, 1.0 - num_calls / max_calls)
+        return _min + (_max - _min) * max(0.0, (1 - num_calls / max_calls))
 
     return helper
 
@@ -48,7 +49,7 @@ def lin_decrease(*, _min=1.0e-16, max_calls):
 def tik_reg(
     f, *, model_params, base_loss, weights, penalty=None, reg_sched=None
 ):
-    if weights == None:
+    if weights is None:
         weights = torch.ones(2)
     else:
         weights = torch.tensor(weights)
@@ -347,3 +348,29 @@ def l1(f):
         return (f - g).abs().mean()
 
     return helper
+
+
+def l1_double(f, g):
+    return (f - g).abs().mean()
+
+
+@curry
+def transform_loss(f, *, loss, transform):
+    F = transform(f)
+
+    def helper(g):
+        G = transform(g)
+        return loss(F, G)
+
+    return helper
+
+
+def softplus(*, scale=1.0):
+    def helper(f):
+        return torch.log(1 + torch.exp(scale * f)) / scale
+
+    return helper
+
+
+def identity(f):
+    return f

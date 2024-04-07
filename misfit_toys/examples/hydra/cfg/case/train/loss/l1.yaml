@@ -4,7 +4,14 @@ dep:
 runtime_func: self.train.loss.dep.mod.tik_reg
 kw:
   f: self.runtime.data.obs_data
-  base_loss: self.train.loss.dep.mod.l1
+  base_loss:
+    runtime_func: self.train.loss.dep.mod.l1_double
+    kw:
+      loss: self.train.loss.dep.mod.l1_double
+      transform:
+        runtime_func: self.train.loss.dep.mod.softplus
+        kw:
+          scale: 1.0
   model_params: self.runtime.prop.module.vp
   weights:
     - 1.0
