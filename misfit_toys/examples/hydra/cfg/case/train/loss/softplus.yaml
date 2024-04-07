@@ -17,16 +17,16 @@
 
 runtime_func: ^^null|misfit_toys.beta.w2|w2
 kw:
-  renorm: 
+  renorm:
     runtime_func: ^^null|misfit_toys.beta.renorm|softplus
     kw:
-      k: 1.0
-  x:
-    runtime_func: self.train.step.mod.extract_t
-    kw:
-      module: self.runtime.prop.module
+      k: 0.6
+  x: self.runtime.t
   p:
-    runtime_func: self.train.step.mod.extract_p
+    runtime_func: ^^null|torch|linspace
     kw:
-      module: self.runtime.prop.module
+      start: 0.0
+      end: 1.0
+      steps: 300
+      device: 20
   f: self.runtime.data.obs_data

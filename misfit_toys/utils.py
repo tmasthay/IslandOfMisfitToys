@@ -947,17 +947,46 @@ def apply(lcl, relax=True):
     kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
     for i, e in enumerate(args):
         if isinstance(e, DotDict) or isinstance(e, dict):
-            args[i] = apply(e, relax=True)
+            try:
+                args[i] = apply(e, relax=True)
+            except Exception as e:
+                if not relax:
+                    v = RuntimeError(
+                        f'Error in args apply({e}, relax=True)\n{lcl=}'
+                    )
+                    raise v from e
 
     for k, v in kwargs.items():
         if isinstance(v, DotDict) or isinstance(v, dict):
-            kwargs[k] = apply(v, relax=True)
+            try:
+                kwargs[k] = apply(v, relax=True)
+            except Exception as e:
+                if not relax:
+                    v = RuntimeError(
+                        f'Error in kwargs apply({v}, relax=True)\n{lcl=}'
+                    )
+                    raise v from e
 
     keys = set(kwargs.keys())
     is_reducible = keys.issubset(set(['args', 'kwargs', 'kw', 'runtime_func']))
     if is_reducible:
-        kwargs = apply(kwargs, relax=True)
-    lcl = lcl.runtime_func(*args, **kwargs)
+        try:
+            kwargs = apply(kwargs, relax=True)
+        except Exception as e:
+            if not relax:
+                v = RuntimeError(
+                    f'Error in reducible apply({kwargs}, relax=True)\n{lcl=}'
+                )
+                raise v from e
+    try:
+        lcl = lcl.runtime_func(*args, **kwargs)
+    except Exception as e:
+        if not relax:
+            v = RuntimeError(
+                f'Error in parent call lcl.runtime_func(*{args},'
+                f' **{kwargs})\n{lcl=}'
+            )
+            raise v from e
     return lcl
 
 

@@ -79,14 +79,14 @@ def w2(f, *, renorm, x, p, tol=1.0e-04, max_iters=20, eps=1.0e-04):
         fr, x, p=p, renorm=renorm, tol=tol, max_iters=max_iters
     )
 
-    def helper(g, renorm_func=renorm, eps_dummy=eps, Q_dummy=Q):
+    def helper(g):
         # print('PDF...', end='', flush=True)
         # tmp = pdf(g, x, renorm=renorm_func, dim=-1)
         # tmp = g / torch.trapz(g, x, dim=-1)
-        tmp = renorm_func(g + eps_dummy, x)
+        tmp = renorm(g + eps, x)
         tmp = tmp / torch.trapz(tmp, x, dim=-1)
         CDF = cdf(tmp, x, dim=-1)
-        T = Q_dummy(CDF, deriv=False) - x
+        T = Q(CDF, deriv=False) - x
         integrand = T**2 * tmp
         res = torch.trapz(integrand, x, dim=-1)
         return res.sum()
@@ -144,23 +144,16 @@ def w2_trunc(
     fr_left = fr[:left_idx]
     fr_right = fr[right_idx:]
 
-    def helper(
-        g,
-        renorm_func=renorm,
-        eps_dummy=eps,
-        Q_dummy=Q,
-        fr_left_dummy=fr_left,
-        fr_right_dummy=fr_right,
-    ):
-        tmp = renorm_func(g + eps_dummy, x)
+    def helper(g):
+        tmp = renorm(g + eps, x)
         tmp = tmp / torch.trapz(tmp, x, dim=-1)
         CDF = cdf(tmp, x, dim=-1)[left_idx:right_idx]
-        T = Q_dummy(CDF, deriv=False) - x[left_idx:right_idx]
+        T = Q(CDF, deriv=False) - x[left_idx:right_idx]
 
         integrand = T**2 * tmp[left_idx:right_idx]
         res = torch.trapz(integrand, x[left_idx:right_idx], dim=-1)
-        left_err = (g[:left_idx] - fr_left_dummy).pow(2).sum()
-        right_err = (g[right_idx:] - fr_right_dummy).pow(2).sum()
+        left_err = (g[:left_idx] - fr_left).pow(2).sum()
+        right_err = (g[right_idx:] - fr_right).pow(2).sum()
         mid_err = res.sum()
         return mid_err + left_err + right_err
 
