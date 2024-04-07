@@ -709,8 +709,8 @@ def bool_slice(
 
         ctrl = ctrl_default
 
-    for combo in range(total_combinations):
-        print(f'combo={combo}')
+    for _ in range(total_combinations):
+        # print(f'combo={combo}')
         yield tuple([tuple(idx)]) + (ctrl(idx, args),)
 
         # Update indices

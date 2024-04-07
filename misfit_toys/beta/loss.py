@@ -369,7 +369,9 @@ def softplus(*, scale=1.0, t):
     def helper(f):
         u = torch.log(1 + torch.exp(scale * f)) / scale
         u = u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
-        return u
+        CDF = torch.cumulative_trapezoid(u, t, dim=-1)
+        return CDF
+        # return u
 
     return helper
 

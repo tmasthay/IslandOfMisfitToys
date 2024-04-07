@@ -5,7 +5,7 @@ defaults:
   - data/preprocess: constrained_vel
   - plt: plt
   - train: train
-  - train/loss: transform_loss
+  - train/loss: l1
   - train/optimizer: lbfgs
   - train/stages: vanilla
   - train/step: direct
