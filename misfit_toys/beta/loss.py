@@ -365,9 +365,11 @@ def transform_loss(f, *, loss, transform):
     return helper
 
 
-def softplus(*, scale=1.0):
+def softplus(*, scale=1.0, t):
     def helper(f):
-        return torch.log(1 + torch.exp(scale * f)) / scale
+        u = torch.log(1 + torch.exp(scale * f)) / scale
+        u = u / torch.trapz(u, t, dim=-1).unsqueeze(-1)
+        return u
 
     return helper
 

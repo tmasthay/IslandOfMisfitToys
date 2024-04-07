@@ -91,6 +91,11 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
             chunk_keys=c.data.preprocess.chunk_keys,
         )
     )
+    c.runtime.t = torch.linspace(
+        0.0,
+        c.runtime.data.meta.dt * c.runtime.data.meta.nt,
+        c.runtime.data.meta.nt,
+    ).to(rank)
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(c.runtime.data, exc=["obs_data"])

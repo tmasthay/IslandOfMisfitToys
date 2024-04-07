@@ -1,0 +1,21 @@
+mod: ^^misfit_toys.beta.loss
+
+runtime_func: self.train.loss.mod.tik_reg
+kw:
+  f: self.runtime.data.obs_data
+  model_params: self.runtime.prop.module.vp
+  weights:
+    - 1.0
+    - 1.0e-03
+  penalty: null
+  reg_sched:
+    runtime_func: self.train.loss.mod.lin_decrease
+    kw:
+      _min: 1.0e-07
+      _max: 1.0
+      max_calls: self.train.max_iters
+  base_loss:
+    runtime_func: self.train.loss.mod.transform_loss
+    kw:
+      loss: self.train.loss.mod.l1_double
+      transform: self.train.loss.mod.identity
