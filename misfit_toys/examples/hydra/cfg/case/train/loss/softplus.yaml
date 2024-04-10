@@ -28,5 +28,5 @@ kw:
       start: 0.0
       end: 1.0
       steps: 300
-      device: 20
+      device: 0
   f: self.runtime.data.obs_data
