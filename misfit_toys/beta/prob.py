@@ -113,7 +113,7 @@ def disc_quantile(
         return results
 
 
-def cts_quantile(
+def cts_quantile2(
     cdfs: torch.Tensor,
     x: torch.Tensor,
     *,
@@ -122,14 +122,14 @@ def cts_quantile(
     max_iters: int = 20,
 ):
     # temporary debugging
-    q_path = os.path.expanduser('~/important_data/q.pt')
-    if os.path.exists(q_path):
-        q = torch.load(q_path)
-        # draise(q.shape)
-        q = q.view(*cdfs.shape[:-1], p.shape[0]).to(p.device)
-        Q = unbatch_splines_lambda(p, q)
-        print('Returning cached quantile', flush=True)
-        return Q
+    # q_path = os.path.expanduser('~/important_data/q.pt')
+    # if os.path.exists(q_path):
+    #     q =˚ ˚torch.load(q_path)
+    #     # draise(q.shape)
+    #     q = q.view(*cdfs.shape[:-1], p.shape[0]).to(p.device)
+    #     Q = unbatch_splines_lambda(p, q)
+    #     print('Returning cached quantile', flush=True)
+    #     return Q
 
     cdf_splines = unbatch_splines(x, cdfs).flatten()
     q = torch.empty(cdf_splines.shape[0], p.shape[0]).to(p.device)
@@ -171,6 +171,21 @@ def cts_quantile(
     # with open('/tmp/cts_quantile.pkl', 'wb') as f:
     #     pickle.dump(Q, f)
     # np.save(f'/tmp/cts_quantile_{CURR_IDX}.npy', q.cpu().numpy())
+    return Q
+
+
+def cts_quantile(
+    cdfs: torch.Tensor,
+    x: torch.Tensor,
+    *,
+    p: torch.Tensor,
+    tol: float = 1.0e-04,
+    max_iters: int = 20,
+):
+    idx = torch.searchsorted(cdfs, p.expand(*cdfs.shape[:-1], -1))
+    idx = torch.clamp(idx, 0, len(x) - 1)
+    q = x[idx]
+    Q = unbatch_splines_lambda(p, q)
     return Q
 
 
