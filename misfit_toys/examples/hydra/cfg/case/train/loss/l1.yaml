@@ -1,25 +1,52 @@
-dep:
-  mod: ^^misfit_toys.beta.loss
+# dep:
+#   mod: ^^misfit_toys.beta.loss
 
-runtime_func: self.train.loss.dep.mod.tik_reg
+# OVERKILL: you're obsfuscating design here.
+# Just create another subpackage that follows the same cfg structure
+#     and simply do
+#     runtime_func: ^^null|misfit_toys.beta.cfg.train.loss|l1
+#     kw:
+#        ... your params here
+# rather than composing directly here
+# Plus that's actually more flexible since then you can put like
+#     100 complicated compositions of functions in the python script, but then
+#     you can override easily with a string in the yaml file
+# runtime_func: self.train.loss.dep.mod.tik_reg
+# kw:
+#   f: self.runtime.data.obs_data
+#   base_loss:
+#     runtime_func: self.train.loss.dep.mod.transform_loss
+#     kw:
+#       loss: self.train.loss.dep.mod.l1_double
+#       transform:
+#         runtime_func: ^^null|misfit_toys.beta.renorm|softplus
+#         kw:
+#           scale: 10.0
+#           t: self.runtime.t
+#   model_params: self.runtime.prop.module.vp
+#   weights:
+#     - 1.0
+#     - 0.0
+#   # penalty: null
+#   reg_sched:
+#     runtime_func: self.train.loss.dep.mod.lin_decrease
+#     kw:
+#       max_calls: self.train.max_iters
+#       _min: 0.0
+
+root_pkg: misfit_toys.examples.hydra
+sub_pkg: cfg.case.train.loss.l1
+func_name: working_w1
+
+runtime_func: ^^null|${.root_pkg}.${.sub_pkg}|${.func_name}
+# runtime_func: ^^null|misfit_toys
 kw:
-  f: self.runtime.data.obs_data
-  base_loss:
-    runtime_func: self.train.loss.dep.mod.transform_loss
-    kw:
-      loss: self.train.loss.dep.mod.l1_double
-      transform:
-        runtime_func: self.train.loss.dep.mod.softplus
-        kw:
-          scale: 10.0
-          t: self.runtime.t
+  obs_data: self.runtime.data.obs_data
   model_params: self.runtime.prop.module.vp
   weights:
     - 1.0
     - 0.0
-  # penalty: null
-  reg_sched:
-    runtime_func: self.train.loss.dep.mod.lin_decrease
-    kw:
-      max_calls: self.train.max_iters
-      _min: 0.0
+  reg_min: 0.0
+  t: self.runtime.t
+  max_calls: ${...max_iters}
+  scale: 1.0

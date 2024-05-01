@@ -1,9 +1,0 @@
-defaults:
-  - data: nonexist_must_override
-  - data/preprocess: nonexist_must_override
-  - plt: nonexist_must_override
-  - train: nonexist_must_override
-  - train/loss: nonexist_must_override
-  - train/optimizer: nonexist_must_override
-  - train/stages: nonexist_must_override
-  - train/step: nonexist_must_override

@@ -32,6 +32,7 @@ from misfit_toys.beta.prob import cdf, get_quantile_lambda, pdf
 
 
 def w2(f, *, renorm, x, p, tol=1.0e-03, max_iters=20):
+    p = p.to(x.device)
     fr = renorm(f, x)
     Q = get_quantile_lambda(
         fr, x, p=p, renorm=renorm, tol=tol, max_iters=max_iters

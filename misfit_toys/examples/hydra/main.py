@@ -161,6 +161,11 @@ def run(world_size: int, c: DotDict) -> None:
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:
+    if 'name' not in cfg.keys():
+        raise ValueError(
+            "Name must be provided at command line with +name=NAME.\n"
+            "This protocol is for disciplined tracking of output files."
+        )
     c = convert_dictconfig(cfg.case)
     for k, v in c.plt.items():
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)

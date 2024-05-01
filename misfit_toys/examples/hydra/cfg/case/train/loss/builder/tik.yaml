@@ -1,4 +1,0 @@
-func: self.train.loss.dep.mod.lin_reg_drop
-kw:
-  scale: 1.0e-06
-  _min: 1.0e-07

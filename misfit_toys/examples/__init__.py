@@ -1,6 +1,12 @@
-__all__ = ["forward", "marmousi", "ot", "exhaustive", "hydra"]
-from .exhaustive import *
+__all__ = [
+    "forward",
+    "marmousi",
+    "ot",
+    "exhaustive",
+    "hydra"
+]
 from .forward import *
-from .hydra import *
 from .marmousi import *
 from .ot import *
+from .exhaustive import *
+from .hydra import *
