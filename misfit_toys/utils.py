@@ -674,7 +674,7 @@ def bool_slice(
     strides=None,
     start=None,
     cut=None,
-    verbose=False
+    verbose=False,
 ):
     permute = list(permute or range(len(args)))
     permute.reverse()

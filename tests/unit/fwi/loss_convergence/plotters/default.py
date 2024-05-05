@@ -10,24 +10,14 @@ def plotter(*, data, idx, fig, axes, c):
     plt.clf()
     curr_plot = c.plt.gm.plts.loss.main
     curr_data = data.loss_history.detach().cpu()
-    apply_subplot(
-        data=curr_data,
-        cfg=c.plt.gm,
-        name='loss',
-        layer='main',
-    )
+    apply_subplot(data=curr_data, cfg=c.plt.gm, name='loss', layer='main')
     plt.plot(
         [idx[0]], [curr_data[idx[0]]], *curr_plot.dot.args, **curr_plot.dot.kw
     )
 
     curr_plot = c.plt.gm.plts.grad_norm.main
     curr_data = data.grad_norm_history.detach().cpu()
-    apply_subplot(
-        data=curr_data,
-        cfg=c.plt.gm,
-        name='grad_norm',
-        layer='main',
-    )
+    apply_subplot(data=curr_data, cfg=c.plt.gm, name='grad_norm', layer='main')
     plt.plot(
         [idx[0]], [curr_data[idx[0]]], *curr_plot.dot.args, **curr_plot.dot.kw
     )

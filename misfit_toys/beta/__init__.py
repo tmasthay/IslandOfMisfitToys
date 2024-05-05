@@ -15,7 +15,7 @@ __all__ = [
     "test_splines",
     "other",
     "data2",
-    "cfg"
+    "cfg",
 ]
 from .main import *
 from .w2 import *

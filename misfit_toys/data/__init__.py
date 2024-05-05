@@ -4,7 +4,7 @@ __all__ = [
     "marmousi",
     "marmousi2",
     "das_curtin",
-    "custom"
+    "custom",
 ]
 from .dataset import *
 from .download_data import *

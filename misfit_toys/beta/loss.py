@@ -194,17 +194,9 @@ def cdf_match(
         int_history = all_detached_cpu(
             DotDict(
                 {
-                    'PDF': {
-                        'x': xd,
-                        'fr': fr_dummy,
-                        'gr': gr,
-                    },
-                    'CDF': {
-                        'x': xd,
-                        'fr_cdf': fr_cdf_dummy,
-                        'g_cdf': gr_cdf,
-                    },
-                },
+                    'PDF': {'x': xd, 'fr': fr_dummy, 'gr': gr},
+                    'CDF': {'x': xd, 'fr_cdf': fr_cdf_dummy, 'g_cdf': gr_cdf},
+                }
             )
         )
         res = (
@@ -259,27 +251,15 @@ def quantile_match(
         int_history = all_detached_cpu(
             DotDict(
                 {
-                    'PDF': {
-                        'x': xd,
-                        'fr': fr_dummy,
-                        'gr': gr,
-                    },
-                    'CDF': {
-                        'x': xd,
-                        'fr_cdf': fr_cdf_dummy,
-                        'g_cdf': gr_cdf,
-                    },
+                    'PDF': {'x': xd, 'fr': fr_dummy, 'gr': gr},
+                    'CDF': {'x': xd, 'fr_cdf': fr_cdf_dummy, 'g_cdf': gr_cdf},
                     'Transport': {
                         'x': xd[left:right],
                         'T deviation': T,
                         'integrand': T**2 * gr[left:right],
                     },
-                    'Quantiles': {
-                        'x': p_dummy,
-                        'frq': disc_frq,
-                        'grq': grq,
-                    },
-                },
+                    'Quantiles': {'x': p_dummy, 'frq': disc_frq, 'grq': grq},
+                }
             )
         )
         # res = torch.nn.functional.mse_loss(FQ, GQ)
@@ -298,14 +278,7 @@ def sobolev(f, *, scale, x):
     freqs = fft.fftfreq(N, d=x[1] - x[0]).to(x.device)
     kernel = (1.0 + freqs**2) ** (scale)
 
-    def helper(
-        g,
-        *,
-        lcl_x=x,
-        lcl_fhat=fhat,
-        lcl_kernel=kernel,
-        lcl_f=f,
-    ):
+    def helper(g, *, lcl_x=x, lcl_fhat=fhat, lcl_kernel=kernel, lcl_f=f):
         ghat = fft.fft(g)
         integrand = (ghat - lcl_fhat).abs() ** 2 * lcl_kernel
 

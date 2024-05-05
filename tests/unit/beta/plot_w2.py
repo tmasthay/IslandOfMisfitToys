@@ -24,8 +24,7 @@ def verify_and_plot(self, *, plotter, name, computed, ref, **kw):
                 make_plots('FAILURE')
         except Exception as other_e:
             print(
-                f'Unexpected failure in plotting failure: {other_e}',
-                flush=True,
+                f'Unexpected failure in plotting failure: {other_e}', flush=True
             )
             raise other_e
         raise e

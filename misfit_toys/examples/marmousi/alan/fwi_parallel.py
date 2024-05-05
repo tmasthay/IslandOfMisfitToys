@@ -319,10 +319,7 @@ def main():
     os.makedirs(out_path, exist_ok=True)
     if not all_exist(lcl_path):
         if not all_exist(data_path):
-            download_data(
-                os.path.dirname(data_path),
-                inclusions=['marmousi'],
-            )
+            download_data(os.path.dirname(data_path), inclusions=['marmousi'])
         for f in files:
             shutil.copy(f'{data_path}/{f}.pt', f'{lcl_path}/{f}.pt')
     run(torch.cuda.device_count())
