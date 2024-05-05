@@ -1,58 +1,81 @@
-import torch
-from mh.core import draise
-from returns.curry import curry
-from torchcubicspline import natural_cubic_spline_coeffs as ncs, NaturalCubicSpline as NCS
 import os
-from mh.core import torch_stats
+import torch
+from concurrent.futures import ProcessPoolExecutor
+from torchcubicspline import natural_cubic_spline_coeffs as ncs
 import torch.nn.functional as F
 from time import time
+from mh.core import torch_stats
 
+# Set print options or any global settings
 torch.set_printoptions(callback=torch_stats())
+
 
 def simple_coeffs(t, x):
     coeffs = ncs(t, x)
-    right = F.pad(torch.stack([e.squeeze() for e in coeffs[1:]], dim=0), (1,0))
+    right = F.pad(torch.stack([e.squeeze() for e in coeffs[1:]], dim=0), (1, 0))
     return torch.cat([coeffs[0][None, :], right], dim=0)
 
-def unwrap_coeffs(coeffs):
-    return [e if i == 0 else e[1:].unsqueeze(-1) for i,e in enumerate(coeffs)]
 
-def quantile_spline_coeffs(*, input_path, output_path, t, report_time=False):
-    start_time = time()
+def compute_spline_coeffs(i, *, obs_data, t):
+    if i % 100 == 0:
+        print(f'{i} / {obs_data.shape[0]}')
+    return simple_coeffs(obs_data[i], t)
+
+
+def parallel_for(func, iter_data, args=(), kwargs={}, workers=None):
+    if workers is None:
+        workers = os.cpu_count()
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(func, i, *args, **kwargs) for i in iter_data]
+        results = [future.result() for future in futures]
+    return results
+
+
+def quantile_spline_coeffs(input_path, output_path, chunk_size=None, workers=None):
     if os.path.exists(output_path):
-        if( report_time ):
-            v = torch.load(output_path)
-            print(f"time: {time() - start_time}")
-            return v
         return torch.load(output_path)
-    u = torch.load(input_path)
+
+    obs_data = torch.load(input_path)
+    obs_data = obs_data.reshape(-1, obs_data.shape[-1])
+    t = torch.linspace(0, 1.1, obs_data.shape[-1]).unsqueeze(-1)
     
-    u_flatten = u.reshape(-1, u.shape[-1], 1)
+    # Determine the total number of data points
+    total_data_points = obs_data.shape[0]
+    results = []
 
-    v = torch.empty(u_flatten.shape[0], t.shape[0], 5)
-    for i in range(u_flatten.shape[0]):
-        if i % 100 == 0:
-            print(f"{i} / {u_flatten.shape[0]}: {time() - start_time}")
-        v[i] = simple_coeffs(t, u_flatten[i]).T
-    if report_time:
-        print(f"time: {time() - start_time}")
+    # Determine chunk size
+    if chunk_size is None:
+        chunk_size = total_data_points  # Process all data at once
 
-    # double check this reshaping preserves the correct order
-    v = v.permute((0, 2, 1)).reshape(*u.shape[:-1], 5, u.shape[-1])
+    # Process in chunks
+    for start in range(0, total_data_points, chunk_size):
+        end = min(start + chunk_size, total_data_points)
+        current_indices = range(start, end)
+        current_results = parallel_for(
+            compute_spline_coeffs,
+            current_indices,
+            kwargs={"obs_data": obs_data, "t": t},
+            workers=workers
+        )
+        results.extend(current_results)
+    
+    # Combine the results
+    v = torch.stack(results)
+    v = v.permute(0, 2, 1)  # Reshape if necessary
 
     torch.save(v, output_path)
     return v
 
 
 def main():
-    input_path = "/home/tyler/miniconda3/envs/dw/data/marmousi/obs_data.pt"
-    output_path = "out.pt"
-    t = torch.linspace(0, 1, 750)
-    v = quantile_spline_coeffs(input_path=input_path, output_path=output_path, t=t, report_time=True)
+    input_path = "/home/tyler/miniconda3/envs/dw/data/marmousi/obs_data.pt"  # Modify as needed
+    output_path = "out.pt"  # Modify as needed
+
+    start_time = time()
+    v = quantile_spline_coeffs(input_path, output_path, workers=None, chunk_size=None)
+    print(f"Processing time: {time() - start_time}s")
     print(v)
+
 
 if __name__ == "__main__":
     main()
-
-
-    
