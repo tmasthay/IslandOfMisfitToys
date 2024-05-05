@@ -1,50 +1,58 @@
 import torch
 from mh.core import draise
 from returns.curry import curry
+from torchcubicspline import natural_cubic_spline_coeffs as ncs, NaturalCubicSpline as NCS
+import os
+from mh.core import torch_stats
+import torch.nn.functional as F
+from time import time
 
-from misfit_toys.beta.prob import cdf, get_quantile_lambda, pdf
+torch.set_printoptions(callback=torch_stats())
 
-# @curry
-# def w2(f, *, renorm, x, p, tol=1.0e-04, max_iters=20):
-#     fr = renorm(f, x)
-#     # raise ValueError(fr.shape)
-#     Q = get_quantile_lambda(
-#         frkz, x, p=p, renorm=renorm, tol=tol, max_iters=max_iters
-#     )
-#     # print('Q formed', flush=True)
-#     # raise ValueError(type(Q))
+def simple_coeffs(t, x):
+    coeffs = ncs(t, x)
+    right = F.pad(torch.stack([e.squeeze() for e in coeffs[1:]], dim=0), (1,0))
+    return torch.cat([coeffs[0][None, :], right], dim=0)
 
-#     def helper(g, *, renorm_func=renorm, lcl_Q=Q, lcl_x=x):
-#         # print('PDF...', end='', flush=True)
-#         # tmp = pdf(g, x, renorm=renorm_func, dim=-1)
-#         # tmp = g / torch.trapz(g, x, dim=-1)
-#         print('here', flush=True)
-#         tmp = renorm_func(g, lcl_x)
-#         tmp = tmp / torch.trapz(tmp, lcl_x, dim=-1)
-#         CDF = cdf(tmp, lcl_x, dim=-1)
-#         T = lcl_Q(CDF, deriv=False) - lcl_x
-#         integrand = T**2 * tmp
-#         res = torch.trapz(integrand, lcl_x, dim=-1)
-#         return res.sum()
+def unwrap_coeffs(coeffs):
+    return [e if i == 0 else e[1:].unsqueeze(-1) for i,e in enumerate(coeffs)]
 
-#     # return helper, Q
-#     return helper
+def quantile_spline_coeffs(*, input_path, output_path, t, report_time=False):
+    start_time = time()
+    if os.path.exists(output_path):
+        if( report_time ):
+            v = torch.load(output_path)
+            print(f"time: {time() - start_time}")
+            return v
+        return torch.load(output_path)
+    u = torch.load(input_path)
+    
+    u_flatten = u.reshape(-1, u.shape[-1], 1)
+
+    v = torch.empty(u_flatten.shape[0], t.shape[0], 5)
+    for i in range(u_flatten.shape[0]):
+        if i % 100 == 0:
+            print(f"{i} / {u_flatten.shape[0]}: {time() - start_time}")
+        v[i] = simple_coeffs(t, u_flatten[i]).T
+    if report_time:
+        print(f"time: {time() - start_time}")
+
+    # double check this reshaping preserves the correct order
+    v = v.permute((0, 2, 1)).reshape(*u.shape[:-1], 5, u.shape[-1])
+
+    torch.save(v, output_path)
+    return v
 
 
-def w2(f, *, renorm, x, p, tol=1.0e-03, max_iters=20):
-    p = p.to(x.device)
-    fr = renorm(f, x)
-    Q = get_quantile_lambda(
-        fr, x, p=p, renorm=renorm, tol=tol, max_iters=max_iters
-    )
+def main():
+    input_path = "/home/tyler/miniconda3/envs/dw/data/marmousi/obs_data.pt"
+    output_path = "out.pt"
+    t = torch.linspace(0, 1, 750)
+    v = quantile_spline_coeffs(input_path=input_path, output_path=output_path, t=t, report_time=True)
+    print(v)
 
-    def helper(g):
-        tmp = renorm(g, x)
-        tmp2 = tmp / torch.trapz(tmp, x, dim=-1).unsqueeze(-1)
-        CDF = cdf(tmp2, x, dim=-1)
-        T = Q(CDF, deriv=False) - x
-        integrand = T**2 * tmp
-        res = torch.trapz(integrand, x, dim=-1)
-        return res.sum()
+if __name__ == "__main__":
+    main()
 
-    return helper
+
+    
