@@ -32,3 +32,7 @@ required_fields:
 chunk_keys:
   tensors: [obs_data, src_loc_y, rec_loc_y]
   params: [src_amp_y]
+
+addons: # think of a better name when this is more general
+  runtime_func: ^^null|misfit_toys.beta.quantiles|load_quantiles
+  kw: {}
