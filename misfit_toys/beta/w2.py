@@ -1,10 +1,11 @@
 import os
 import torch
 import torch.multiprocessing as mp
-from torchcubicspline import natural_cubic_spline_coeffs as ncs
+from torchcubicspline import natural_cubic_spline_coeffs as ncs, NaturalCubicSpline as NCS
 import torch.nn.functional as F
 from time import time
 from mh.core import torch_stats
+import numpy as np
 
 # Set print options or any global settings
 torch.set_printoptions(precision=10, callback=torch_stats())
@@ -85,6 +86,14 @@ def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
     torch.save(results, output_path)
     return results
 
+def quantile_splines(coeffs):
+    splines = np.empty(coeffs.shape[0], dtype=object)
+    for i in range(coeffs.shape[0]):
+        c = [coeffs[i,0,:]]
+        c.extend([coeffs[i,j,1:].unsqueeze(-1) for j in range(1, coeffs.shape[1])])
+        splines[i] = NCS(c)
+    return splines
+
 
 def main():
     input_path = "/home/tyler/miniconda3/envs/dw/data/marmousi/obs_data.pt"  # Modify as needed
@@ -92,6 +101,7 @@ def main():
 
     start_time = time()
     v = quantile_spline_coeffs(input_path=input_path, output_path=output_path, renorm=softplus_renorm, workers=11)
+    q = quantile_splines(v)
     print(f"Processing time: {time() - start_time}s")
     print(v)
 
