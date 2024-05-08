@@ -1,11 +1,13 @@
 import os
+from time import time
+
+import numpy as np
 import torch
 import torch.multiprocessing as mp
-from torchcubicspline import natural_cubic_spline_coeffs as ncs, NaturalCubicSpline as NCS
 import torch.nn.functional as F
-from time import time
 from mh.core import torch_stats
-import numpy as np
+from torchcubicspline import NaturalCubicSpline as NCS
+from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
 # Set print options or any global settings
 torch.set_printoptions(precision=10, callback=torch_stats())
@@ -29,7 +31,7 @@ def compute_spline_coeffs(
     out_file = open(f"worker_{rank}.txt", "w")
     out_file.write(f'Total iters: {end-start}\n\n')
     for i in range(start, end):
-        if verbose and (i-start) % 100 == 0:
+        if verbose and (i - start) % 100 == 0:
             out_file.write(f"{i - start}\n")
             out_file.flush()
         shared_results[i] = simple_coeffs(shared_data[i], t).T
@@ -47,15 +49,7 @@ def parallel_for(*, obs_data, t, workers=None, verbose=True):
         end = min((i + 1) * delta, len(obs_data))
         p = mp.Process(
             target=compute_spline_coeffs,
-            args=(
-                start,
-                end,
-                shared_data,
-                shared_results,
-                t,
-                i,
-                verbose
-            ),
+            args=(start, end, shared_data, shared_results, t, i, verbose),
         )
         p.start()
         processes.append(p)
@@ -63,12 +57,14 @@ def parallel_for(*, obs_data, t, workers=None, verbose=True):
         p.join()
     return shared_results
 
+
 def softplus_renorm(u, t):
     softp = torch.nn.Softplus(beta=1, threshold=20)
     cdf = torch.cumulative_trapezoid(softp(u), t.squeeze(), dim=-1)
     cdf = F.pad(cdf, (1, 0))
     cdf = cdf / cdf[:, -1].unsqueeze(-1)
     return cdf
+
 
 def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
     if os.path.exists(output_path):
@@ -86,22 +82,30 @@ def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
     torch.save(results, output_path)
     return results
 
+
 def quantile_splines(coeffs):
     splines = np.empty(coeffs.shape[0], dtype=object)
     for i in range(coeffs.shape[0]):
-        c = [coeffs[i,0,:]]
-        c.extend([coeffs[i,j,1:].unsqueeze(-1) for j in range(1, coeffs.shape[1])])
+        c = [coeffs[i, 0, :]]
+        c.extend(
+            [coeffs[i, j, 1:].unsqueeze(-1) for j in range(1, coeffs.shape[1])]
+        )
         splines[i] = NCS(c)
     return splines
 
 
 def main():
-    input_path = "/home/tyler/miniconda3/envs/dw/data/marmousi/obs_data.pt"  # Modify as needed
-    output_path = "out.pt"  # Modify as needed
+    input_path = f"{os.environ['CONDA_PREFIX']}/data/marmousi/obs_data.pt"
+    output_path = "out.pt"
 
     start_time = time()
-    v = quantile_spline_coeffs(input_path=input_path, output_path=output_path, renorm=softplus_renorm, workers=11)
-    q = quantile_splines(v)
+    v = quantile_spline_coeffs(
+        input_path=input_path,
+        output_path=output_path,
+        renorm=softplus_renorm,
+        workers=os.cpu_count() - 1,
+    )
+    # q = quantile_splines(v)
     print(f"Processing time: {time() - start_time}s")
     print(v)
 
