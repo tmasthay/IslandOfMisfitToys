@@ -1,12 +1,4 @@
-__all__ = [
-    "swiffer",
-    "utils",
-    "fwi",
-    "beta",
-    "workflows",
-    "data",
-    "examples"
-]
+__all__ = ["swiffer", "utils", "fwi", "beta", "workflows", "data", "examples"]
 from .swiffer import *
 from .utils import *
 from .fwi import *

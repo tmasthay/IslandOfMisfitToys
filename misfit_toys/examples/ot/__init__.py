@@ -1,6 +1,3 @@
-__all__ = [
-    "go",
-    "main"
-]
+__all__ = ["go", "main"]
 from .go import *
 from .main import *

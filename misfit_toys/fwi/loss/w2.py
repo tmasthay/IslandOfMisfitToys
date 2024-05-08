@@ -94,15 +94,7 @@ def get_cdf(y, x=None, *, dx=None, dim=-1):
 
 # Function to compute true_quantile for an arbitrary shape torch tensor along its last dimension
 def true_quantile(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-    ltol=0.0,
-    rtol=0.0,
-    atol=1e-2,
-    err_top=50,
+    pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=1e-2, err_top=50
 ):
     if len(pdf.shape) == 1:
         if dx is not None:
@@ -149,15 +141,7 @@ def true_quantile(
 
 
 def true_quantile_choppy(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-    ltol=0.0,
-    rtol=0.0,
-    atol=1e-2,
-    err_top=50,
+    pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=1e-2, err_top=50
 ):
     if len(pdf.shape) == 1:
         if dx is not None:
@@ -199,25 +183,10 @@ def true_quantile_choppy(
 
 
 def cts_quantile(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-    ltol=0.0,
-    rtol=0.0,
-    atol=1e-2,
-    err_top=50,
+    pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=1e-2, err_top=50
 ):
     q = true_quantile(
-        pdf,
-        x,
-        p,
-        dx=dx,
-        ltol=ltol,
-        rtol=rtol,
-        atol=atol,
-        err_top=err_top,
+        pdf, x, p, dx=dx, ltol=ltol, rtol=rtol, atol=atol, err_top=err_top
     )
     if q.shape[-1] != 1:
         q = q.unsqueeze(-1)
@@ -237,26 +206,9 @@ def cts_quantile(
     return splines
 
 
-def quantile(
-    pdf,
-    x,
-    p,
-    *,
-    dx=None,
-    ltol=0.0,
-    rtol=0.0,
-    atol=1e-2,
-    err_top=50,
-):
+def quantile(pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=1e-2, err_top=50):
     splines = cts_quantile(
-        pdf,
-        x,
-        p,
-        dx=dx,
-        ltol=ltol,
-        rtol=rtol,
-        atol=atol,
-        err_top=err_top,
+        pdf, x, p, dx=dx, ltol=ltol, rtol=rtol, atol=atol, err_top=err_top
     )
 
     def helper(t, *, deriv=False):

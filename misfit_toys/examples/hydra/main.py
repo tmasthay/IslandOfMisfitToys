@@ -187,11 +187,7 @@ def plotter(*, data, idx, fig, axes, c):
     }
     lim_vp = {'vmin': vp_true.min(), 'vmax': vp_true.max(), 'extent': extent}
     apply_subplot(
-        data=data[idx],
-        cfg=c.plt.vp,
-        name='vp',
-        layer='main',
-        **lim_vp,
+        data=data[idx], cfg=c.plt.vp, name='vp', layer='main', **lim_vp
     )
     apply_subplot(
         data=c.rel_diff[idx],
@@ -267,12 +263,7 @@ def main(cfg: DictConfig) -> None:
         ]
         keys = [e.replace('_record.pt', '').split('/')[-1] for e in files]
         d = DotDict({k: torch.load(f) for k, f in zip(keys, files)})
-        d.obs_data = torch.load(
-            os.path.join(
-                c.data.path,
-                "obs_data.pt",
-            )
-        )
+        d.obs_data = torch.load(os.path.join(c.data.path, "obs_data.pt"))
         return d
 
     data = get_data()
@@ -287,23 +278,13 @@ def main(cfg: DictConfig) -> None:
     if c.plt.vp.sub.adjust:
         plt.subplots_adjust(**c.plt.vp.sub.adjust)
 
-    vp_true = torch.load(
-        os.path.join(
-            c.data.path,
-            "vp_true.pt",
-        )
-    )
+    vp_true = torch.load(os.path.join(c.data.path, "vp_true.pt"))
     c.vp_true = vp_true.unsqueeze(0)
     c.rel_diff = data.vp - c.vp_true
     c.rel_diff = c.rel_diff / torch.abs(c.vp_true) * 100.0
     c.loss = data.loss
     frames = get_frames_bool(
-        data=data.vp,
-        iter=iter,
-        fig=fig,
-        axes=axes,
-        plotter=plotter,
-        c=c,
+        data=data.vp, iter=iter, fig=fig, axes=axes, plotter=plotter, c=c
     )
     save_frames(frames, **c.plt.vp.save)
 
@@ -317,21 +298,11 @@ def main(cfg: DictConfig) -> None:
     out_traces = torch.stack(
         [data.out[[slice(None), *s]].squeeze() for s in rand_indices]
     )
-    d = DotDict(
-        {
-            'obs_data': traces,
-            'out': out_traces,
-        }
-    )
+    d = DotDict({'obs_data': traces, 'out': out_traces})
     trace_iter = bool_slice(*d.out.shape, **c.plt.trace.iter)
     fig, axes = plt.subplots(*c.plt.trace.sub.shape, **c.plt.trace.sub.kw)
     trace_frames = get_frames_bool(
-        data=d,
-        iter=trace_iter,
-        fig=fig,
-        axes=axes,
-        plotter=trace_plotter,
-        c=c,
+        data=d, iter=trace_iter, fig=fig, axes=axes, plotter=trace_plotter, c=c
     )
     save_frames(trace_frames, **c.plt.trace.save)
 

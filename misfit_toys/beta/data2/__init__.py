@@ -1,4 +1,2 @@
-__all__ = [
-    "gauss"
-]
+__all__ = ["gauss"]
 from .gauss import *
