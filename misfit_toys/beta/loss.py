@@ -6,6 +6,8 @@ import torch
 from mh.core import DotDict, draise
 from returns.curry import curry
 from torch import fft
+from torchcubicspline import NaturalCubicSpline as NCS
+from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
 from misfit_toys.beta.prob import cdf, disc_quantile, get_quantile_lambda, pdf
 from misfit_toys.utils import all_detached_cpu
@@ -371,3 +373,9 @@ def softplus(*, scale=1.0, t):
 
 def identity(f):
     return f
+
+
+def inverse(f, x):
+    coeffs = ncs(f, x.unsqueeze(-1))
+    spline = NCS(coeffs)
+    return spline
