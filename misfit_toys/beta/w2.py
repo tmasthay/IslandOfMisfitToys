@@ -25,19 +25,17 @@ def simple_coeffs(t, x):
 #     shared_results[i] = simple_coeffs(shared_data[i], t)
 
 
-def compute_spline_coeffs(
-    start, end, shared_data, shared_results, t, rank, verbose=True
-):
-    out_file = open(f"worker_{rank}.txt", "w")
-    out_file.write(f'Total iters: {end-start}\n\n')
+def compute_spline_coeffs(start, end, shared_data, shared_results, t):
+    # out_file = open(f"worker_{rank}.txt", "w")
+    # out_file.write(f'Total iters: {end-start}\n\n')
     for i in range(start, end):
-        if verbose and (i - start) % 100 == 0:
-            out_file.write(f"{i - start}\n")
-            out_file.flush()
+        # if verbose and (i - start) % 100 == 0:
+        #     out_file.write(f"{i - start}\n")
+        #     out_file.flush()
         shared_results[i] = simple_coeffs(shared_data[i], t).T
 
 
-def parallel_for(*, obs_data, t, workers=None, verbose=True):
+def parallel_for(*, obs_data, t, workers=None):
     if workers is None:
         workers = os.cpu_count() - 1
     shared_data = obs_data.share_memory_()
@@ -49,7 +47,7 @@ def parallel_for(*, obs_data, t, workers=None, verbose=True):
         end = min((i + 1) * delta, len(obs_data))
         p = mp.Process(
             target=compute_spline_coeffs,
-            args=(start, end, shared_data, shared_results, t, i, verbose),
+            args=(start, end, shared_data, shared_results, t),
         )
         p.start()
         processes.append(p)
@@ -67,6 +65,7 @@ def softplus_renorm(u, t):
 
 
 def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
+    mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
     if os.path.exists(output_path):
         return torch.load(output_path)
 
@@ -94,22 +93,30 @@ def quantile_splines(coeffs):
     return splines
 
 
+def fetch_splines(*, input_path, output_path, renorm, workers=None):
+    coeffs = quantile_spline_coeffs(
+        input_path=input_path,
+        output_path=output_path,
+        renorm=renorm,
+        workers=workers,
+    )
+    return quantile_splines(coeffs)
+
+
 def main():
     input_path = f"{os.environ['CONDA_PREFIX']}/data/marmousi/obs_data.pt"
     output_path = "out.pt"
 
     start_time = time()
-    v = quantile_spline_coeffs(
+    fetch_splines(
         input_path=input_path,
         output_path=output_path,
         renorm=softplus_renorm,
         workers=os.cpu_count() - 1,
     )
-    # q = quantile_splines(v)
-    print(f"Processing time: {time() - start_time}s")
-    print(v)
+    print(f'Processing time: {time() - start_time}s')
 
 
 if __name__ == "__main__":
-    mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
+    # mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
     main()
