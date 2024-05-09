@@ -165,9 +165,18 @@ def plotter(*, data, idx, fig, axes):
     )
     plt.title('Quantile')
 
+    # plt.subplot(*data.shape, 5)
+    # plt.plot(data.t, data.res[idx].squeeze() - data.t.squeeze())
+    # plt.title(r'$Q(F(t)) \approx t$')
+
     plt.subplot(*data.shape, 5)
-    plt.plot(data.t, data.res[idx].squeeze() - data.t.squeeze())
-    plt.title(r'$Q(F(t)) \approx t$')
+    plt.plot(data.t, data.integrand[idx])
+    plt.title('Integrand')
+    plt.subplot(*data.shape, 6)
+    plt.plot(range(data.w2_dist.shape[0]), data.w2_dist)
+    plt.plot([idx[0]], [data.w2_dist[idx[0]]], 'ro')
+
+    plt.title('Loss')
 
     plt.suptitle(f'{clean_idx(idx)}')
     plt.tight_layout()
@@ -198,9 +207,12 @@ def plot_test(*, input_path, output_path, transform, workers=None):
     for (i, s), e in zip(enumerate(splines), cdf):
         res[i] = s.evaluate(e).squeeze()
 
+    integrand = (res - t.reshape(1, -1)) ** 2 * pdf
+    w2_dist = torch.trapz(integrand, t.squeeze(), dim=-1)
+
     shape = (3, 2)
     fig, axes = plt.subplots(*shape, figsize=(10, 10))
-    iter = bool_slice(*res.shape, strides=[5, 1], none_dims=[-1])
+    iter = bool_slice(*res.shape, strides=[100, 1], none_dims=[-1])
     # input(DotDict(locals()))
     frames = get_frames_bool(
         data=DotDict(locals()), iter=iter, fig=fig, axes=axes, plotter=plotter
