@@ -172,10 +172,10 @@ def plotter(*, data, idx, fig, axes):
     plt.subplot(*data.shape, 5)
     plt.plot(data.t, data.integrand[idx])
     plt.title('Integrand')
+
     plt.subplot(*data.shape, 6)
     plt.plot(range(data.w2_dist.shape[0]), data.w2_dist)
     plt.plot([idx[0]], [data.w2_dist[idx[0]]], 'ro')
-
     plt.title('Loss')
 
     plt.suptitle(f'{clean_idx(idx)}')

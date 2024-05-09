@@ -15,4 +15,5 @@ init_modules(
     inclusions=include_paths,
     unload=True,
     omissions=omissions,
+    only_tracked=True,
 )
