@@ -9,6 +9,8 @@ from mh.core import torch_stats
 from torchcubicspline import NaturalCubicSpline as NCS
 from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
+from misfit_toys.utils import get_pydict
+
 # Set print options or any global settings
 torch.set_printoptions(precision=10, callback=torch_stats())
 
@@ -69,9 +71,13 @@ def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
     if os.path.exists(output_path):
         return torch.load(output_path)
 
-    obs_data = torch.load(input_path)
+    data_path = os.path.join(input_path, 'obs_data.pt')
+    meta_path = input_path
+    obs_data = torch.load(data_path)
     obs_data = obs_data.reshape(-1, obs_data.shape[-1])
-    t = torch.linspace(0, 1.1, obs_data.shape[-1]).unsqueeze(-1)
+
+    meta = get_pydict(meta_path, as_class=True)
+    t = torch.linspace(0, (meta.nt - 1) * meta.dt, meta.nt).unsqueeze(-1)
     robs = renorm(obs_data, t)
 
     # Process in parallel using shared memory
@@ -104,7 +110,7 @@ def fetch_splines(*, input_path, output_path, renorm, workers=None):
 
 
 def main():
-    input_path = f"{os.environ['CONDA_PREFIX']}/data/marmousi/obs_data.pt"
+    input_path = f"{os.environ['CONDA_PREFIX']}/data/marmousi"
     output_path = "out.pt"
 
     start_time = time()

@@ -17,20 +17,20 @@ __all__ = [
     "data2",
     "cfg",
 ]
-from .main import *
-from .w2 import *
-from .data import *
-from .loss import *
-from .opt import *
-from .cheb import *
-from .helpers import *
-from .steps import *
-from .plotter import *
-from .renorm import *
-from .prob import *
-from .optimizers import *
-from .contained import *
-from .test_splines import *
-from .other import *
-from .data2 import *
 from .cfg import *
+from .cheb import *
+from .contained import *
+from .data import *
+from .data2 import *
+from .helpers import *
+from .loss import *
+from .main import *
+from .opt import *
+from .optimizers import *
+from .other import *
+from .plotter import *
+from .prob import *
+from .renorm import *
+from .steps import *
+from .test_splines import *
+from .w2 import *
