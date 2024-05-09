@@ -5,19 +5,23 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 import torch.nn.functional as F
-from mh.core import torch_stats
+from matplotlib import pyplot as plt
+from mh.core import DotDict, torch_stats
+from mh.typlotlib import get_frames_bool, save_frames
 from torchcubicspline import NaturalCubicSpline as NCS
 from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
-from misfit_toys.utils import get_pydict
+from misfit_toys.utils import bool_slice, clean_idx, get_pydict
 
 # Set print options or any global settings
-torch.set_printoptions(precision=10, callback=torch_stats())
+torch.set_printoptions(precision=10, callback=torch_stats('all'))
 
 
 def simple_coeffs(t, x):
     coeffs = ncs(t, x)
-    right = F.pad(torch.stack([e.squeeze() for e in coeffs[1:]], dim=0), (1, 0))
+    right = F.pad(
+        torch.stack([e.squeeze() for e in coeffs[1:]], dim=0), (1, 0), value=100
+    )
     return torch.cat([coeffs[0][None, :], right], dim=0)
 
 
@@ -58,37 +62,52 @@ def parallel_for(*, obs_data, t, workers=None):
     return shared_results
 
 
-def softplus_renorm(u, t):
+def softplus(u, t):
     softp = torch.nn.Softplus(beta=1, threshold=20)
-    cdf = torch.cumulative_trapezoid(softp(u), t.squeeze(), dim=-1)
+    return softp(u)
+
+
+def prob(*, data, t):
+    cdf = torch.cumulative_trapezoid(data, t.squeeze(), dim=-1)
     cdf = F.pad(cdf, (1, 0))
-    cdf = cdf / cdf[:, -1].unsqueeze(-1)
-    return cdf
+    integration_constants = cdf[:, -1].unsqueeze(-1)
+    cdf = cdf / integration_constants
+    pdf = data / integration_constants
+    return pdf, cdf
 
 
-def quantile_spline_coeffs(*, input_path, output_path, renorm, workers=None):
-    mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
+def quantile_spline_coeffs(*, input_path, output_path, transform, workers=None):
+    meta = get_pydict(input_path, as_class=True)
+    t = torch.linspace(0, (meta.nt - 1) * meta.dt, meta.nt).unsqueeze(-1)
+    # t = torch.linspace(0, 1.0, meta.nt).unsqueeze(-1)
     if os.path.exists(output_path):
-        return torch.load(output_path)
+        return torch.load(output_path), t
 
+    mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
     data_path = os.path.join(input_path, 'obs_data.pt')
-    meta_path = input_path
     obs_data = torch.load(data_path)
     obs_data = obs_data.reshape(-1, obs_data.shape[-1])
 
-    meta = get_pydict(meta_path, as_class=True)
-    t = torch.linspace(0, (meta.nt - 1) * meta.dt, meta.nt).unsqueeze(-1)
-    robs = renorm(obs_data, t)
+    robs = transform(obs_data, t)
+    _, cdf = prob(data=robs, t=t)
 
     # Process in parallel using shared memory
-    results = parallel_for(obs_data=robs, t=t, workers=workers)
+    results = parallel_for(obs_data=cdf, t=t, workers=workers)
     results = results.permute(0, 2, 1)  # Reshape if necessary
 
     torch.save(results, output_path)
-    return results
+    return results, t
 
 
 def quantile_splines(coeffs):
+    cutoff_idx = -1
+    for i, e in enumerate(coeffs):
+        print(f'{i}')
+        if torch.mean(torch.abs(e)) == 0.0:
+            cutoff_idx = i
+            break
+    if cutoff_idx != -1:
+        coeffs = coeffs[:cutoff_idx]
     splines = np.empty(coeffs.shape[0], dtype=object)
     for i in range(coeffs.shape[0]):
         c = [coeffs[i, 0, :]]
@@ -99,28 +118,126 @@ def quantile_splines(coeffs):
     return splines
 
 
-def fetch_splines(*, input_path, output_path, renorm, workers=None):
-    coeffs = quantile_spline_coeffs(
+def fetch_quantile_splines(*, input_path, output_path, transform, workers=None):
+    coeffs, t = quantile_spline_coeffs(
         input_path=input_path,
         output_path=output_path,
-        renorm=renorm,
+        transform=transform,
         workers=workers,
     )
-    return quantile_splines(coeffs)
+    return quantile_splines(coeffs), t
+
+
+def w2(*, input_path, output_path, transform, workers=None):
+    splines, t = fetch_quantile_splines(
+        input_path=input_path,
+        output_path=output_path,
+        transform=transform,
+        workers=workers,
+    )
+
+    def helper(f):
+        f = f.reshape(-1, f.shape[-1])
+        fpos = transform(f, t.squeeze())
+        pdf, cdf = prob(data=fpos, t=t.squeeze())
+        runner = torch.tensor(0.0)
+        for i in range(cdf.shape[0]):
+            T = splines[i].evaluate(cdf[i]).squeeze()
+            integrand = (t.squeeze() - T) ** 2 * pdf[i]
+            res = torch.trapz(integrand, t.squeeze())
+            # input(f'{locals()=}')
+            runner += res.detach().cpu()
+            print(f'{runner.item()=}')
+        return runner
+
+    return helper
+
+
+def plotter(*, data, idx, fig, axes):
+    plt.clf()
+    plt.subplot(*data.shape, 1)
+    plt.plot(data.t, data.obs_data[idx])
+    plt.title('Raw Data')
+
+    plt.subplot(*data.shape, 2)
+    plt.plot(data.t, data.pdf[idx])
+    plt.title('PDF')
+
+    plt.subplot(*data.shape, 3)
+    plt.plot(data.t, data.cdf[idx] - data.lin_cdf)
+    plt.title('CDF')
+
+    plt.subplot(*data.shape, 4)
+    plt.plot(
+        data.p, data.splines[idx[0]].evaluate(data.p).squeeze() - data.lin_q
+    )
+    plt.title('Quantile')
+
+    plt.subplot(*data.shape, 5)
+    plt.plot(data.t, data.res[idx].squeeze() - data.t.squeeze())
+    plt.title(r'$Q(F(t)) \approx t$')
+
+    plt.suptitle(f'{clean_idx(idx)}')
+    plt.tight_layout()
+
+
+def plot_test(*, input_path, output_path, transform, workers=None):
+    splines, t = fetch_quantile_splines(
+        input_path=input_path,
+        output_path=output_path,
+        workers=workers,
+        transform=transform,
+    )
+    eta = 0.0
+    obs_data = torch.load(f'{input_path}/obs_data.pt')
+    obs_data = obs_data.reshape(-1, obs_data.shape[-1])
+    obs_data = obs_data + torch.rand_like(obs_data) * eta
+
+    robs = transform(obs_data, t)
+    pdf, cdf = prob(data=robs, t=t)
+    # pdf = robs / torch.trapz(robs)
+
+    lin_cdf = (1.0 / t[-1] * t).squeeze()
+
+    p = torch.linspace(0.0, 1.0, 1000)
+    lin_q = (t[-1] * p).squeeze()
+    obs_data = obs_data[: splines.shape[0]]
+    res = torch.rand_like(obs_data)
+    for (i, s), e in zip(enumerate(splines), cdf):
+        res[i] = s.evaluate(e).squeeze()
+
+    shape = (3, 2)
+    fig, axes = plt.subplots(*shape, figsize=(10, 10))
+    iter = bool_slice(
+        *res.shape, strides=[1, 1], none_dims=[-1], start=[44050, 1]
+    )
+    # input(DotDict(locals()))
+    frames = get_frames_bool(
+        data=DotDict(locals()),
+        iter=iter,
+        fig=fig,
+        axes=axes,
+        plotter=plotter,
+    )
+    save_frames(frames, path='res.gif')
+    print('res.gif')
 
 
 def main():
-    input_path = f"{os.environ['CONDA_PREFIX']}/data/marmousi"
-    output_path = "out.pt"
+    # input_path = (
+    #     f"{os.environ['CONDA_PREFIX']}/data/marmousi/deepwave_example/shots16"
+    # )
+    data_path = 'data/marmousi'
+    os.makedirs(data_path, exist_ok=True)
+    input_path = os.path.join(os.environ['CONDA_PREFIX'], data_path)
+    output_path = os.path.join(data_path, 'splines.pt')
 
-    start_time = time()
-    fetch_splines(
+    plot_test(
         input_path=input_path,
         output_path=output_path,
-        renorm=softplus_renorm,
         workers=os.cpu_count() - 1,
+        transform=softplus,
     )
-    print(f'Processing time: {time() - start_time}s')
 
 
 if __name__ == "__main__":
