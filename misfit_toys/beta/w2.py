@@ -47,7 +47,7 @@ def parallel_for(*, obs_data, t, workers=None):
     shared_data = obs_data.share_memory_()
     shared_results = torch.empty(*obs_data.shape, 5).share_memory_()
     processes = []
-    delta = len(obs_data) // workers
+    delta = int(-1.0 * (-len(obs_data) // workers))
     for i in range(workers):
         start = i * delta
         end = min((i + 1) * delta, len(obs_data))
@@ -100,14 +100,6 @@ def quantile_spline_coeffs(*, input_path, output_path, transform, workers=None):
 
 
 def quantile_splines(coeffs):
-    cutoff_idx = -1
-    for i, e in enumerate(coeffs):
-        print(f'{i}')
-        if torch.mean(torch.abs(e)) == 0.0:
-            cutoff_idx = i
-            break
-    if cutoff_idx != -1:
-        coeffs = coeffs[:cutoff_idx]
     splines = np.empty(coeffs.shape[0], dtype=object)
     for i in range(coeffs.shape[0]):
         c = [coeffs[i, 0, :]]
@@ -208,16 +200,10 @@ def plot_test(*, input_path, output_path, transform, workers=None):
 
     shape = (3, 2)
     fig, axes = plt.subplots(*shape, figsize=(10, 10))
-    iter = bool_slice(
-        *res.shape, strides=[1, 1], none_dims=[-1], start=[44050, 1]
-    )
+    iter = bool_slice(*res.shape, strides=[5, 1], none_dims=[-1])
     # input(DotDict(locals()))
     frames = get_frames_bool(
-        data=DotDict(locals()),
-        iter=iter,
-        fig=fig,
-        axes=axes,
-        plotter=plotter,
+        data=DotDict(locals()), iter=iter, fig=fig, axes=axes, plotter=plotter
     )
     save_frames(frames, path='res.gif')
     print('res.gif')
@@ -227,7 +213,7 @@ def main():
     # input_path = (
     #     f"{os.environ['CONDA_PREFIX']}/data/marmousi/deepwave_example/shots16"
     # )
-    data_path = 'data/marmousi'
+    data_path = 'data/marmousi/deepwave_example/shots16'
     os.makedirs(data_path, exist_ok=True)
     input_path = os.path.join(os.environ['CONDA_PREFIX'], data_path)
     output_path = os.path.join(data_path, 'splines.pt')
