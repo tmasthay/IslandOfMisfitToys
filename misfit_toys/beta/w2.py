@@ -68,7 +68,7 @@ def parallel_for(*, obs_data, t, workers=None):
 
 
 def softplus(u, t):
-    softp = torch.nn.Softplus(beta=1, threshold=20)
+    softp = torch.nn.Softplus(beta=1.0, threshold=20)
     return softp(u)
 
 
@@ -133,7 +133,7 @@ class Wasserstein(torch.nn.Module):
         self.transform = transform
         self.input_path = input_path
         self.output_path = output_path
-        self.splines, self.t = fetch_quantile_splines(
+        self.coeffs, self.t = quantile_spline_coeffs(
             input_path=input_path,
             output_path=output_path,
             transform=transform,
@@ -141,16 +141,29 @@ class Wasserstein(torch.nn.Module):
         )
         # self._modules = {}
 
+    def to(self, device):
+        self.t = self.t.to(device)
+        self.coeffs = self.coeffs.to(device)
+        self.splines = quantile_splines(self.coeffs)
+        return self
+
     def forward(self, f):
         f = f.reshape(-1, f.shape[-1])
         fpos = self.transform(f, self.t.squeeze())
         pdf, cdf = prob(data=fpos, t=self.t.squeeze())
         runner = torch.tensor(0.0, requires_grad=True)
         for i in range(cdf.shape[0]):
-            T = self.splines[i].evaluate(cdf[i]).squeeze()
-            integrand = (self.t.squeeze() - T) ** 2 * pdf[i]
-            res = torch.trapz(integrand, self.t.squeeze())
-            runner += res
+            cut_cdf_left = torch.argmax((cdf[i] > 0.3).float())
+            cut_cdf_right = torch.argmin((cdf[i] < 0.7).float())
+            cut_cdf = cdf[i, cut_cdf_left:cut_cdf_right]
+            cut_t = self.t[cut_cdf_left:cut_cdf_right]
+            cut_pdf = pdf[i, cut_cdf_left:cut_cdf_right]
+            T = self.splines[i].evaluate(cut_cdf).squeeze()
+            integrand = (
+                self.t[cut_cdf_left:cut_cdf_right].squeeze() - T
+            ) ** 2 * cut_pdf
+            res = torch.trapz(integrand, cut_t.squeeze())
+            runner = runner + res
         return runner
 
 

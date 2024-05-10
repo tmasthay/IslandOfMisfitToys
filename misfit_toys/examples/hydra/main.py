@@ -110,6 +110,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     c = resolve(c, relax=False)
     loss_fn = apply(c.train.loss)
+    if hasattr(loss_fn, 'to'):
+        loss_fn = loss_fn.to(rank)
+
     optimizer = apply(c.train.optimizer)
     step = apply(c.train.step)
     training_stages = apply(c.train.stages)
@@ -175,10 +178,11 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     # later on if you want to delay this execution, that is an easy refactor
     #     just add a key that says to do so or not.
     # c.data.preprocess.addons.self_ref_resolve()
-    c.data.preprocess.addons = resolve(c.data.preprocess.addons, relax=False)
-    c.data.preprocess.addons = apply(c.data.preprocess.addons)
-    input('here')
-    input(c.data.preprocess.addons)
+    if 'addons' in c.data.preprocess.keys():
+        c.data.preprocess.addons = resolve(
+            c.data.preprocess.addons, relax=False
+        )
+        c.data.preprocess.addons = apply(c.data.preprocess.addons)
     return c
 
 
