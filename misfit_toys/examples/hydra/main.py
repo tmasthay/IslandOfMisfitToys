@@ -171,6 +171,14 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
     c.rank_out = hydra_out(c.get('rank_out', 'rank'))
+
+    # later on if you want to delay this execution, that is an easy refactor
+    #     just add a key that says to do so or not.
+    # c.data.preprocess.addons.self_ref_resolve()
+    c.data.preprocess.addons = resolve(c.data.preprocess.addons, relax=False)
+    c.data.preprocess.addons = apply(c.data.preprocess.addons)
+    input('here')
+    input(c.data.preprocess.addons)
     return c
 
 

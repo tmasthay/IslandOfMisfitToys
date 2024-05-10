@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from mh.core import DotDict, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
+from returns.curry import curry
 from torchcubicspline import NaturalCubicSpline as NCS
 from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
@@ -15,6 +16,10 @@ from misfit_toys.utils import bool_slice, clean_idx, get_pydict
 
 # Set print options or any global settings
 torch.set_printoptions(precision=10, callback=torch_stats('all'))
+
+
+def get_cpus(*, spare=0):
+    return os.cpu_count() - spare
 
 
 def simple_coeffs(t, x):
@@ -82,6 +87,8 @@ def quantile_spline_coeffs(*, input_path, output_path, transform, workers=None):
     # t = torch.linspace(0, 1.0, meta.nt).unsqueeze(-1)
     if os.path.exists(output_path):
         return torch.load(output_path), t
+    else:
+        os.makedirs(os.path.dirname(output_path))
 
     mp.set_start_method('spawn')  # Necessary for PyTorch multiprocessing
     data_path = os.path.join(input_path, 'obs_data.pt')
@@ -120,29 +127,31 @@ def fetch_quantile_splines(*, input_path, output_path, transform, workers=None):
     return quantile_splines(coeffs), t
 
 
-def w2(*, input_path, output_path, transform, workers=None):
-    splines, t = fetch_quantile_splines(
-        input_path=input_path,
-        output_path=output_path,
-        transform=transform,
-        workers=workers,
-    )
+class Wasserstein(torch.nn.Module):
+    def __init__(self, *, input_path, output_path, transform, workers=None):
+        super().__init__()
+        self.transform = transform
+        self.input_path = input_path
+        self.output_path = output_path
+        self.splines, self.t = fetch_quantile_splines(
+            input_path=input_path,
+            output_path=output_path,
+            transform=transform,
+            workers=workers,
+        )
+        # self._modules = {}
 
-    def helper(f):
+    def forward(self, f):
         f = f.reshape(-1, f.shape[-1])
-        fpos = transform(f, t.squeeze())
-        pdf, cdf = prob(data=fpos, t=t.squeeze())
-        runner = torch.tensor(0.0)
+        fpos = self.transform(f, self.t.squeeze())
+        pdf, cdf = prob(data=fpos, t=self.t.squeeze())
+        runner = torch.tensor(0.0, requires_grad=True)
         for i in range(cdf.shape[0]):
-            T = splines[i].evaluate(cdf[i]).squeeze()
-            integrand = (t.squeeze() - T) ** 2 * pdf[i]
-            res = torch.trapz(integrand, t.squeeze())
-            # input(f'{locals()=}')
-            runner += res.detach().cpu()
-            print(f'{runner.item()=}')
+            T = self.splines[i].evaluate(cdf[i]).squeeze()
+            integrand = (self.t.squeeze() - T) ** 2 * pdf[i]
+            res = torch.trapz(integrand, self.t.squeeze())
+            runner += res
         return runner
-
-    return helper
 
 
 def plotter(*, data, idx, fig, axes):

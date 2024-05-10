@@ -1,3 +1,7 @@
+defaults:
+  - _self_
+  - addons: softplus
+
 dep: ^^null|misfit_toys.fwi.seismic_data|null
 
 minv: 1000
@@ -22,17 +26,13 @@ path_builder_kw:
   rec_loc_y: null
 
 required_fields:
-- vp_init
-- src_amp_y
-- obs_data
-- src_loc_y
-- rec_loc_y
-- meta
+  - vp_init
+  - src_amp_y
+  - obs_data
+  - src_loc_y
+  - rec_loc_y
+  - meta
 
 chunk_keys:
   tensors: [obs_data, src_loc_y, rec_loc_y]
   params: [src_amp_y]
-
-addons: # think of a better name when this is more general
-  runtime_func: ^^null|misfit_toys.beta.quantiles|load_quantiles
-  kw: {}

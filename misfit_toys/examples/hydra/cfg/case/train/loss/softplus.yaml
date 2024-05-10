@@ -1,32 +1,3 @@
-# dep:
-#   mod: ^^cwd|helpers|null
-
-# runtime_func: self.train.loss.dep.mod.W2Loss
-# kw:
-#   runtime_func: self.train.loss.dep.mod.hydra_build_two
-#   kw:
-#     meta: self.runtime.prop.module.meta
-#     obs_data: self.obs_data
-#     num_probs: self.np
-#     down: 1
-#     eps: 0.5
-#     beta: 1.0e-03
-#     track: true
-#     alpha: 1.0e-06
-#     weights: self.runtime.prop.module.vp
-
-runtime_func: ^^null|misfit_toys.beta.w2|w2
+runtime_func: "eval(lambda val: val)"
 kw:
-  renorm:
-    runtime_func: ^^null|misfit_toys.beta.renorm|softplus
-    kw:
-      k: 0.6
-  x: self.runtime.t
-  p:
-    runtime_func: ^^null|torch|linspace
-    kw:
-      start: 0.0
-      end: 1.0
-      steps: 300
-      device: 0
-  f: self.runtime.data.obs_data
+  val: self.data.preprocess.addons

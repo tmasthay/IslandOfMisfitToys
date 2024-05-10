@@ -967,7 +967,10 @@ def apply(lcl, relax=True):
         return lcl
     except Exception as e:
         v = RuntimeError(
-            f'Error in apply\n{args=}\n{kwargs=}\n{lcl=}\nPrevious error={e}'
+            f'Error in apply\n{args=}\n{kwargs=}\n{lcl=}\nPrevious error "{e}"'
+            ' full was the cause of this exception.\nScroll up past "The above'
+            ' exception was the direct cause of the following exception" to'
+            ' see the full error in the stack trace.'
         )
         raise v from e
 
