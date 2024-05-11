@@ -1,0 +1,15 @@
+root_pkg: misfit_toys.examples.hydra
+sub_pkg: cfg.case.train.loss.w1
+func_name: working_w1
+
+runtime_func: ^^null|${.root_pkg}.${.sub_pkg}|${.func_name}
+kw:
+  obs_data: self.runtime.data.obs_data
+  model_params: self.runtime.prop.module.vp
+  weights:
+    - 1.0
+    - 0.0
+  reg_min: 0.0
+  t: self.runtime.t
+  max_calls: ${...max_iters}
+  scale: 1.0

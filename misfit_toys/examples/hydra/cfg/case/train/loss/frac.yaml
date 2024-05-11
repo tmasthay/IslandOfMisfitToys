@@ -1,0 +1,9 @@
+runtime_mods:
+  sob: ^^null|misfit_toys.beta.sobolev|riel
+rtm: self.train.loss.runtime_mods
+
+runtime_func: ${.rtm}.sob
+kw:
+  obs_data: self.runtime.data.obs_data
+  t: self.runtime.t
+  alpha: 1.0
