@@ -8,6 +8,7 @@ __all__ = [
     "cheb",
     "helpers",
     "steps",
+    "sobolev",
     "plotter",
     "renorm",
     "prob",
@@ -33,6 +34,7 @@ from .other import *
 from .plotter import *
 from .prob import *
 from .renorm import *
+from .sobolev import *
 from .steps import *
 from .test_splines import *
 from .tmp import *

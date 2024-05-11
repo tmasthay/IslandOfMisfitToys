@@ -1,2 +1,2 @@
-__all__ = []
-from . import *
+__all__ = ["addons"]
+from .addons import *
