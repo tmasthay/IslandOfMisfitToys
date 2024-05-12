@@ -13,6 +13,7 @@ Functions:
     ireraise: Re-raise an exception with an indented and wrapped error message.
 """
 
+import os
 import subprocess
 import sys
 import textwrap
@@ -254,7 +255,7 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
     raise exception_type(full)
 
 
-def dupe(base, verbose=True):
+def dupe(base, verbose=True, editor=None):
     out_file = f'{base}.out'
     err_file = f'{base}.err'
 
@@ -265,3 +266,6 @@ def dupe(base, verbose=True):
         )
     sys.stdout = open(out_file, 'w')
     sys.stderr = open(err_file, 'w')
+
+    if editor is not None:
+        os.system(f'{editor} {out_file}')

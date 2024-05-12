@@ -40,6 +40,8 @@ except Exception:
         precision=3, sci_mode=True, threshold=5, linewidth=10
     )
 
+torch.set_printoptions(callback=torch_stats('all'))
+
 
 def check_keys(c, data):
     pre = c.data.preprocess
@@ -63,7 +65,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     setup(rank, world_size, port=c.port)
 
     if c.get('dupe', False):
-        dupe(f'{c.rank_out}_{rank}')
+        dupe(f'{c.rank_out}_{rank}', editor=c.get('editor', None))
 
     start_pre = time()
     c = resolve(c, relax=True)

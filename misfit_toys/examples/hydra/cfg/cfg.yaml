@@ -4,3 +4,5 @@ defaults:
 
 case:
   port: 12576
+  dupe: True
+  editor: code
