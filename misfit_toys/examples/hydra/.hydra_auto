@@ -1,44 +1,55 @@
-export _HYDRA_OLD_COMP=$(complete -p python 2>/dev/null)
+export _HYDRA_OLD_COMP=$(complete -p hydra 2>/dev/null)
+
 hydra_bash_completion() {
-    words=($COMP_LINE)
-    if [ "${words[0]}" == "python" ]; then
-        if ((${#words[@]} < 2)); then
+    local cur prev words cword
+    _get_comp_words_by_ref -n =: cur prev words cword
+
+    # Check if the command starts with 'hydra'
+    if [[ "${words[0]}" == "hydra" ]]; then
+        if [[ ${#words[@]} -lt 2 ]]; then
+            return # Exit if there are not enough words
+        fi
+
+        # Construct the command to execute
+        helper="python -W ignore main.py ${words[@]:1}"
+
+        # Find the executable
+        EXECUTABLE=($(command -v python))
+
+        # Debugging output, if enabled
+        if [[ "$HYDRA_COMP_DEBUG" == "1" ]]; then
+            printf "EXECUTABLE_FIRST='${EXECUTABLE[0]}'\n"
+        fi
+
+        # Check if the executable is available and executable
+        if ! [[ -x "${EXECUTABLE[0]}" ]]; then
+            false
             return
         fi
-        file_path=$(pwd)/${words[1]}
-        if [ ! -f "$file_path" ]; then
-            return
+
+        # Generate autocomplete suggestions
+        if [[ $? == 0 ]]; then
+            choices=$(COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $EXECUTABLE -W ignore main.py -sc query=bash)
+            word=${words[cword]}
+
+            # More debugging output
+            if [[ "$HYDRA_COMP_DEBUG" == "1" ]]; then
+                printf "\n"
+                printf "COMP_LINE='$COMP_LINE'\n"
+                printf "COMP_POINT='$COMP_POINT'\n"
+                printf "Word='$word'\n"
+                printf "Output suggestions:\n"
+                printf "\t%s\n" ${choices[@]}
+            fi
+
+            # Provide suggestions for autocompletion
+            COMPREPLY=($(compgen -o nospace -o default -W "$choices" -- "$word"))
         fi
-        grep "@hydra.main" $file_path -q
-        helper="${words[0]} -W ignore ${words[1]}"
     else
-        helper="${words[0]}"
-        true
-    fi
-
-    EXECUTABLE=($(command -v $helper))
-    if [ "$HYDRA_COMP_DEBUG" == "1" ]; then
-        printf "EXECUTABLE_FIRST='${EXECUTABLE[0]}'\n"
-    fi
-    if ! [ -x "${EXECUTABLE[0]}" ]; then
-        false
-    fi
-
-    if [ $? == 0 ]; then
-        choices=$(COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $helper -sc query=bash)
-        word=${words[$COMP_CWORD]}
-
-        if [ "$HYDRA_COMP_DEBUG" == "1" ]; then
-            printf "\n"
-            printf "COMP_LINE='$COMP_LINE'\n"
-            printf "COMP_POINT='$COMP_POINT'\n"
-            printf "Word='$word'\n"
-            printf "Output suggestions:\n"
-            printf "\t%s\n" ${choices[@]}
-        fi
-        COMPREPLY=($(compgen -o nospace -o default -W "$choices" -- "$word"))
+        return
     fi
 }
 
+# Adjust word breaks and register the completion function
 COMP_WORDBREAKS=${COMP_WORDBREAKS//=/}
-COMP_WORDBREAKS=$COMP_WORDBREAKS complete -o nospace -o default -F hydra_bash_completion python
+COMP_WORDBREAKS=$COMP_WORDBREAKS complete -o nospace -o default -F hydra_bash_completion hydra
