@@ -6,9 +6,6 @@ hydra_bash_completion() {
 
     # Check if the command starts with 'hydra'
     if [[ "${words[0]}" == "hydra" ]]; then
-        if [[ ${#words[@]} -lt 2 ]]; then
-            return # Exit if there are not enough words
-        fi
 
         # Construct the command to execute
         helper="python -W ignore main.py ${words[@]:1}"
@@ -29,6 +26,8 @@ hydra_bash_completion() {
 
         # Generate autocomplete suggestions
         if [[ $? == 0 ]]; then
+            # local my_cmd = "COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $EXECUTABLE -W ignore main.py -sc query=bash"
+            # echo $my_cmd
             choices=$(COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $EXECUTABLE -W ignore main.py -sc query=bash)
             word=${words[cword]}
 
