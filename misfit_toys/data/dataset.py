@@ -769,7 +769,7 @@ class DataFactory(ABC):
             )
 
             if os.system(cmd):
-                input(cmd)
+                # input(cmd)
                 iraise(RuntimeError, f"{cmd} failed")
                 sys.exit(-1)
 

@@ -7,15 +7,12 @@ import torch
 import yaml
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
-from mh.core import DotDict, draise, hydra_out, torch_stats
+from mh.core import DotDict, draise, hydra_out, set_print_options, torch_stats
 from omegaconf import OmegaConf
 
 from misfit_toys.utils import apply_all, exec_imports, git_dump_info
 
-if os.getcwd().startswith(os.environ.get('ISL', 'isl_not_defined')):
-    torch.set_printoptions(precision=2, sci_mode=True, callback=torch_stats())
-else:
-    torch.set_printoptions(precision=2, sci_mode=True)
+set_print_options(precision=2, sci_mode=True, callback=torch_stats())
 
 
 def load_hydra_config(config_dir='.', config_name='cfg'):
