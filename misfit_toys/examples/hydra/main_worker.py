@@ -5,7 +5,13 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
-from mh.core import DotDict, convert_dictconfig, hydra_out, torch_stats
+from mh.core import (
+    DotDict,
+    convert_dictconfig,
+    hydra_out,
+    set_print_options,
+    torch_stats,
+)
 from mh.core_legacy import subdict
 from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
@@ -25,22 +31,14 @@ from misfit_toys.utils import (
     setup,
 )
 
-try:
-    # opts = 'all'
-    opts = ['shape']
-    torch.set_printoptions(
-        precision=3,
-        sci_mode=True,
-        threshold=5,
-        linewidth=10,
-        callback=torch_stats(opts),
-    )
-except Exception:
-    torch.set_printoptions(
-        precision=3, sci_mode=True, threshold=5, linewidth=10
-    )
-
-torch.set_printoptions(callback=torch_stats('all'))
+opts = ['shape']
+set_print_options(
+    precision=3,
+    sci_mode=True,
+    threshold=5,
+    linewidth=10,
+    callback=torch_stats(opts),
+)
 
 
 def check_keys(c, data):

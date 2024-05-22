@@ -4,7 +4,7 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 from hydra import utils
-from mh.core import DotDict, convert_dictconfig, hydra_out
+from mh.core import DotDict, convert_dictconfig, hydra_out, set_print_options
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig
 from scipy.interpolate import splev, splrep
@@ -14,7 +14,7 @@ from misfit_toys.fwi.loss.w2 import cum_trap, spline_func, true_quantile
 from misfit_toys.utils import bool_slice
 from misfit_toys.utils import mean_filter_1d as mf
 
-torch.set_printoptions(precision=3, threshold=10)
+set_print_options(precision=3, threshold=10)
 
 
 class W2Loss(torch.nn.Module):

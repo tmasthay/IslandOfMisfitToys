@@ -37,8 +37,7 @@ def working_w1(
         f=obs_data,
         model_params=model_params,
         base_loss=transform_loss(
-            loss=l1_double,
-            transform=softplus_loss(scale=scale, t=t),
+            loss=l1_double, transform=softplus_loss(scale=scale, t=t)
         ),
         weights=weights,
         reg_sched=lin_decrease(max_calls=max_calls, _min=reg_min),
