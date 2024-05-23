@@ -7,5 +7,7 @@
 .gitattributes
 .gitlint_rules
 
+__pycache__
+
 outputs
 multirun
