@@ -1,0 +1,11 @@
+.vscode
+.gitlint
+.hypothesis
+.pytest_cache
+.gitgunk
+.pre-commit-config.yaml
+.gitattributes
+.gitlint_rules
+
+outputs
+multirun
