@@ -1,4 +1,4 @@
-__all__ = ["plt", "train", "data"]
+__all__ = ["data", "plt", "train"]
 from .data import *
 from .plt import *
 from .train import *

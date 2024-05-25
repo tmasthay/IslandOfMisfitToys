@@ -1,4 +1,4 @@
-__all__ = ["stages", "loss", "optimizer", "step"]
+__all__ = ["loss", "optimizer", "step", "stages"]
 from .loss import *
 from .optimizer import *
 from .stages import *

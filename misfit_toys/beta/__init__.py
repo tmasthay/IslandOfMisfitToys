@@ -1,18 +1,18 @@
 __all__ = [
-    "main",
+    "prob",
     "data",
-    "loss",
+    "optimizers",
+    "plotter",
+    "sobolev",
     "opt",
     "helpers",
     "steps",
-    "sobolev",
-    "plotter",
+    "loss",
+    "main",
     "renorm",
-    "prob",
-    "optimizers",
     "test_splines",
-    "data2",
     "cfg",
+    "data2",
 ]
 from .cfg import *
 from .data import *

@@ -1,10 +1,10 @@
 __all__ = [
-    "dataset",
     "download_data",
-    "marmousi",
+    "dataset",
     "marmousi2",
     "das_curtin",
     "custom",
+    "marmousi",
 ]
 from .custom import *
 from .das_curtin import *
