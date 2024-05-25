@@ -6,9 +6,9 @@ __all__ = [
     "custom",
     "marmousi",
 ]
-# from .custom import *
-# from .das_curtin import *
-# from .dataset import *
-# from .download_data import *
-# from .marmousi import *
-# from .marmousi2 import *
+from .custom import *
+from .das_curtin import *
+from .dataset import *
+from .download_data import *
+from .marmousi import *
+from .marmousi2 import *

@@ -1,2 +1,2 @@
 __all__ = ["addons"]
-# from .addons import *
+from .addons import *
