@@ -1,5 +1,4 @@
----
-name: GPU Validation Workflow
+name: GPU Validation and Docs Deployment Workflow
 
 on: [push, pull_request]
 
@@ -84,23 +83,53 @@ jobs:
             fi
             rm -rf ~/.sandbox/IslandOfMisfitToys && echo "Deleted sandbox successfully"
             exit $exit_code
-          #   echo "Generating badge"
-          #   if [[ "$PYTEST_RESULTS" == "NO_SUMMARY_FOUND" ]]; then
-          #     echo "Generating NO SUMMARY badge"
-          #     badge_url="https://img.shields.io/badge/pytest-NO_SUMMARY-lightgrey"
-          #   else
-          #     passed=$(echo $PYTEST_RESULTS | grep -oP '\d+(?= passed)' || echo "0")
-          #     deselected=$(echo $PYTEST_RESULTS | grep -oP '\d+(?= deselected)' || echo "0")
-          #     errors=$(echo $PYTEST_RESULTS | grep -oP '\d+(?= error)' || echo "0")
-          #     failed=$(echo $PYTEST_RESULTS | grep -oP '\d+(?= failed)' || echo "0")
-          #     total_tests=$((passed + deselected + errors + failed))
-          #     pass_rate=$(echo "scale=2; $passed / $total_tests * 100" | bc)
 
-          #     badge_url="https://img.shields.io/badge/"
-          #     badge_url+="passed-${passed}-brightgreen."
-          #     badge_url+="deselected-${deselected}-yellow."
-          #     badge_url+="errors_${errors}_failed_${failed}-red."
-          #     badge_url+="pass_rate-${pass_rate}%25-green"
-          #   fi
+  build_docs:
+    runs-on: ubuntu-latest
+    needs: run_pytest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-          # echo "![Test Results]($badge_url)" > ~/.sandbox/test_results_badge.md
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install documentation dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r docs_requirements.txt
+
+      - name: Build documentation
+        run: |
+          source venv/bin/activate
+          cd docs
+          make html
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs
+          path: docs/build/html
+
+  deploy_docs:
+    runs-on: ubuntu-latest
+    needs: build_docs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download documentation artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: docs
+          path: docs/build/html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          publish_branch: gh-pages
