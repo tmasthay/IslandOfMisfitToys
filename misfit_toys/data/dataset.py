@@ -716,10 +716,11 @@ class DataFactory(ABC):
         base_items = {k: v for k, v in meta.items() if type(v) != dict}
         derived = meta["derived"]
         common = {**base_items, **derived.get("common", {})}
-        if "common" in derived:
+        if "common" in derived.keys():
             del derived["common"]
         for k, v in derived.items():
-            derived[k] = {**common, **v}
+            v = v if v != {Ellipsis} else {}
+            derived[k] = DotDict({**common, **v})
         return derived
 
     @staticmethod
@@ -768,7 +769,7 @@ class DataFactory(ABC):
             )
 
             if os.system(cmd):
-                input(cmd)
+                # input(cmd)
                 iraise(RuntimeError, f"{cmd} failed")
                 sys.exit(-1)
 

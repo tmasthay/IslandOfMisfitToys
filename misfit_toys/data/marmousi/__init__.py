@@ -1,8 +1,3 @@
-__all__ = [
-    "metadata",
-    "factory",
-    "deepwave_example"
-]
-from .metadata import *
-from .factory import *
-from .deepwave_example import *
+from . import factory, metadata
+
+__all__ = ['metadata', 'factory']

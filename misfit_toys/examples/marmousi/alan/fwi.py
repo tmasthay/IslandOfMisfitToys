@@ -90,7 +90,7 @@ def main():
         .to(device)
     )
 
-    ## First attempt: simple inversion
+    # First attempt: simple inversion
 
     # Setup optimiser to perform inversion
     optimiser = torch.optim.SGD([v], lr=1e9, momentum=0.9)
@@ -136,7 +136,7 @@ def main():
     plt.tight_layout()
     savefig('example_simple_fwi.jpg')
 
-    ## Second attempt: constrained velocity and frequency filtering
+    # Second attempt: constrained velocity and frequency filtering
 
     # Define a function to taper the ends of traces
     def taper(x):

@@ -1,0 +1,32 @@
+root_pkg: misfit_toys.examples.hydra
+sub_pkg: cfg.case.train.loss.w1
+func_name: riel
+
+runtime_mods:
+  w1: ^^null|misfit_toys.examples.hydra.cfg.case.train.loss.w1|null
+rtm: self.train.loss.runtime_mods
+
+runtime_func: ${.rtm}.w1.var_tik_frac
+kw:
+  obs_data: self.runtime.data.obs_data
+  model_params: self.runtime.prop.module.vp
+  t: self.runtime.t
+  renorm_scale: 1.0
+  eps:
+    runtime_func: ${...rtm}.w1.constant
+    kw:
+      value: 1.0e-03
+  alpha:
+    runtime_func: ${...rtm}.w1.punctuated_decrease
+    kw:
+      _min: 0.0
+      _max: 1.0
+      period: 10
+      max_iters: ${.....max_iters}
+  weights:
+    runtime_func: ${...rtm}.w1.punctuated_decrease_array
+    kw:
+      _min: [0.5, 0.0]
+      _max: [1.0, 0.5]
+      period: 5
+      max_iters: ${.....max_iters}

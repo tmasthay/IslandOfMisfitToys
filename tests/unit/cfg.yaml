@@ -1,0 +1,4 @@
+defaults:
+  - _self_
+  - beta: cfg_test
+  - fwi: cfg

@@ -2,7 +2,7 @@ defaults:
   - _self_
   - globals
   - data: data
-  - data/preprocess: constrained_vel
+  - data/preprocess: w2
   - plt: plt
   - train: train
   - train/loss: softplus

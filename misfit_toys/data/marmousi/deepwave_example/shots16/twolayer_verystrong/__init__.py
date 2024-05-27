@@ -1,4 +1,3 @@
-__all__ = [
-    "factory"
-]
-from .factory import *
+from . import factory
+
+__all__ = ['factory']

@@ -674,6 +674,7 @@ def bool_slice(
     strides=None,
     start=None,
     cut=None,
+    verbose=False,
 ):
     permute = list(permute or range(len(args)))
     permute.reverse()
@@ -710,8 +711,10 @@ def bool_slice(
         ctrl = ctrl_default
 
     for combo in range(total_combinations):
-        print(f'combo={combo}')
-        yield tuple([tuple(idx)]) + (ctrl(idx, args),)
+        res = tuple([tuple(idx)]) + (ctrl(idx, args),)
+        if verbose:
+            print(f'bool_slice: {combo} -> {res}')
+        yield res
 
         # Update indices
         for i in permute:
@@ -936,29 +939,40 @@ def apply_builder(lcl, gbl):
 
 
 def apply(lcl, relax=True):
-    if 'runtime_func' not in lcl.keys() and relax:
-        return lcl
-    elif 'runtime_func' not in lcl.keys() and not relax:
-        raise ValueError(
-            f"To apply lcl, we need runtime_func to be a key "
-            f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
+    try:
+        if 'runtime_func' not in lcl.keys() and relax:
+            return lcl
+        elif 'runtime_func' not in lcl.keys() and not relax:
+            raise ValueError(
+                "To apply lcl, we need runtime_func to be a key "
+                f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
+            )
+        args = lcl.get('args', [])
+        kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
+        for i, e in enumerate(args):
+            if isinstance(e, DotDict) or isinstance(e, dict):
+                args[i] = apply(e, relax=True)
+
+        for k, v in kwargs.items():
+            if isinstance(v, DotDict) or isinstance(v, dict):
+                kwargs[k] = apply(v, relax=True)
+
+        keys = set(kwargs.keys())
+        is_reducible = keys.issubset(
+            set(['args', 'kwargs', 'kw', 'runtime_func'])
         )
-    args = lcl.get('args', [])
-    kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
-    for i, e in enumerate(args):
-        if isinstance(e, DotDict) or isinstance(e, dict):
-            args[i] = apply(e, relax=True)
-
-    for k, v in kwargs.items():
-        if isinstance(v, DotDict) or isinstance(v, dict):
-            kwargs[k] = apply(v, relax=True)
-
-    keys = set(kwargs.keys())
-    is_reducible = keys.issubset(set(['args', 'kwargs', 'kw', 'runtime_func']))
-    if is_reducible:
-        kwargs = apply(kwargs, relax=True)
-    lcl = lcl.runtime_func(*args, **kwargs)
-    return lcl
+        if is_reducible:
+            kwargs = apply(kwargs, relax=True)
+        lcl = lcl.runtime_func(*args, **kwargs)
+        return lcl
+    except Exception as e:
+        v = RuntimeError(
+            f'Error in apply\n{args=}\n{kwargs=}\n{lcl=}\nPrevious error "{e}"'
+            ' full was the cause of this exception.\nScroll up past "The above'
+            ' exception was the direct cause of the following exception" to'
+            ' see the full error in the stack trace.'
+        )
+        raise v from e
 
 
 def apply_all(lcl, relax=True, exc=None):
@@ -972,11 +986,6 @@ def apply_all(lcl, relax=True, exc=None):
             else:
                 lcl[k] = apply_all(v, relax=relax, exc=exc)
     return lcl
-
-
-# Syntactic sugar for converting from device to cpu
-def d2cpu(x):
-    return x.detach().cpu()
 
 
 def resolve(c: DotDict, relax) -> DotDict:
@@ -999,3 +1008,13 @@ def git_dump_info(exc=None):
     s += 80 * '*' + '\n'
 
     return s
+
+
+def all_detached_cpu(d: DotDict):
+    for k, v in d.items():
+        if isinstance(v, DotDict):
+            all_detached_cpu(v)
+        elif isinstance(v, torch.Tensor):
+            d[k] = v.detach().cpu()
+
+    return d

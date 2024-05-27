@@ -1,5 +1,6 @@
-from misfit_toys.fwi.loss import W2Loss
 import torch
+
+from misfit_toys.fwi.loss import W2Loss
 
 
 def w2_generator(*, t, p, renorm):

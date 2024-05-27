@@ -7,6 +7,7 @@ from mh.core_legacy import subdict
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from misfit_toys.data.download_data import download_data
 from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
@@ -79,6 +80,13 @@ def run_rank(rank, world_size):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 
+    data_path = os.path.join(
+        os.environ['CONDA_PREFIX'], 'data/marmousi/deepwave_example/shots16'
+    )
+    if not os.path.exists(data_path):
+        print("Downloading data...")
+        download_data(storage="conda/data", inclusions={"marmousi"})
+        print("Data downloaded.")
     # Build data for marmousi model
     data = path_builder(
         "conda/data/marmousi/deepwave_example/shots16",

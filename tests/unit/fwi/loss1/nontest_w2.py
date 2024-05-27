@@ -11,11 +11,7 @@ from plot_w2 import plot_eval
 from scipy.interpolate import splev, splrep
 from scipy.ndimage import median_filter, uniform_filter
 
-from misfit_toys.fwi.loss.w2 import (
-    spline_func,
-    true_quantile,
-    wass2,
-)
+from misfit_toys.fwi.loss.w2 import spline_func, true_quantile, wass2
 from misfit_toys.utils import bool_slice
 from misfit_toys.utils import mean_filter_1d as mf
 from misfit_toys.utils import tensor_summary
@@ -96,9 +92,6 @@ def ref():
 
     c.ref_left_idx = int(c.ref_idx[0] * c.shift.shape[0])
     c.ref_scale_idx = int(c.ref_idx[1] * c.scale.shape[0])
-    # assert c.ref_left_idx == 1000
-    # assert c.ref_scale_idx == 1000
-    # assert c.shift == 100
     c.ref_left = c.shift[c.ref_left_idx].item()
     c.ref_scale = c.scale[c.ref_scale_idx].item()
 
@@ -113,9 +106,6 @@ def ref():
         uniform_pdfs, dx=c.t[1] - c.t[0], dim=-1
     ).unsqueeze(-1)
     uniform_pdfs = uniform_pdfs.permute(1, 0, 2)
-    # raise ValueError(u.shape)
-    # uniform_pdfs = mask.float() / c.scale[:, None, None]
-    # uniform_pdfs = uniform_pdfs.permute(1, 0, 2)
     ref_pdf = uniform_pdfs[c.ref_left_idx, c.ref_scale_idx, :]
     uniform_pdfs /= torch.trapezoid(
         uniform_pdfs, dx=c.t[1] - c.t[0], dim=-1
@@ -162,18 +152,6 @@ def ref():
         splines_deriv[idx] = torch.from_numpy(w)
     q = spline_func(c.p, splines.unsqueeze(-1))
     qd = spline_func(c.p, splines_deriv.unsqueeze(-1))
-
-    # q, qd = quantile_deriv(
-    #     uniform_pdfs,
-    #     c.t,
-    #     c.p,
-    #     deriv_filter_func=deriv_filter_func,
-    #     filter_func=filter_func,
-    #     ltol=c.ltol,
-    #     rtol=c.rtol,
-    #     atol=c.atol,
-    #     err_top=c.err_top,
-    # )
     f = wass2(q, qd)
     return f, q, qd, uniform_pdfs, ref_pdf
 
@@ -214,16 +192,10 @@ def test_eval(evaluation):
     bshifts = c.shift[:, None, None]
     bscales = c.scale[None, :, None]
     bt = c.t[None, None, :]
-    # raise ValueError(shifts)
     assert abs(c.ref_left) < c.tol
-    # assert abs(c.ref_scale - 1.0) < c.tol
     ds = bscales - c.ref_scale
     ref_shift = c.shift[len(c.shift) // 2]
     dshift = bshifts - ref_shift
-    # alpha = ds / c.ref_scale
-    # rerr({**locals(), **globals()}.keys())
-    # beta = bshifts / c.ref_scale
-    # gamma = ds + beta
     exp_output = bshifts**2 + bshifts * ds + ds**2 / 3.0
     exp_output = exp_output[..., 0]
     # exp_output = (ds + shifts) ** 2 * 10.0

@@ -22,7 +22,7 @@ def out_plotter(*, data, idx, fig, axes, cfg):
 
 @hydra.main(config_path="conf", config_name="config", version_base=None)
 def main(cfg):
-    cfg = convert_config_simplest(cfg)
+    # cfg = convert_config_simplest(cfg)
 
     vp = torch.load(cfg.path)[: cfg.nx, : cfg.ny].to(cfg.device)
     src_loc = towed_src(**cfg.src).to(cfg.device)

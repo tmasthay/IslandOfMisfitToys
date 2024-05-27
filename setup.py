@@ -1,13 +1,19 @@
 import os
+from subprocess import check_output as co
 
 from setuptools import find_packages, setup
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
+    requirements = [e for e in requirements if not e.strip().startswith("#")]
+
+os.system(
+    "pip install git+https://github.com/patrick-kidger/torchcubicspline.git"
+)
 
 setup(
     name="IslandOfMisfitToys",
-    version="0.4.0",
+    version="0.5.0",
     description="A suite of misfit functions to test FWI",  # Provide a short description here
     author="Tyler Masthay and Yiran Shen",
     author_email="tyler@ices.utexas.edu",
@@ -28,3 +34,10 @@ setup(
     zip_safe=False,
     options={"bdist_wheel": {"universal": True}},
 )
+
+pip_path = str(co(["which", "pip"]), "utf-8").strip()
+os.system(
+    f'{pip_path} install'
+    ' git+https://github.com/patrick-kidger/torchcubicspline.git'
+)
+os.system(f'{pip_path} install git+https://github.com/tmasthay/rich_tools.git')
