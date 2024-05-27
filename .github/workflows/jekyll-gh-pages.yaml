@@ -30,11 +30,13 @@ jobs:
         run: |
           pip install -r docs_requirements.txt
           pip install -r requirements.txt
+          pip install -e .
 
       - name: Build documentation
         run: |
           cd docs
           make html
+          du -h build/html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
