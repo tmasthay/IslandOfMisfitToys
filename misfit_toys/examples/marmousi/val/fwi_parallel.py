@@ -7,7 +7,7 @@ from mh.core_legacy import subdict
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from misfit_toys.data import download_data
+from misfit_toys.data.download_data import download_data
 from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
