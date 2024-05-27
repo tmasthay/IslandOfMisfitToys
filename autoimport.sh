@@ -9,14 +9,25 @@ no_python_files=()
 no_version_control_python_files=()
 some_version_control_python_files=()
 
+# Function to check if a file is under version control
+is_under_version_control() {
+    git ls-files --error-unmatch "$1" &> /dev/null
+}
+
+rel_path() {
+    realpath --relative-to="$ROOT_PATH" "$1"
+}
+
 generate_import_statements() {
     local path=${1:-.}
     local modules=()
 
     # Find .py files and filter out those containing '__'
     while IFS= read -r file; do
-        module_name=$(basename "$file" .py)
-        modules+=("$module_name")
+        if is_under_version_control "$file"; then
+            module_name=$(basename "$file" .py)
+            modules+=("$module_name")
+        fi
     done < <(find $path -maxdepth 1 -name "*.py" | grep -v "__")
 
     # Generate import statements
@@ -38,14 +49,6 @@ generate_import_statements() {
     echo "]"
 }
 
-# Function to check if a file is under version control
-is_under_version_control() {
-    git ls-files --error-unmatch "$1" &> /dev/null
-}
-
-rel_path() {
-    realpath --relative-to="$ROOT_PATH" "$1"
-}
 
 # Function to process a directory
 process_directory() {
