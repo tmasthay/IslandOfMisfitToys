@@ -20,9 +20,6 @@ setup(
     url="https://github.com/tmasthay/IslandOfMisfitToys",
     packages=find_packages(),
     install_requires=requirements,
-    dependency_links=[
-        "git+https://github.com/patrick-kidger/torchcubicspline.git"
-    ],
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     classifiers=[
