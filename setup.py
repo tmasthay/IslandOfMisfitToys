@@ -5,6 +5,11 @@ from setuptools import find_packages, setup
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
+    requirements = [e for e in requirements if not e.strip().startswith("#")]
+
+os.system(
+    "pip install git+https://github.com/patrick-kidger/torchcubicspline.git"
+)
 
 setup(
     name="IslandOfMisfitToys",
@@ -15,6 +20,9 @@ setup(
     url="https://github.com/tmasthay/IslandOfMisfitToys",
     packages=find_packages(),
     install_requires=requirements,
+    dependency_links=[
+        "git+https://github.com/patrick-kidger/torchcubicspline.git"
+    ],
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     classifiers=[
