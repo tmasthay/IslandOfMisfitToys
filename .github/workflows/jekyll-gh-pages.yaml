@@ -28,9 +28,9 @@ jobs:
 
       - name: Install documentation dependencies
         run: |
-          pip install -r docs_requirements.txt
-          pip install -r requirements.txt
           pip install -e .
+          cd docs
+          pip install -r docs_requirements.txt
 
       - name: Build documentation
         run: |
