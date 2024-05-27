@@ -29,7 +29,6 @@ jobs:
       - name: Install documentation dependencies
         run: |
           pip install -e .
-          cd docs
           pip install -r docs_requirements.txt
 
       - name: Build documentation
