@@ -3,7 +3,6 @@
 ROOT_PATH=$(realpath "misfit_toys")
 EXCLUDE_REGEX=("__" "outputs" "multirun" "cfg")
 
-
 # Arrays to store directory information
 no_python_files=()
 no_version_control_python_files=()
@@ -49,8 +48,6 @@ generate_import_statements() {
     echo "]"
 }
 
-
-# Function to process a directory
 process_directory() {
     local dir="$1"
     local python_files=()
@@ -72,18 +69,44 @@ process_directory() {
         no_python_files+=("$dir")
     elif [ ${#version_controlled_files[@]} -eq 0 ]; then
         no_version_control_python_files+=("$dir")
-        # echo "Directory $dir has no Python files under version control."
-        # echo "Python files found: ${python_files[*]}"
     elif [ ${#version_controlled_files[@]} -lt ${#python_files[@]} ]; then
         some_version_control_python_files+=("$dir")
-        # Generate the __init__.py file using imports.sh
-        generate_import_statements "$dir" > "$dir/__init__.py"
+        update_init_py "$dir"
         echo "    PARTIAL: $(rel_path $dir)"
     else
-        # All Python files are under version control
-        generate_import_statements "$dir" > "$dir/__init__.py"
+        update_init_py "$dir"
         echo "    $(rel_path $dir)"
     fi
+}
+
+update_init_py() {
+    local dir="$1"
+    local init_file="$dir/__init__.py"
+    local temp_file=$(mktemp)
+
+    # Check if __init__.py exists and has a complete docstring
+    if [[ -f "$init_file" ]] && grep -q '^"""' "$init_file"; then
+        # Extract the existing docstring
+        awk '
+        BEGIN { found = 0 }
+        /^"""/ {
+            if (found == 1) { print; exit }
+            found++
+        }
+        { if (found > 0) print }
+        ' "$init_file" > "$temp_file"
+    else
+        # Create a default docstring
+        echo '"""' > "$temp_file"
+        echo 'TODO: make package-level docstring' >> "$temp_file"
+        echo '"""' >> "$temp_file"
+    fi
+
+    # Append the generated import statements to the temporary file
+    generate_import_statements "$dir" >> "$temp_file"
+
+    # Move the temporary file to the __init__.py
+    mv "$temp_file" "$init_file"
 }
 
 # Main script
