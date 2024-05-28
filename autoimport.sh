@@ -17,9 +17,42 @@ rel_path() {
     realpath --relative-to="$ROOT_PATH" "$1"
 }
 
+valid_subpackage(){
+    local dir="$1"
+
+    # Check if there are any *tracked* .py files in the directory
+    #     that match the regex pattern needed
+    while IFS= read -r file; do
+        if is_under_version_control "$file"; then
+            return 0
+        fi
+    done < <(find "$dir" -maxdepth 1 -name "*.py" | grep -v "__")
+
+    # If we haven't returned yet, check for any directories that
+    #     are subpackages
+    # Regex is global EXCLUDE_REGEX
+    while IFS= read -r subdir; do
+        # recurse to check if it is a valid subpackage
+        if valid_subpackage "$subdir"; then
+            return 0
+        fi
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d | grep -vE "$(IFS=\|; echo "${EXCLUDE_REGEX[*]}")")
+
+    return 1
+}
+
 generate_import_statements() {
     local path=${1:-.}
     local modules=()
+
+    # Find subpackages and generate import statements for them
+    while IFS= read -r dir; do
+        if valid_subpackage "$dir"; then
+            subpackage_name=$(basename "$dir")
+            # echo "from . import $subpackage_name"
+            modules+=("$subpackage_name")
+        fi
+    done < <(find $path -mindepth 1 -maxdepth 1 -type d)
 
     # Find .py files and filter out those containing '__'
     while IFS= read -r file; do

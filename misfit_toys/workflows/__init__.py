@@ -1,6 +1,6 @@
 """
 TODO: make package-level docstring
 """
-from . import stages
+from . import stages, tik
 
-__all__ = ['stages']
+__all__ = ['tik', 'stages']

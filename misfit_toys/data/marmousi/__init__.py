@@ -1,6 +1,6 @@
 """
 TODO: make package-level docstring
 """
-from . import factory, metadata
+from . import deepwave_example, factory, metadata
 
-__all__ = ['metadata', 'factory']
+__all__ = ['deepwave_example', 'metadata', 'factory']

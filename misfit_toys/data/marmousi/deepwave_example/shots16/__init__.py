@@ -1,6 +1,6 @@
 """
 TODO: make package-level docstring
 """
-from . import factory
+from . import factory, twolayer, twolayer_strong, twolayer_verystrong
 
-__all__ = ['factory']
+__all__ = ['twolayer_strong', 'twolayer', 'twolayer_verystrong', 'factory']

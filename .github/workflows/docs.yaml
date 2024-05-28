@@ -15,7 +15,7 @@ jobs:
         run: |
           pip install git+https://github.com/patrick-kidger/torchcubicspline.git
           pip install -e .
-          pip install sphinx furo
+          pip install sphinx furo sphinx-togglebutton
 
       - name: Sphinx build
         run: |
