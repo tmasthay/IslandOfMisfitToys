@@ -1,3 +1,8 @@
+"""
+This script is a re-creation of Alan's FWI parallel program using the IOMT framework.
+This is used as an end-to-end test to make sure that the Training, SeismicData, Param+ParamConstrained classes are working correctly.
+"""
+
 import argparse
 import os
 import sys
