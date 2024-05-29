@@ -1,7 +1,24 @@
+"""
+This module is meant to provide a reference point for plotting functions to make configurable dynamic imports into misfit_toys.examples.hydra.main easier.
+"""
+
 import matplotlib.pyplot as plt
 
 
 def gauss_plotter(*, data, idx, fig, axes, shape):
+    """
+    Plots the computed and analytic PDF, CDF, and quantile for a Gaussian distribution.
+
+    Args:
+        data (object): The data object containing the Gaussian distribution information.
+        idx (tuple): The indices of the data to plot.
+        fig (object): The figure object to plot on.
+        axes (object): The axes object to plot on.
+        shape (tuple): The shape of the subplot grid.
+
+    Returns:
+        None
+    """
     plt.clf()
     plt.suptitle(
         r'$\mu={:.2f}, \sigma={:.2f}$'.format(data.mu[idx[0]], data.sig[idx[1]])
@@ -31,6 +48,20 @@ def gauss_plotter(*, data, idx, fig, axes, shape):
 
 
 def w2_plotter(*, data, idx, fig, axes, shape):
+    """
+    Plots various graphs related to probability density functions (PDFs), cumulative distribution functions (CDFs),
+    quantiles, and distances.
+
+    Args:
+        data (object): The data object containing the necessary data for plotting.
+        idx (tuple): The indices to select specific data from the data object.
+        fig (object): The figure object to plot the graphs on.
+        axes (object): The axes object to plot the graphs on.
+        shape (tuple): The shape of the subplot grid.
+
+    Returns:
+        None
+    """
     plt.clf()
     plt.suptitle(
         r'$\mu={:.2f}, \sigma={:.2f}$'.format(data.mu[idx[0]], data.sig[idx[1]])
@@ -76,6 +107,19 @@ def w2_plotter(*, data, idx, fig, axes, shape):
 
 
 def trace_plotter(*, data, idx, fig, axes, **kw):
+    """
+    Plots the trace data for a given index.
+
+    Args:
+        data (object): The data object containing the trace data.
+        idx (tuple): The index of the trace data to plot.
+        fig (object): The figure object to plot on.
+        axes (object): The axes object to plot on.
+        **kw: Additional keyword arguments.
+
+    Returns:
+        None
+    """
     int_history = data.int_history[idx[0]]
     meta = int_history.meta
     d = int_history.data
@@ -88,6 +132,19 @@ def trace_plotter(*, data, idx, fig, axes, **kw):
 
 
 def trace_stack_plotter(*, data, idx, fig, axes, **kw):
+    """
+    Plots stacked intermediate data.
+
+    Args:
+        data (object): The data object containing intermediate data.
+        idx (tuple): The index of the intermediate data to plot.
+        fig (object): The figure object to plot on.
+        axes (object): The axes object to plot on.
+        **kw: Additional keyword arguments.
+
+    Returns:
+        None
+    """
     int_history = data.int_history[idx[0]]
     meta = int_history.meta
     d = int_history.data
@@ -112,6 +169,19 @@ def trace_stack_plotter(*, data, idx, fig, axes, **kw):
 
 
 def trace_group_stack_plotter(*, data, idx, fig, axes, **kw):
+    """
+    Plots a stack of line plots for a group of traces.
+
+    Args:
+        data (object): The data object containing the trace history.
+        idx (tuple): The index of the trace group to plot.
+        fig (object): The figure object to plot on.
+        axes (object): The axes object to plot on.
+        **kw: Additional keyword arguments.
+
+    Returns:
+        None
+    """
     d = data.int_history[idx[0]]
     subplot_no = 5
     style_seq = ['-', '--', '-.', ':']

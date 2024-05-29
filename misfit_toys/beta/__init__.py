@@ -1,5 +1,5 @@
 """
-TODO: make package-level docstring
+This package is here beta-testing features. It is not intended for production use.
 """
 
 from . import (

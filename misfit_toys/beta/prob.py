@@ -1,4 +1,9 @@
+"""
+TODO: Deprecate this after verifying that it is not used.
+"""
+
 import os
+import pickle
 import sys
 from dataclasses import dataclass
 from itertools import product
@@ -15,7 +20,6 @@ from scipy.stats import norm
 from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice
-import pickle
 
 
 @dataclass
