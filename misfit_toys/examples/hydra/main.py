@@ -3,7 +3,83 @@ This script is the main workhorse of the Island of Misfit Toys.
 It performs a complete full-waveform inversion workflow on any given dataset.
 Arbitrary functions and keyword arguments can be passed into this script through Hydra's configuration hierarchy and command-line arguments.
 
-Note:
+.. important::
+
+    ``misfit_toys.examples.hydra.main`` is driven through `Hydra's configuration system <https://hydra.cc/docs/intro/>`_.
+    However, we have built a light metaprogramming layer for dynamic imports and keyword argument passing through the config files.
+    This is driven through the keys ``runtime_func`` and ``kw`` in the configuration files with an example below.
+
+    Let's say that you have a loss function ``least_squares`` defined in ``misfit_toys.fwi.loss``.
+
+    .. code-block:: python
+
+        import torch
+
+        def least_squares(scale=1.0):
+            def helper(pred, true):
+                return scale * torch.sum((pred - true) ** 2)
+            return helper
+
+    In ``misfit_toys.examples.hydra.main``, we have code that essentially does the following:
+
+    .. code-block:: python
+
+        config_dictionary = evaluate_runtime_imports_and_functions(config_dictionary)
+        curr_loss = config_dictionary['loss_fn'](obs_data, pred_data)
+
+    so that arbitrary loss functions (and other parts of FWI data processing) can be easily plugged into the workflow.
+    In order for that to execute properly, the definition of the configuration file needs the following structure:
+
+    .. code-block:: yaml
+
+        # rest of config file
+        loss:
+            runtime_func: ^^null|misfit_toys.fwi.loss|least_squares
+            kw:
+                scale: 1.0e+06
+        # rest of config file
+
+    The structure above has only raw strings at the entry of the program, but ``evaluate_runtime_imports_and_functions``
+    essentially makes that string transform into:
+
+    .. code-block:: python
+
+        from misfit_toys.fwi.loss import least_squares
+        config_dictionary['loss_fn'] = least_squares(scale=1.0e+06)
+        curr_loss = config_dictionary['loss_fn'](obs_data, pred_data)
+
+
+    This, therefore, allows you to perform *arbitrary code execution* through the configuration files.
+    Of course, with great power comes great responsibility.
+    Be careful with this feature, especially when sharing configuration files with others.
+    **Review their code before running it.**
+    The great thing about this, however, is that reproducibility can be maintained *purely* through the configuration files and any code you wish to tack on to the workflow can be done so without modifying the main script.
+
+    .. note::
+
+            The syntax ``^^X|Y|Z`` is the special syntax that allows for dynamic imports. The table below explains the syntax components:
+
+            The syntax ``^^X|Y|Z`` is the special syntax that allows for dynamic imports. The components are explained below:
+
+            X
+            Path to import from:
+
+            - ``null``: Import from the current Python environment (any path in the Python path).
+            - ``cwd``: Import from the current working directory.
+            - Any other string: Path to import from.
+
+            Y
+            Module to import.
+
+            Z
+            Function to import:
+
+            - If ``Z`` is ``null``, the import is assumed to be a module import.
+            - Otherwise, it is a function import with the name specified by ``Z``.
+
+
+.. seealso::
+
     See `main_worker.py` for the main function that is called by this script.
     This dummy script is simply here to make autocompletion faster by bypassing import statements.
 
@@ -18,7 +94,7 @@ Usage:
 Examples:
     Example usage of the script::
 
-        python main.py case=frac case/data=full_marmousi case/train=max_iters=25
+        python main.py case=frac case/data=full_marmousi case.train.max_iters=25
 
     This will run the script with the specified configuration groups and parameters.
 
