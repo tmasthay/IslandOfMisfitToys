@@ -14,7 +14,12 @@ release = '0.1.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.napoleon', 'sphinx.ext.viewcode', 'autoapi.extension']
+extensions = [
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'autoapi.extension',
+    'sphinxcontrib.details.directive',
+]
 autoapi_dirs = ['../misfit_toys']
 autoapi_generate_api_docs = True
 autoapi_options = [
