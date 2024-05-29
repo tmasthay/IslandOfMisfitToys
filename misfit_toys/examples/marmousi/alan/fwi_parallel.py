@@ -1,3 +1,7 @@
+"""
+This module recreates the exact workflow of Alan's deepwave Marmousi benchmark example.
+This script is used as an end-to-end test to make sure that our package can reproduce the results of this benchmark example.
+"""
 import os
 import shutil
 

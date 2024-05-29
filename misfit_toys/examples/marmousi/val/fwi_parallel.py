@@ -19,7 +19,15 @@ from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
 
 
 def training_stages():
-    # define training stages for the training class
+    """
+    Define the training stages for the training class.
+
+    Returns:
+        OrderedDict: A dictionary containing the training stages.
+            Each stage is represented by a key-value pair, where the key is the stage name
+            and the value is a dictionary containing the stage data, preprocess function, and postprocess function.
+    """
+
     def freq_preprocess(training, freq):
         sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
         sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
@@ -63,6 +71,12 @@ def training_stages():
 
 # Define _step for the training class
 def _step(self):
+    """
+    Performs a single step of the forward-backward optimization process.
+
+    Returns:
+        torch.Tensor: The loss value after the backward pass.
+    """
     self.out = self.prop(None)
     self.out_filt = filt(taper(self.out[-1]), self.sos)
     self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
@@ -72,11 +86,31 @@ def _step(self):
 
 # Syntactic sugar for converting from device to cpu
 def d2cpu(x):
+    """
+    Moves a tensor `x` from GPU to CPU and detaches it from the computation graph.
+
+    Args:
+        x (torch.Tensor): The input tensor to be moved from GPU to CPU.
+
+    Returns:
+        torch.Tensor: The tensor `x` moved to CPU and detached from the computation graph.
+    """
     return x.detach().cpu()
 
 
 # Main function for training on each rank
 def run_rank(rank, world_size):
+    """
+    Runs the Distributed Data Parallel (DDP) training on a specific rank.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+
+    Returns:
+        None
+    """
+
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
 
@@ -159,11 +193,29 @@ def run_rank(rank, world_size):
 
 # Main function for spawning ranks
 def run(world_size):
+    """
+    Runs the FWI parallel process.
+
+    Args:
+        world_size (int): The number of processes to spawn.
+
+    Returns:
+        None
+    """
     mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
 # Main function for running the script
 def main():
+    """
+    Main function to run the FWI parallel program.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
     n_gpus = torch.cuda.device_count()
     run(n_gpus)
 

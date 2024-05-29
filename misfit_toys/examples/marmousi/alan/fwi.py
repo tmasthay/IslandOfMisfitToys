@@ -10,6 +10,10 @@ from torchaudio.functional import biquad
 
 
 def main():
+    """
+    TODO: Add docstring.
+    """
+
     def get_file(name, path='out/serial'):
         return os.path.join(os.path.dirname(__file__), path, name)
 

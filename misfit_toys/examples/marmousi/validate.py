@@ -17,6 +17,17 @@ from misfit_toys.examples.marmousi.val.fwi_parallel import main as iomt
 
 
 def extend_files(path, filenames):
+    """
+    Extends the filenames by appending '_record.pt' and returns a dictionary
+    mapping the original filenames to the extended filenames.
+
+    Args:
+        path (str): The path to the directory containing the files.
+        filenames (list): A list of filenames to extend.
+
+    Returns:
+        dict: A dictionary mapping the original filenames to the extended filenames.
+    """
     return {
         filename: os.path.join(path, f'{filename}_record.pt')
         for filename in filenames
@@ -24,10 +35,30 @@ def extend_files(path, filenames):
 
 
 def all_exist(filenames):
+    """
+    Check if all the given filenames exist.
+
+    Args:
+        filenames (list): A list of filenames to check.
+
+    Returns:
+        bool: True if all the filenames exist, False otherwise.
+    """
     return all([os.path.exists(filename) for filename in filenames])
 
 
 def transpose(f):
+    """
+    Decorator function that transposes the result of the decorated function.
+
+    Args:
+        f (function): The function to be decorated.
+
+    Returns:
+        function: The decorated function.
+
+    """
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         result = f(*args, **kwargs)
@@ -37,6 +68,14 @@ def transpose(f):
 
 
 def get_files():
+    """
+    Retrieves the file paths for Alan's and IOMT's output files and checks if they exist.
+
+    Returns:
+        A tuple containing the file paths for Alan's output files, IOMT's output files,
+        a boolean indicating whether Alan's version was executed, and a boolean indicating
+        whether IOMT's version was executed.
+    """
     ran_alan = False
     ran_iomt = False
     curr_dir = os.path.dirname(__file__)
@@ -74,10 +113,25 @@ def get_files():
 
 
 def get_tensors(filenames):
+    """
+    Loads tensors from the given filenames.
+
+    Args:
+        filenames (dict): A dictionary mapping keys to file paths.
+
+    Returns:
+        dict: A dictionary mapping keys to loaded tensors.
+    """
     return {k: torch.load(v) for k, v in filenames.items()}
 
 
 def get_output():
+    """
+    Retrieves the output tensors from the given files.
+
+    Returns:
+        A tuple containing the output tensors from Alan files and IOMT files.
+    """
     alan_files, iomt_files, _, _ = get_files()
     return get_tensors(alan_files), get_tensors(iomt_files)
 
@@ -85,6 +139,19 @@ def get_output():
 def compare_output(
     *, row_gen, row_gen_label, output_filename='validate.txt', justify='right'
 ):
+    """
+    Compare the output of the `row_gen` function with the expected output.
+
+    Args:
+        row_gen (function): A function that generates rows of data based on the `alan_tensors` and `iomt_tensors`.
+        row_gen_label (str): The label for the table.
+        output_filename (str, optional): The name of the output file. Defaults to 'validate.txt'.
+        justify (str, optional): The justification for the columns in the table. Defaults to 'right'.
+
+    Returns:
+        dict: A dictionary containing the compared output values.
+
+    """
     alan_tensors, iomt_tensors = get_output()
     table = Table(title=row_gen_label)
     for k in alan_tensors.keys():
@@ -106,6 +173,15 @@ def compare_output(
 
 
 def make_gifs(out_dir):
+    """
+    Generate GIFs and save them in the specified output directory.
+
+    Args:
+        out_dir (str): The path to the output directory.
+
+    Returns:
+        None
+    """
     alan_tensors, iomt_tensors = get_output()
 
     diff_tensors = {
@@ -194,6 +270,15 @@ def get_args():
 
 
 def main(args):
+    """
+    Main function for validating the output.
+
+    Args:
+        args (Namespace): Command-line arguments.
+
+    Returns:
+        list: List of results.
+    """
     clean_output(clean=args.clean, out_file_name=args.output)
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
 

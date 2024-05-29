@@ -42,6 +42,17 @@ set_print_options(
 
 
 def check_keys(c, data):
+    """
+    Check if all the required fields are present in the data dictionary.
+
+    Args:
+        c (object): The configuration object.
+        data (dict): The data dictionary to be checked.
+
+    Raises:
+        ValueError: If any of the required fields are missing in the data dictionary.
+
+    """
     pre = c.data.preprocess
     required = pre.required_fields
     if 'remap' in pre.path_builder_kw.keys():
@@ -57,8 +68,18 @@ def check_keys(c, data):
         )
 
 
-# Main function for training on each rank
 def run_rank(rank: int, world_size: int, c: DotDict) -> None:
+    """
+    Runs the DDP (Distributed Data Parallel) training on a specific rank.
+
+    Args:
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        c (DotDict): The configuration dictionary.
+
+    Returns:
+        None
+    """
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size, port=c.port)
 
@@ -160,10 +181,33 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
 # Main function for spawning ranks
 def run(world_size: int, c: DotDict) -> None:
+    """
+    Runs the main worker process.
+
+    Args:
+        world_size (int): The number of processes to spawn.
+        c (DotDict): The configuration for the worker process.
+
+    Returns:
+        None
+    """
     mp.spawn(run_rank, args=(world_size, c), nprocs=world_size, join=True)
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:
+    """
+    Preprocesses the configuration dictionary.
+
+    Args:
+        cfg (DictConfig): The input configuration dictionary.
+
+    Returns:
+        DotDict: The preprocessed configuration dictionary.
+
+    Raises:
+        ValueError: If 'name' is not provided in the configuration dictionary.
+
+    """
     if 'name' not in cfg.keys():
         raise ValueError(
             "Name must be provided at command line with +name=NAME.\n"
@@ -187,6 +231,20 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
 
 
 def plotter(*, data, idx, fig, axes, c):
+    """
+    Plots the data and returns a dictionary containing the input parameters.
+
+    Args:
+        data (numpy.ndarray): The input data.
+        idx (numpy.ndarray): The index of the data to plot.
+        fig (matplotlib.figure.Figure): The figure object to plot on.
+        axes (matplotlib.axes.Axes): The axes object to plot on.
+        c (dict): A dictionary containing configuration parameters.
+
+    Returns:
+        dict: A dictionary containing the input parameters.
+
+    """
     # plt.imshow(data[idx], **c.plt.vp)
     plt.clf()
     vp_true = c.vp_true.squeeze()
@@ -227,6 +285,20 @@ def plotter(*, data, idx, fig, axes, c):
 
 
 def trace_plotter(*, data, idx, fig, axes, c):
+    """
+    Plots the observed and predicted data for each sample in a trace plot.
+
+    Args:
+        data (numpy.ndarray): The input data.
+        idx (tuple): The index of the iteration.
+        fig (matplotlib.figure.Figure): The figure object to plot on.
+        axes (matplotlib.axes.Axes): The axes object to plot on.
+        c (dict): The configuration parameters for the plot.
+
+    Returns:
+        dict: A dictionary containing the configuration parameters.
+
+    """
     plt.clf()
     num_samples = data.out.shape[0]
     for i in range(num_samples):
@@ -259,6 +331,15 @@ def trace_plotter(*, data, idx, fig, axes, c):
 
 
 def main(cfg: DictConfig) -> None:
+    """
+    Main function for processing data and generating plots.
+
+    Args:
+        cfg (DictConfig): Configuration object containing the settings.
+
+    Returns:
+        None
+    """
     with open(hydra_out('git_info.txt'), 'w') as f:
         f.write(git_dump_info())
 

@@ -1,3 +1,7 @@
+"""
+This script is used to generate a synthetic forward wavefield to verify that the forward solver works in the eyeball norm.
+"""
+
 import deepwave as dw
 import hydra
 import matplotlib.pyplot as plt
