@@ -296,6 +296,11 @@ from omegaconf import DictConfig
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main_dummy(cfg: DictConfig) -> None:
+    if __name__ != "__main__":
+        raise RuntimeError(
+            "This function should as a main program from the command line."
+        )
+
     from main_worker import main
 
     main(cfg)
