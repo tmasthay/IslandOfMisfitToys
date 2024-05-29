@@ -1,23 +1,5 @@
 """
-Utility functions for the Island of Misfit Toys project.
-
-Functions:
-- setup: Set up the distributed training environment.
-- cleanup: Clean up the distributed training environment.
-- get_file: Get the file path for saving or loading a tensor.
-- load: Load a tensor from a file.
-- load_all: Load tensors from multiple files.
-- save: Save a tensor to a file.
-- savefig: Save the current figure to a file.
-- filt: Apply a biquad filter to the input signal.
-- parse_path: Parse the input path.
-- auto_path: Decorator to automatically parse and create directories for file paths.
-- get_pydict: Get a Python dictionary from a file.
-- gaussian_perturb: Generate a Gaussian perturbation based on a reference tensor.
-- verbosity_str_to_int: Convert a verbosity string to an integer value.
-- clean_levels: Clean and validate the verbosity levels.
-- run_verbosity: Decorator to control the verbosity of a function.
-- mem_report: Generate a memory report.
+Utility functions, many of which are deprecated or not used in current state of code.
 """
 
 import glob
@@ -42,9 +24,18 @@ from torchaudio.functional import biquad
 
 def find_available_port(start_port, max_attempts=5):
     """
-    Tries to find an available network port starting from 'start_port'.
-    It makes up to 'max_attempts' to find an available port.
-    Returns the first available port number or raises an exception if no available port is found.
+    Finds an available port starting from the given start_port.
+
+    Args:
+        start_port (int): The port number to start searching from.
+        max_attempts (int, optional): The maximum number of attempts to find an available port. Defaults to 5.
+
+    Returns:
+        int: The first available port number found.
+
+    Raises:
+        OSError: If an error occurs while attempting to bind to a port.
+
     """
     port = start_port
     for _ in range(max_attempts):
@@ -79,7 +70,12 @@ def setup(rank, world_size, port=12358):
 
 def cleanup():
     """
-    Clean up the distributed training environment.
+    Cleans up the process group.
+
+    This function destroys the process group using the `dist.destroy_process_group()` method.
+
+    Returns:
+        None
     """
     dist.destroy_process_group()
 
@@ -476,11 +472,25 @@ def downsample_any(u, ratios):
 
 
 class SlotMeta(type):
-    """
-    Metaclass for adding default annotations and __slots__ attribute to a class.
+    """Metaclass that adds default annotations and __slots__ attribute to a class.
 
-    The metaclass automatically adds default annotations for attributes that are not methods, not in special names, and not already annotated.
-    It also creates the __slots__ attribute based on the updated annotations.
+    This metaclass is used to automatically add default annotations and define the __slots__
+    attribute for a class. It extracts the variable names from the annotations and finds
+    attributes that are not methods, not in special names, and not already annotated. It then
+    adds default annotations for these non-annotated attributes and removes them from the class
+    dictionary. Finally, it creates the __slots__ attribute from the updated annotations.
+
+    Attributes:
+        None
+
+    Methods:
+        __new__(cls, name, bases, class_dict): Creates a new class with default annotations and __slots__ attribute.
+
+    Example usage:
+        class MyClass(metaclass=SlotMeta):
+            attr1: int
+            attr2: str
+            ...
     """
 
     def __new__(cls, name, bases, class_dict):
@@ -676,6 +686,23 @@ def bool_slice(
     cut=None,
     verbose=False,
 ):
+    """
+    Generate boolean slices based on the given arguments.
+
+    Args:
+        *args: Variable length arguments representing the dimensions of the boolean slices.
+        permute (list): A list specifying the order in which the dimensions should be permuted.
+        none_dims (tuple): A tuple containing the indices of dimensions that should be treated as None.
+        ctrl (function): A function that takes in the indices and arguments and returns a boolean value.
+        strides (list): A list specifying the strides for each dimension.
+        start (list): A list specifying the starting indices for each dimension.
+        cut (list): A list specifying the cut values for each dimension.
+        verbose (bool): A boolean value indicating whether to print verbose output.
+
+    Yields:
+        tuple: A tuple containing the boolean slice indices and the result of the control function.
+
+    """
     permute = list(permute or range(len(args)))
     permute.reverse()
 
@@ -727,6 +754,17 @@ def bool_slice(
 
 
 def clean_idx(idx, show_colons=True):
+    """
+    Cleans up the given index by converting it to a string representation.
+
+    Args:
+        idx (list): The index to clean up.
+        show_colons (bool, optional): Whether to include colons in the string representation.
+            Defaults to True.
+
+    Returns:
+        str: The cleaned up string representation of the index.
+    """
     res = [str(e) if e != slice(None) else ':' for e in idx]
     if not show_colons:
         res = [e for e in res if e != ':']
@@ -735,6 +773,18 @@ def clean_idx(idx, show_colons=True):
 
 @curry
 def tensor_summary(t, num=5, inc='all', exc=None):
+    """
+    Summarizes the properties of a tensor.
+
+    Args:
+        t (torch.Tensor): The input tensor.
+        num (int, optional): The number of top and bottom values to include in the summary. Defaults to 5.
+        inc (list or str, optional): The properties to include in the summary. Defaults to 'all'.
+        exc (list, optional): The properties to exclude from the summary. Defaults to None.
+
+    Returns:
+        str: A string containing the summary of the tensor properties.
+    """
     num = min(num, t.numel())
     if inc == 'all':
         inc = [
@@ -768,6 +818,16 @@ def tensor_summary(t, num=5, inc='all', exc=None):
 
 
 def pull_data(path):
+    """
+    Loads data from the specified path.
+
+    Args:
+        path (str): The path to the directory containing the data files.
+
+    Returns:
+        DotDict: A dictionary-like object containing the loaded data.
+
+    """
     d = {}
     keys = [e.replace('.pt', '') for e in os.listdir(path) if e.endswith('.pt')]
     for k in keys:
@@ -776,6 +836,25 @@ def pull_data(path):
 
 
 def mean_filter_1d(y, kernel_size):
+    """
+    Applies a 1-dimensional mean filter to the input tensor.
+
+    Args:
+        y (torch.Tensor): The input tensor to be filtered.
+        kernel_size (int): The size of the kernel for the mean filter.
+
+    Returns:
+        torch.Tensor: The filtered output tensor.
+
+    Raises:
+        None
+
+    Examples:
+        >>> input_tensor = torch.tensor([1, 2, 3, 4, 5])
+        >>> filtered_tensor = mean_filter_1d(input_tensor, 3)
+        >>> print(filtered_tensor)
+        tensor([2., 3., 4., 3., 2.])
+    """
     num_elems = y.numel() // y.shape[-1]
     input_tensor = y.reshape(num_elems, 1, y.shape[-1])
     kernel = torch.ones((kernel_size,)).unsqueeze(0).unsqueeze(0) / kernel_size
@@ -805,6 +884,16 @@ def mean_filter_1d(y, kernel_size):
 
 
 def get_tensors(path, device='cpu'):
+    """
+    Loads tensors from files in the specified path and returns them as a dictionary.
+
+    Args:
+        path (str): The path to the directory containing the tensor files.
+        device (str, optional): The device to move the loaded tensors to. Defaults to 'cpu'.
+
+    Returns:
+        dict: A dictionary where the keys are the filenames (without the file extension) and the values are the loaded tensors.
+    """
     d = DotDict({})
     files = [e[:-3] for e in os.listdir(path) if e.endswith('.pt')]
     for f in files:
@@ -815,6 +904,15 @@ def get_tensors(path, device='cpu'):
 
 
 def d2cpu(x):
+    """
+    Moves a tensor from GPU to CPU and detaches it from the computation graph.
+
+    Args:
+        x (torch.Tensor): The input tensor.
+
+    Returns:
+        torch.Tensor: The tensor moved to CPU and detached from the computation graph.
+    """
     return x.detach().cpu()
 
 
@@ -899,6 +997,21 @@ def chunk_and_deploy(rank, world_size, *, data, chunk_keys):
 
 
 def read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw):
+    """
+    Read data from a given path, perform remapping and transformations, and chunk the data for distributed processing.
+
+    Args:
+        path (str): The path to the data.
+        rank (int): The rank of the current process.
+        world_size (int): The total number of processes.
+        chunk_keys (list): A list of keys to chunk the data.
+        remap (dict, optional): A dictionary to remap the keys of the data. Defaults to None.
+        **kw: Additional keyword arguments for transformations.
+
+    Returns:
+        dict: The processed data.
+
+    """
     remap = remap or {}
     d = get_tensors(path)
     for k, v in remap.items():
@@ -911,6 +1024,20 @@ def read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw):
 
 
 def get_gpu_memory(rank):
+    """
+    Retrieves the GPU memory information for the specified GPU device.
+
+    Args:
+        rank (int): The rank of the GPU device.
+
+    Returns:
+        dict: A dictionary containing the GPU memory information.
+            - 'rank' (int): The rank of the GPU device.
+            - 'total_memory_GB' (float): The total GPU memory in gigabytes (GB).
+            - 'allocated_memory_GB' (float): The currently allocated GPU memory in gigabytes (GB).
+            - 'cached_memory_GB' (float): The GPU memory reserved for caching in gigabytes (GB).
+            - 'available_memory_GB' (float): The available GPU memory in gigabytes (GB).
+    """
     torch.cuda.synchronize()  # Synchronizes all kernels and operations to ensure correct memory readings
     total_memory = torch.cuda.get_device_properties(rank).total_memory
     allocated_memory = torch.cuda.memory_allocated(rank)
@@ -927,6 +1054,16 @@ def get_gpu_memory(rank):
 
 
 def apply_builder(lcl, gbl):
+    """
+    Applies the builder to create and return an object.
+
+    Args:
+        lcl (dict): The local namespace dictionary.
+        gbl (dict): The global namespace dictionary.
+
+    Returns:
+        object: The created object.
+    """
     builder = lcl.builder
     print(builder, flush=True)
     if 'func' in builder.keys():
@@ -939,6 +1076,23 @@ def apply_builder(lcl, gbl):
 
 
 def apply(lcl, relax=True):
+    """
+    Applies the given local variables (`lcl`) to a runtime function.
+
+    Args:
+        lcl (dict): The local variables to be applied.
+        relax (bool, optional): Whether to relax the requirement of having 'runtime_func' as a key in `lcl`.
+            If set to True and 'runtime_func' is not found in `lcl`, the function will simply return `lcl`.
+            If set to False and 'runtime_func' is not found in `lcl`, a ValueError will be raised.
+
+    Returns:
+        The result of applying the local variables to the runtime function.
+
+    Raises:
+        ValueError: If 'runtime_func' is not found in `lcl` and `relax` is set to False.
+        RuntimeError: If an error occurs during the application process.
+
+    """
     try:
         if 'runtime_func' not in lcl.keys() and relax:
             return lcl
@@ -976,6 +1130,17 @@ def apply(lcl, relax=True):
 
 
 def apply_all(lcl, relax=True, exc=None):
+    """
+    Recursively applies the `apply` function to all values in a dictionary or DotDict.
+
+    Args:
+        lcl (dict or DotDict): The dictionary or DotDict to apply the `apply` function to.
+        relax (bool, optional): Whether to relax the application of `apply` function. Defaults to True.
+        exc (list, optional): List of keys to exclude from applying the `apply` function. Defaults to None.
+
+    Returns:
+        dict or DotDict: The modified dictionary or DotDict after applying the `apply` function.
+    """
     exc = exc or []
     for k, v in lcl.items():
         if k in exc:
@@ -989,12 +1154,31 @@ def apply_all(lcl, relax=True, exc=None):
 
 
 def resolve(c: DotDict, relax) -> DotDict:
+    """
+    Resolves the given DotDict object by executing imports and resolving self-references.
+
+    Args:
+        c (DotDict): The DotDict object to be resolved.
+        relax: A flag indicating whether to relax the resolution process.
+
+    Returns:
+        DotDict: The resolved DotDict object.
+    """
     c = exec_imports(c)
     c.self_ref_resolve(gbl=globals(), lcl=locals(), relax=relax)
     return c
 
 
 def git_dump_info(exc=None):
+    """
+    Retrieves information about the Git repository.
+
+    Args:
+        exc (list, optional): List of directories or files to exclude from the untracked files list. Defaults to None.
+
+    Returns:
+        str: A string containing information about the Git repository.
+    """
     exc = exc or ['outputs', 'multirun', '__pycache__']
     s = ''
     s += f'HASH: {vco("git rev-parse HEAD")}\n'
@@ -1008,6 +1192,23 @@ def git_dump_info(exc=None):
     s += 80 * '*' + '\n'
 
     return s
+
+
+# def vco(cmd):
+#     """
+#     Executes a shell command and returns the output.
+
+#     Args:
+#         cmd (str): The shell command to execute.
+
+#     Returns:
+#         str: The output of the shell command.
+#     """
+#     # Implementation of the vco function goes here
+#     pass
+
+
+# Other functions in the highlighted section with their docstrings go here
 
 
 def all_detached_cpu(d: DotDict):

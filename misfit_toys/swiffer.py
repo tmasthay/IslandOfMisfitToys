@@ -256,6 +256,14 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
 
 
 def dupe(base, verbose=True, editor=None):
+    """
+    Duplicates the stdout and stderr streams to files.
+
+    Args:
+        base (str): The base name for the output and error files.
+        verbose (bool, optional): Whether to print the file names. Defaults to True.
+        editor (str, optional): The editor command to open the output file. Defaults to None.
+    """
     out_file = f'{base}.out'
     err_file = f'{base}.err'
 
