@@ -11,14 +11,13 @@ Usage:
 This will download and process the data for use in benchmarking FWI algorithms.
 """
 
-
 from . import custom, das_curtin, dataset, download_data, marmousi, marmousi2
 
 __all__ = [
+    'marmousi',
     'marmousi2',
     'das_curtin',
     'custom',
-    'marmousi',
-    'download_data',
     'dataset',
+    'download_data',
 ]

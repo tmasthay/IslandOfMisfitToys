@@ -1,6 +1,6 @@
 defaults:
-  - _self_
-  - case: tik
+- _self_
+- case: tik
 
 case:
   port: 12576

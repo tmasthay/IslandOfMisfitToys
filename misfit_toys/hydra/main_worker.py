@@ -346,6 +346,7 @@ def main(cfg: DictConfig) -> None:
     c = preprocess_cfg(cfg)
 
     out_dir = os.path.join(os.path.dirname(__file__), 'out')
+    os.makedirs(out_dir, exist_ok=True)
 
     def get_data():
         files = [

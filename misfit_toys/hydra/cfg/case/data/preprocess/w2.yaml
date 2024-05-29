@@ -1,6 +1,6 @@
 defaults:
-  - _self_
-  - addons: softplus
+- _self_
+- addons: softplus
 
 dep: ^^null|misfit_toys.fwi.seismic_data|null
 
@@ -26,12 +26,12 @@ path_builder_kw:
   rec_loc_y: null
 
 required_fields:
-  - vp_init
-  - src_amp_y
-  - obs_data
-  - src_loc_y
-  - rec_loc_y
-  - meta
+- vp_init
+- src_amp_y
+- obs_data
+- src_loc_y
+- rec_loc_y
+- meta
 
 chunk_keys:
   tensors: [obs_data, src_loc_y, rec_loc_y]

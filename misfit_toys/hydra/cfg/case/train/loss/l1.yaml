@@ -44,8 +44,8 @@ kw:
   obs_data: self.runtime.data.obs_data
   model_params: self.runtime.prop.module.vp
   weights:
-    - 1.0
-    - 0.0
+  - 1.0
+  - 0.0
   reg_min: 0.0
   t: self.runtime.t
   max_calls: ${...max_iters}

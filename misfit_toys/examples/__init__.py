@@ -2,6 +2,6 @@
 TODO: make package-level docstring
 """
 
-from . import forward, hydra, marmousi
+from . import forward, marmousi
 
-__all__ = ['hydra', 'forward', 'marmousi']
+__all__ = ['forward', 'marmousi']
