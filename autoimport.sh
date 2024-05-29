@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ROOT_PATH=$(realpath "misfit_toys")
-EXCLUDE_REGEX=("__" "outputs" "multirun" "cfg")
+EXCLUDE_REGEX=("__" "outputs" "multirun" "cfg" "GitHookEm")
 
 # Arrays to store directory information
 not_a_subpackage=()
@@ -10,14 +10,14 @@ some_version_control_python_files=()
 
 # Function to check if a file is under version control
 is_under_version_control() {
-    git ls-files --error-unmatch "$1" &> /dev/null
+    git ls-files --error-unmatch "$1" &>/dev/null
 }
 
 rel_path() {
     realpath --relative-to="$ROOT_PATH" "$1"
 }
 
-valid_subpackage(){
+valid_subpackage() {
     local dir="$1"
 
     # Check if there are any *tracked* .py files in the directory
@@ -36,7 +36,10 @@ valid_subpackage(){
         if valid_subpackage "$subdir"; then
             return 0
         fi
-    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d | grep -vE "$(IFS=\|; echo "${EXCLUDE_REGEX[*]}")")
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d | grep -vE "$(
+        IFS=\|
+        echo "${EXCLUDE_REGEX[*]}"
+    )")
 
     return 1
 }
@@ -126,16 +129,16 @@ update_init_py() {
             found++
         }
         { if (found > 0) print }
-        ' "$init_file" > "$temp_file"
+        ' "$init_file" >"$temp_file"
     else
         # Create a default docstring
-        echo '"""' > "$temp_file"
-        echo 'TODO: make package-level docstring' >> "$temp_file"
-        echo '"""' >> "$temp_file"
+        echo '"""' >"$temp_file"
+        echo 'TODO: make package-level docstring' >>"$temp_file"
+        echo '"""' >>"$temp_file"
     fi
 
     # Append the generated import statements to the temporary file
-    generate_import_statements "$dir" >> "$temp_file"
+    generate_import_statements "$dir" >>"$temp_file"
 
     # Move the temporary file to the __init__.py
     mv "$temp_file" "$init_file"
@@ -143,7 +146,10 @@ update_init_py() {
 
 # Main script
 echo "Directories with auto-generated __init__.py files"
-find "$ROOT_PATH" -type d | grep -vE "$(IFS=\|; echo "${EXCLUDE_REGEX[*]}")" | while IFS= read -r dir; do
+find "$ROOT_PATH" -type d | grep -vE "$(
+    IFS=\|
+    echo "${EXCLUDE_REGEX[*]}"
+)" | while IFS= read -r dir; do
     if [ "$dir" != "$ROOT_PATH" ]; then
         process_directory "$dir"
     fi
