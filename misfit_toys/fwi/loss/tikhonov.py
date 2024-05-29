@@ -8,11 +8,46 @@ from torch.nn.functional import mse_loss
 
 
 class TikhonovLoss(nn.Module):
-    weights: torch.Tensor
-    alpha: Callable[[float, float], float]
-    max_iters: int
+    """
+    Tikhonov regularization loss module.
 
-    def __init__(self, weights, *, alpha, max_iters=100):
+    Attributes
+    ----------
+    weights : torch.Tensor
+        The weights tensor used for the regularization term.
+    alpha : Callable[[float, float], float]
+        A callable function that takes the current iteration and maximum iterations
+        and returns the regularization strength.
+    max_iters : int
+        The maximum number of iterations.
+    iter : int
+        The current iteration.
+    build_status : bool
+        Whether the status is being built (unused/deprecated).
+    status : str
+        The current status message (unused/deprecated).
+    """
+
+    def __init__(
+        self,
+        weights: torch.Tensor,
+        *,
+        alpha: Callable[[float, float], float],
+        max_iters: int = 100,
+    ):
+        """
+        Initializes the TikhonovLoss instance.
+
+        Parameters
+        ----------
+        weights : torch.Tensor
+            The weights tensor used for the regularization term.
+        alpha : Callable[[float, float], float]
+            A callable function that takes the current iteration and maximum iterations
+            and returns the regularization strength.
+        max_iters : int
+            The maximum number of iterations.
+        """
         super().__init__()
         self.weights = weights
         self.alpha = alpha
@@ -23,7 +58,17 @@ class TikhonovLoss(nn.Module):
 
     def compute_gradient_penalty(self, param):
         """
-        Compute the gradient penalty for the parameter tensor
+        Compute the gradient penalty for the parameter tensor.
+
+        Parameters
+        ----------
+        param : torch.Tensor
+            The parameter tensor for which the gradient penalty is computed.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed gradient penalty.
         """
         grad_x = torch.diff(param.p, dim=0)  # Gradient along x-axis (rows)
         grad_y = torch.diff(param.p, dim=1)  # Gradient along y-axis (columns)
@@ -34,8 +79,19 @@ class TikhonovLoss(nn.Module):
 
     def forward(self, pred, target):
         """
-        model_output: output from the model
-        target: ground truth or target data
+        Compute the total loss including the least squares and Tikhonov regularization term.
+
+        Parameters
+        ----------
+        pred : torch.Tensor
+            The model output predictions.
+        target : torch.Tensor
+            The ground truth or target data.
+
+        Returns
+        -------
+        torch.Tensor
+            The total computed loss.
         """
         least_squares = mse_loss(pred, target)
         grad_penalty = self.compute_gradient_penalty(self.weights)
@@ -61,6 +117,27 @@ class TikhonovLoss(nn.Module):
 def lin_reg_drop(
     *, weights, max_iters, scale, _min
 ) -> Callable[[int, int], float]:
+    """
+    Creates a dictionary with weights, alpha function for linear regularization drop,
+    and maximum iterations.
+
+    Parameters
+    ----------
+    weights : torch.Tensor
+        The weights tensor used for the regularization term.
+    max_iters : int
+        The maximum number of iterations.
+    scale : float
+        The scaling factor for the regularization strength.
+    _min : float
+        The minimum regularization strength.
+
+    Returns
+    -------
+    DotDict
+        A dictionary containing weights, alpha function, and maximum iterations.
+    """
+
     def reg_strength(iters, max_iters):
         return max(scale * (1 - iters / max_iters), _min)
 
@@ -74,6 +151,26 @@ def lin_reg_drop(
 def lin_reg_drop_legacy2(
     c: DotDict, *, scale, _min
 ) -> Callable[[int, int], float]:
+    """
+    Creates a dictionary with legacy configuration and alpha function for linear
+    regularization drop.
+
+    Parameters
+    ----------
+    c : DotDict
+        A configuration dictionary.
+    scale : float
+        The scaling factor for the regularization strength.
+    _min : float
+        The minimum regularization strength.
+
+    Returns
+    -------
+    tuple
+        A tuple containing an empty list and a dictionary with weights, alpha function,
+        and maximum iterations.
+    """
+
     def reg_strength(iters, max_iters):
         return max(scale * (1 - iters / max_iters), _min)
 
@@ -91,6 +188,30 @@ def lin_reg_drop_legacy2(
 def lin_reg_drop_legacy(
     c: DotDict, *, scale, _min
 ) -> Callable[[int, int], float]:
+    """
+    Creates a dictionary with legacy configuration and alpha function for linear
+    regularization drop, with validation for chosen loss type.
+
+    Parameters
+    ----------
+    c : DotDict
+        A configuration dictionary.
+    scale : float
+        The scaling factor for the regularization strength.
+    _min : float
+        The minimum regularization strength.
+
+    Returns
+    -------
+    tuple
+        A tuple containing an empty list and a dictionary with weights, alpha function,
+        and maximum iterations.
+
+    Raises
+    ------
+    ValueError
+        If the chosen loss type or regularization method is not 'tik' or 'lin_reg_drop'.
+    """
     if c.train.loss.chosen.lower() != 'tik':
         raise ValueError(
             f"c.loss.chosen.lower() = {c.loss.chosen.lower()} != 'tik'"
@@ -116,6 +237,22 @@ def lin_reg_drop_legacy(
 
 
 def lin_reg_tmp(c: DotDict):
+    """
+    Creates an alpha function for linear regularization drop based on temporary
+    configuration.
+
+    Parameters
+    ----------
+    c : DotDict
+        A configuration dictionary.
+
+    Returns
+    -------
+    Callable[[int, int], float]
+        A function that computes the regularization strength based on the iteration
+        and maximum iterations.
+    """
+
     def reg_strength(iters, max_iters):
         return max(
             c.train.loss.tik.lin_reg_drop.kw.scale * (1 - iters / max_iters),

@@ -49,7 +49,7 @@ def sco_bash(function_name, *args, split=False):
 
     Args:
         function_name (str): The name of the bash function to execute.
-        *args: The arguments to pass to the bash function.
+        args: The arguments to pass to the bash function.
         split (bool, optional): Whether to split the output by lines. Defaults to False.
 
     Returns:
@@ -173,7 +173,7 @@ def istr(*args, idt_level=0, idt_str="    ", cpl=80):
     Indent and wrap a string.
 
     Args:
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -197,7 +197,7 @@ def iprint(*args, idt_level=0, idt_str="    ", cpl=80, **kw):
     Print an indented and wrapped string.
 
     Args:
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -215,7 +215,7 @@ def iraise(error_type, *args, idt_level=0, idt_str="    ", cpl=80):
 
     Args:
         error_type (type): The type of the exception to raise.
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -232,7 +232,7 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
 
     Args:
         e (Exception): The exception to re-raise.
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.

@@ -4,7 +4,7 @@ ROOT_PATH=$(realpath "misfit_toys")
 EXCLUDE_REGEX=("__" "outputs" "multirun" "cfg")
 
 # Arrays to store directory information
-no_python_files=()
+not_a_subpackage=()
 no_version_control_python_files=()
 some_version_control_python_files=()
 
@@ -85,6 +85,7 @@ process_directory() {
     local dir="$1"
     local python_files=()
     local version_controlled_files=()
+    local no_python_no_
 
     # Find .py files in the directory
     while IFS= read -r file; do
@@ -98,10 +99,8 @@ process_directory() {
     done < <(find "$dir" -maxdepth 1 -name "*.py")
 
     # Classify the directory based on the presence of Python files and version control status
-    if [ ${#python_files[@]} -eq 0 ]; then
-        no_python_files+=("$dir")
-    elif [ ${#version_controlled_files[@]} -eq 0 ]; then
-        no_version_control_python_files+=("$dir")
+    if ! valid_subpackage "$dir"; then
+        not_a_subpackage+=("$dir")
     elif [ ${#version_controlled_files[@]} -lt ${#python_files[@]} ]; then
         some_version_control_python_files+=("$dir")
         update_init_py "$dir"
