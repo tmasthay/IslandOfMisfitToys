@@ -4,11 +4,6 @@ It performs a complete full-waveform inversion workflow on any given dataset.
 Arbitrary functions and keyword arguments can be passed into this script through Hydra's configuration hierarchy and command-line arguments.
 
 
-.. seealso::
-
-    See `main_worker.py` for the main function that is called by this script.
-    This dummy script is simply here to make autocompletion faster by bypassing import statements.
-
 Usage:
     To see the full Hydra help menu, run the following command in terminal::
 
@@ -289,6 +284,10 @@ Examples:
 
             - If ``Z`` is ``null``, the import is assumed to be a module import.
             - Otherwise, it is a function import with the name specified by ``Z``.
+.. seealso::
+
+    See ``misfit_toys.examples.hydra.main_worker`` for the main function that is called by this script.
+    This dummy script is simply here to make autocompletion faster by bypassing import statements.
 """
 
 import hydra
