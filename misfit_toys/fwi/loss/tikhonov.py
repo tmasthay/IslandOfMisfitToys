@@ -11,21 +11,13 @@ class TikhonovLoss(nn.Module):
     """
     Tikhonov regularization loss module.
 
-    Attributes
-    ----------
-    weights : torch.Tensor
-        The weights tensor used for the regularization term.
-    alpha : Callable[[float, float], float]
-        A callable function that takes the current iteration and maximum iterations
-        and returns the regularization strength.
-    max_iters : int
-        The maximum number of iterations.
-    iter : int
-        The current iteration.
-    build_status : bool
-        Whether the status is being built (unused/deprecated).
-    status : str
-        The current status message (unused/deprecated).
+    Attributes:
+        weights (torch.Tensor): The weights tensor used for the regularization term.
+        alpha (Callable[[float, float], float]): A callable function that takes the current iteration and maximum iterations and returns the regularization strength.
+        max_iters (int): The maximum number of iterations.
+        iter (int): The current iteration.
+        build_status (bool): Whether the status is being built (unused/deprecated).
+        status (str): The current status message (unused/deprecated).
     """
 
     def __init__(
@@ -38,15 +30,10 @@ class TikhonovLoss(nn.Module):
         """
         Initializes the TikhonovLoss instance.
 
-        Parameters
-        ----------
-        weights : torch.Tensor
-            The weights tensor used for the regularization term.
-        alpha : Callable[[float, float], float]
-            A callable function that takes the current iteration and maximum iterations
-            and returns the regularization strength.
-        max_iters : int
-            The maximum number of iterations.
+        Args:
+            weights (torch.Tensor): The weights tensor used for the regularization term.
+            alpha (Callable[[float, float], float]): A callable function that takes the current iteration and maximum iterations and returns the regularization strength.
+            max_iters (int): The maximum number of iterations.
         """
         super().__init__()
         self.weights = weights
@@ -60,15 +47,11 @@ class TikhonovLoss(nn.Module):
         """
         Compute the gradient penalty for the parameter tensor.
 
-        Parameters
-        ----------
-        param : torch.Tensor
-            The parameter tensor for which the gradient penalty is computed.
+        Args:
+            param (torch.Tensor): The parameter tensor for which the gradient penalty is computed.
 
-        Returns
-        -------
-        torch.Tensor
-            The computed gradient penalty.
+        Returns:
+            torch.Tensor: The computed gradient penalty.
         """
         grad_x = torch.diff(param.p, dim=0)  # Gradient along x-axis (rows)
         grad_y = torch.diff(param.p, dim=1)  # Gradient along y-axis (columns)
@@ -81,17 +64,12 @@ class TikhonovLoss(nn.Module):
         """
         Compute the total loss including the least squares and Tikhonov regularization term.
 
-        Parameters
-        ----------
-        pred : torch.Tensor
-            The model output predictions.
-        target : torch.Tensor
-            The ground truth or target data.
+        Args:
+            pred (torch.Tensor): The model output predictions.
+            target (torch.Tensor): The ground truth or target data.
 
-        Returns
-        -------
-        torch.Tensor
-            The total computed loss.
+        Returns:
+            torch.Tensor: The total computed loss.
         """
         least_squares = mse_loss(pred, target)
         grad_penalty = self.compute_gradient_penalty(self.weights)
@@ -121,21 +99,14 @@ def lin_reg_drop(
     Creates a dictionary with weights, alpha function for linear regularization drop,
     and maximum iterations.
 
-    Parameters
-    ----------
-    weights : torch.Tensor
-        The weights tensor used for the regularization term.
-    max_iters : int
-        The maximum number of iterations.
-    scale : float
-        The scaling factor for the regularization strength.
-    _min : float
-        The minimum regularization strength.
+    Args:
+        weights (torch.Tensor): The weights tensor used for the regularization term.
+        max_iters (int): The maximum number of iterations.
+        scale (float): The scaling factor for the regularization strength.
+        _min (float): The minimum regularization strength.
 
-    Returns
-    -------
-    DotDict
-        A dictionary containing weights, alpha function, and maximum iterations.
+    Returns:
+        DotDict: A dictionary containing weights, alpha function, and maximum iterations.
     """
 
     def reg_strength(iters, max_iters):
@@ -155,19 +126,13 @@ def lin_reg_drop_legacy2(
     Creates a dictionary with legacy configuration and alpha function for linear
     regularization drop.
 
-    Parameters
-    ----------
-    c : DotDict
-        A configuration dictionary.
-    scale : float
-        The scaling factor for the regularization strength.
-    _min : float
-        The minimum regularization strength.
+    Args:
+        c (DotDict): A configuration dictionary.
+        scale (float): The scaling factor for the regularization strength.
+        _min (float): The minimum regularization strength.
 
-    Returns
-    -------
-    tuple
-        A tuple containing an empty list and a dictionary with weights, alpha function,
+    Returns:
+        tuple: A tuple containing an empty list and a dictionary with weights, alpha function,
         and maximum iterations.
     """
 
@@ -192,25 +157,17 @@ def lin_reg_drop_legacy(
     Creates a dictionary with legacy configuration and alpha function for linear
     regularization drop, with validation for chosen loss type.
 
-    Parameters
-    ----------
-    c : DotDict
-        A configuration dictionary.
-    scale : float
-        The scaling factor for the regularization strength.
-    _min : float
-        The minimum regularization strength.
+    Args:
+        c (DotDict): A configuration dictionary.
+        scale (float): The scaling factor for the regularization strength.
+        _min (float): The minimum regularization strength.
 
-    Returns
-    -------
-    tuple
-        A tuple containing an empty list and a dictionary with weights, alpha function,
+    Returns:
+        tuple: A tuple containing an empty list and a dictionary with weights, alpha function,
         and maximum iterations.
 
-    Raises
-    ------
-    ValueError
-        If the chosen loss type or regularization method is not 'tik' or 'lin_reg_drop'.
+    Raises:
+        ValueError: If the chosen loss type or regularization method is not 'tik' or 'lin_reg_drop'.
     """
     if c.train.loss.chosen.lower() != 'tik':
         raise ValueError(
@@ -236,21 +193,16 @@ def lin_reg_drop_legacy(
     return [], kw
 
 
-def lin_reg_tmp(c: DotDict):
+def lin_reg_tmp(c: DotDict) -> Callable[[int, int], float]:
     """
     Creates an alpha function for linear regularization drop based on temporary
     configuration.
 
-    Parameters
-    ----------
-    c : DotDict
-        A configuration dictionary.
+    Args:
+        c (DotDict): A configuration dictionary.
 
-    Returns
-    -------
-    Callable[[int, int], float]
-        A function that computes the regularization strength based on the iteration
-        and maximum iterations.
+    Returns:
+        Callable[[int, int], float]: A function that computes the regularization strength based on the iteration and maximum iterations.
     """
 
     def reg_strength(iters, max_iters):
