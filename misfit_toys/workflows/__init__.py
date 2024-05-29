@@ -1,5 +1,5 @@
 """
-TODO: make package-level docstring
+Custom staged-training workflows
 """
 
 from . import stages, tik

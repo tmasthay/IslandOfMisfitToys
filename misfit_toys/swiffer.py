@@ -1,16 +1,5 @@
 """
 Collection of miscellaneous helper functions to clean up code, like a Swiffer.
-
-Functions:
-    sco: Execute a shell command and return the output.
-    sco_bash: Execute a bash function and return the output.
-    human_time: Convert seconds to a human-readable time format.
-    see_fields: Get the values of specified fields in an object.
-    sub_dict: Create a new dictionary with only the specified keys.
-    istr: Indent and wrap a string.
-    iprint: Print an indented and wrapped string.
-    iraise: Raise an exception with an indented and wrapped error message.
-    ireraise: Re-raise an exception with an indented and wrapped error message.
 """
 
 import os

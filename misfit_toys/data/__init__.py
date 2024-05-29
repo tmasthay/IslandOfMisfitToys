@@ -1,5 +1,6 @@
 """
-TODO: make package-level docstring
+Data generation package that downloads and processes observed synthetic data from given model parameters.
+That data can then be read in to benchmark FWI algorithms.
 """
 
 from . import custom, das_curtin, dataset, download_data, marmousi, marmousi2
