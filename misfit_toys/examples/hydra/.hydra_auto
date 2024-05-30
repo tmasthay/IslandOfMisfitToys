@@ -1,0 +1,66 @@
+export _HYDRA_OLD_COMP=$(complete -p hydra 2>/dev/null)
+
+hydra_bash_completion() {
+    local cur prev words cword
+    _get_comp_words_by_ref -n =: cur prev words cword
+
+    # Check if the command starts with 'hydra'
+    if [[ "${words[0]}" == "hydra" ]]; then
+
+        # Construct the command to execute
+        helper="python -W ignore main.py ${words[@]:1}"
+
+        # Find the executable
+        EXECUTABLE=($(command -v python))
+
+        # Debugging output, if enabled
+        if [[ "$HYDRA_COMP_DEBUG" == "1" ]]; then
+            printf "EXECUTABLE_FIRST='${EXECUTABLE[0]}'\n"
+        fi
+
+        # Check if the executable is available and executable
+        if ! [[ -x "${EXECUTABLE[0]}" ]]; then
+            false
+            return
+        fi
+
+        # Generate autocomplete suggestions
+        if [[ $? == 0 ]]; then
+            # local my_cmd = "COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $EXECUTABLE -W ignore main.py -sc query=bash"
+            # echo $my_cmd
+            choices=$(COMP_POINT=$COMP_POINT COMP_LINE=$COMP_LINE $EXECUTABLE -W ignore main.py -sc query=bash)
+            word=${words[cword]}
+
+            # More debugging output
+            if [[ "$HYDRA_COMP_DEBUG" == "1" ]]; then
+                printf "\n"
+                printf "COMP_LINE='$COMP_LINE'\n"
+                printf "COMP_POINT='$COMP_POINT'\n"
+                printf "Word='$word'\n"
+                printf "Output suggestions:\n"
+                printf "\t%s\n" ${choices[@]}
+            fi
+
+            # Provide suggestions for autocompletion
+            COMPREPLY=($(compgen -o nospace -o default -W "$choices" -- "$word"))
+        fi
+    else
+        return
+    fi
+}
+
+# Adjust word breaks and register the completion function
+COMP_WORDBREAKS=${COMP_WORDBREAKS//=/}
+COMP_WORDBREAKS=$COMP_WORDBREAKS complete -o nospace -o default -F hydra_bash_completion hydra
+
+hydra() {
+    first_arg=$1
+    if [[ $first_arg == *.py ]]; then
+        first_arg=$1
+        shift
+    else
+        first_arg="main.py"
+    fi
+    echo "python -W ignore $first_arg $@"
+    eval "python -W ignore $first_arg $@"
+}

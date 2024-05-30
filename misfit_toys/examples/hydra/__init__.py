@@ -1,6 +1,6 @@
 """
 TODO: make package-level docstring
 """
-from . import isolated_main
+from . import main
 
-__all__ = ['isolated_main']
+__all__ = ['main']
