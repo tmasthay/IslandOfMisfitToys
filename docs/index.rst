@@ -10,6 +10,7 @@ Welcome to Island of Misfit Toys's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   custom_pages/leaderboard
 
 
 Indices and tables

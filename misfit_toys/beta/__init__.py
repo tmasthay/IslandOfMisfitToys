@@ -16,15 +16,15 @@ from . import (
 )
 
 __all__ = [
-    'main',
+    'prob',
     'data',
-    'loss',
+    'optimizers',
+    'plotter',
+    'sobolev',
     'opt',
     'helpers',
     'steps',
-    'sobolev',
-    'plotter',
+    'loss',
+    'main',
     'renorm',
-    'prob',
-    'optimizers',
 ]
