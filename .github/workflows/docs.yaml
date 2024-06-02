@@ -1,31 +1,17 @@
 name: documentation
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  workflow_dispatch:
+    inputs:
+      leaderboard:
+        description: "Leaderboard content"
+        required: true
 
 permissions:
   contents: write
 
 jobs:
-  docs:
+  echo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - name: Install dependencies
-        run: |
-          pip install git+https://github.com/patrick-kidger/torchcubicspline.git
-          pip install -e .
-          pip install sphinx furo sphinx-autoapi sphinxcontrib-details-directive
-
-      - name: Sphinx build
-        run: |
-          cd docs
-          make html
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' }}
-        with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_build/html
-          force_orphan: true
+      - run: echo ${{ github.event.inputs.leaderboard }}
