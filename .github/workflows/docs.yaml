@@ -14,4 +14,5 @@ jobs:
   echo:
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{ github.event.inputs.leaderboard }}
+      - name: Echo leaderboard content
+        run: echo ${{ github.event.inputs.leaderboard }}

@@ -1,6 +1,6 @@
 #!/bin/bash
 
 current_branch=$(git symbolic-ref --short HEAD)
-# gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
+gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
 
 exit $?
