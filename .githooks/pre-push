@@ -1,6 +1,23 @@
 #!/bin/bash
 
-current_branch=$(git symbolic-ref --short HEAD)
-gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
+cd "$ISL"
+rm -rf leaderboard
+mkdir -p leaderboard/images
+mkdir -p leaderboard/meta
+cp $(find . -name "*.gif" -exec cp {} leaderboard/images/ \;)
+cp docs/meta/leaderboard.yaml leaderboard/meta/leaderboard.yaml
+
+# current_branch=$(git symbolic-ref --short HEAD)
+# gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
+
+# tar up the leaderboard
+tar -czf leaderboard.tar.gz leaderboard
+
+# make github temp release
+gh release create -t "Leaderboard" -n "Leaderboard" -F leaderboard/meta/leaderboard.yaml -a leaderboard.tar.gz
+
+# cleanup
+rm leaderboard.tar.gz
+rm -rf leaderboard
 
 exit $?
