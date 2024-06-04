@@ -82,10 +82,10 @@ def main(c: DictConfig):
             rst_file.write(f"Score: {line['score']}\n")
             rst_file.write(f"Run Path: {line['path']}\n")
             rst_file.write(f"{line['git_info']['short']}\n")
-            rst_file.write("`Full Git Diff <full_git_diff.rst>`_\n")
+            rst_file.write("`Full Git Diff <full_git_diff>`_\n")
             rst_file.write(f"overrides.yaml\n{line['overrides']}\n")
-            rst_file.write("`Config YAML <config.rst>`_\n")
-            rst_file.write("`Hydra YAML <hydra.rst>`_\n")
+            rst_file.write("`Config YAML <config>`_\n")
+            rst_file.write("`Hydra YAML <hydra>`_\n")
 
             # Write images
             rst_file.write("\nImages\n======\n")
@@ -96,6 +96,11 @@ def main(c: DictConfig):
                     f".. image:: figs/{os.path.basename(img)}\n   :align:"
                     " center\n\n"
                 )
+
+            # write hidden toctree so that sphinx will include dependent rst files
+            rst_file.write("\n.. toctree::\n   :hidden:\n\n")
+            for filename in ['full_git_diff', 'config', 'hydra']:
+                rst_file.write(f"   {filename}\n")
 
         # Write Git diff in a separate file
         with open(os.path.join(path, 'full_git_diff.rst'), 'w') as diff_file:
