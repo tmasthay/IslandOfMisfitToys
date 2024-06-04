@@ -50,7 +50,7 @@ def main(c: DictConfig):
             ) as f:
                 line[hydra_files] = f.read().strip()
     lines.sort(key=lambda x: float(x['score']), reverse=False)
-    print(lines)
+    # print(lines)
 
 
 if __name__ == "__main__":
