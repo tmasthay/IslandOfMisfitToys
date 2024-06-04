@@ -4,7 +4,8 @@ CURR_PWD=$(pwd)
 echo $CURR_PWD
 
 exit_prog(){
-    echo "$1"
+    echo "$CURR_PWD"
+    echo "HELLO"
     cd $CURR_PWD
     exit 1
 }
