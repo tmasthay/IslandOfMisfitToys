@@ -29,6 +29,8 @@ jobs:
 
     - name: Download tmp leaderboard release and then delete it
       run: |
+        echo $(type gh)
+        echo $(gh --version)
         gh release download tmp_ci_leaderboard
         # tar -xvf tmp_ci_leaderboard.tar.gz
         # mv custom_pages docs
