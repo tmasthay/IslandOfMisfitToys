@@ -1,12 +1,7 @@
 #!/bin/bash
 
-CURR_PWD=$(pwd)
-echo $CURR_PWD
-
 exit_prog(){
-    echo "$CURR_PWD"
-    echo "HELLO"
-    cd $CURR_PWD
+    echo $1
     exit 1
 }
 
@@ -25,6 +20,6 @@ gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "L
 gh release upload "$RELEASE_TAG" custom_pages.tar.gz || { exit_prog "Upload failed"; }
 
 # cleanup
-rm custom_pages.tar.gz
+rm custom_pages.tar.gz || { exit_prog "Cleanup failed"; }
 
-exit_prog ""
+exit 0
