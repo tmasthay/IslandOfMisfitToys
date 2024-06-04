@@ -5,7 +5,7 @@ RELEASE_TAG="tmp_ci_leaderboard"
 
 cd "$ISL"
 cd docs/meta
-python leaderboard.py || (echo "Leaderboard creation failed" && exit 1)
+python leaderboard.py || { echo "Leaderboard creation failed"; exit 1; }
 
 rm -rf leaderboard
 rm -f leaderboard.tar.gz
