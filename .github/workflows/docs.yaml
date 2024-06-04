@@ -20,10 +20,10 @@ jobs:
         echo $(type gh)
         echo $(gh --version)
         gh release download tmp_ci_leaderboard
-        # tar -xvf tmp_ci_leaderboard.tar.gz
-        # mv custom_pages docs
-        # rm tmp_ci_leaderboard.tar.gz
-        # gh release delete tmp_ci_leaderboard -y --cleanup-tag
+        tar -xvf tmp_ci_leaderboard.tar.gz
+        mv custom_pages docs
+        rm tmp_ci_leaderboard.tar.gz
+        gh release delete tmp_ci_leaderboard -y --cleanup-tag
 
     - name: Install dependencies
       run: |
