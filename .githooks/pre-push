@@ -18,6 +18,7 @@ python leaderboard.py || { exit_prog "Leaderboard generation failed"; }
 
 cd ..
 tar -czf custom_pages.tar.gz custom_pages
+exit 1
 
 # make github temp release
 gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { exit_prog "Creation failed"; }
