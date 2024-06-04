@@ -1,11 +1,6 @@
 name: documentation
 
-on:
-  workflow_dispatch:
-    inputs:
-      leaderboard:
-        description: "Leaderboard content"
-        required: true
+on: [push]
 
 permissions:
   contents: write
@@ -23,7 +18,6 @@ jobs:
         pip install git+https://github.com/patrick-kidger/torchcubicspline.git
         pip install -e .
         pip install sphinx furo sphinx-autoapi sphinxcontrib-details-directive
-        echo ${{ github.event.inputs.leaderboard }} > docs/leaderboard.rst
 
     - name: Set up GitHub CLI
       uses: actions/setup-gh-cli@v2
