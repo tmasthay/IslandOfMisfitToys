@@ -1,11 +1,17 @@
 #!/bin/bash
 
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
+RELEASE_TAG="tmp_ci_leaderboard"
+
 cd "$ISL"
+cd docs/meta
+python leaderboard.py || echo "Leaderboard creation failed" && exit 1
+
 rm -rf leaderboard
+rm -f leaderboard.tar.gz
 mkdir -p leaderboard/images
-mkdir -p leaderboard/meta
-cp $(find . -name "*.gif" -exec cp {} leaderboard/images/ \;)
-cp docs/meta/leaderboard.yaml leaderboard/meta/leaderboard.yaml
+find . -name "*.gif" -exec cp {} leaderboard/images/ \;
+# cp docs/meta/leaderboard.yaml leaderboard/meta/leaderboard.yaml
 
 # current_branch=$(git symbolic-ref --short HEAD)
 # gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
@@ -14,10 +20,10 @@ cp docs/meta/leaderboard.yaml leaderboard/meta/leaderboard.yaml
 tar -czf leaderboard.tar.gz leaderboard
 
 # make github temp release
-gh release create -t "Leaderboard" -n "Leaderboard" -F leaderboard/meta/leaderboard.yaml -a leaderboard.tar.gz
+gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || echo "Release already exists" && exit 1
+gh release upload "$RELEASE_TAG" leaderboard.tar.gz || echo "Upload failed" && exit 1
 
 # cleanup
 rm leaderboard.tar.gz
 rm -rf leaderboard
-
 exit $?

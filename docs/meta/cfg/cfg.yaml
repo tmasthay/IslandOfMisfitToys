@@ -1,0 +1,10 @@
+root: ../../misfit_toys
+param: vp
+score: l2_diff
+leaderboard_size: 100
+extensions: [gif, jpg, png]
+rst:
+  table:
+    title: Leaderboard
+    widths: 25 25 50
+    header-rows: 1

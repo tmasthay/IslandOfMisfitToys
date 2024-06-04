@@ -31,7 +31,7 @@ from misfit_toys.utils import (
     setup,
 )
 
-opts = ['shape']
+opts = 'all'
 set_print_options(
     precision=3,
     sci_mode=True,
@@ -227,6 +227,10 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
             c.data.preprocess.addons, relax=False
         )
         c.data.preprocess.addons = apply(c.data.preprocess.addons)
+
+    c.data.postprocess = resolve(c.data.postprocess, relax=False)
+    # c.data.postprocess = apply(c.data.postprocess)
+
     return c
 
 
@@ -359,19 +363,25 @@ def main(cfg: DictConfig) -> None:
         d.obs_data = torch.load(os.path.join(c.data.path, "obs_data.pt"))
         return d
 
+    # this is inefficient, but it was a quick fix to a bug from a long time ago.
+    #     A simple if condition should make reading data twice unnecessary.
     data = get_data()
     if not data or c.train.retrain:
+        training_start = time()
         n_gpus = torch.cuda.device_count()
         run(n_gpus, c)
+        print(f"Training alone took {time() - training_start:.2f} seconds.")
         data = get_data()
 
+    vp_true = torch.load(os.path.join(c.data.path, "vp_true.pt"))
+    data.vp_true = vp_true
+    c.data.postprocess.__call__(data, path=hydra_out())
     c.plt = resolve(c.plt, relax=False)
     iter = bool_slice(*data.vp.shape, **c.plt.vp.iter)
     fig, axes = plt.subplots(*c.plt.vp.sub.shape, **c.plt.vp.sub.kw)
     if c.plt.vp.sub.adjust:
         plt.subplots_adjust(**c.plt.vp.sub.adjust)
 
-    vp_true = torch.load(os.path.join(c.data.path, "vp_true.pt"))
     c.vp_true = vp_true.unsqueeze(0)
     c.rel_diff = data.vp - c.vp_true
     c.rel_diff = c.rel_diff / torch.abs(c.vp_true) * 100.0
