@@ -20,8 +20,8 @@ find . -name "*.gif" -exec cp {} leaderboard/images/ \;
 tar -czf leaderboard.tar.gz leaderboard
 
 # make github temp release
-gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || (echo "Release already exists" && exit 1)
-gh release upload "$RELEASE_TAG" leaderboard.tar.gz || (echo "Upload failed" && exit 1)
+gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { echo "Release already exists"; exit 1; }
+gh release upload "$RELEASE_TAG" leaderboard.tar.gz || { echo "Upload failed"; exit 1; }
 
 # cleanup
 rm leaderboard.tar.gz
