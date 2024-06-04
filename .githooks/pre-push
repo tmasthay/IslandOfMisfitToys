@@ -21,10 +21,9 @@ tar -czf custom_pages.tar.gz custom_pages
 
 # make github temp release
 gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { exit_prog "Creation failed"; }
-gh release upload "$RELEASE_TAG" leaderboard.tar.gz || { exit_prog "Upload failed"; }
+gh release upload "$RELEASE_TAG" custom_pages.tar.gz || { exit_prog "Upload failed"; }
 
 # cleanup
-rm leaderboard.tar.gz
-rm -rf leaderboard
+rm custom_pages.tar.gz
 
 exit_prog ""
