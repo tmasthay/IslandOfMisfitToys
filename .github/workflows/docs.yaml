@@ -15,13 +15,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
     - uses: actions/setup-python@v3
+
     - name: Install dependencies
       run: |
         pip install git+https://github.com/patrick-kidger/torchcubicspline.git
         pip install -e .
         pip install sphinx furo sphinx-autoapi sphinxcontrib-details-directive
         echo ${{ github.event.inputs.leaderboard }} > docs/leaderboard.rst
+
+    - name: Set up GitHub CLI
+      uses: actions/setup-gh-cli@v2
+
+    - name: Authenticate GitHub CLI
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh auth login --with-token
+
+    - name: Download tmp leaderboard release and then delete it
+      run: |
+        gh release download tmp_ci_leaderboard
+        tar -xvf tmp_ci_leaderboard.tar.gz
+        mv custom_pages docs
+        rm tmp_ci_leaderboard.tar.gz
+        gh release delete tmp_ci_leaderboard -y --cleanup-tag
 
     - name: Sphinx build
       run: |
@@ -36,22 +54,3 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: docs/_build/html
         force_orphan: true
-
-# name: documentation
-
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       leaderboard:
-#         description: "Leaderboard content"
-#         required: true
-
-# permissions:
-#   contents: write
-
-# jobs:
-#   echo:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Echo leaderboard content
-#         run: echo ${{ github.event.inputs.leaderboard }}

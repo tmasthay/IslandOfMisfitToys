@@ -7,7 +7,7 @@ Welcome to Island of Misfit Toys's documentation!
 =================================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    custom_pages/leaderboard/index
