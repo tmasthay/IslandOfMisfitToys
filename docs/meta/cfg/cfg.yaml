@@ -3,9 +3,15 @@ param: vp
 score: l2_diff
 leaderboard_size: 100
 extensions: [gif, jpg, png]
+folder_name: leaderboard
 rst:
   table:
     title: Leaderboard
     widths: 25 25 50
     header-rows: 1
   dest: ../custom_pages
+  img:
+    order:
+      vp:
+      - vp
+      - random_traces

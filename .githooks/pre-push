@@ -1,29 +1,30 @@
 #!/bin/bash
 
+CURR_PWD=$(pwd)
+echo $CURR_PWD
+
+exit_prog(){
+    echo "$1"
+    cd $CURR_PWD
+    exit 1
+}
+
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
 RELEASE_TAG="tmp_ci_leaderboard"
 
 cd "$ISL"
 cd docs/meta
-python leaderboard.py || { echo "Leaderboard creation failed"; exit 1; }
+python leaderboard.py || { exit_prog "Leaderboard generation failed"; }
 
-rm -rf leaderboard
-rm -f leaderboard.tar.gz
-mkdir -p leaderboard/images
-find . -name "*.gif" -exec cp {} leaderboard/images/ \;
-# cp docs/meta/leaderboard.yaml leaderboard/meta/leaderboard.yaml
-
-# current_branch=$(git symbolic-ref --short HEAD)
-# gh workflow run docs.yaml --ref "$current_branch" --field leaderboard="$(cat docs/meta/leaderboard.yaml)"
-
-# tar up the leaderboard
-tar -czf leaderboard.tar.gz leaderboard
+cd ..
+tar -czf custom_pages.tar.gz custom_pages
 
 # make github temp release
-# gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { echo "Release already exists"; exit 1; }
-# gh release upload "$RELEASE_TAG" leaderboard.tar.gz || { echo "Upload failed"; exit 1; }
+gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { exit_prog "Creation failed"; }
+gh release upload "$RELEASE_TAG" leaderboard.tar.gz || { exit_prog "Upload failed"; }
 
 # cleanup
 rm leaderboard.tar.gz
 rm -rf leaderboard
-exit $?
+
+exit_prog ""
