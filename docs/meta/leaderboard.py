@@ -5,6 +5,26 @@ import hydra
 from omegaconf import DictConfig
 
 
+def make_index_rst(leaderboard_dir, param):
+    index_path = os.path.join(leaderboard_dir, 'index.rst')
+    directories = [
+        d
+        for d in os.listdir(leaderboard_dir)
+        if os.path.isdir(os.path.join(leaderboard_dir, d))
+    ]
+
+    with open(index_path, 'w') as file:
+        file.write("Leaderboard\n===========\n\n")
+        file.write(
+            "Welcome to the Leaderboard. Below are the links to the ranking"
+            " details for each entry.\n\n"
+        )
+
+        for dir in sorted(directories, key=lambda x: int(x)):
+            ranking_path = os.path.join(dir, f'{param}.rst')
+            file.write(f"* `{dir} <{ranking_path}>`_\n")
+
+
 def sco(cmd):
     return co(cmd, shell=True).decode().strip()
 
@@ -28,14 +48,12 @@ def main(c: DictConfig):
     ]
     for line in lines:
         path = line['path']
+        line['img_files'] = []
         for ext in c.extensions:
-            line['images'].extend(
-                [
-                    e
-                    for e in sco(f'find {path} -name "*.{ext}"').split('\n')
-                    if e
-                ]
-            )
+            cmd = f'find {path} -name "*.{ext}"'
+            line['img_files'].extend([e for e in sco(cmd).split('\n') if e])
+
+        # Read git and config files
         with open(os.path.join(path, 'git_info.txt'), 'r') as f:
             git_info = f.read().strip()
             sections = git_info.split(80 * '*')[:-1]
@@ -44,13 +62,54 @@ def main(c: DictConfig):
                 'diff': sections[1].strip(),
             }
 
-        for hydra_files in ['config', 'overrides', 'hydra']:
+        for hydra_file in ['config', 'overrides', 'hydra']:
             with open(
-                os.path.join(path, '.hydra', f'{hydra_files}.yaml'), 'r'
+                os.path.join(path, '.hydra', f'{hydra_file}.yaml'), 'r'
             ) as f:
-                line[hydra_files] = f.read().strip()
+                line[hydra_file] = f.read().strip()
+
     lines.sort(key=lambda x: float(x['score']), reverse=False)
+
+    rst_root = 'leaderboard'
+    os.system(f'rm -rf {rst_root}')
+    os.makedirs(rst_root, exist_ok=False)
+    for rank, line in enumerate(lines):
+        curr_root = os.path.join(rst_root, f"{rank+1}")
+        os.makedirs(curr_root, exist_ok=False)
+        os.makedirs(os.path.join(curr_root, 'figs'), exist_ok=False)
+        rst_path = os.path.join(curr_root, f"{c.param}.rst")
+        with open(rst_path, 'w') as rst_file:
+            rst_file.write(f"Score: {line['score']}\n")
+            rst_file.write(f"Run Path: {line['path']}\n")
+            rst_file.write(f"{line['git_info']['short']}\n")
+            rst_file.write("`Full Git Diff <full_git_diff.rst>`_\n")
+            rst_file.write(f"overrides.yaml\n{line['overrides']}\n")
+            rst_file.write("`Config YAML <config.rst>`_\n")
+            rst_file.write("`Hydra YAML <hydra.rst>`_\n")
+
+            # Write images
+            rst_file.write("\nImages\n======\n")
+            for img in line['img_files']:
+                # copy the file to local figs directory
+                os.system(f"cp {img} {curr_root}/figs/")
+                rst_file.write(
+                    f".. image:: figs/{os.path.basename(img)}\n   :align:"
+                    " center\n\n"
+                )
+
+        # Write Git diff in a separate file
+        with open(os.path.join(path, 'full_git_diff.rst'), 'w') as diff_file:
+            diff_file.write(line['git_info']['diff'])
+        for filename in ['config', 'hydra']:
+            with open(
+                os.path.join(curr_root, f'{filename}.rst'), 'w'
+            ) as curr_file:
+                s = '    ' + '\n    '.join(line[filename].split('\n'))
+                rst_heading = '.. code-block:: yaml\n\n'
+                curr_file.write(rst_heading + s)
     # print(lines)
+    make_index_rst(rst_root, param=c.param)
+    os.system(f'rm -rf {c.rst.dest}/{rst_root}; mv {rst_root} {c.rst.dest}')
 
 
 if __name__ == "__main__":
