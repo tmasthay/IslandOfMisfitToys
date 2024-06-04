@@ -30,10 +30,10 @@ jobs:
     - name: Download tmp leaderboard release and then delete it
       run: |
         gh release download tmp_ci_leaderboard
-        tar -xvf tmp_ci_leaderboard.tar.gz
-        mv custom_pages docs
-        rm tmp_ci_leaderboard.tar.gz
-        gh release delete tmp_ci_leaderboard -y --cleanup-tag
+        # tar -xvf tmp_ci_leaderboard.tar.gz
+        # mv custom_pages docs
+        # rm tmp_ci_leaderboard.tar.gz
+        # gh release delete tmp_ci_leaderboard -y --cleanup-tag
 
     - name: Sphinx build
       run: |
