@@ -1,4 +1,10 @@
-root: ../../misfit_toys
+git:
+  url: git@github.com:tmasthay/IslandOfMisfitToys.git
+  branch: gh-pages
+paths:
+  src: ../../misfit_toys
+  prev_leaders: IslandOfMisfitToys/_sources/custom_pages/leaderboard
+  final: _leaderboard
 param: vp
 score: l2_diff
 leaderboard_size: 100

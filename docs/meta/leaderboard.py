@@ -1,8 +1,16 @@
 import os
+import re
+import sys
 from subprocess import check_output as co
 
 import hydra
 from omegaconf import DictConfig
+
+
+def dir_up(path, n=1):
+    for _ in range(n):
+        path = os.path.dirname(path)
+    return path
 
 
 def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
@@ -10,13 +18,61 @@ def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
     return istr + ('\n' + istr).join(s.split('\n'))
 
 
-def sco(cmd):
+def sco(cmd, verbose=True):
+    cmd = ' '.join(cmd.split())
+    if verbose:
+        print(cmd, flush=True)
     return co(cmd, shell=True).decode().strip()
+
+
+def centralize_info(c: DictConfig):
+    p = c.paths
+
+    def get_paths(root):
+        lines = sco(f"""
+                find {root} -name "{c.param}_compare.yaml"
+                    -exec grep -H "{c.score}" {{}} \; |
+                awk -F':' '{{print $3,$1}}' |
+                head -n {c.leaderboard_size} |
+                sort -k1,1n
+                """).strip().split('\n')
+        lines = [e.strip() for e in lines]
+        lines = [e.split() for e in lines if e]
+        d = [
+            {
+                'score': e[0],
+                'path': e[1],
+                'target_path': e[1].replace(root, p.final),
+            }
+            for e in lines
+        ]
+        return d
+
+    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
+    dirs = get_paths(p.src)
+    dirs.extend(get_paths(p.prev_leaders))
+
+    dirs.sort(key=lambda x: (x["target_path"], float(x["score"])), reverse=True)
+
+    final_size = min(c.leaderboard_size, len(dirs))
+    dirs = dirs[:final_size]
+
+    for d in dirs:
+        lcl_dir = dir_up(d['target_path'], 3)
+        repo_dir = dir_up(d['path'], 2)
+        os.makedirs(lcl_dir, exist_ok=True)
+        if os.path.exists(d['target_path']):
+            raise ValueError(
+                f'File {d["target_path"]} already exists...clear {p.final} and'
+                ' re-run'
+            )
+        os.system(f'cp -r {repo_dir} {lcl_dir}')
+    print(f'Written {final_size} files to {p.final}')
 
 
 def extract_info(c: DictConfig):
     lines = sco(
-        f'find {c.root} -name "{c.param}_compare.yaml" -exec grep -H'
+        f'find {c.paths.final} -name "{c.param}_compare.yaml" -exec grep -H'
         f' "{c.score}" {{}} \; | awk -F\':\' \'{{print $3,$1}}\' | head -n'
         f' {c.leaderboard_size}'
     ).split('\n')
@@ -175,6 +231,7 @@ def write_yaml_rst_block_file(*, c, rank, line, filename):
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(c: DictConfig):
+    centralize_info(c)
     lines = extract_info(c)
     setup_folders(name=c.folder_name, size=len(lines))
 
@@ -187,7 +244,8 @@ def main(c: DictConfig):
             )
 
     # print(lines)
-    make_index_rst(c.folder_name, param=c.param)
+    os.makedirs(c.rst.dest, exist_ok=True)
+    make_index_rst(c.rst.dest, param=c.param)
     os.system(
         f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
     )
