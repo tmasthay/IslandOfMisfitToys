@@ -7,7 +7,9 @@ paths:
   src: ../../misfit_toys
   final: _leaderboard
   prev_leaders: IslandOfMisfitToys/${.final}
-param: vp
+params:
+- vp
+- src_amp_y
 score: l2_diff
 leaderboard_size: 100
 extensions: [gif, jpg, png]

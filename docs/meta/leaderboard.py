@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from os.path import join as pjoin
 from subprocess import check_output as co
 
 import hydra
@@ -26,15 +27,13 @@ def sco(cmd, verbose=False):
     return co(cmd, shell=True).decode().strip()
 
 
-def centralize_info(c: DictConfig):
-    p = c.paths
-
+def centralize_info(*, paths, param, score, leaderboard_size):
     def get_paths(root):
         lines = sco(f"""
-                find {root} -name "{c.param}_compare.yaml"
-                    -exec grep -H "{c.score}" {{}} \; |
+                find {root} -name "{param}_compare.yaml"
+                    -exec grep -H "{score}" {{}} \; |
                 awk -F':' '{{print $3,$1}}' |
-                head -n {c.leaderboard_size} |
+                head -n {leaderboard_size} |
                 sort -k1,1n
                 """).strip().split('\n')
         lines = [e.strip() for e in lines]
@@ -43,16 +42,14 @@ def centralize_info(c: DictConfig):
             {
                 'score': e[0],
                 'path': e[1],
-                'target_path': e[1].replace(root, p.final),
+                'target_path': e[1].replace(root, pjoin(paths.final, param)),
             }
             for e in lines
         ]
         return d
 
-    os.system(f'rm -rf {c.git.repo_name}')
-    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
-    init_dirs = get_paths(p.src)
-    init_dirs.extend(get_paths(p.prev_leaders))
+    init_dirs = get_paths(paths.src)
+    init_dirs.extend(get_paths(paths.prev_leaders))
 
     init_dirs.sort(
         key=lambda x: (x["target_path"], float(x["score"])), reverse=True
@@ -70,7 +67,7 @@ def centralize_info(c: DictConfig):
         else:
             dirs.append(init_dirs[i])
 
-    final_size = min(c.leaderboard_size, len(dirs))
+    final_size = min(leaderboard_size, len(dirs))
     dirs = dirs[:final_size]
 
     for d in dirs:
@@ -79,11 +76,11 @@ def centralize_info(c: DictConfig):
         os.makedirs(lcl_dir, exist_ok=True)
         if os.path.exists(d['target_path']):
             raise ValueError(
-                f'File {d["target_path"]} already exists...clear {p.final} and'
-                ' re-run'
+                f'File {d["target_path"]} already exists...clear'
+                f' {paths.final} and re-run'
             )
         os.system(f'cp -r {repo_dir} {lcl_dir}')
-    print(f'Written {final_size} files to {p.final}')
+    print(f'Written {final_size} files to {paths.final}')
 
 
 def extract_info(
@@ -135,7 +132,7 @@ def extract_info(
         line['img_files'].sort(key=sorter())
 
         # Read git and config files
-        with open(os.path.join(path, 'git_info.txt'), 'r') as f:
+        with open(pjoin(path, 'git_info.txt'), 'r') as f:
             git_info = f.read().strip()
             sections = git_info.split(80 * '*')[:-1]
             line['git_info'] = {
@@ -144,26 +141,24 @@ def extract_info(
             }
 
         for hydra_file in ['config', 'overrides', 'hydra']:
-            with open(
-                os.path.join(path, '.hydra', f'{hydra_file}.yaml'), 'r'
-            ) as f:
+            with open(pjoin(path, '.hydra', f'{hydra_file}.yaml'), 'r') as f:
                 line[hydra_file] = f.read().strip()
 
     lines.sort(key=lambda x: float(x['score']), reverse=False)
     return lines
 
 
-def make_index_rst(leaderboard_dir, param):
-    index_path = os.path.join(leaderboard_dir, 'index.rst')
+def make_param_rst(leaderboard_dir, param):
+    index_path = pjoin(leaderboard_dir, 'index.rst')
     directories = [
         d
         for d in os.listdir(leaderboard_dir)
-        if os.path.isdir(os.path.join(leaderboard_dir, d))
+        if os.path.isdir(pjoin(leaderboard_dir, d))
     ]
 
     with open(index_path, 'w') as file:
-        s = """
-Leaderboard
+        s = f"""
+{param}
 ===========
 
 .. toctree::
@@ -176,19 +171,36 @@ Leaderboard
         file.write(s)
 
 
+def make_index_rst(*, root, params):
+    index_path = pjoin(root, 'index.rst')
+
+    with open(index_path, 'w') as file:
+        s = """
+Leaderboard
+===========
+
+.. toctree::
+    :maxdepth: 1
+
+""".lstrip()
+
+        for param in params:
+            s += f"    {param}/index\n"
+        file.write(s)
+
+
 def setup_folders(*, name, size):
-    rst_root = 'leaderboard'
-    os.system(f'rm -rf {rst_root}')
-    os.makedirs(rst_root, exist_ok=False)
+    os.system(f'rm -rf {name}')
+    os.makedirs(name, exist_ok=False)
     for i in range(size):
-        curr_root = os.path.join(rst_root, f"{i+1}")
+        curr_root = pjoin(name, f"{i+1}")
         os.makedirs(curr_root, exist_ok=False)
-        os.makedirs(os.path.join(curr_root, 'figs'), exist_ok=False)
+        os.makedirs(pjoin(curr_root, 'figs'), exist_ok=False)
 
 
-def write_param_file(*, c, rank, line):
-    curr_root = os.path.join(c.folder_name, f"{rank+1}")
-    rst_path = os.path.join(curr_root, f"{c.param}.rst")
+def write_param_file(*, folder_name, param, rank, line):
+    curr_root = pjoin(folder_name, f"{rank+1}")
+    rst_path = pjoin(curr_root, f"{param}.rst")
     with open(rst_path, 'w') as rst_file:
         # rst_file.write(f"Score: {line['score']}\n")
         # rst_file.write(f"Run Path: {line['path']}\n")
@@ -232,18 +244,18 @@ Images
         rst_file.write(s)
 
 
-def write_git_diff_file(*, c, rank, line):
-    curr_root = os.path.join(c.folder_name, f"{rank+1}")
-    with open(os.path.join(curr_root, 'full_git_diff.rst'), 'w') as diff_file:
+def write_git_diff_file(*, path, rank, line):
+    curr_root = pjoin(path, f"{rank+1}")
+    with open(pjoin(curr_root, 'full_git_diff.rst'), 'w') as diff_file:
         title = 'Full Git Diff'
         diff_file.write(f"{title}\n{'=' * len(title)}\n\n")
         diff_file.write('.. code-block:: \n\n')
         diff_file.write(idt_lines(line['git_info']['diff']))
 
 
-def write_yaml_rst_block_file(*, c, rank, line, filename):
-    curr_root = os.path.join(c.folder_name, f"{rank+1}")
-    with open(os.path.join(curr_root, f'{filename}.rst'), 'w') as curr_file:
+def write_yaml_rst_block_file(*, path, rank, line, filename):
+    curr_root = pjoin(path, f"{rank+1}")
+    with open(pjoin(curr_root, f'{filename}.rst'), 'w') as curr_file:
         s = idt_lines(line[filename])
         rst_heading = (
             f"{filename.capitalize().replace('_', ' ')}\n"
@@ -256,28 +268,42 @@ def write_yaml_rst_block_file(*, c, rank, line, filename):
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig):
     c = convert_dictconfig(cfg, self_ref_resolve=False, mutable=False)
-    centralize_info(c)
-    lines = extract_info(
-        path=c.paths.final,
-        param=c.param,
-        score=c.score,
-        leaderboard_size=c.leaderboard_size,
-        order=c.rst.img.order,
-        extensions=c.extensions,
-    )
-    setup_folders(name=c.folder_name, size=len(lines))
-
-    for rank, line in enumerate(lines):
-        write_param_file(c=c, rank=rank, line=line)
-        write_git_diff_file(c=c, rank=rank, line=line)
-        for filename in ['config', 'hydra', 'overrides']:
-            write_yaml_rst_block_file(
-                c=c, rank=rank, line=line, filename=filename
-            )
-
-    # print(lines)
+    os.system(f'rm -rf {c.git.repo_name}')
+    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
     os.makedirs(c.rst.dest, exist_ok=True)
-    make_index_rst(c.folder_name, param=c.param)
+
+    for param in c.params:
+        curr_fold = pjoin(c.folder_name, param)
+        centralize_info(
+            paths=c.paths,
+            param=param,
+            score=c.score,
+            leaderboard_size=c.leaderboard_size,
+        )
+        lines = extract_info(
+            path=c.paths.final,
+            param=param,
+            score=c.score,
+            leaderboard_size=c.leaderboard_size,
+            order=c.rst.img.order,
+            extensions=c.extensions,
+        )
+        setup_folders(name=curr_fold, size=len(lines))
+
+        for rank, line in enumerate(lines):
+            write_param_file(
+                folder_name=curr_fold, param=param, rank=rank, line=line
+            )
+            write_git_diff_file(path=curr_fold, rank=rank, line=line)
+            for filename in ['config', 'hydra', 'overrides']:
+                write_yaml_rst_block_file(
+                    path=curr_fold, rank=rank, line=line, filename=filename
+                )
+
+        # print(lines)
+        make_param_rst(curr_fold, param=param)
+
+    make_index_rst(root=c.folder_name, params=c.params)
     os.system(
         f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
     )
