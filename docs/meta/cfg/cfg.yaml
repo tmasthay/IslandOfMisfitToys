@@ -11,7 +11,7 @@ params:
 - vp
 - src_amp_y
 score: l2_diff
-leaderboard_size: 100
+leaderboard_size: 10
 extensions: [gif, jpg, png]
 folder_name: leaderboard
 rst:
