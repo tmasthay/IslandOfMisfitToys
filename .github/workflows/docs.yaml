@@ -22,10 +22,9 @@ jobs:
         gh release download tmp_ci_leaderboard
         tar -xvf custom_pages.tar.gz
         mv custom_pages docs
-        mkdir -p _build/html
+        mkdir -p docs/_build/html
         mv docs/custom_pages/_leaderboard docs/_build/html
         rm custom_pages.tar.gz
-        gh release delete tmp_ci_leaderboard -y --cleanup-tag
 
     - name: Install dependencies
       run: |
@@ -55,3 +54,8 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: docs/_build/html
         force_orphan: true
+
+    - name: Cleanup
+      if: always()
+      run: |
+        gh release delete tmp_ci_leaderboard -y --cleanup-tag
