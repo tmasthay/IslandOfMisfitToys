@@ -4,6 +4,7 @@ This package is here beta-testing features. It is not intended for production us
 from . import (
     data,
     helpers,
+    l1,
     loss,
     main,
     opt,
@@ -14,9 +15,11 @@ from . import (
     renorm,
     sobolev,
     steps,
+    w1,
 )
 
 __all__ = [
+    'l1',
     'prob',
     'data',
     'optimizers',
@@ -28,5 +31,6 @@ __all__ = [
     'postprocess',
     'loss',
     'main',
+    'w1',
     'renorm',
 ]
