@@ -46,13 +46,28 @@ def centralize_info(c: DictConfig):
             }
             for e in lines
         ]
+        input(d)
         return d
 
     os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
-    dirs = get_paths(p.src)
-    dirs.extend(get_paths(p.prev_leaders))
+    init_dirs = get_paths(p.src)
+    init_dirs.extend(get_paths(p.prev_leaders))
 
-    dirs.sort(key=lambda x: (x["target_path"], float(x["score"])), reverse=True)
+    init_dirs.sort(
+        key=lambda x: (x["target_path"], float(x["score"])), reverse=True
+    )
+
+    dirs = []
+    curr_target = None
+    for i in range(len(init_dirs)):
+        prev_target = curr_target
+        curr_target = init_dirs[i]['target_path']
+        if prev_target == curr_target:
+            consider = [init_dirs[i - 1], init_dirs[i]]
+            consider.sort(key=lambda x: float(x['score']))
+            dirs[-1] = consider[0]
+        else:
+            dirs.append(init_dirs[i])
 
     final_size = min(c.leaderboard_size, len(dirs))
     dirs = dirs[:final_size]
