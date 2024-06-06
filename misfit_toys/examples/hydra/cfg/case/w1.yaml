@@ -3,6 +3,7 @@ defaults:
 - globals
 - data: data
 - data/preprocess: constrained_vel
+- data/postprocess: simple
 - plt: plt
 - train: train
 - train/loss: w1
