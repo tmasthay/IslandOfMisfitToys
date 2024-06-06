@@ -5,6 +5,10 @@ on: [push]
 permissions:
   contents: write
 
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docs:
     runs-on: ubuntu-latest
@@ -13,7 +17,7 @@ jobs:
 
     - uses: actions/setup-python@v3
 
-    - name: Download tmp leaderboard release and then delete it
+    - name: Download tmp leaderboard release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -56,6 +60,8 @@ jobs:
         force_orphan: true
 
     - name: Cleanup
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       if: always()
       run: |
         gh release delete tmp_ci_leaderboard -y --cleanup-tag
