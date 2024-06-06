@@ -60,8 +60,8 @@ jobs:
         force_orphan: true
 
     - name: Cleanup
+      if: always()
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: always()
       run: |
         gh release delete tmp_ci_leaderboard -y --cleanup-tag
