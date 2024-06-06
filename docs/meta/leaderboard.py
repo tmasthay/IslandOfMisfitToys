@@ -46,7 +46,6 @@ def centralize_info(c: DictConfig):
             }
             for e in lines
         ]
-        input(d)
         return d
 
     os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
