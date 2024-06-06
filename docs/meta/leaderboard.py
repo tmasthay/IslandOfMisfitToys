@@ -4,6 +4,7 @@ import sys
 from subprocess import check_output as co
 
 import hydra
+from mh.core import convert_dictconfig
 from omegaconf import DictConfig
 
 
@@ -18,7 +19,7 @@ def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
     return istr + ('\n' + istr).join(s.split('\n'))
 
 
-def sco(cmd, verbose=True):
+def sco(cmd, verbose=False):
     cmd = ' '.join(cmd.split())
     if verbose:
         print(cmd, flush=True)
@@ -48,6 +49,7 @@ def centralize_info(c: DictConfig):
         ]
         return d
 
+    os.system(f'rm -rf {c.git.repo_name}')
     os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
     init_dirs = get_paths(p.src)
     init_dirs.extend(get_paths(p.prev_leaders))
@@ -84,17 +86,25 @@ def centralize_info(c: DictConfig):
     print(f'Written {final_size} files to {p.final}')
 
 
-def extract_info(c: DictConfig):
+def extract_info(
+    *,
+    path: str,
+    param: str,
+    score: str,
+    leaderboard_size: int,
+    order: list,
+    extensions: list,
+):
     lines = sco(
-        f'find {c.paths.final} -name "{c.param}_compare.yaml" -exec grep -H'
-        f' "{c.score}" {{}} \; | awk -F\':\' \'{{print $3,$1}}\' | head -n'
-        f' {c.leaderboard_size}'
+        f'find {path} -name "{param}_compare.yaml" -exec grep -H'
+        f' "{score}" {{}} \; | awk -F\':\' \'{{print $3,$1}}\' | head -n'
+        f' {leaderboard_size}'
     ).split('\n')
     lines = [e.strip().split() for e in lines]
     lines = [
         {
             'score': e[0],
-            'path': e[1].replace(f"/meta/{c.param}_compare.yaml", ""),
+            'path': e[1].replace(f"/meta/{param}_compare.yaml", ""),
             'images': [],
         }
         for e in lines
@@ -103,12 +113,12 @@ def extract_info(c: DictConfig):
     for line in lines:
         path = line['path']
         line['img_files'] = []
-        for ext in c.extensions:
+        for ext in extensions:
             cmd = f'find {path} -name "*.{ext}"'
             line['img_files'].extend([e for e in sco(cmd).split('\n') if e])
 
         def sorter():
-            d = c.rst.img.order.get(c.param, None)
+            d = order.get(param, None)
             if d is None:
                 return lambda v: 0
             else:
@@ -244,9 +254,17 @@ def write_yaml_rst_block_file(*, c, rank, line, filename):
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
-def main(c: DictConfig):
+def main(cfg: DictConfig):
+    c = convert_dictconfig(cfg, self_ref_resolve=False, mutable=False)
     centralize_info(c)
-    lines = extract_info(c)
+    lines = extract_info(
+        path=c.paths.final,
+        param=c.param,
+        score=c.score,
+        leaderboard_size=c.leaderboard_size,
+        order=c.rst.img.order,
+        extensions=c.extensions,
+    )
     setup_folders(name=c.folder_name, size=len(lines))
 
     for rank, line in enumerate(lines):
