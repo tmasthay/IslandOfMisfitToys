@@ -249,7 +249,9 @@ def main(c: DictConfig):
     os.system(
         f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
     )
-    os.system(f'mv {c.paths.final} {c.rst.dest}')
+    os.system(
+        f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
+    )
 
 
 if __name__ == "__main__":
