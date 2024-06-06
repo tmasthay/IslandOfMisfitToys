@@ -27,7 +27,7 @@ jobs:
       with:
         commit_message: ${{ github.event.head_commit.message }}
       run: |
-        if [[ $commit_message == *"[skip end to end tests]"* ]]; then
+        if [[ $commit_message == *"[skip ee]"* ]]; then
           echo "::set-output name=skip_e2e_tests::true"
         else
           echo "::set-output name=skip_e2e_tests::false"
