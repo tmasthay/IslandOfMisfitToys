@@ -19,15 +19,13 @@ concurrency:
 jobs:
   check-commit-msg:
     runs-on: ubuntu-latest
-    outputs: ${{ steps.check_commit_msg.outputs }}
+    outputs:
+      skip_e2e_tests: ${{ steps.check_commit_msg.outputs.skip_e2e_tests }}
     steps:
     - name: Check commit message
       id: check_commit_msg
-      uses: tmasthay/commit-msg-action@v1.0.0
-      with:
-        commit_message: ${{ github.event.head_commit.message }}
       run: |
-        if [[ $commit_message == *"[skip ee]"* ]]; then
+        if [[ "${{ github.event.head_commit.message }}" == *"[skip end to end tests]"* ]]; then
           echo "::set-output name=skip_e2e_tests::true"
         else
           echo "::set-output name=skip_e2e_tests::false"
@@ -35,7 +33,7 @@ jobs:
 
   setup_dummy_repo:
     runs-on: ubuntu-latest
-    if: env.skip_e2e_tests == 'false'
+    if: needs.check-commit-msg.outputs.skip_e2e_tests == 'false'
     timeout-minutes: 5
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
@@ -63,6 +61,7 @@ jobs:
   setup_sandbox:
     runs-on: ubuntu-latest
     needs: setup_dummy_repo
+    if: needs.check-commit-msg.outputs.skip_e2e_tests == 'false'
     timeout-minutes: 10
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
@@ -87,6 +86,7 @@ jobs:
   run_pytest:
     runs-on: ubuntu-latest
     needs: setup_sandbox
+    if: needs.check-commit-msg.outputs.skip_e2e_tests == 'false'
     timeout-minutes: 20
     steps:
     - name: Run pytest and capture results to a temporary file
