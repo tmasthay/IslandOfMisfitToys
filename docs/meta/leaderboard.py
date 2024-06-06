@@ -200,7 +200,7 @@ def setup_folders(*, name, size):
 
 def write_param_file(*, folder_name, param, rank, line):
     curr_root = pjoin(folder_name, f"{rank+1}")
-    rst_path = pjoin(curr_root, f"{param}.rst")
+    rst_path = pjoin(curr_root, "index.rst")
     with open(rst_path, 'w') as rst_file:
         # rst_file.write(f"Score: {line['score']}\n")
         # rst_file.write(f"Run Path: {line['path']}\n")
