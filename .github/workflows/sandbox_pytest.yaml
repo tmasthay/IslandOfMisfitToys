@@ -1,6 +1,17 @@
 name: GPU Validation and Docs Deployment Workflow
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - main
+    - devel
+    tags-ignore:
+    - tmp_ci_leaderboard
+
+  pull_request:
+    branches:
+    - main
+    - devel
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,24 +24,24 @@ jobs:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Create sandboxed repo
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            mkdir -p ~/.sandbox
-            cd ~/.sandbox
-            rm -rf IslandOfMisfitToys
-            mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
-            git init || { echo "FAIL: Could not initialize git repository."; exit 2;}
-            git remote add origin https://github.com/tmasthay/IslandOfMisfitToys.git
-            git fetch --depth 1 origin ${{ github.sha }} || { echo "FAIL: Could not fetch from remote."; exit 3; }
-            git checkout ${{ github.sha }} || { echo "FAIL: Could not checkout commit."; exit 3; }
+    - name: Create sandboxed repo
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          mkdir -p ~/.sandbox
+          cd ~/.sandbox
+          rm -rf IslandOfMisfitToys
+          mkdir IslandOfMisfitToys && cd IslandOfMisfitToys
+          git init || { echo "FAIL: Could not initialize git repository."; exit 2;}
+          git remote add origin https://github.com/tmasthay/IslandOfMisfitToys.git
+          git fetch --depth 1 origin ${{ github.sha }} || { echo "FAIL: Could not fetch from remote."; exit 3; }
+          git checkout ${{ github.sha }} || { echo "FAIL: Could not checkout commit."; exit 3; }
 
   setup_sandbox:
     runs-on: ubuntu-latest
@@ -40,46 +51,46 @@ jobs:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
     steps:
-      - name: Create sandbox conda environment and pip install requirements
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/.sandbox/IslandOfMisfitToys || { echo "FAIL: Could not change to IslandOfMisfitToys."; exit 2; }
-            cd .github/workflows/scripts || { echo "FAIL: Could not change to scripts directory."; exit 2; }
-            ./setup_sandbox.sh ${{ github.sha }}
-            exit_code=$?
-            if [ $exit_code -ne 0 ]; then
-              echo "FAIL: Could not setup sandbox. exit_code=$exit_code"
-              exit $exit_code
-            fi
+    - name: Create sandbox conda environment and pip install requirements
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd ~/.sandbox/IslandOfMisfitToys || { echo "FAIL: Could not change to IslandOfMisfitToys."; exit 2; }
+          cd .github/workflows/scripts || { echo "FAIL: Could not change to scripts directory."; exit 2; }
+          ./setup_sandbox.sh ${{ github.sha }}
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            echo "FAIL: Could not setup sandbox. exit_code=$exit_code"
+            exit $exit_code
+          fi
 
   run_pytest:
     runs-on: ubuntu-latest
     needs: setup_sandbox
     timeout-minutes: 20
     steps:
-      - name: Run pytest and capture results to a temporary file
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/.sandbox/IslandOfMisfitToys
-            conda activate dw_sandbox
-            cd .github/workflows/scripts/pytest
-            ./validate_gpu.sh ${{ github.sha }} 2>&1 | tee tmp.txt
-            exit_code=${PIPESTATUS[0]}
-            echo "Exit Code: $exit_code"
-            echo "::set-output name=exit_code::$exit_code"
-            PYTEST_RESULTS=$(cat tmp.txt | tail -1)
-            # ensure pytest actually finished with a summary by
-            #     checking for =====...===== at the beginning of the line
-            if [[ $PYTEST_RESULTS =~ ^=+ ]]; then
-              PYTEST_RESULTS="NO_SUMMARY_FOUND"
-            fi
-            rm -rf ~/.sandbox/IslandOfMisfitToys && echo "Deleted sandbox successfully"
-            exit $exit_code
+    - name: Run pytest and capture results to a temporary file
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd ~/.sandbox/IslandOfMisfitToys
+          conda activate dw_sandbox
+          cd .github/workflows/scripts/pytest
+          ./validate_gpu.sh ${{ github.sha }} 2>&1 | tee tmp.txt
+          exit_code=${PIPESTATUS[0]}
+          echo "Exit Code: $exit_code"
+          echo "::set-output name=exit_code::$exit_code"
+          PYTEST_RESULTS=$(cat tmp.txt | tail -1)
+          # ensure pytest actually finished with a summary by
+          #     checking for =====...===== at the beginning of the line
+          if [[ $PYTEST_RESULTS =~ ^=+ ]]; then
+            PYTEST_RESULTS="NO_SUMMARY_FOUND"
+          fi
+          rm -rf ~/.sandbox/IslandOfMisfitToys && echo "Deleted sandbox successfully"
+          exit $exit_code
