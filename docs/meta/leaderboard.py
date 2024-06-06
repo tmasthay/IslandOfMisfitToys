@@ -245,10 +245,11 @@ def main(c: DictConfig):
 
     # print(lines)
     os.makedirs(c.rst.dest, exist_ok=True)
-    make_index_rst(c.rst.dest, param=c.param)
+    make_index_rst(c.folder_name, param=c.param)
     os.system(
         f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
     )
+    os.system(f'mv {c.paths.final} {c.rst.dest}')
 
 
 if __name__ == "__main__":

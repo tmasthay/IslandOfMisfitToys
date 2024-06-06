@@ -22,6 +22,8 @@ jobs:
         gh release download tmp_ci_leaderboard
         tar -xvf custom_pages.tar.gz
         mv custom_pages docs
+        mkdir -p _build/html
+        mv custom_pages/_leaderboard _build/html
         rm custom_pages.tar.gz
         gh release delete tmp_ci_leaderboard -y --cleanup-tag
 
