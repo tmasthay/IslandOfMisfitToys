@@ -5,6 +5,13 @@ exit_prog(){
     exit 1
 }
 
+commit_msg=$(git log -1 --pretty=%B | grep -e "\[skip ci\]" -e "\[skip docs\]" | wc -l)
+
+if [ $commit_msg -gt 0 ]; then
+    echo "Skipping leaderboard generation"
+    exit 0
+fi
+
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
 RELEASE_TAG="tmp_ci_leaderboard"
 
