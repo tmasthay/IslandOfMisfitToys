@@ -16,23 +16,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-commit-msg:
-    runs-on: ubuntu-latest
-    outputs:
-      skip_e2e_tests: ${{ steps.check_commit_msg.outputs.skip_e2e_tests }}
-    steps:
-    - name: Check commit message
-      id: check_commit_msg
-      run: |
-        if [[ "${{ github.event.head_commit.message }}" == *"[skip docs]"* ]]; then
-          echo "::set-output name=skip_docs::true"
-        else
-          echo "::set-output name=skip_docs::false"
-        fi
+  # check-commit-msg:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     skip_e2e_tests: ${{ steps.check_commit_msg.outputs.skip_e2e_tests }}
+  #   steps:
+  #   - name: Check commit message
+  #     id: check_commit_msg
+  #     run: |
+  #       if [[ "${{ github.event.head_commit.message }}" == *"[skip docs]"* ]]; then
+  #         echo "::set-output name=skip_docs::true"
+  #       else
+  #         echo "::set-output name=skip_docs::false"
+  #       fi
 
   docs:
     runs-on: ubuntu-latest
-    if: needs.check-commit-msg.outputs.skip_docs == 'false'
     steps:
     - uses: actions/checkout@v3
 
