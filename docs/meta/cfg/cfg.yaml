@@ -1,3 +1,4 @@
+folder_name: leaderboard
 git:
   user: tmasthay
   repo_name: IslandOfMisfitToys
@@ -5,15 +6,16 @@ git:
   branch: gh-pages
 paths:
   src: ../../misfit_toys
-  final: _leaderboard
+  final: ${..folder_name}
   prev_leaders: IslandOfMisfitToys/${.final}
+  data_dump: case_${..folder_name}
+  meta: meta
 params:
 - vp
 - src_amp_y
 score: l2_diff
 leaderboard_size: 10
 extensions: [gif, jpg, png]
-folder_name: leaderboard
 rst:
   table:
     title: Leaderboard
@@ -25,3 +27,11 @@ rst:
       vp:
       - vp
       - random_traces
+
+  idx_gen:
+    data:
+      regex: ".*/${..paths.data_dump}/(\\d+)$"
+      callback: make_data_page
+
+    default:
+      callback: make_default_idx_page

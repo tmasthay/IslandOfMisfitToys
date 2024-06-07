@@ -90,7 +90,7 @@ def centralize_info_legacy(*, paths, param, score, leaderboard_size):
 
 def centralize_info(*, paths, param, score, leaderboard_size):
     registered_tests = sco(f"""
-        find {paths.src}/data -type d -mindepth 1 |
+        find {paths.src}/data -mindepth 1 -type d |
         grep -v "__pycache__" |
         sed -E 's|{paths.src}/data/||'
         """).split('\n')
@@ -139,6 +139,27 @@ def centralize_info(*, paths, param, score, leaderboard_size):
                     'score': score_val,
                 }
             )
+        for k, v in reg_dict.items():
+            reg_dict[k] = sorted(v, key=lambda x: float(x['score']))
+
+        # remove duplicates and select out the top leaderboard_size
+        for k, v in reg_dict.items():
+            unique_items = {tuple(sorted(e.items())): e for e in v}
+            reg_dict[k] = list(unique_items.values())
+            reg_dict[k] = reg_dict[k][:leaderboard_size]
+
+        for k, v in reg_dict.items():
+            root_dump_path = pjoin(paths.final, param, k)
+            dump_path = pjoin(root_dump_path, paths.data_dump)
+            os.makedirs(root_dump_path, exist_ok=True)
+            os.makedirs(dump_path, exist_ok=False)
+            for rank, e in enumerate(v):
+                curr_dump_path = pjoin(dump_path, str(rank + 1))
+                os.system(f"cp -r {e['og_path']} {curr_dump_path}")
+                with open(
+                    pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
+                ) as f:
+                    yaml.dump(e, f)
 
         print(reg_dict)
         sys.exit(1)
