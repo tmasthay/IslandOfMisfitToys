@@ -360,8 +360,8 @@ def write_all_dynamic_index_rst(*, root):
 def main(cfg: DictConfig):
     # TODO: this would be better to refactor with a _templates directory
     c = convert_dictconfig(cfg, self_ref_resolve=False, mutable=False)
-    # os.system(f'rm -rf {c.git.repo_name}')
-    # os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
+    os.system(f'rm -rf {c.git.repo_name}')
+    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
     os.makedirs(c.rst.dest, exist_ok=True)
     os.system(f'rm -rf {c.folder_name}')
     os.system(f'rm -rf {c.paths.final}')
