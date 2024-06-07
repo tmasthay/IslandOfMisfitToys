@@ -5,6 +5,7 @@ from os.path import join as pjoin
 from subprocess import check_output as co
 
 import hydra
+import yaml
 from mh.core import convert_dictconfig
 from omegaconf import DictConfig
 
@@ -110,6 +111,12 @@ def extract_info(
     for line in lines:
         path = line['path']
         line['img_files'] = []
+        cfg = yaml.load(
+            open(pjoin(path, '.hydra', 'config.yaml'), 'r'),
+            Loader=yaml.FullLoader,
+        )
+        line['target_path'] = cfg['case']['data']['path'].split('data/')[-1]
+        # input(line)
         for ext in extensions:
             cmd = f'find {path} -name "*.{ext}"'
             line['img_files'].extend([e for e in sco(cmd).split('\n') if e])
@@ -198,18 +205,16 @@ def setup_folders(*, name, size):
         os.makedirs(pjoin(curr_root, 'figs'), exist_ok=False)
 
 
-def write_param_file(*, folder_name, param, rank, line):
-    curr_root = pjoin(folder_name, f"{rank+1}")
+def write_param_file(*, folder_name, param, line):
+    folder_name = pjoin(folder_name, line['target_path'])
+    rank = 1 + int(sco(f'ls {folder_name} | grep "[0-9][0-9]*" | wc -l'))
+    curr_root = pjoin(folder_name, f"{rank}")
     rst_path = pjoin(curr_root, "index.rst")
+
+    os.makedirs(curr_root, exist_ok=False)
+    os.makedirs(pjoin(curr_root, 'figs'), exist_ok=False)
+    # input(f"{curr_root=}, {rst_path=}")
     with open(rst_path, 'w') as rst_file:
-        # rst_file.write(f"Score: {line['score']}\n")
-        # rst_file.write(f"Run Path: {line['path']}\n")
-        # rst_file.write(f"{line['git_info']['short']}\n")
-        # rst_file.write("`Full Git Diff <full_git_diff>`_\n")
-        # rst_file.write(f"overrides.yaml\n{line['overrides']}\n")
-        # rst_file.write("`Config YAML <config>`_\n")
-        # rst_file.write("`Hydra YAML <hydra>`_\n")
-        # write hidden toctree so that sphinx will include dependent rst files
         img_str = ''
         for img in line['img_files']:
             os.system(f"cp {img} {curr_root}/figs/")
@@ -217,9 +222,9 @@ def write_param_file(*, folder_name, param, rank, line):
                 f".. image:: figs/{os.path.basename(img)}\n   :align:"
                 " center\n\n"
             )
-        title = f"Rank {rank+1}: {line['score']}"
+        title = f"Rank {rank}: {line['score']}"
         s = f"""
-Rank {rank+1}: {line['score']}
+Rank {rank}: {line['score']}
 {'=' * len(title)}
 
 .. code-block::
@@ -242,19 +247,20 @@ Images
 {img_str}
 """.lstrip()
         rst_file.write(s)
+    return curr_root
 
 
-def write_git_diff_file(*, path, rank, line):
-    curr_root = pjoin(path, f"{rank+1}")
-    with open(pjoin(curr_root, 'full_git_diff.rst'), 'w') as diff_file:
+def write_git_diff_file(*, path, line):
+    with open(pjoin(path, 'full_git_diff.rst'), 'w') as diff_file:
         title = 'Full Git Diff'
         diff_file.write(f"{title}\n{'=' * len(title)}\n\n")
         diff_file.write('.. code-block:: \n\n')
         diff_file.write(idt_lines(line['git_info']['diff']))
 
 
-def write_yaml_rst_block_file(*, path, rank, line, filename):
-    curr_root = pjoin(path, f"{rank+1}")
+def write_yaml_rst_block_file(*, path, line, filename):
+    # curr_root = pjoin(path, f"{rank+1}")
+    curr_root = path
     with open(pjoin(curr_root, f'{filename}.rst'), 'w') as curr_file:
         s = idt_lines(line[filename])
         rst_heading = (
@@ -265,13 +271,106 @@ def write_yaml_rst_block_file(*, path, rank, line, filename):
         curr_file.write(rst_heading + s)
 
 
+def write_folder_structure(*, search_root, out_root, params):
+    def make_folders(param, verbose=True):
+        res_cmd = sco(f"""
+            find {search_root} -type d |
+            grep -v "__pycache__" |
+            sed -E 's|{search_root}/||' |
+            tail -n +2 |
+            awk '{{print "mkdir -p {pjoin(out_root, param)}{os.sep}" $0 ";"}}'
+        """)
+        return os.system(res_cmd)
+
+    for param in params:
+        make_folders(param)
+
+    directories = sco(
+        f"""find {out_root} -mindepth 1 -type d -exec sh -c 'echo $1:$(ls "$1")' _ {{}} \;"""
+    ).split('\n')
+    directories = [[ee.strip() for ee in e.split(':')] for e in directories]
+
+    for dir, files in directories:
+        # name = dir.split(os.sep)[-1]
+        files = [f"{e}/index" for e in files.split()]
+        # toc = "\n    ".join(files)
+        if len(files) == 0:
+            continue
+
+
+#         with open(f'{dir}/index.rst', 'w') as f:
+#             s = f"""
+# {name}
+# {'=' * len(name)}
+# .. toctree::
+#     :maxdepth: 1
+
+#     {toc}
+# """.lstrip()
+#             f.write(s)
+
+
+def toctree(*, title=None, files, maxdepth=1):
+    # files = [f"{f}/index" for f in files]
+    s = "" if title is None else f"{title}\n{'=' * len(title)}\n\n"
+    s += f".. toctree::\n    :maxdepth: {maxdepth}\n\n"
+    for filename in files:
+        if filename in ['\n', ''] or '.. _spacer1:' in filename:
+            s += filename
+        else:
+            s += f"    {filename}/index\n"
+    # s += "\n    " + "\n    ".join(files)
+    s += "\n\n"
+    return s
+
+
+def write_dynamic_index_rst(*, root):
+    filenames = os.listdir(root)
+
+    if 'index.rst' in filenames:
+        return
+
+    numbered_files = [e for e in filenames if re.match(r'\d+', e)]
+    nonnumbered_files = [e for e in filenames if not re.match(r'\d+', e)]
+
+    if len(numbered_files) > 0:
+        numbered_files.sort(key=lambda x: int(x))
+        nonnumbered_files.extend(['\n', '    .. _spacer1:\n', '\n'])
+        nonnumbered_files.extend(numbered_files)
+
+    name = root.split(os.sep)[-1]
+    s = f"{name}\n{'=' * len(name)}\n\n"
+    with open(pjoin(root, 'index.rst'), 'w') as f:
+        f.write(s)
+        if len(nonnumbered_files) > 0:
+            # nonnumbered_toctree = toctree(title='Leaderboard (and derived datasets on top)', files=nonnumbered_files)
+            nonnumbered_toctree = toctree(title='', files=nonnumbered_files)
+            f.write(nonnumbered_toctree)
+        # if len(numbered_files) > 0:
+        #     numbered_toctree = toctree(title='Leaderboard', files=numbered_files)
+        #     f.write(numbered_toctree)
+
+
+def write_all_dynamic_index_rst(*, root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        write_dynamic_index_rst(root=dirpath)
+
+
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg: DictConfig):
+    # TODO: this would be better to refactor with a _templates directory
     c = convert_dictconfig(cfg, self_ref_resolve=False, mutable=False)
-    os.system(f'rm -rf {c.git.repo_name}')
-    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
+    # os.system(f'rm -rf {c.git.repo_name}')
+    # os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
     os.makedirs(c.rst.dest, exist_ok=True)
+    os.system(f'rm -rf {c.folder_name}')
+    os.system(f'rm -rf {c.paths.final}')
 
+    write_folder_structure(
+        search_root=pjoin(c.paths.src, 'data'),
+        out_root=c.folder_name,
+        params=c.params,
+    )
     for param in c.params:
         curr_fold = pjoin(c.folder_name, param)
         centralize_info(
@@ -288,22 +387,24 @@ def main(cfg: DictConfig):
             order=c.rst.img.order,
             extensions=c.extensions,
         )
-        setup_folders(name=curr_fold, size=len(lines))
+        # input(lines)
+        # setup_folders(name=curr_fold, size=len(lines))
 
-        for rank, line in enumerate(lines):
-            write_param_file(
-                folder_name=curr_fold, param=param, rank=rank, line=line
+        for line in lines:
+            root = write_param_file(
+                folder_name=curr_fold, param=param, line=line
             )
-            write_git_diff_file(path=curr_fold, rank=rank, line=line)
+            write_git_diff_file(path=root, line=line)
             for filename in ['config', 'hydra', 'overrides']:
                 write_yaml_rst_block_file(
-                    path=curr_fold, rank=rank, line=line, filename=filename
+                    path=root, line=line, filename=filename
                 )
 
-        # print(lines)
-        make_param_rst(curr_fold, param=param)
+        # # print(lines)
+        # make_param_rst(curr_fold, param=param)
 
-    make_index_rst(root=c.folder_name, params=c.params)
+    # make_index_rst(root=c.folder_name, params=c.params)
+    write_all_dynamic_index_rst(root=c.folder_name)
     os.system(
         f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
     )
