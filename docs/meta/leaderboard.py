@@ -28,7 +28,7 @@ def sco(cmd, verbose=False):
     return co(cmd, shell=True).decode().strip()
 
 
-def centralize_info(*, paths, param, score, leaderboard_size):
+def centralize_info_legacy(*, paths, param, score, leaderboard_size):
     def get_paths(root):
         lines = sco(f"""
                 find {root} -name "{param}_compare.yaml"
@@ -39,6 +39,7 @@ def centralize_info(*, paths, param, score, leaderboard_size):
                 """).strip().split('\n')
         lines = [e.strip() for e in lines]
         lines = [e.split() for e in lines if e]
+        input(lines)
         d = [
             {
                 'score': e[0],
@@ -68,7 +69,8 @@ def centralize_info(*, paths, param, score, leaderboard_size):
         else:
             dirs.append(init_dirs[i])
 
-    final_size = min(leaderboard_size, len(dirs))
+    # final_size = min(leaderboard_size, len(dirs))
+    final_size = len(dirs)
     dirs = dirs[:final_size]
 
     for d in dirs:
@@ -80,8 +82,74 @@ def centralize_info(*, paths, param, score, leaderboard_size):
                 f'File {d["target_path"]} already exists...clear'
                 f' {paths.final} and re-run'
             )
+        cmd = f'cp -r {d["path"]} {d["target_path"]}'
+        input(cmd)
         os.system(f'cp -r {repo_dir} {lcl_dir}')
     print(f'Written {final_size} files to {paths.final}')
+
+
+def centralize_info(*, paths, param, score, leaderboard_size):
+    registered_tests = sco(f"""
+        find {paths.src}/data -type d -mindepth 1 |
+        grep -v "__pycache__" |
+        sed -E 's|{paths.src}/data/||'
+        """).split('\n')
+    # sort tests by depth of directory
+    registered_tests.sort(key=lambda x: x.count('/'), reverse=True)
+    reg_dict = {e: [] for e in registered_tests}
+
+    # registered_tests = [e for e in registered_tests if e]
+    def get_paths(root):
+        nonlocal reg_dict
+        lines = sco(f"""
+            find {root} -name "{param}_compare.yaml" |
+            rev |
+            cut -d'/' -f3- |
+            rev |
+            awk '{{print $0 "/.hydra/config.yaml"}}'
+            """).split('\n')
+        for line in lines:
+            og_path = line.replace('/.hydra/config.yaml', '')
+            timestamp = ' '.join(
+                [e for e in og_path.split('/')[-3:] if '-' in e]
+            )
+
+            # load the yaml
+            cfg = yaml.load(open(line, 'r'), Loader=yaml.FullLoader)
+            score_yaml = yaml.load(
+                open(pjoin(og_path, f"meta/{param}_compare.yaml"), 'r'),
+                Loader=yaml.FullLoader,
+            )
+            score_val = score_yaml[score]
+            test_case = cfg['case']['data']['path']
+            del cfg, score_yaml
+            found_registration = ''
+            for reg_test in registered_tests:
+                if reg_test in test_case:
+                    found_registration = reg_test
+                    break
+            if not found_registration:
+                raise ValueError(
+                    f"Test case {test_case} not found in registered tests"
+                )
+            reg_dict[found_registration].append(
+                {
+                    'og_path': og_path,
+                    'timestamp': timestamp,
+                    'score': score_val,
+                }
+            )
+
+        print(reg_dict)
+        sys.exit(1)
+
+        return lines
+
+    init_dirs = get_paths(paths.src)
+    init_dirs.extend(get_paths(paths.prev_leaders))
+
+    print(init_dirs)
+    sys.exit(1)
 
 
 def extract_info(
