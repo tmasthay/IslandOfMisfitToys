@@ -28,67 +28,152 @@ def sco(cmd, verbose=False):
     return co(cmd, shell=True).decode().strip()
 
 
-def centralize_info_legacy(*, paths, param, score, leaderboard_size):
-    def get_paths(root):
-        lines = sco(f"""
-                find {root} -name "{param}_compare.yaml"
-                    -exec grep -H "{score}" {{}} \; |
-                awk -F':' '{{print $3,$1}}' |
-                head -n {leaderboard_size} |
-                sort -k1,1n
-                """).strip().split('\n')
-        lines = [e.strip() for e in lines]
-        lines = [e.split() for e in lines if e]
-        input(lines)
-        d = [
-            {
-                'score': e[0],
-                'path': e[1],
-                'target_path': e[1].replace(root, pjoin(paths.final, param)),
-            }
-            for e in lines
-        ]
-        return d
-
-    init_dirs = get_paths(paths.src)
-    init_dirs.extend(get_paths(paths.prev_leaders))
-
-    init_dirs.sort(
-        key=lambda x: (x["target_path"], float(x["score"])), reverse=True
-    )
-
-    dirs = []
-    curr_target = None
-    for i in range(len(init_dirs)):
-        prev_target = curr_target
-        curr_target = init_dirs[i]['target_path']
-        if prev_target == curr_target:
-            consider = [init_dirs[i - 1], init_dirs[i]]
-            consider.sort(key=lambda x: float(x['score']))
-            dirs[-1] = consider[0]
-        else:
-            dirs.append(init_dirs[i])
-
-    # final_size = min(leaderboard_size, len(dirs))
-    final_size = len(dirs)
-    dirs = dirs[:final_size]
-
-    for d in dirs:
-        lcl_dir = dir_up(d['target_path'], 3)
-        repo_dir = dir_up(d['path'], 2)
-        os.makedirs(lcl_dir, exist_ok=True)
-        if os.path.exists(d['target_path']):
-            raise ValueError(
-                f'File {d["target_path"]} already exists...clear'
-                f' {paths.final} and re-run'
-            )
-        cmd = f'cp -r {d["path"]} {d["target_path"]}'
-        input(cmd)
-        os.system(f'cp -r {repo_dir} {lcl_dir}')
-    print(f'Written {final_size} files to {paths.final}')
+def bottom_up_dirs(root):
+    return sco(f"""
+        find {root} -type d |
+        awk -F'/' '{{print $0 ": " NF-1}}' |
+        sort -t':' -k2,2nr |
+        awk -F':' '{{print $1}}'
+        """).split('\n')
 
 
-def centralize_info(*, paths, param, score, leaderboard_size):
+def make_data_page(path: str) -> None:
+    if path.split('/')[-1] == 'figs':
+        print(f"make_default_page: SKIP {path}")
+        return
+    # Ensure the path is a directory
+    if not os.path.isdir(path):
+        raise ValueError(f"The path '{path}' is not a directory.")
+
+    # Build the content for index.rst
+    content = []
+    title = path.split('/')[-1]
+    content.append(title)
+    content.append("=" * len(title))
+    content.append("")
+
+    subdirs = [
+        d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))
+    ]
+    files = [
+        f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+    ]
+
+    if len(subdirs) + len(files) > 0:
+        # Add the toctree for subdirectories
+        content.append(".. toctree::")
+        content.append("   :maxdepth: 1")
+        content.append("   :caption: Contents:")
+        content.append("")
+
+        for subdir in subdirs:
+            content.append(f"   {subdir}/index")
+
+        content.append("")
+
+        # Add collapsible buttons for each file in the directory
+        for file in files:
+            file_path = os.path.join(path, file)
+            with open(file_path, 'r') as file_content:
+                file_data = file_content.read()
+
+            content.append(f".. raw:: html")
+            content.append("")
+            content.append(f"   <details>")
+            content.append(f"   <summary>{file}</summary>")
+            content.append(f"   <pre>{file_data}</pre>")
+            content.append(f"   </details>")
+            content.append("")
+    else:
+        content.append("No content found.")
+        content.append("")
+
+    # Write the content to index.rst
+    index_rst_path = os.path.join(path, 'index.rst')
+    with open(index_rst_path, 'w') as f:
+        f.write("\n".join(content))
+
+    # print(f"index.rst generated at: {index_rst_path}")
+    print(f"make_default_page: {path}")
+
+
+def make_default_page(path: str) -> None:
+    if path.split('/')[-1] == 'figs':
+        print(f"make_default_page: SKIP {path}")
+        return
+    # Ensure the path is a directory
+    if not os.path.isdir(path):
+        raise ValueError(f"The path '{path}' is not a directory.")
+
+    # Build the content for index.rst
+    content = []
+    title = path.split('/')[-1]
+    content.append(title)
+    content.append("=" * len(title))
+    content.append("")
+
+    subdirs = [
+        d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))
+    ]
+    files = [
+        f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+    ]
+
+    if len(subdirs) + len(files) > 0:
+        # Add the toctree for subdirectories
+        content.append(".. toctree::")
+        content.append("   :maxdepth: 1")
+        content.append("   :caption: Contents:")
+        content.append("")
+
+        numeric_subdirs = sorted(
+            [e for e in subdirs if re.match(r'\d+', e)], key=lambda x: int(x)
+        )
+        nonnumeric_subdirs = sorted(
+            [e for e in subdirs if not re.match(r'\d+', e)], key=lambda x: x
+        )
+        subdirs = nonnumeric_subdirs + numeric_subdirs
+        for subdir in subdirs:
+            content.append(f"   {subdir}/index")
+
+        content.append("")
+
+        # Add collapsible buttons for each file in the directory
+        for file in files:
+            file_path = os.path.join(path, file)
+            with open(file_path, 'r') as file_content:
+                file_data = file_content.read()
+
+            content.append(f".. raw:: html")
+            content.append("")
+            content.append(f"   <details>")
+            content.append(f"   <summary>{file}</summary>")
+            content.append(f"   <pre>{file_data}</pre>")
+            content.append(f"   </details>")
+            content.append("")
+    else:
+        content.append("No content found.")
+        content.append("")
+
+    # Write the content to index.rst
+    index_rst_path = os.path.join(path, 'index.rst')
+    with open(index_rst_path, 'w') as f:
+        f.write("\n".join(content))
+
+    # print(f"index.rst generated at: {index_rst_path}")
+    print(f"make_default_page: {path}")
+
+
+def get_callback(*, path, idx_gen):
+    # note that this works *only* if
+    #     default key is *last* in idx_gen
+    for k, v in idx_gen.items():
+        if k == 'default' or re.search(v['regex'], path):
+            return globals()[v['callback']]
+    raise ValueError(f"No callback found for path {path}")
+
+
+def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     registered_tests = sco(f"""
         find {paths.src}/data -mindepth 1 -type d |
         grep -v "__pycache__" |
@@ -108,6 +193,7 @@ def centralize_info(*, paths, param, score, leaderboard_size):
             rev |
             awk '{{print $0 "/.hydra/config.yaml"}}'
             """).split('\n')
+        # input('\n'.join(lines))
         for line in lines:
             og_path = line.replace('/.hydra/config.yaml', '')
             timestamp = ' '.join(
@@ -133,12 +219,11 @@ def centralize_info(*, paths, param, score, leaderboard_size):
                     f"Test case {test_case} not found in registered tests"
                 )
             reg_dict[found_registration].append(
-                {
-                    'og_path': og_path,
-                    'timestamp': timestamp,
-                    'score': score_val,
-                }
+                {'og_path': og_path, 'timestamp': timestamp, 'score': score_val}
             )
+
+    def deploy():
+        nonlocal reg_dict
         for k, v in reg_dict.items():
             reg_dict[k] = sorted(v, key=lambda x: float(x['score']))
 
@@ -155,21 +240,31 @@ def centralize_info(*, paths, param, score, leaderboard_size):
             os.makedirs(dump_path, exist_ok=False)
             for rank, e in enumerate(v):
                 curr_dump_path = pjoin(dump_path, str(rank + 1))
+                # input(curr_dump_path)
                 os.system(f"cp -r {e['og_path']} {curr_dump_path}")
                 with open(
                     pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
                 ) as f:
                     yaml.dump(e, f)
 
-        print(reg_dict)
-        sys.exit(1)
+        #     page_generator = get_callback(path=root_dump_path, idx_gen=idx_gen)
+        #     page_generator(root_dump_path)
 
-        return lines
+        # print(reg_dict)
+        # sys.exit(1)
 
-    init_dirs = get_paths(paths.src)
-    init_dirs.extend(get_paths(paths.prev_leaders))
+        # return lines
 
-    print(init_dirs)
+    get_paths(paths.src)
+    get_paths(paths.prev_leaders)
+    deploy()
+
+    # all_dirs = bottom_up_dirs(paths.final)
+    for dir in bottom_up_dirs(paths.final):
+        callback = get_callback(path=dir, idx_gen=idx_gen)
+        callback(dir)
+
+    # print(init_dirs)
     sys.exit(1)
 
 
@@ -467,6 +562,7 @@ def main(cfg: DictConfig):
             param=param,
             score=c.score,
             leaderboard_size=c.leaderboard_size,
+            idx_gen=c.rst.idx_gen,
         )
         lines = extract_info(
             path=c.paths.final,

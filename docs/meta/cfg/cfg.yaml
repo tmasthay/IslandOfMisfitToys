@@ -30,8 +30,8 @@ rst:
 
   idx_gen:
     data:
-      regex: ".*/${..paths.data_dump}/(\\d+)$"
+      regex: ".*/${....paths.data_dump}/(\\d+)$"
       callback: make_data_page
 
     default:
-      callback: make_default_idx_page
+      callback: make_default_page
