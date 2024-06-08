@@ -59,11 +59,6 @@ def scurry(**dec_kwargs):
     Returns:
         A decorator that adds the specified keyword arguments to the decorated function.
 
-    Example:
-        @scurry(arg1=10, arg2='hello')
-        def my_function():
-            print(arg1)  # 10
-            print(arg2)  # 'hello'
     """
 
     def decorator(func):

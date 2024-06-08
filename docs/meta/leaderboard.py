@@ -37,7 +37,12 @@ def bottom_up_dirs(root):
         """).split('\n')
 
 
-def make_data_page(path: str) -> None:
+def make_data_page(path: str, *, img_order, final_path) -> None:
+    trunc_path = path.replace(final_path, '')
+    if trunc_path.startswith('/'):
+        trunc_path = trunc_path[1:]
+    heading = trunc_path.split('/')[0]
+    img_order = img_order[heading]
     if path.split('/')[-1] == 'figs':
         print(f"make_default_page: SKIP {path}")
         return
@@ -52,12 +57,20 @@ def make_data_page(path: str) -> None:
     content.append("=" * len(title))
     content.append("")
 
-    subdirs = [
-        d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))
-    ]
-    files = [
-        f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
-    ]
+    subdirs = [d for d in os.listdir(path) if os.path.isdir(pjoin(path, d))]
+    files = [f for f in os.listdir(path) if os.path.isfile(pjoin(path, f))]
+
+    subdirs = [e for e in subdirs if e not in ['figs']]
+
+    # at first pass, we should have consolidated
+    #    all files into "figs" and "metadata" subdirectories.
+    #    Otherwise, something went wrong.
+    if len(subdirs) != 1:
+        raise ValueError(
+            f"Expected 1 subdir, found {len(subdirs)=}, {subdirs=}"
+        )
+    if len(files) > 0:
+        raise ValueError(f"Expected no files, found {len(files)=}, {files=}")
 
     if len(subdirs) + len(files) > 0:
         # Add the toctree for subdirectories
@@ -73,21 +86,49 @@ def make_data_page(path: str) -> None:
 
         # Add collapsible buttons for each file in the directory
         for file in files:
-            file_path = os.path.join(path, file)
+            file_path = pjoin(path, file)
             with open(file_path, 'r') as file_content:
                 file_data = file_content.read()
 
-            content.append(f".. raw:: html")
-            content.append("")
-            content.append(f"   <details>")
-            content.append(f"   <summary>{file}</summary>")
-            content.append(f"   <pre>{file_data}</pre>")
-            content.append(f"   </details>")
-            content.append("")
+            file_data_idt = idt_lines(file_data, idt_lvl=2, idt_str='  ')
+
+            file_ext = file.split('.')[-1]
+            if file_ext not in ['yaml', 'py']:
+                file_ext = 'text'
+            content.extend(
+                [
+                    f".. admonition:: {file}",
+                    f"   :class: toggle",
+                    "",
+                    f"   .. code-block:: {file_ext}",
+                    "",
+                    file_data_idt,
+                ]
+            )
     else:
         content.append("No content found.")
         content.append("")
 
+    # Now process the images
+    if os.path.exists(pjoin(path, 'figs')):
+        figs = os.listdir(pjoin(path, 'figs'))
+        figs = [e for e in figs if not e.startswith('.')]
+
+        priority_dict = {e: i for i, e in enumerate(img_order)}
+        figs = sorted(
+            figs,
+            key=lambda x: (priority_dict.get(x, float('inf')), x),
+            reverse=True,
+        )
+
+        for fig in figs:
+            content.extend(
+                [
+                    f".. image:: figs/{fig}",
+                    "   :align: center",
+                    "",
+                ]
+            )
     # Write the content to index.rst
     index_rst_path = os.path.join(path, 'index.rst')
     with open(index_rst_path, 'w') as f:
@@ -144,13 +185,21 @@ def make_default_page(path: str) -> None:
             with open(file_path, 'r') as file_content:
                 file_data = file_content.read()
 
-            content.append(f".. raw:: html")
-            content.append("")
-            content.append(f"   <details>")
-            content.append(f"   <summary>{file}</summary>")
-            content.append(f"   <pre>{file_data}</pre>")
-            content.append(f"   </details>")
-            content.append("")
+            file_data_idt = idt_lines(file_data, idt_lvl=2, idt_str='  ')
+
+            file_ext = file.split('.')[-1]
+            if file_ext not in ['yaml', 'py']:
+                file_ext = 'text'
+            content.extend(
+                [
+                    f".. admonition:: {file}",
+                    f"   :class: toggle",
+                    "",
+                    f"   .. code-block:: {file_ext}",
+                    "",
+                    file_data_idt,
+                ]
+            )
     else:
         content.append("No content found.")
         content.append("")
@@ -169,7 +218,15 @@ def get_callback(*, path, idx_gen):
     #     default key is *last* in idx_gen
     for k, v in idx_gen.items():
         if k == 'default' or re.search(v['regex'], path):
-            return globals()[v['callback']]
+            f = globals()[v['callback']]
+            if 'kw' in v:
+
+                def helper(x):
+                    return f(x, **v['kw'])
+
+                return helper
+            else:
+                return f
     raise ValueError(f"No callback found for path {path}")
 
 
@@ -193,6 +250,7 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
             rev |
             awk '{{print $0 "/.hydra/config.yaml"}}'
             """).split('\n')
+        lines = [e for e in lines if e]
         # input('\n'.join(lines))
         for line in lines:
             og_path = line.replace('/.hydra/config.yaml', '')
@@ -246,6 +304,16 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
                     pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
                 ) as f:
                     yaml.dump(e, f)
+                os.system(f'mkdir -p {curr_dump_path}/metadata')
+                os.system(
+                    f'find {curr_dump_path} -type f ! -wholename "*figs*" -exec'
+                    f' mv {{}} {curr_dump_path}/metadata \; 2>/dev/null'
+                )
+                os.system(
+                    f'find {curr_dump_path} -mindepth 1 -type d -type d !'
+                    ' -wholename "*figs*" ! -wholename "*metadata*" -exec rm'
+                    ' -rf {} \; 2> /dev/null'
+                )
 
         #     page_generator = get_callback(path=root_dump_path, idx_gen=idx_gen)
         #     page_generator(root_dump_path)
@@ -260,12 +328,12 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     deploy()
 
     # all_dirs = bottom_up_dirs(paths.final)
-    for dir in bottom_up_dirs(paths.final):
+    for dir in bottom_up_dirs(pjoin(paths.final, param)):
         callback = get_callback(path=dir, idx_gen=idx_gen)
         callback(dir)
 
     # print(init_dirs)
-    sys.exit(1)
+    # sys.exit(1)
 
 
 def extract_info(
@@ -550,13 +618,14 @@ def main(cfg: DictConfig):
     os.system(f'rm -rf {c.folder_name}')
     os.system(f'rm -rf {c.paths.final}')
 
-    write_folder_structure(
-        search_root=pjoin(c.paths.src, 'data'),
-        out_root=c.folder_name,
-        params=c.params,
-    )
+    # write_folder_structure(
+    #     search_root=pjoin(c.paths.src, 'data'),
+    #     out_root=c.folder_name,
+    #     params=c.params,
+    # )
     for param in c.params:
-        curr_fold = pjoin(c.folder_name, param)
+        # curr_fold = pjoin(c.folder_name, param)
+        # input(f'{param=}')
         centralize_info(
             paths=c.paths,
             param=param,
@@ -564,35 +633,41 @@ def main(cfg: DictConfig):
             leaderboard_size=c.leaderboard_size,
             idx_gen=c.rst.idx_gen,
         )
-        lines = extract_info(
-            path=c.paths.final,
-            param=param,
-            score=c.score,
-            leaderboard_size=c.leaderboard_size,
-            order=c.rst.img.order,
-            extensions=c.extensions,
-        )
-        # input(lines)
-        # setup_folders(name=curr_fold, size=len(lines))
+    #     lines = extract_info(
+    #         path=c.paths.final,
+    #         param=param,
+    #         score=c.score,
+    #         leaderboard_size=c.leaderboard_size,
+    #         order=c.rst.img.order,
+    #         extensions=c.extensions,
+    #     )
+    #     # input(lines)
+    #     # setup_folders(name=curr_fold, size=len(lines))
 
-        for line in lines:
-            root = write_param_file(
-                folder_name=curr_fold, param=param, line=line
-            )
-            write_git_diff_file(path=root, line=line)
-            for filename in ['config', 'hydra', 'overrides']:
-                write_yaml_rst_block_file(
-                    path=root, line=line, filename=filename
-                )
+    #     for line in lines:
+    #         root = write_param_file(
+    #             folder_name=curr_fold, param=param, line=line
+    #         )
+    #         write_git_diff_file(path=root, line=line)
+    #         for filename in ['config', 'hydra', 'overrides']:
+    #             write_yaml_rst_block_file(
+    #                 path=root, line=line, filename=filename
+    #             )
 
-        # # print(lines)
-        # make_param_rst(curr_fold, param=param)
+    #     # # print(lines)
+    #     # make_param_rst(curr_fold, param=param)
 
-    # make_index_rst(root=c.folder_name, params=c.params)
-    write_all_dynamic_index_rst(root=c.folder_name)
-    os.system(
-        f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
-    )
+    # # make_index_rst(root=c.folder_name, params=c.params)
+    # write_all_dynamic_index_rst(root=c.folder_name)
+    # os.system(
+    #     f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
+    # )
+    # os.system(
+    #     f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
+    # )
+    callback = get_callback(path=c.paths.final, idx_gen=c.rst.idx_gen)
+    callback(c.paths.final)
+
     os.system(
         f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
     )

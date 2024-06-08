@@ -32,6 +32,9 @@ rst:
     data:
       regex: ".*/${....paths.data_dump}/(\\d+)$"
       callback: make_data_page
+      kw:
+        img_order: ${....img.order}
+        final_path: ${.....paths.final}
 
     default:
       callback: make_default_page

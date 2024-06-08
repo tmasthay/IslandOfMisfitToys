@@ -19,6 +19,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'autoapi.extension',
     'sphinxcontrib.details.directive',
+    'sphinx_togglebutton',
 ]
 autoapi_dirs = ['../misfit_toys']
 autoapi_generate_api_docs = True
