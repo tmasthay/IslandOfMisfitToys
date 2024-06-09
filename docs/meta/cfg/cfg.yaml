@@ -35,6 +35,7 @@ rst:
       kw:
         img_order: ${....img.order}
         final_path: ${.....paths.final}
+        img_first: false
 
     default:
       callback: make_default_page

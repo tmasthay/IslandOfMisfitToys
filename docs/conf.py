@@ -46,6 +46,7 @@ exclude_patterns = []
 html_theme = 'furo'
 # html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_theme_options = {'show_nav_top': True}
 
 viewcode_follow_imported_members = True
 # napoleon_use_param = False

@@ -37,7 +37,7 @@ def bottom_up_dirs(root):
         """).split('\n')
 
 
-def make_data_page(path: str, *, img_order, final_path) -> None:
+def make_data_page(path: str, *, img_order, final_path, img_first) -> None:
     trunc_path = path.replace(final_path, '')
     if trunc_path.startswith('/'):
         trunc_path = trunc_path[1:]
@@ -51,8 +51,11 @@ def make_data_page(path: str, *, img_order, final_path) -> None:
         raise ValueError(f"The path '{path}' is not a directory.")
 
     # Build the content for index.rst
+    toc_content = []
+    img_content = []
     content = []
     title = path.split('/')[-1]
+
     content.append(title)
     content.append("=" * len(title))
     content.append("")
@@ -65,49 +68,58 @@ def make_data_page(path: str, *, img_order, final_path) -> None:
     # at first pass, we should have consolidated
     #    all files into "figs" and "metadata" subdirectories.
     #    Otherwise, something went wrong.
-    if len(subdirs) != 1:
+    if len(subdirs) != 0:
         raise ValueError(
-            f"Expected 1 subdir, found {len(subdirs)=}, {subdirs=}"
+            f"Expected 0 subdir, found {len(subdirs)=}, {subdirs=}"
         )
-    if len(files) > 0:
-        raise ValueError(f"Expected no files, found {len(files)=}, {files=}")
+    if len(files) == 0:
+        raise ValueError(
+            f"Expected nonzero number of files, found {len(files)=}, {files=}"
+        )
+    if 'config.yaml' not in files:
+        raise ValueError(
+            f"Expected 'config.yaml' in files, found {files=}, {path=}"
+        )
 
     if len(subdirs) + len(files) > 0:
         # Add the toctree for subdirectories
-        content.append(".. toctree::")
-        content.append("   :maxdepth: 1")
-        content.append("   :caption: Contents:")
-        content.append("")
+        toc_content.append(".. toctree::")
+        toc_content.append("   :maxdepth: 1")
+        toc_content.append("   :caption: Contents:")
+        toc_content.append("")
 
         for subdir in subdirs:
-            content.append(f"   {subdir}/index")
+            toc_content.append(f"   {subdir}/index")
 
-        content.append("")
+        toc_content.append("")
 
         # Add collapsible buttons for each file in the directory
+
+        # First add main admonition
+        toc_content.extend([".. admonition:: Metadata", "  :class: toggle", ""])
         for file in files:
             file_path = pjoin(path, file)
             with open(file_path, 'r') as file_content:
                 file_data = file_content.read()
 
-            file_data_idt = idt_lines(file_data, idt_lvl=2, idt_str='  ')
+            file_data_idt = idt_lines(file_data, idt_lvl=3, idt_str='  ')
 
             file_ext = file.split('.')[-1]
             if file_ext not in ['yaml', 'py']:
                 file_ext = 'text'
-            content.extend(
+            toc_content.extend(
                 [
-                    f".. admonition:: {file}",
-                    f"   :class: toggle",
+                    f"  .. admonition:: {file}",
+                    "    :class: toggle",
                     "",
-                    f"   .. code-block:: {file_ext}",
+                    f"    .. code-block:: {file_ext}",
                     "",
-                    file_data_idt,
+                    file_data_idt or "Empty file",
                 ]
             )
     else:
-        content.append("No content found.")
-        content.append("")
+        toc_content.append("No content found.")
+        toc_content.append("")
 
     # Now process the images
     if os.path.exists(pjoin(path, 'figs')):
@@ -122,13 +134,19 @@ def make_data_page(path: str, *, img_order, final_path) -> None:
         )
 
         for fig in figs:
-            content.extend(
+            img_content.extend(
                 [
                     f".. image:: figs/{fig}",
                     "   :align: center",
                     "",
                 ]
             )
+
+    if img_first:
+        content.extend(img_content + toc_content)
+    else:
+        content.extend(toc_content + img_content)
+
     # Write the content to index.rst
     index_rst_path = os.path.join(path, 'index.rst')
     with open(index_rst_path, 'w') as f:
@@ -180,6 +198,7 @@ def make_default_page(path: str) -> None:
         content.append("")
 
         # Add collapsible buttons for each file in the directory
+        # First, add a "main" button
         for file in files:
             file_path = os.path.join(path, file)
             with open(file_path, 'r') as file_content:
@@ -193,7 +212,7 @@ def make_default_page(path: str) -> None:
             content.extend(
                 [
                     f".. admonition:: {file}",
-                    f"   :class: toggle",
+                    "   :class: toggle",
                     "",
                     f"   .. code-block:: {file_ext}",
                     "",
@@ -304,14 +323,27 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
                     pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
                 ) as f:
                     yaml.dump(e, f)
-                os.system(f'mkdir -p {curr_dump_path}/metadata')
+                # os.system(f'mkdir -p {curr_dump_path}/metadata')
+                # os.system(
+                #     f'find {curr_dump_path} -type f ! -wholename "*figs*" -exec'
+                #     f' mv {{}} {curr_dump_path}/metadata \; 2>/dev/null'
+                # )
+                # os.system(
+                #     f'find {curr_dump_path} -mindepth 1 -type d -type d !'
+                #     ' -wholename "*figs*" ! -wholename "*metadata*" -exec rm'
+                #     ' -rf {} \; 2> /dev/null'
+                # )
+                # input(sco(f'find {curr_dump_path} -type f ! -wholename "*figs*"'))
+                # iden = lambda x : x
+                cmd = (f'''
+                    find {curr_dump_path} -type f !
+                    -wholename "*figs*" -exec bash -c 'eval "mv $0 {curr_dump_path}"' {{}} \;
+                    ''').lstrip()
+                cmd = ' '.join(cmd.split())
+                os.system(cmd)
                 os.system(
-                    f'find {curr_dump_path} -type f ! -wholename "*figs*" -exec'
-                    f' mv {{}} {curr_dump_path}/metadata \; 2>/dev/null'
-                )
-                os.system(
-                    f'find {curr_dump_path} -mindepth 1 -type d -type d !'
-                    ' -wholename "*figs*" ! -wholename "*metadata*" -exec rm'
+                    f'find {curr_dump_path} -mindepth 1 -type d !'
+                    ' -wholename "*figs*" -exec rm'
                     ' -rf {} \; 2> /dev/null'
                 )
 
