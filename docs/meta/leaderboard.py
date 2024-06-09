@@ -37,7 +37,62 @@ def bottom_up_dirs(root):
         """).split('\n')
 
 
-def make_data_page(path: str, *, img_order, final_path, img_first) -> None:
+def categorize_files(files, groups):
+    u = {k: [] for k in groups}
+    u['other'] = []
+    for f in files:
+        found_regex = False
+        for group, regexs in groups.items():
+            for regex in regexs:
+                if re.match(regex, f):
+                    u[group].append(f)
+                    found_regex = True
+                    break
+        if not found_regex:
+            u['other'].append(f)
+
+    for k, v in u.items():
+        u[k] = sorted(v)
+    return u
+
+
+def group_admonitions(d, idt_char='  ', path='') -> str:
+    # idt = lambda x, y: idt_char * x + y
+    def idt(x, y):
+        return idt_char * x + y
+
+    def make_admonition(
+        idt_level, description='', body='', heading='Heading', file_type='text'
+    ) -> str:
+        s = idt(idt_level, f'.. admonition:: {heading}\n')
+        s += idt(idt_level + 1, ':class: toggle\n\n')
+        s += idt(idt_level + 1, f'{description}\n\n')
+        s += idt(idt_level + 1, f'.. code-block:: {file_type}\n\n')
+        s += idt_lines(body, idt_str=idt_char, idt_lvl=idt_level + 2)
+        return s.split('\n')
+
+    # a = [
+    #     'Title',
+    #     '=====\n',
+    # ]
+    a = []
+    a.extend(make_admonition(0, 'Metadata', '', 'Metadata'))
+    for k, v in d.items():
+        a.extend(make_admonition(1, '', k))
+        for e in v:
+            contents = open(pjoin(path, e), 'r').read()
+            file_type = e.split('.')[-1]
+            if file_type not in ['yaml', 'py']:
+                file_type = 'text'
+            a.extend(
+                make_admonition(2, e, f'{contents}\n\n', e, file_type=file_type)
+            )
+    return '\n'.join(a)
+
+
+def make_data_page(
+    path: str, *, img_order, final_path, img_first, groups
+) -> None:
     trunc_path = path.replace(final_path, '')
     if trunc_path.startswith('/'):
         trunc_path = trunc_path[1:]
@@ -96,27 +151,29 @@ def make_data_page(path: str, *, img_order, final_path, img_first) -> None:
         # Add collapsible buttons for each file in the directory
 
         # First add main admonition
-        toc_content.extend([".. admonition:: Metadata", "  :class: toggle", ""])
-        for file in files:
-            file_path = pjoin(path, file)
-            with open(file_path, 'r') as file_content:
-                file_data = file_content.read()
+        # toc_content.extend([".. admonition:: Metadata", "  :class: toggle", ""])
+        # for file in files:
+        #     file_path = pjoin(path, file)
+        #     with open(file_path, 'r') as file_content:
+        #         file_data = file_content.read()
 
-            file_data_idt = idt_lines(file_data, idt_lvl=3, idt_str='  ')
+        #     file_data_idt = idt_lines(file_data, idt_lvl=3, idt_str='  ')
 
-            file_ext = file.split('.')[-1]
-            if file_ext not in ['yaml', 'py']:
-                file_ext = 'text'
-            toc_content.extend(
-                [
-                    f"  .. admonition:: {file}",
-                    "    :class: toggle",
-                    "",
-                    f"    .. code-block:: {file_ext}",
-                    "",
-                    file_data_idt or "Empty file",
-                ]
-            )
+        #     file_ext = file.split('.')[-1]
+        #     if file_ext not in ['yaml', 'py']:
+        #         file_ext = 'text'
+        #     toc_content.extend(
+        #         [
+        #             f"  .. admonition:: {file}",
+        #             "    :class: toggle",
+        #             "",
+        #             f"    .. code-block:: {file_ext}",
+        #             "",
+        #             file_data_idt or "Empty file",
+        #         ]
+        #     )
+        regroup_dict = categorize_files(files, groups)
+        toc_content.append(group_admonitions(regroup_dict, path=path))
     else:
         toc_content.append("No content found.")
         toc_content.append("")

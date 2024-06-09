@@ -51,3 +51,8 @@ html_theme_options = {'show_nav_top': True}
 viewcode_follow_imported_members = True
 # napoleon_use_param = False
 viewcode_enable_epub = True
+
+
+# In your conf.py file
+def setup(app):
+    app.add_css_file('custom.css')

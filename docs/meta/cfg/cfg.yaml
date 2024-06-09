@@ -30,12 +30,27 @@ rst:
 
   idx_gen:
     data:
-      regex: ".*/${....paths.data_dump}/(\\d+)$"
+      regex: .*/${....paths.data_dump}/(\d+)$
       callback: make_data_page
       kw:
         img_order: ${....img.order}
         final_path: ${.....paths.final}
         img_first: false
+        groups:
+          score:
+          - .*_compare\.yaml
+          hyperparameters:
+          - config\.yaml
+          - overrides\.yaml
+          version control:
+          - git_info\.txt
+          stdout:
+          - main.log
+          - rank_[0-9]+\.out
+          stderr:
+          - main.err
+          - rank_[0-9]+\.err
+
 
     default:
       callback: make_default_page
