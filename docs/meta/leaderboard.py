@@ -324,27 +324,34 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     reg_dict = {e: [] for e in registered_tests}
 
     # registered_tests = [e for e in registered_tests if e]
-    def get_paths(root):
+    def get_paths(root, *, peelback, cfg_path):
         nonlocal reg_dict
         lines = sco(f"""
             find {root} -name "{param}_compare.yaml" |
             rev |
-            cut -d'/' -f3- |
+            cut -d'/' -f{peelback}- |
             rev |
-            awk '{{print $0 "/.hydra/config.yaml"}}'
+            awk '{{print $0 "{cfg_path}"}}'
             """).split('\n')
         lines = [e for e in lines if e]
         # input('\n'.join(lines))
         for line in lines:
-            og_path = line.replace('/.hydra/config.yaml', '')
+            og_path = line.replace(cfg_path, '')
             timestamp = ' '.join(
-                [e for e in og_path.split('/')[-3:] if '-' in e]
+                [e for e in og_path.split('/')[-peelback:] if '-' in e]
             )
 
             # load the yaml
             cfg = yaml.load(open(line, 'r'), Loader=yaml.FullLoader)
             score_yaml = yaml.load(
-                open(pjoin(og_path, f"meta/{param}_compare.yaml"), 'r'),
+                open(
+                    pjoin(
+                        og_path,
+                        (peelback == 3) * 'meta',
+                        f"{param}_compare.yaml",
+                    ),
+                    'r',
+                ),
                 Loader=yaml.FullLoader,
             )
             score_val = score_yaml[score]
@@ -419,8 +426,8 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
 
         # return lines
 
-    get_paths(paths.src)
-    get_paths(paths.prev_leaders)
+    get_paths(paths.src, peelback=3, cfg_path='/.hydra/config.yaml')
+    get_paths(paths.prev_leaders, peelback=2, cfg_path='/config.yaml')
     deploy()
 
     # all_dirs = bottom_up_dirs(paths.final)
