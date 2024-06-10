@@ -85,6 +85,11 @@ def group_admonitions(d, idt_char='  ', path='') -> str:
     #     '=====\n',
     # ]
     a = []
+    metadata_section_heading = 'Metadata'
+    a.extend(
+        f'{metadata_section_heading}\n{"-" * len(metadata_section_heading)}\n\n'
+        .split('\n')
+    )
     a.extend(make_admonition(idt_level=0, heading='Metadata'))
     for k, v in d.items():
         a.extend(make_admonition(idt_level=1, heading=k))
@@ -198,8 +203,12 @@ def make_data_page(
         )
 
         for fig in figs:
+            heading = fig.split('.')[0]
             img_content.extend(
                 [
+                    heading,
+                    "-" * len(heading),
+                    "",
                     f".. image:: figs/{fig}",
                     "   :align: center",
                     "",
@@ -437,6 +446,17 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
 
     # print(init_dirs)
     # sys.exit(1)
+
+
+def prune_empty_dirs(*, root, ignore):
+    dirs = bottom_up_dirs(root)
+    for dir in dirs:
+        all_files = sco(f'find {dir} -type f').split('\n')
+        all_files = [e for e in all_files if e]
+        all_files = [e for e in all_files if not any([i in e for i in ignore])]
+        if len(all_files) == 0:
+            os.system(f'rm -rf {dir}')
+            print(f"prune_empty_dirs: {dir}")
 
 
 def extract_info(
@@ -770,6 +790,7 @@ def main(cfg: DictConfig):
     # )
     callback = get_callback(path=c.paths.final, idx_gen=c.rst.idx_gen)
     callback(c.paths.final)
+    prune_empty_dirs(root=c.paths.final, ignore=['index.rst'])
 
     os.system(
         f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
