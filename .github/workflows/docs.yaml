@@ -47,7 +47,7 @@ jobs:
         tar -xvf custom_pages.tar.gz
         mv custom_pages docs
         mkdir -p docs/_build/html
-        mv docs/custom_pages/_leaderboard docs/_build/html
+        mv docs/custom_pages/leaderboard docs/_build/html
         rm custom_pages.tar.gz
 
     - name: Install dependencies
