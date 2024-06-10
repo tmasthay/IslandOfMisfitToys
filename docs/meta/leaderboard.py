@@ -98,7 +98,7 @@ def group_admonitions(d, idt_char='  ', path='') -> str:
 
 
 def make_data_page(
-    path: str, *, img_order, final_path, img_first, groups
+    path: str, *, img_order, final_path, img_first, groups, maxdepth
 ) -> None:
     trunc_path = path.replace(final_path, '')
     if trunc_path.startswith('/'):
@@ -146,7 +146,7 @@ def make_data_page(
     if len(subdirs) + len(files) > 0:
         # Add the toctree for subdirectories
         toc_content.append(".. toctree::")
-        toc_content.append("   :maxdepth: 1")
+        toc_content.append(f"   :maxdepth: {maxdepth}")
         toc_content.append("   :caption: Contents:")
         toc_content.append("")
 

@@ -36,6 +36,7 @@ rst:
         img_order: ${....img.order}
         final_path: ${.....paths.final}
         img_first: false
+        maxdepth: 4
         groups:
           score:
           - .*_compare\.yaml
