@@ -61,14 +61,23 @@ def group_admonitions(d, idt_char='  ', path='') -> str:
     def idt(x, y):
         return idt_char * x + y
 
-    def make_admonition(
-        idt_level, description='', body='', heading='Heading', file_type='text'
-    ) -> str:
+    def lcl_idt_lines(s: str, *, idt_lvl):
+        return idt_lines(s, idt_str=idt_char, idt_lvl=idt_lvl)
+
+    def make_admonition(*, idt_level, heading) -> str:
         s = idt(idt_level, f'.. admonition:: {heading}\n')
         s += idt(idt_level + 1, ':class: toggle\n\n')
-        s += idt(idt_level + 1, f'{description}\n\n')
-        s += idt(idt_level + 1, f'.. code-block:: {file_type}\n\n')
-        s += idt_lines(body, idt_str=idt_char, idt_lvl=idt_level + 2)
+        return s.split('\n')
+
+    def make_code_block(*, idt_level, filename):
+        file_type = filename.split('.')[-1]
+        if file_type not in ['yaml', 'py', 'c', 'cpp', 'h', 'hpp']:
+            file_type = 'text'
+        s = idt(idt_level, f'.. code-block:: {file_type}\n\n')
+        file_content = open(pjoin(path, filename), 'r').read()
+        file_content = file_content.strip() if file_content else 'Empty file'
+        file_content = lcl_idt_lines(file_content, idt_lvl=idt_level + 1)
+        s += f'{file_content}\n\n'
         return s.split('\n')
 
     # a = [
@@ -76,17 +85,15 @@ def group_admonitions(d, idt_char='  ', path='') -> str:
     #     '=====\n',
     # ]
     a = []
-    a.extend(make_admonition(0, 'Metadata', '', 'Metadata'))
+    a.extend(make_admonition(idt_level=0, heading='Metadata'))
     for k, v in d.items():
-        a.extend(make_admonition(1, '', k))
+        a.extend(make_admonition(idt_level=1, heading=k))
         for e in v:
-            contents = open(pjoin(path, e), 'r').read()
             file_type = e.split('.')[-1]
             if file_type not in ['yaml', 'py']:
                 file_type = 'text'
-            a.extend(
-                make_admonition(2, e, f'{contents}\n\n', e, file_type=file_type)
-            )
+            a.extend(make_admonition(idt_level=2, heading=e))
+            a.extend(make_code_block(idt_level=3, filename=e))
     return '\n'.join(a)
 
 
