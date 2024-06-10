@@ -54,7 +54,7 @@ jobs:
       run: |
         pip install git+https://github.com/patrick-kidger/torchcubicspline.git
         pip install -e .
-        pip install sphinx furo sphinx-autoapi sphinxcontrib-details-directive
+        pip install sphinx furo sphinx-autoapi sphinxcontrib-details-directive sphinx-togglebutton
 
     # - name: Set up GitHub CLI
     #   uses: actions/setup-gh-cli@v2
