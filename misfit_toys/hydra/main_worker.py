@@ -1,4 +1,5 @@
 import os
+from subprocess import check_output as co
 from time import time
 
 import hydra
@@ -39,6 +40,13 @@ set_print_options(
     linewidth=10,
     callback=torch_stats(opts),
 )
+
+
+def sco(cmd, verbose=False):
+    cmd = ' '.join(cmd.split())
+    if verbose:
+        print(cmd, flush=True)
+    return co(cmd, shell=True).decode().strip()
 
 
 def check_keys(c, data):
@@ -208,10 +216,11 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
         ValueError: If 'name' is not provided in the configuration dictionary.
 
     """
-    if 'name' not in cfg.keys():
+    if 'run' not in cfg.keys():
         raise ValueError(
-            "Name must be provided at command line with +name=NAME.\n"
-            "This protocol is for disciplined tracking of output files."
+            "Name must be provided at command line with"
+            " +run=NAME_DESCRIBING_THIS_RUN.\nThis protocol is for disciplined"
+            " tracking of output files."
         )
     c = convert_dictconfig(cfg.case)
     for k, v in c.plt.items():
@@ -414,6 +423,14 @@ def main(cfg: DictConfig) -> None:
 
     print('To see all output run the following in terminal:\n')
     print(f'    cd {hydra_out("")}')
+
+    print('Equivalently, you can run the following command:\n')
+    print('    . .latest_run')
+
+    with open(os.path.join(os.getcwd(), '.latest_run'), 'w') as f:
+        f.write(f'cd {hydra_out("")}')
+        # set permissions to execute
+        os.chmod(os.path.join(os.getcwd(), '.latest_run'), 0o755)
 
 
 # Run the script from command line

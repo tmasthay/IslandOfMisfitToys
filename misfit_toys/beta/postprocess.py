@@ -16,7 +16,6 @@ def vp_compare(data: DotDict, *, path: str) -> None:
 
     d = dict(l2_diff=max_diff_norm.item())
 
-    os.makedirs(os.path.join(path, 'meta'), exist_ok=True)
-    filename = os.path.join(path, 'meta', 'vp_compare.yaml')
+    filename = os.path.join(path, 'vp_compare.yaml')
     with open(filename, 'w') as f:
         yaml.dump(d, f)
