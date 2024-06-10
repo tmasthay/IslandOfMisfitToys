@@ -1,0 +1,7 @@
+.toggle .admonition-content:empty {
+    display: none;
+}
+
+.toggle .admonition-title {
+    cursor: pointer;
+}
