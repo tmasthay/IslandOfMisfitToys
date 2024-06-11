@@ -6,6 +6,7 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
+import yaml
 from mh.core import (
     DotDict,
     convert_dictconfig,
@@ -223,6 +224,16 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
             " tracking of output files."
         )
     c = convert_dictconfig(cfg.case)
+    dump_resolved_config = convert_dictconfig(
+        cfg, self_ref_resolve=False, mutable=False
+    )
+    resolved_config_str = yaml.dump(dump_resolved_config.__dict__)
+    resolved_config_str = resolved_config_str.replace(
+        '!!python/object:mh.core.DotDict', ''
+    )
+    with open(hydra_out('resolved_config.yaml'), 'w') as f:
+        f.write(resolved_config_str)
+    del dump_resolved_config
     for k, v in c.plt.items():
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
@@ -384,7 +395,9 @@ def main(cfg: DictConfig) -> None:
 
     vp_true = torch.load(os.path.join(c.data.path, "vp_true.pt"))
     data.vp_true = vp_true
-    c.data.postprocess.__call__(data, path=hydra_out())
+    c.data.postprocess.__call__(
+        data, path=hydra_out(), **c.data.postprocess.get('kw', {})
+    )
     c.plt = resolve(c.plt, relax=False)
     iter = bool_slice(*data.vp.shape, **c.plt.vp.iter)
     fig, axes = plt.subplots(*c.plt.vp.sub.shape, **c.plt.vp.sub.kw)
