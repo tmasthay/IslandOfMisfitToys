@@ -17,10 +17,6 @@ score: l2_diff
 leaderboard_size: 10
 extensions: [gif, jpg, png]
 rst:
-  table:
-    title: Leaderboard
-    widths: 25 25 50
-    header-rows: 1
   dest: ../custom_pages
   img:
     order:
@@ -52,6 +48,14 @@ rst:
           - main.err
           - rank_[0-9]+\.err
 
+    leaderboard_table:
+      regex: .*/${....paths.data_dump}$
+      callback: make_leaderboard_page
+      kw:
+        title: Leaderboard
+        widths: 10 20 30 40
+        header_rows: "1"
+        headers: [Rank, Name, Score, Runtime]
 
     default:
       callback: make_default_page

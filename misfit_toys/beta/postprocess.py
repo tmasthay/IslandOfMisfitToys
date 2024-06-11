@@ -20,11 +20,14 @@ def get_timestamps(path: str):
     return {'timestamp': timestamp, 'human_timestamp': human_timestamp}
 
 
-def core_meta(*, path: str, proj_path: str, train_time: float) -> dict:
+def core_meta(
+    *, path: str, proj_path: str, train_time: float, name: str
+) -> dict:
     meta = get_timestamps(path)
     meta['root'] = path
     meta['proj_path'] = proj_path
     meta['train_time'] = train_time
+    meta['name'] = name
     return meta
 
 

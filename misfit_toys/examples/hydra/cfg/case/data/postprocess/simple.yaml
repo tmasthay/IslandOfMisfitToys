@@ -1,3 +1,4 @@
 __call__: ^^null|misfit_toys.beta.postprocess|vp_compare
 kw:
   proj_path: ${...proj_path}
+  name: ${case.name}

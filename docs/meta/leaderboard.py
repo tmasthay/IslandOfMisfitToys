@@ -16,6 +16,38 @@ def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
     return istr + ('\n' + istr).join(s.split('\n'))
 
 
+def gen_rst_toctree(
+    entries,
+    maxdepth=1,
+    hidden=False,
+    caption=None,
+    idt_str='    ',
+    idt_lvl=0,
+    **kwargs,
+):
+    lines = [".. toctree::"]
+
+    if maxdepth is not None:
+        lines.append(f"   :maxdepth: {maxdepth}")
+
+    if hidden:
+        lines.append("   :hidden:")
+
+    if caption:
+        lines.append(f"   :caption: {caption}")
+
+    for key, value in kwargs.items():
+        lines.append(f"   :{key}: {value}")
+
+    lines.append("")
+
+    for entry in entries:
+        lines.append(f"   {entry}")
+
+    toctree_content = "\n".join(lines)
+    return idt_lines(toctree_content, idt_str=idt_str, idt_lvl=idt_lvl)
+
+
 def categorize_files(files, groups):
     u = {k: [] for k in groups}
     u['other'] = []
@@ -208,6 +240,95 @@ def make_data_page(
     print(f"make_default_page: {path}")
 
 
+def gen_rst_table(*, data, table_title, toctree_entries, table_params):
+    # Check if all sub-arrays are of the same length
+    lengths = [len(e) for e in data]
+    if len(set(lengths)) != 1:
+        raise ValueError("All sub-arrays must be of the same length")
+
+    # Generate the toctree section using gen_rst_toctree
+    toctree_section = gen_rst_toctree(
+        toctree_entries, maxdepth=1, hidden=True, caption="Contents"
+    )
+
+    # Generate the list-table section
+    table_section = (
+        [f".. list-table:: {table_title}"]
+        + [f"   {param}" for param in table_params]
+        + [""]
+    )
+
+    headers = data[0]
+    table_section.append(
+        "   * " + " - ".join(f"{header}" for header in headers)
+    )
+
+    for i, row in enumerate(data[1:], start=1):
+        row_str = f"   * - `{row[0]} <{row[0]}/index.html>`_"
+        row_str += " - " + " - ".join(f"{col}" for col in row[1:])
+        table_section.append(row_str)
+
+    # Generate the reference links section
+    ref_links_section = [
+        f".. _{row[0]}/index: {row[0]}/index.html" for row in data[1:]
+    ]
+
+    # Combine all sections
+    rst_content = "\n".join(
+        [toctree_section] + table_section + [""] + ref_links_section
+    )
+
+    return rst_content
+
+
+def make_leaderboard_page(
+    path: str, *, title, widths, header_rows, headers
+) -> None:
+    content = []
+    title = path.split('/')[-1]
+
+    content.append(title)
+    content.append("=" * len(title))
+    content.append("")
+
+    subdirs = next(os.walk(path))[1]
+    if not subdirs:
+        # no leaderboard to generate, so stop
+        return
+    elif not all(e.isdigit() for e in subdirs):
+        raise ValueError(
+            f"Subdirectories must be numeric for leaderboard, found {subdirs}"
+        )
+    else:
+        subdirs = sorted(subdirs, key=lambda x: int(x))
+        subdirs = [f'{e}/index' for e in subdirs]
+
+    data = []
+    for i, subdir in enumerate(subdirs):
+        d = [i + 1]
+        subsubdirs = next(os.walk(pjoin(path, subdir)))[1]
+        matches = [e for e in subsubdirs if re.match(r'.*compare.yaml', e)]
+        if len(matches) != 1:
+            raise ValueError(
+                "Expected 1 match of '.*compare.yaml', found"
+                f" {len(matches)} matches in {subdir}"
+            )
+        with open(pjoin(path, subdir, matches[0]), 'r') as f:
+            meta = yaml.load(f, Loader=yaml.FullLoader)
+        d.extend([meta['name'], meta['l2_diff'], meta['train_time']])
+        data.append(d)
+
+    input(data)
+
+    # Write the content to index.rst
+    index_rst_path = os.path.join(path, 'index.rst')
+    with open(index_rst_path, 'w') as f:
+        f.write("\n".join(content))
+
+    # print(f"index.rst generated at: {index_rst_path}")
+    print(f"make_default_page: {path}")
+
+
 def make_default_page(path: str) -> None:
     if path.split('/')[-1] == 'figs':
         print(f"make_default_page: SKIP {path}")
@@ -372,10 +493,12 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
             os.makedirs(root_dump_path, exist_ok=True)
             os.makedirs(dump_path, exist_ok=False)
             for rank, e in enumerate(v):
-                curr_dump_path = pjoin(dump_path, str(rank + 1))
+                # curr_dump_path = pjoin(dump_path, str(rank + 1))
+                curr_dump_path = pjoin(dump_path, str(rank))
+                input(f'{e["root"]=} {curr_dump_path=}')
                 os.system(f"cp -r {e['root']} {curr_dump_path}")
                 with open(
-                    pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
+                    pjoin(curr_dump_path, f'{param}_compare.yaml'), 'w'
                 ) as f:
                     yaml.dump(e, f)
                 cmd = (f'''
