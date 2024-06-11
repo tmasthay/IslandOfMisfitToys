@@ -386,18 +386,23 @@ def main(cfg: DictConfig) -> None:
     # this is inefficient, but it was a quick fix to a bug from a long time ago.
     #     A simple if condition should make reading data twice unnecessary.
     data = get_data()
+    train_time = 0.0
     if not data or c.train.retrain:
         training_start = time()
         n_gpus = torch.cuda.device_count()
         run(n_gpus, c)
-        print(f"Training alone took {time() - training_start:.2f} seconds.")
+        train_time = time() - training_start
+        print(f"Training alone took {train_time:.2f} seconds.")
         data = get_data()
 
     vp_true = torch.load(os.path.join(c.data.path, "vp_true.pt"))
     data.vp_true = vp_true
+
+    pp_kw = c.data.postprocess.get('kw', {})
     c.data.postprocess.__call__(
-        data, path=hydra_out(), **c.data.postprocess.get('kw', {})
+        data, path=hydra_out(), train_time=train_time, **pp_kw
     )
+
     c.plt = resolve(c.plt, relax=False)
     iter = bool_slice(*data.vp.shape, **c.plt.vp.iter)
     fig, axes = plt.subplots(*c.plt.vp.sub.shape, **c.plt.vp.sub.kw)
