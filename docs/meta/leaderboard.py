@@ -271,6 +271,19 @@ def gen_csv_table(
 
 
 def make_leaderboard_page(path: str, *, title, headers, table_params) -> None:
+    """
+    Generates a leaderboard page based on the given parameters.
+
+    Args:
+        path (str): The path to the directory where the leaderboard page will be generated.
+        title: The title of the leaderboard page.
+        headers: The headers for the leaderboard table.
+        table_params: Additional parameters for the leaderboard table.
+
+    Returns:
+        None
+    """
+
     content = []
     title = path.split('/')[-1]
 
@@ -329,10 +342,7 @@ def make_leaderboard_page(path: str, *, title, headers, table_params) -> None:
         idt_lvl=0,
     )
     rst_contents += gen_csv_table(
-        title=title,
-        headers=headers,
-        lines=data,
-        table_params=table_params,
+        title=title, headers=headers, lines=data, table_params=table_params
     )
     # Write the content to index.rst
     index_rst_path = os.path.join(path, 'index.rst')
@@ -495,7 +505,9 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     def deploy():
         nonlocal reg_dict
         for k, v in reg_dict.items():
-            reg_dict[k] = sorted(v, key=lambda x: float(x[score]), reverse=True)
+            reg_dict[k] = sorted(
+                v, key=lambda x: float(x[score]), reverse=False
+            )
 
         # remove duplicates and select out the top leaderboard_size
         for k, v in reg_dict.items():
