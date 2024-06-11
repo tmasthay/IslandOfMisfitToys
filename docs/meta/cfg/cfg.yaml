@@ -53,9 +53,10 @@ rst:
       callback: make_leaderboard_page
       kw:
         title: Leaderboard
-        widths: 10 20 30 40
-        header_rows: "1"
-        headers: [Rank, Name, Score, Runtime]
+        headers: [Rank, Name, Score, Iterations, Runtime]
+        table_params:
+        - ":widths: 10 20 30 40 50"
+        - ":header-rows: 0"
 
     default:
       callback: make_default_page

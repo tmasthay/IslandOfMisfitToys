@@ -11,6 +11,10 @@ from mh.core import convert_dictconfig
 from omegaconf import DictConfig
 
 
+def hyperlink(s, *, page):
+    return f'`{s} <{page}>`_'
+
+
 def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
     istr = idt_str * idt_lvl
     return istr + ('\n' + istr).join(s.split('\n'))
@@ -45,7 +49,7 @@ def gen_rst_toctree(
         lines.append(f"   {entry}")
 
     toctree_content = "\n".join(lines)
-    return idt_lines(toctree_content, idt_str=idt_str, idt_lvl=idt_lvl)
+    return idt_lines(toctree_content, idt_str=idt_str, idt_lvl=idt_lvl) + '\n'
 
 
 def categorize_files(files, groups):
@@ -237,53 +241,36 @@ def make_data_page(
         f.write("\n".join(content))
 
     # print(f"index.rst generated at: {index_rst_path}")
-    print(f"make_default_page: {path}")
+    print(f"make_data_page: {path}")
 
 
-def gen_rst_table(*, data, table_title, toctree_entries, table_params):
-    # Check if all sub-arrays are of the same length
-    lengths = [len(e) for e in data]
-    if len(set(lengths)) != 1:
-        raise ValueError("All sub-arrays must be of the same length")
+def gen_csv_table(
+    *, title, headers, lines, table_params, idt_str='    ', idt_lvl=0
+):
+    def handle_quote(s):
+        t = str(s)
+        if t.startswith('"') and t.endswith('"'):
+            return t
+        return f'"{t}"'
 
-    # Generate the toctree section using gen_rst_toctree
-    toctree_section = gen_rst_toctree(
-        toctree_entries, maxdepth=1, hidden=True, caption="Contents"
-    )
+    def gen_csv_line(line):
+        return ', '.join([handle_quote(e) for e in line])
 
-    # Generate the list-table section
-    table_section = (
-        [f".. list-table:: {table_title}"]
-        + [f"   {param}" for param in table_params]
-        + [""]
-    )
+    sep = '\n' + idt_str
+    # input(table_params)
+    s = f"""
+.. csv-table:: {title}
+{idt_str}:header: {gen_csv_line(headers)}
+{idt_str}{sep.join(table_params)}
 
-    headers = data[0]
-    table_section.append(
-        "   * " + " - ".join(f"{header}" for header in headers)
-    )
+{idt_str}{sep.join([gen_csv_line(e) for e in lines])}
+"""
+    s = idt_lines(s, idt_str=idt_str, idt_lvl=idt_lvl)
 
-    for i, row in enumerate(data[1:], start=1):
-        row_str = f"   * - `{row[0]} <{row[0]}/index.html>`_"
-        row_str += " - " + " - ".join(f"{col}" for col in row[1:])
-        table_section.append(row_str)
-
-    # Generate the reference links section
-    ref_links_section = [
-        f".. _{row[0]}/index: {row[0]}/index.html" for row in data[1:]
-    ]
-
-    # Combine all sections
-    rst_content = "\n".join(
-        [toctree_section] + table_section + [""] + ref_links_section
-    )
-
-    return rst_content
+    return s
 
 
-def make_leaderboard_page(
-    path: str, *, title, widths, header_rows, headers
-) -> None:
+def make_leaderboard_page(path: str, *, title, headers, table_params) -> None:
     content = []
     title = path.split('/')[-1]
 
@@ -301,32 +288,59 @@ def make_leaderboard_page(
         )
     else:
         subdirs = sorted(subdirs, key=lambda x: int(x))
-        subdirs = [f'{e}/index' for e in subdirs]
+        # subdirs_index = [f'{e}/index' for e in subdirs]
 
     data = []
     for i, subdir in enumerate(subdirs):
-        d = [i + 1]
-        subsubdirs = next(os.walk(pjoin(path, subdir)))[1]
-        matches = [e for e in subsubdirs if re.match(r'.*compare.yaml', e)]
+        d = [hyperlink(str(i + 1), page=f'{i+1}/index.html')]
+        try:
+            subsubfiles = list(os.walk(pjoin(path, subdir)))[0][2]
+        except IndexError as e:
+            raise ValueError(
+                f"Expected subdirectories in {pjoin(path, subdir)}, found {e}"
+            ) from e
+
+        matches = [e for e in subsubfiles if re.match(r'.*compare.yaml', e)]
         if len(matches) != 1:
             raise ValueError(
                 "Expected 1 match of '.*compare.yaml', found"
-                f" {len(matches)} matches in {subdir}"
+                f" {len(matches)} matches in {pjoin(path, subdir)}"
             )
         with open(pjoin(path, subdir, matches[0]), 'r') as f:
             meta = yaml.load(f, Loader=yaml.FullLoader)
-        d.extend([meta['name'], meta['l2_diff'], meta['train_time']])
+        d.extend(
+            [
+                meta['name'],
+                meta['l2_diff'],
+                meta['max_iters'],
+                meta['train_time'],
+            ]
+        )
         data.append(d)
 
-    input(data)
-
+    names = [f'{e}/index' for e in subdirs]
+    rst_contents = f'{title}\n{"=" * len(title)}\n\n'
+    rst_contents += gen_rst_toctree(
+        names,
+        maxdepth=1,
+        hidden=True,
+        caption='Leaderboard',
+        idt_str='    ',
+        idt_lvl=0,
+    )
+    rst_contents += gen_csv_table(
+        title=title,
+        headers=headers,
+        lines=data,
+        table_params=table_params,
+    )
     # Write the content to index.rst
     index_rst_path = os.path.join(path, 'index.rst')
     with open(index_rst_path, 'w') as f:
-        f.write("\n".join(content))
+        f.write(rst_contents)
 
     # print(f"index.rst generated at: {index_rst_path}")
-    print(f"make_default_page: {path}")
+    print(f"make_leaderboard_page: {path}")
 
 
 def make_default_page(path: str) -> None:
@@ -424,12 +438,14 @@ def sco(cmd, verbose=False):
 
 
 def bottom_up_dirs(root):
-    return sco(f"""
+    res = sco(f"""
         find {root} -type d |
         awk -F'/' '{{print $0 ": " NF-1}}' |
         sort -t':' -k2,2nr |
         awk -F':' '{{print $1}}'
         """).split('\n')
+    res = [e for e in res if e]
+    return res
 
 
 def get_callback(*, path, idx_gen):
@@ -467,10 +483,10 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
             find {root} -name "{param}_compare.yaml" || true
             """).split('\n')
         lines = [e for e in lines if e]
-        # input('\n'.join(lines))
         for line in lines:
             with open(line, 'r') as f:
                 meta = yaml.load(f, Loader=yaml.FullLoader)
+                meta['root'] = os.path.dirname(line)
                 if meta['proj_path'] in reg_dict:
                     reg_dict[meta['proj_path']].append(meta)
                 else:
@@ -493,9 +509,8 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
             os.makedirs(root_dump_path, exist_ok=True)
             os.makedirs(dump_path, exist_ok=False)
             for rank, e in enumerate(v):
-                # curr_dump_path = pjoin(dump_path, str(rank + 1))
-                curr_dump_path = pjoin(dump_path, str(rank))
-                input(f'{e["root"]=} {curr_dump_path=}')
+                curr_dump_path = pjoin(dump_path, str(rank + 1))
+                # curr_dump_path = pjoin(dump_path, str(rank))
                 os.system(f"cp -r {e['root']} {curr_dump_path}")
                 with open(
                     pjoin(curr_dump_path, f'{param}_compare.yaml'), 'w'
@@ -515,13 +530,16 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
 
     get_paths(paths.src, cfg_name='resolved_config')
     get_paths(paths.prev_leaders, cfg_name=None)
-    # input(reg_dict)
     deploy()
+    # sys.exit(1)
 
     # all_dirs = bottom_up_dirs(paths.final)
     for dir in bottom_up_dirs(pjoin(paths.final, param)):
+        if dir == 'leaderboard':
+            raise ValueError(f"Leaderboard directory found in {dir}")
         callback = get_callback(path=dir, idx_gen=idx_gen)
         callback(dir)
+        prune_empty_dirs(root=dir, ignore=['index.rst'])
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
@@ -549,11 +567,12 @@ def main(cfg: DictConfig):
         )
     callback = get_callback(path=c.paths.final, idx_gen=c.rst.idx_gen)
     callback(c.paths.final)
-    prune_empty_dirs(root=c.paths.final, ignore=['index.rst'])
+    # prune_empty_dirs(root=c.paths.final, ignore=['index.rst'])
 
     os.system(
         f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
     )
+    os.system(f'rm -rf {c.git.repo_name}')
 
 
 if __name__ == "__main__":
