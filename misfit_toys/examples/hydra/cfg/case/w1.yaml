@@ -10,3 +10,5 @@ defaults:
 - train/optimizer: lbfgs
 - train/stages: vanilla
 - train/step: direct
+
+name: Earth Mover's Distance

@@ -14,7 +14,7 @@ params:
 - vp
 - src_amp_y
 score: l2_diff
-leaderboard_size: 10
+leaderboard_size: 100
 extensions: [gif, jpg, png]
 rst:
   dest: ../custom_pages
