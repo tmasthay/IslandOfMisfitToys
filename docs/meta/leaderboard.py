@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import sys
@@ -10,31 +11,9 @@ from mh.core import convert_dictconfig
 from omegaconf import DictConfig
 
 
-def dir_up(path, n=1):
-    for _ in range(n):
-        path = os.path.dirname(path)
-    return path
-
-
 def idt_lines(s: str, *, idt_str='    ', idt_lvl=1):
     istr = idt_str * idt_lvl
     return istr + ('\n' + istr).join(s.split('\n'))
-
-
-def sco(cmd, verbose=False):
-    cmd = ' '.join(cmd.split())
-    if verbose:
-        print(cmd, flush=True)
-    return co(cmd, shell=True).decode().strip()
-
-
-def bottom_up_dirs(root):
-    return sco(f"""
-        find {root} -type d |
-        awk -F'/' '{{print $0 ": " NF-1}}' |
-        sort -t':' -k2,2nr |
-        awk -F':' '{{print $1}}'
-        """).split('\n')
 
 
 def categorize_files(files, groups):
@@ -305,6 +284,33 @@ def make_default_page(path: str) -> None:
     print(f"make_default_page: {path}")
 
 
+def prune_empty_dirs(*, root, ignore):
+    dirs = bottom_up_dirs(root)
+    for dir in dirs:
+        all_files = sco(f'find {dir} -type f').split('\n')
+        all_files = [e for e in all_files if e]
+        all_files = [e for e in all_files if not any([i in e for i in ignore])]
+        if len(all_files) == 0:
+            os.system(f'rm -rf {dir}')
+            print(f"prune_empty_dirs: {dir}")
+
+
+def sco(cmd, verbose=False):
+    cmd = ' '.join(cmd.split())
+    if verbose:
+        print(cmd, flush=True)
+    return co(cmd, shell=True).decode().strip()
+
+
+def bottom_up_dirs(root):
+    return sco(f"""
+        find {root} -type d |
+        awk -F'/' '{{print $0 ": " NF-1}}' |
+        sort -t':' -k2,2nr |
+        awk -F':' '{{print $1}}'
+        """).split('\n')
+
+
 def get_callback(*, path, idx_gen):
     # note that this works *only* if
     #     default key is *last* in idx_gen
@@ -331,58 +337,28 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     # sort tests by depth of directory
     registered_tests.sort(key=lambda x: x.count('/'), reverse=True)
     reg_dict = {e: [] for e in registered_tests}
+    reg_dict['unregistered_tests'] = []
 
     # registered_tests = [e for e in registered_tests if e]
-    def get_paths(root, *, peelback, cfg_path):
+    def get_paths(root, *, cfg_name='meta'):
         nonlocal reg_dict
         lines = sco(f"""
-            find {root} -name "{param}_compare.yaml" |
-            rev |
-            cut -d'/' -f{peelback}- |
-            rev |
-            awk '{{print $0 "{cfg_path}"}}'
+            find {root} -name "{param}_compare.yaml" || true
             """).split('\n')
         lines = [e for e in lines if e]
         # input('\n'.join(lines))
         for line in lines:
-            og_path = line.replace(cfg_path, '')
-            timestamp = ' '.join(
-                [e for e in og_path.split('/')[-peelback:] if '-' in e]
-            )
-
-            # load the yaml
-            cfg = yaml.load(open(line, 'r'), Loader=yaml.FullLoader)
-            score_yaml = yaml.load(
-                open(
-                    pjoin(
-                        og_path,
-                        (peelback == 3) * 'meta',
-                        f"{param}_compare.yaml",
-                    ),
-                    'r',
-                ),
-                Loader=yaml.FullLoader,
-            )
-            score_val = score_yaml[score]
-            test_case = cfg['case']['data']['path']
-            del cfg, score_yaml
-            found_registration = ''
-            for reg_test in registered_tests:
-                if reg_test in test_case:
-                    found_registration = reg_test
-                    break
-            if not found_registration:
-                raise ValueError(
-                    f"Test case {test_case} not found in registered tests"
-                )
-            reg_dict[found_registration].append(
-                {'og_path': og_path, 'timestamp': timestamp, 'score': score_val}
-            )
+            with open(line, 'r') as f:
+                meta = yaml.load(f, Loader=yaml.FullLoader)
+                if meta['proj_path'] in reg_dict:
+                    reg_dict[meta['proj_path']].append(meta)
+                else:
+                    reg_dict['unregistered_tests'].append(meta)
 
     def deploy():
         nonlocal reg_dict
         for k, v in reg_dict.items():
-            reg_dict[k] = sorted(v, key=lambda x: float(x['score']))
+            reg_dict[k] = sorted(v, key=lambda x: float(x[score]), reverse=True)
 
         # remove duplicates and select out the top leaderboard_size
         for k, v in reg_dict.items():
@@ -397,24 +373,11 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
             os.makedirs(dump_path, exist_ok=False)
             for rank, e in enumerate(v):
                 curr_dump_path = pjoin(dump_path, str(rank + 1))
-                # input(curr_dump_path)
-                os.system(f"cp -r {e['og_path']} {curr_dump_path}")
+                os.system(f"cp -r {e['root']} {curr_dump_path}")
                 with open(
                     pjoin(curr_dump_path, f'{paths.meta}.yaml'), 'w'
                 ) as f:
                     yaml.dump(e, f)
-                # os.system(f'mkdir -p {curr_dump_path}/metadata')
-                # os.system(
-                #     f'find {curr_dump_path} -type f ! -wholename "*figs*" -exec'
-                #     f' mv {{}} {curr_dump_path}/metadata \; 2>/dev/null'
-                # )
-                # os.system(
-                #     f'find {curr_dump_path} -mindepth 1 -type d -type d !'
-                #     ' -wholename "*figs*" ! -wholename "*metadata*" -exec rm'
-                #     ' -rf {} \; 2> /dev/null'
-                # )
-                # input(sco(f'find {curr_dump_path} -type f ! -wholename "*figs*"'))
-                # iden = lambda x : x
                 cmd = (f'''
                     find {curr_dump_path} -type f !
                     -wholename "*figs*" -exec bash -c 'eval "mv $0 {curr_dump_path}"' {{}} \;
@@ -427,308 +390,15 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
                     ' -rf {} \; 2> /dev/null'
                 )
 
-        #     page_generator = get_callback(path=root_dump_path, idx_gen=idx_gen)
-        #     page_generator(root_dump_path)
-
-        # print(reg_dict)
-        # sys.exit(1)
-
-        # return lines
-
-    get_paths(paths.src, peelback=3, cfg_path='/.hydra/config.yaml')
-    get_paths(paths.prev_leaders, peelback=2, cfg_path='/config.yaml')
+    get_paths(paths.src, cfg_name='resolved_config')
+    get_paths(paths.prev_leaders, cfg_name=None)
+    # input(reg_dict)
     deploy()
 
     # all_dirs = bottom_up_dirs(paths.final)
     for dir in bottom_up_dirs(pjoin(paths.final, param)):
         callback = get_callback(path=dir, idx_gen=idx_gen)
         callback(dir)
-
-    # print(init_dirs)
-    # sys.exit(1)
-
-
-def prune_empty_dirs(*, root, ignore):
-    dirs = bottom_up_dirs(root)
-    for dir in dirs:
-        all_files = sco(f'find {dir} -type f').split('\n')
-        all_files = [e for e in all_files if e]
-        all_files = [e for e in all_files if not any([i in e for i in ignore])]
-        if len(all_files) == 0:
-            os.system(f'rm -rf {dir}')
-            print(f"prune_empty_dirs: {dir}")
-
-
-def extract_info(
-    *,
-    path: str,
-    param: str,
-    score: str,
-    leaderboard_size: int,
-    order: list,
-    extensions: list,
-):
-    lines = sco(
-        f'find {path} -name "{param}_compare.yaml" -exec grep -H'
-        f' "{score}" {{}} \; | awk -F\':\' \'{{print $3,$1}}\' | head -n'
-        f' {leaderboard_size}'
-    ).split('\n')
-    lines = [e.strip().split() for e in lines]
-    lines = [
-        {
-            'score': e[0],
-            'path': e[1].replace(f"/meta/{param}_compare.yaml", ""),
-            'images': [],
-        }
-        for e in lines
-        if e
-    ]
-    for line in lines:
-        path = line['path']
-        line['img_files'] = []
-        cfg = yaml.load(
-            open(pjoin(path, '.hydra', 'config.yaml'), 'r'),
-            Loader=yaml.FullLoader,
-        )
-        line['target_path'] = cfg['case']['data']['path'].split('data/')[-1]
-        # input(line)
-        for ext in extensions:
-            cmd = f'find {path} -name "*.{ext}"'
-            line['img_files'].extend([e for e in sco(cmd).split('\n') if e])
-
-        def sorter():
-            d = order.get(param, None)
-            if d is None:
-                return lambda v: 0
-            else:
-
-                def helper(v):
-                    base = os.path.basename(v).split('.')[0]
-                    if base in d:
-                        return d.index(base)
-                    else:
-                        return float('inf')
-
-                return helper
-
-        line['img_files'].sort(key=sorter())
-
-        # Read git and config files
-        with open(pjoin(path, 'git_info.txt'), 'r') as f:
-            git_info = f.read().strip()
-            sections = git_info.split(80 * '*')[:-1]
-            line['git_info'] = {
-                'short': sections[0].strip(),
-                'diff': sections[1].strip(),
-            }
-
-        for hydra_file in ['config', 'overrides', 'hydra']:
-            with open(pjoin(path, '.hydra', f'{hydra_file}.yaml'), 'r') as f:
-                line[hydra_file] = f.read().strip()
-
-    lines.sort(key=lambda x: float(x['score']), reverse=False)
-    return lines
-
-
-def make_param_rst(leaderboard_dir, param):
-    index_path = pjoin(leaderboard_dir, 'index.rst')
-    directories = [
-        d
-        for d in os.listdir(leaderboard_dir)
-        if os.path.isdir(pjoin(leaderboard_dir, d))
-    ]
-
-    with open(index_path, 'w') as file:
-        s = f"""
-{param}
-===========
-
-.. toctree::
-    :maxdepth: 1
-
-""".lstrip()
-
-        for dir in sorted(directories, key=lambda x: int(x)):
-            s += f"    {dir}/{param}\n"
-        file.write(s)
-
-
-def make_index_rst(*, root, params):
-    index_path = pjoin(root, 'index.rst')
-
-    with open(index_path, 'w') as file:
-        s = """
-Leaderboard
-===========
-
-.. toctree::
-    :maxdepth: 1
-
-""".lstrip()
-
-        for param in params:
-            s += f"    {param}/index\n"
-        file.write(s)
-
-
-def setup_folders(*, name, size):
-    os.system(f'rm -rf {name}')
-    os.makedirs(name, exist_ok=False)
-    for i in range(size):
-        curr_root = pjoin(name, f"{i+1}")
-        os.makedirs(curr_root, exist_ok=False)
-        os.makedirs(pjoin(curr_root, 'figs'), exist_ok=False)
-
-
-def write_param_file(*, folder_name, param, line):
-    folder_name = pjoin(folder_name, line['target_path'])
-    rank = 1 + int(sco(f'ls {folder_name} | grep "[0-9][0-9]*" | wc -l'))
-    curr_root = pjoin(folder_name, f"{rank}")
-    rst_path = pjoin(curr_root, "index.rst")
-
-    os.makedirs(curr_root, exist_ok=False)
-    os.makedirs(pjoin(curr_root, 'figs'), exist_ok=False)
-    # input(f"{curr_root=}, {rst_path=}")
-    with open(rst_path, 'w') as rst_file:
-        img_str = ''
-        for img in line['img_files']:
-            os.system(f"cp {img} {curr_root}/figs/")
-            img_str += (
-                f".. image:: figs/{os.path.basename(img)}\n   :align:"
-                " center\n\n"
-            )
-        title = f"Rank {rank}: {line['score']}"
-        s = f"""
-Rank {rank}: {line['score']}
-{'=' * len(title)}
-
-.. code-block::
-
-    Score: {line['score']}
-    Run Path: {line['path']}
-    Git Info Summary:
-    {idt_lines(line['git_info']['short'])}
-
-.. toctree::
-    :maxdepth: 1
-
-    overrides
-    config
-    hydra
-    full_git_diff
-
-Images
-
-{img_str}
-""".lstrip()
-        rst_file.write(s)
-    return curr_root
-
-
-def write_git_diff_file(*, path, line):
-    with open(pjoin(path, 'full_git_diff.rst'), 'w') as diff_file:
-        title = 'Full Git Diff'
-        diff_file.write(f"{title}\n{'=' * len(title)}\n\n")
-        diff_file.write('.. code-block:: \n\n')
-        diff_file.write(idt_lines(line['git_info']['diff']))
-
-
-def write_yaml_rst_block_file(*, path, line, filename):
-    # curr_root = pjoin(path, f"{rank+1}")
-    curr_root = path
-    with open(pjoin(curr_root, f'{filename}.rst'), 'w') as curr_file:
-        s = idt_lines(line[filename])
-        rst_heading = (
-            f"{filename.capitalize().replace('_', ' ')}\n"
-            f"{'=' * len(filename)}\n\n"
-            ".. code-block:: yaml\n\n"
-        )
-        curr_file.write(rst_heading + s)
-
-
-def write_folder_structure(*, search_root, out_root, params):
-    def make_folders(param, verbose=True):
-        res_cmd = sco(f"""
-            find {search_root} -type d |
-            grep -v "__pycache__" |
-            sed -E 's|{search_root}/||' |
-            tail -n +2 |
-            awk '{{print "mkdir -p {pjoin(out_root, param)}{os.sep}" $0 ";"}}'
-        """)
-        return os.system(res_cmd)
-
-    for param in params:
-        make_folders(param)
-
-    directories = sco(
-        f"""find {out_root} -mindepth 1 -type d -exec sh -c 'echo $1:$(ls "$1")' _ {{}} \;"""
-    ).split('\n')
-    directories = [[ee.strip() for ee in e.split(':')] for e in directories]
-
-    for dir, files in directories:
-        # name = dir.split(os.sep)[-1]
-        files = [f"{e}/index" for e in files.split()]
-        # toc = "\n    ".join(files)
-        if len(files) == 0:
-            continue
-
-
-#         with open(f'{dir}/index.rst', 'w') as f:
-#             s = f"""
-# {name}
-# {'=' * len(name)}
-# .. toctree::
-#     :maxdepth: 1
-
-#     {toc}
-# """.lstrip()
-#             f.write(s)
-
-
-def toctree(*, title=None, files, maxdepth=1):
-    # files = [f"{f}/index" for f in files]
-    s = "" if title is None else f"{title}\n{'=' * len(title)}\n\n"
-    s += f".. toctree::\n    :maxdepth: {maxdepth}\n\n"
-    for filename in files:
-        if filename in ['\n', ''] or '.. _spacer1:' in filename:
-            s += filename
-        else:
-            s += f"    {filename}/index\n"
-    # s += "\n    " + "\n    ".join(files)
-    s += "\n\n"
-    return s
-
-
-def write_dynamic_index_rst(*, root):
-    filenames = os.listdir(root)
-
-    if 'index.rst' in filenames:
-        return
-
-    numbered_files = [e for e in filenames if re.match(r'\d+', e)]
-    nonnumbered_files = [e for e in filenames if not re.match(r'\d+', e)]
-
-    if len(numbered_files) > 0:
-        numbered_files.sort(key=lambda x: int(x))
-        nonnumbered_files.extend(['\n', '    .. _spacer1:\n', '\n'])
-        nonnumbered_files.extend(numbered_files)
-
-    name = root.split(os.sep)[-1]
-    s = f"{name}\n{'=' * len(name)}\n\n"
-    with open(pjoin(root, 'index.rst'), 'w') as f:
-        f.write(s)
-        if len(nonnumbered_files) > 0:
-            # nonnumbered_toctree = toctree(title='Leaderboard (and derived datasets on top)', files=nonnumbered_files)
-            nonnumbered_toctree = toctree(title='', files=nonnumbered_files)
-            f.write(nonnumbered_toctree)
-        # if len(numbered_files) > 0:
-        #     numbered_toctree = toctree(title='Leaderboard', files=numbered_files)
-        #     f.write(numbered_toctree)
-
-
-def write_all_dynamic_index_rst(*, root):
-    for dirpath, dirnames, filenames in os.walk(root):
-        write_dynamic_index_rst(root=dirpath)
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
@@ -747,8 +417,6 @@ def main(cfg: DictConfig):
     #     params=c.params,
     # )
     for param in c.params:
-        # curr_fold = pjoin(c.folder_name, param)
-        # input(f'{param=}')
         centralize_info(
             paths=c.paths,
             param=param,
@@ -756,38 +424,6 @@ def main(cfg: DictConfig):
             leaderboard_size=c.leaderboard_size,
             idx_gen=c.rst.idx_gen,
         )
-    #     lines = extract_info(
-    #         path=c.paths.final,
-    #         param=param,
-    #         score=c.score,
-    #         leaderboard_size=c.leaderboard_size,
-    #         order=c.rst.img.order,
-    #         extensions=c.extensions,
-    #     )
-    #     # input(lines)
-    #     # setup_folders(name=curr_fold, size=len(lines))
-
-    #     for line in lines:
-    #         root = write_param_file(
-    #             folder_name=curr_fold, param=param, line=line
-    #         )
-    #         write_git_diff_file(path=root, line=line)
-    #         for filename in ['config', 'hydra', 'overrides']:
-    #             write_yaml_rst_block_file(
-    #                 path=root, line=line, filename=filename
-    #             )
-
-    #     # # print(lines)
-    #     # make_param_rst(curr_fold, param=param)
-
-    # # make_index_rst(root=c.folder_name, params=c.params)
-    # write_all_dynamic_index_rst(root=c.folder_name)
-    # os.system(
-    #     f'rm -rf {c.rst.dest}/{c.folder_name}; mv {c.folder_name} {c.rst.dest}'
-    # )
-    # os.system(
-    #     f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
-    # )
     callback = get_callback(path=c.paths.final, idx_gen=c.rst.idx_gen)
     callback(c.paths.final)
     prune_empty_dirs(root=c.paths.final, ignore=['index.rst'])
