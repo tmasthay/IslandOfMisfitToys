@@ -4,6 +4,7 @@ git:
   repo_name: IslandOfMisfitToys
   url: git@github.com:${.user}/${.repo_name}.git
   branch: gh-pages
+  always_fresh: false
 paths:
   src: ../../misfit_toys
   final: ${..folder_name}

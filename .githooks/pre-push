@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exit_prog(){
+exit_prog() {
     echo $1
     exit 1
 }
@@ -21,6 +21,10 @@ python leaderboard.py || { exit_prog "Leaderboard generation failed"; }
 
 cd ..
 tar -czf custom_pages.tar.gz custom_pages
+echo "du -h custom_pages.tar.gz output below"
+du -h custom_pages.tar.gz
+
+python estimate_upload_time.py || { exit_prog "Upload time estimation failed"; }
 
 # make github temp release
 gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { exit_prog "Creation failed"; }
