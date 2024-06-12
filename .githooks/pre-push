@@ -5,6 +5,31 @@ exit_prog() {
     exit 1
 }
 
+get_upload_speed() {
+    local speed_out=$(speedtest --no-download --bytes | grep "Upload" | cut -d':' -f2)
+    local speed=$(echo $speed_out | cut -d' ' -f1)
+    local unit=$(echo $speed_out | cut -d' ' -f2)
+
+    if [ "$unit" == "Mbyte/s" ]; then
+        speed=$(echo $speed | awk '{print $1 * 1024 * 1024}')
+    elif [ "$unit" == "Kbyte/s" ]; then
+        speed=$(echo $speed | awk '{print $1 * 1024}')
+    fi
+    echo $speed
+}
+
+est_upload_time() {
+    local file_size=$1
+    local speed=$2
+    local pess=${3:-30}
+    echo "file_size = $file_size"
+    echo "speed = $speed"
+    result=$(python3 -c "print(f'{${file_size} // ${speed}:.0f}')")
+    pess_res=$((result * pess))
+    echo "Optimistic upload time: $result seconds"
+    echo "Pessimistic upload time: $pess_res seconds"
+}
+
 commit_msg=$(git log -1 --pretty=%B | grep -e "\[skip ci\]" -e "\[skip docs\]" | wc -l)
 
 if [ $commit_msg -gt 0 ]; then
@@ -20,15 +45,27 @@ cd docs/meta
 python leaderboard.py || { exit_prog "Leaderboard generation failed"; }
 
 cd ..
+echo "Tarring..."
 tar -czf custom_pages.tar.gz custom_pages
+echo "Tarring done"
 echo "du -h custom_pages.tar.gz output below"
-du -h custom_pages.tar.gz
+file_size=$(du custom_pages.tar.gz | awk '{print $1}')
+file_size=$((file_size * 1024))
 
-python estimate_upload_time.py || { exit_prog "Upload time estimation failed"; }
+readable_file_size=$(du -h custom_pages.tar.gz | awk '{print $1}')
+echo "file_size = $readable_file_size"
+
+speed=$(get_upload_speed)
+est_upload_time $file_size $speed
 
 # make github temp release
 gh release create "$RELEASE_TAG" --target "$CURRENT_BRANCH" -t Leaderboard -n "Leaderboard" -p || { exit_prog "Creation failed"; }
+
+UPLOAD_START=$(date +%s)
 gh release upload "$RELEASE_TAG" custom_pages.tar.gz || { exit_prog "Upload failed"; }
+UPLOAD_END=$(date +%s)
+
+echo "Upload time: $((UPLOAD_END - UPLOAD_START)) seconds"
 
 # cleanup
 rm custom_pages.tar.gz || { exit_prog "Cleanup failed"; }
