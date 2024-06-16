@@ -33,14 +33,16 @@ from misfit_toys.utils import (
     setup,
 )
 
-opts = 'all'
-set_print_options(
-    precision=3,
-    sci_mode=True,
-    threshold=5,
-    linewidth=10,
-    callback=torch_stats(opts),
-)
+
+def set_options():
+    opts = 'all'
+    set_print_options(
+        precision=3,
+        sci_mode=True,
+        threshold=5,
+        linewidth=10,
+        callback=torch_stats(opts),
+    )
 
 
 def sco(cmd, verbose=False):
@@ -453,4 +455,5 @@ def main(cfg: DictConfig) -> None:
 
 # Run the script from command line
 if __name__ == "__main__":
+    set_options()
     main()
