@@ -3,5 +3,6 @@ kw:
   length: 0.3
   batch_size: 4
   scale: 1.0e+06
+  verbose: true
 
 nonexist: checking_the_yaml_format_hook

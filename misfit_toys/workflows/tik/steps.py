@@ -1,3 +1,5 @@
+from time import time
+
 from misfit_toys.utils import taper
 
 
@@ -40,7 +42,7 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
     return helper
 
 
-def taper_batch(*, length=None, batch_size=1, scale=1.0):
+def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
     """
     Applies tapering to the output of a neural network model.
 
@@ -56,9 +58,14 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
     Returns:
         helper (function): A helper function that applies tapering to the output of a neural network model.
     """
+    num_calls = 0
 
     def helper(self):
-        nonlocal length, scale, batch_size
+        nonlocal length, scale, batch_size, num_calls
+        num_calls += 1
+        start_time = time()
+        if verbose:
+            print(f"    taper_batch: call == {num_calls}", flush=True, end="")
         num_shots = self.obs_data.shape[0]
         num_batches = -(-num_shots // batch_size)
         slices = [
@@ -67,6 +74,7 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
         ]
 
         self.loss = 0.0
+        epoch_loss = 0.0
         for _, s in enumerate(slices):
             self.out = self.prop(s)[-1]
 
@@ -81,6 +89,10 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
                 obs_data_filt = self.obs_data
 
             self.loss = scale * self.loss_fn(self.out, obs_data_filt)
+            epoch_loss += self.loss
             self.loss.backward()
+        self.loss = epoch_loss / num_batches
+        if verbose:
+            print(f"...took {time() - start_time}s", flush=True)
 
     return helper
