@@ -1,4 +1,5 @@
 import os
+import sys
 from subprocess import check_output as co
 from time import time
 
@@ -147,6 +148,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     optimizer = apply(c.train.optimizer)
     step = apply(c.train.step)
+    print(str(step))
+    # sys.exit(1)
     training_stages = apply(c.train.stages)
 
     pre_time = time() - start_pre
