@@ -1,0 +1,7 @@
+runtime_func: ^^null|misfit_toys.workflows.tik.steps|taper_batch
+kw:
+  length: 0.3
+  batch_size: 4
+  scale: 1.0e+06
+
+nonexist: checking_the_yaml_format_hook

@@ -345,6 +345,7 @@ class Training(TrainingAbstract):
     scheduler: list = None
     verbose: int = 1
     override_post_train: bool = False
+    ext: DotDict = None
 
     def __init__(
         self,
@@ -363,6 +364,7 @@ class Training(TrainingAbstract):
         _pre_train: Callable[[TrainingAbstract], None] = None,
         _post_train: Callable[[TrainingAbstract], None] = None,
         _build_training_stages: Callable[[TrainingAbstract], OrderedDict],
+        ext=None,
     ):
         """
         Initialize the Training object.
@@ -372,6 +374,13 @@ class Training(TrainingAbstract):
         self._build_training_stages_helper = _build_training_stages
         self._pre_train_helper = _pre_train if _pre_train else lambda x: None
         self._post_train_helper = _post_train if _post_train else lambda x: None
+        self.ext = ext or DotDict({})
+        if type(self.ext) == dict:
+            self.ext = DotDict(self.ext)
+        elif type(self.ext) != DotDict:
+            raise ValueError(
+                f"ext must be dict or DotDict, not {type(self.ext)}"
+            )
         super().__init__(
             rank=rank,
             world_size=world_size,
