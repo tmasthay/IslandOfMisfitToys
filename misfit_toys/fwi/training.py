@@ -160,6 +160,9 @@ class TrainingAbstract(ABC):
             return self.loss
 
         self.optimizer.step(closure)
+        print('Entering barrier', flush=True)
+        # torch.distributed.barrier()
+        print('Exiting barrier', flush=True)
         if self.scheduler:
             self.scheduler.step()
         return self.loss

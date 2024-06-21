@@ -99,7 +99,7 @@ def d2cpu(x):
 
 
 # Main function for training on each rank
-def run_rank(rank, world_size):
+def run_rank(rank, world_size, data):
     """
     Runs the Distributed Data Parallel (DDP) training on a specific rank.
 
@@ -111,31 +111,9 @@ def run_rank(rank, world_size):
         None
     """
 
-    print(f"Running DDP on rank {rank} / {world_size}.")
-    setup(rank, world_size)
+    print(f"Running DDP on rank {rank} / {world_size}.", flush=True)
+    setup(rank, world_size, port=12355)
 
-    data_path = os.path.join(
-        os.environ['CONDA_PREFIX'], 'data/marmousi/deepwave_example/shots16'
-    )
-    if not os.path.exists(data_path):
-        print("Downloading data...")
-        download_data(storage="conda/data", inclusions={"marmousi"})
-        print("Data downloaded.")
-    # Build data for marmousi model
-    data = path_builder(
-        "conda/data/marmousi/deepwave_example/shots16",
-        remap={"vp_init": "vp"},
-        vp_init=ParamConstrained.delay_init(
-            minv=1000, maxv=2500, requires_grad=True
-        ),
-        src_amp_y=Param.delay_init(requires_grad=False),
-        obs_data=None,
-        src_loc_y=None,
-        rec_loc_y=None,
-    )
-
-    # preprocess data like Alan and then deploy slices onto GPUs
-    data["obs_data"] = taper(data["obs_data"])
     data = chunk_and_deploy(
         rank,
         world_size,
@@ -145,7 +123,6 @@ def run_rank(rank, world_size):
             "params": ["src_amp_y"],
         },
     )
-
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
     prop = SeismicProp(
@@ -161,7 +138,7 @@ def run_rank(rank, world_size):
         obs_data=data["obs_data"],
         loss_fn=torch.nn.MSELoss(),
         optimizer=[torch.optim.LBFGS, {}],
-        verbose=2,
+        verbose=1,
         report_spec={
             'path': os.path.join(os.path.dirname(__file__), 'out', 'parallel'),
             'loss': {
@@ -188,7 +165,13 @@ def run_rank(rank, world_size):
         _step=_step,
         _build_training_stages=training_stages,
     )
-    train.train()
+    try:
+        train.train()
+    except Exception as e:
+        with open(f'error{rank}.err', 'w') as f:
+            f.write(e)
+        print(e, flush=True)
+    print(f'Exiting {rank=}')
 
 
 # Main function for spawning ranks
@@ -202,7 +185,29 @@ def run(world_size):
     Returns:
         None
     """
-    mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
+    data_path = os.path.join(
+        os.environ['CONDA_PREFIX'], 'data/marmousi/deepwave_example/shots16'
+    )
+    if not os.path.exists(data_path):
+        print("Downloading data...")
+        download_data(storage="conda/data", inclusions={"marmousi"})
+        print("Data downloaded.")
+    # Build data for marmousi model
+    data = path_builder(
+        "conda/data/marmousi/deepwave_example/shots16",
+        remap={"vp_init": "vp"},
+        vp_init=ParamConstrained.delay_init(
+            minv=1000, maxv=2500, requires_grad=True
+        ),
+        src_amp_y=Param.delay_init(requires_grad=False),
+        obs_data=None,
+        src_loc_y=None,
+        rec_loc_y=None,
+    )
+
+    # preprocess data like Alan and then deploy slices onto GPUs
+    data["obs_data"] = taper(data["obs_data"])
+    mp.spawn(run_rank, args=(world_size,data), nprocs=world_size, join=True)
 
 
 # Main function for running the script

@@ -51,7 +51,7 @@ def find_available_port(start_port, max_attempts=5):
                 raise  # Re-raise exception if it's not a "port in use" error
 
 
-def setup(rank, world_size, port=12358):
+def setup(rank, world_size, port=12355):
     """
     Set up the distributed training environment.
 
