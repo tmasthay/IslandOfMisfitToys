@@ -6,23 +6,22 @@ import os
 import shutil
 
 import deepwave
+import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import yaml
 from deepwave import scalar
+from mh.core import DotDict, DotDictImmutable, convert_dictconfig, hydra_out
+from omegaconf import DictConfig, OmegaConf
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data.download_data import download_data
-from misfit_toys.utils import get_gpu_memory, parse_path
-import hydra
-from omegaconf import DictConfig, OmegaConf
-from mh.core import DotDict, DotDictImmutable, convert_dictconfig, hydra_out
-import yaml
-from misfit_toys.utils import resolve, apply
+from misfit_toys.utils import apply, get_gpu_memory, parse_path, resolve
 
 
 def setup(rank, world_size):
@@ -104,7 +103,8 @@ class Prop(torch.nn.Module):
             pml_freq=self.freq,
             time_pad_frac=0.2,
         )
-    
+
+
 def preprocess_cfg(cfg: DictConfig) -> DotDict:
     """
     Preprocesses the configuration dictionary.
@@ -136,7 +136,6 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     with open(hydra_out('resolved_config.yaml'), 'w') as f:
         f.write(resolved_config_str)
     del dump_resolved_config
-    input(f'{c=}')
     for k, v in c.plt.items():
         c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
     c.rank_out = hydra_out(c.get('rank_out', 'rank'))
@@ -154,7 +153,6 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     # c.data.postprocess = apply(c.data.postprocess)
 
     return DotDictImmutable(c.__dict__)
-
 
 
 def run_rank(rank, world_size, c):
@@ -359,7 +357,7 @@ def run_rank(rank, world_size, c):
 
 
 def run(world_size, cfg):
-    mp.spawn(run_rank, args=(world_size,cfg), nprocs=world_size, join=True)
+    mp.spawn(run_rank, args=(world_size, cfg), nprocs=world_size, join=True)
 
 
 @hydra.main(config_path='cfg', config_name='cfg', version_base=None)

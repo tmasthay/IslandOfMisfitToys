@@ -1111,11 +1111,11 @@ def apply(lcl, relax=True):
             if isinstance(v, DotDict) or isinstance(v, dict):
                 kwargs[k] = apply(v, relax=True)
 
-        keys = set(kwargs.keys())
-        is_reducible = keys.issubset(
-            set(['args', 'kwargs', 'kw', 'runtime_func'])
-        )
-        if is_reducible:
+        # keys = set(kwargs.keys())
+        # is_reducible = keys.issubset(
+        #     set(['args', 'kwargs', 'kw', 'runtime_func'])
+        # )
+        if 'runtime_func' in kwargs.keys():
             kwargs = apply(kwargs, relax=True)
         lcl = lcl.runtime_func(*args, **kwargs)
         return lcl
@@ -1141,15 +1141,14 @@ def apply_all(lcl, relax=True, exc=None):
     Returns:
         dict or DotDict: The modified dictionary or DotDict after applying the `apply` function.
     """
-    exc = exc or []
-    for k, v in lcl.items():
-        if k in exc:
-            continue
-        elif isinstance(v, DotDict) or isinstance(v, dict):
-            if 'runtime_func' in v.keys():
-                lcl[k] = apply(v, relax=relax)
-            else:
-                lcl[k] = apply_all(v, relax=relax, exc=exc)
+    if isinstance(lcl, DotDict) or isinstance(lcl, dict):
+        if 'runtime_func' in lcl.keys():
+            return apply(lcl, relax=relax)
+
+    valid_items = [(k, v) for k, v in lcl.items() if k not in (exc or [])]
+    for k, v in valid_items:
+        if isinstance(v, DotDict) or isinstance(v, dict):
+            lcl[k] = apply_all(v, relax=relax, exc=exc)
     return lcl
 
 

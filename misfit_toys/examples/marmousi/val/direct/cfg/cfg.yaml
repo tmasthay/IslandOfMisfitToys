@@ -1,7 +1,8 @@
-case: 
+case:
   plt: {}
-  data: 
+  data:
     path: ${oc.env:CONDA_PREFIX}/data/marmousi
     preprocess: {}
+    postprocess: {}
 
 run: Hello

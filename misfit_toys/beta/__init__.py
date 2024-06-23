@@ -19,18 +19,18 @@ from . import (
 )
 
 __all__ = [
-    'l1',
-    'prob',
+    'main',
     'data',
-    'optimizers',
-    'plotter',
-    'sobolev',
+    'loss',
     'opt',
+    'l1',
     'helpers',
     'steps',
-    'postprocess',
-    'loss',
-    'main',
+    'sobolev',
+    'plotter',
     'w1',
+    'postprocess',
     'renorm',
+    'prob',
+    'optimizers',
 ]
