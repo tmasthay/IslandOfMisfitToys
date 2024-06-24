@@ -15,10 +15,11 @@ Functions:
 
 """
 
+from dataclasses import dataclass
 import torch
 from deepwave import elastic, scalar
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
-from mh.core import DotDict
+from mh.core import DotDict, DotDictImmutable
 
 from misfit_toys.data.dataset import get_data3, get_pydict
 from misfit_toys.utils import tensor_summary
@@ -667,3 +668,49 @@ class SeismicPropBatched(torch.nn.Module):
                 receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )
+
+@dataclass(kw_only=True)
+class SeismicPropSimple(torch.nn.Module):
+    vp: Param
+    rho: Param
+    meta: DotDictImmutable
+    vs: Param = None
+    src_amp_y: Param = None
+    src_amp_x: Param = None
+    src_loc_y: torch.Tensor = None
+    src_loc_x: torch.Tensor = None
+    rec_loc_y: torch.Tensor = None
+    rec_loc_x: torch.Tensor = None
+    forward_kw: DotDictImmutable = None
+
+    def __ensure_immutable_dict(self, field):
+        d = getattr(self, field)
+        if d is None:
+            return DotDictImmutable({})
+        if isinstance(d, dict):
+            return DotDictImmutable(d)
+        if type(d) == DotDict:
+            return DotDictImmutable(d.__dict__)
+        return d
+
+    def __ensure_keys(self, *, field, keys):
+        d = getattr(self, field)
+        if not set(keys).issubset(set(d.keys())):
+            raise ValueError(f'Expected {keys=} to be subset of {d.keys()=} for {field=}')
+    
+    def __post_init__(self):
+        self.forward_kw = self.__ensure_immutable_dict('forward_kw')
+        self.meta = self.__ensure_immutable_dict('meta')
+        self.__ensure_keys(field='meta', keys=['dx', 'dt'])
+
+    def forward(self, batch_slice):
+        v = self.model()
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=self.src_amp_y[batch_slice],
+            source_locations=self.src_loc_y[batch_slice],
+            receiver_locations=self.rec_loc_y[batch_slice],
+            **self.forward_kw
+        )

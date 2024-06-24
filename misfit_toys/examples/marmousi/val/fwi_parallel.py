@@ -12,76 +12,12 @@ from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
     SeismicProp,
+    SeismicPropSimple,
     path_builder,
 )
 from misfit_toys.fwi.training import Training
 from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
-
-
-def training_stages():
-    """
-    Define the training stages for the training class.
-
-    Returns:
-        OrderedDict: A dictionary containing the training stages.
-            Each stage is represented by a key-value pair, where the key is the stage name
-            and the value is a dictionary containing the stage data, preprocess function, and postprocess function.
-    """
-
-    def freq_preprocess(training, freq):
-        sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
-        sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
-
-        training.sos = sos
-
-        training.obs_data_filt = filt(training.obs_data, sos)
-
-        training.reset_optimizer()
-
-    def freq_postprocess(training, freq):
-        pass
-
-    def epoch_preprocess(training, epoch):
-        pass
-
-    def epoch_postprocess(training, epoch):
-        pass
-
-    return OrderedDict(
-        [
-            (
-                "freqs",
-                {
-                    "data": [10, 15, 20, 25, 30],
-                    "preprocess": freq_preprocess,
-                    "postprocess": freq_postprocess,
-                },
-            ),
-            (
-                "epochs",
-                {
-                    "data": [0, 1],
-                    "preprocess": epoch_preprocess,
-                    "postprocess": epoch_postprocess,
-                },
-            ),
-        ]
-    )
-
-
-# Define _step for the training class
-def _step(self):
-    """
-    Performs a single step of the forward-backward optimization process.
-
-    Returns:
-        torch.Tensor: The loss value after the backward pass.
-    """
-    self.out = self.prop(None)
-    self.out_filt = filt(taper(self.out[-1]), self.sos)
-    self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    self.loss.backward()
-    return self.loss
+from torchaudio.functional import biquad
 
 
 # Syntactic sugar for converting from device to cpu
@@ -125,52 +61,69 @@ def run_rank(rank, world_size, data):
     )
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
-    prop = SeismicProp(
+    prop = SeismicPropSimple(
         **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
 
-    # Define the training object
-    train = Training(
-        rank=rank,
-        world_size=world_size,
-        prop=prop,
-        obs_data=data["obs_data"],
-        loss_fn=torch.nn.MSELoss(),
-        optimizer=[torch.optim.LBFGS, {}],
-        verbose=1,
-        report_spec={
-            'path': os.path.join(os.path.dirname(__file__), 'out', 'parallel'),
-            'loss': {
-                'update': lambda x: d2cpu(x.loss),
-                'reduce': lambda x: torch.mean(torch.stack(x), dim=0),
-                'presave': torch.tensor,
-            },
-            'vp': {
-                'update': lambda x: d2cpu(x.prop.module.vp()),
-                'reduce': lambda x: x[0],
-                'presave': torch.stack,
-            },
-            'out': {
-                'update': lambda x: d2cpu(x.out[-1]),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
-            'out_filt': {
-                'update': lambda x: d2cpu(x.out_filt),
-                'reduce': lambda x: torch.cat(x, dim=1),
-                'presave': torch.stack,
-            },
-        },
-        _step=_step,
-        _build_training_stages=training_stages,
-    )
-    try:
-        train.train()
-    except Exception as e:
-        with open(f'error{rank}.err', 'w') as f:
-            f.write(e)
-        print(e, flush=True)
+
+    # Setup optimiser to perform inversion
+    loss_fn = torch.nn.MSELoss()
+
+    # Run optimisation/inversion
+    n_epochs = 2
+
+    loss_record = []
+    v_record = []
+    out_record = []
+    out_filt_record = []
+
+    freqs = [10, 15, 20, 25, 30]
+    # n_freqs = len(freqs)
+
+    def get_epoch(i, j):
+        return j + i * n_epochs
+
+    obs_data = data['obs_data']
+    for i, cutoff_freq in enumerate(freqs):
+        print(i, flush=True)
+        sos = butter(6, cutoff_freq, fs=1 / data["meta"].dt, output='sos')
+        sos = [
+            torch.tensor(sosi).to(obs_data.dtype).to(rank) for sosi in sos
+        ]
+
+        def filt(x):
+            return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
+
+        observed_data_filt = filt(obs_data)
+        optimiser = torch.optim.LBFGS(prop.parameters())
+        for epoch in range(n_epochs):
+            num_calls = 0
+
+            def closure():
+                nonlocal num_calls
+                num_calls += 1
+                optimiser.zero_grad()
+                out = prop(
+                    None
+                )
+                out_filt = filt(taper(out[-1]))
+                loss = 1e6 * loss_fn(out_filt, observed_data_filt)
+                loss.backward()
+                if num_calls == 1:
+                    loss_record.append(loss.detach().cpu())
+                    v_record.append(prop.module.vp().detach().cpu())
+                    out_record.append(out[-1].detach().cpu())
+                    out_filt_record.append(out_filt.detach().cpu())
+                    print(
+                        f'Epoch={get_epoch(i, epoch)}, Loss={loss.item()},'
+                        f' rank={rank}',
+                        flush=True,
+                    )
+                return loss
+
+            optimiser.step(closure)
+            torch.cuda.empty_cache()
     print(f'Exiting {rank=}')
 
 

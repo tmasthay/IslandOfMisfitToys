@@ -160,9 +160,9 @@ class TrainingAbstract(ABC):
             return self.loss
 
         self.optimizer.step(closure)
-        print('Entering barrier', flush=True)
-        # torch.distributed.barrier()
-        print('Exiting barrier', flush=True)
+        # print('Entering barrier', flush=True)
+        # # torch.distributed.barrier()
+        # print('Exiting barrier', flush=True)
         if self.scheduler:
             self.scheduler.step()
         return self.loss
@@ -305,7 +305,9 @@ class TrainingAbstract(ABC):
             None
         """
         if depth == max_depth:
+            print(f'step, {self.rank=}')
             self.step()  # Main training logic
+            print(f'True barrier: {self.rank=}')
             return
 
         level_name, level_info = list(level_data.items())[depth]
