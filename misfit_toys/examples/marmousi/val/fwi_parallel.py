@@ -6,6 +6,7 @@ import torch.multiprocessing as mp
 from mh.core_legacy import subdict
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torchaudio.functional import biquad
 
 from misfit_toys.data.download_data import download_data
 from misfit_toys.fwi.seismic_data import (
@@ -16,8 +17,7 @@ from misfit_toys.fwi.seismic_data import (
     path_builder,
 )
 from misfit_toys.fwi.training import Training
-from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
-from torchaudio.functional import biquad
+from misfit_toys.utils import chunk_and_deploy, setup, taper
 
 
 # Syntactic sugar for converting from device to cpu
@@ -62,10 +62,12 @@ def run_rank(rank, world_size, data):
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
     prop = SeismicPropSimple(
-        **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
+        **prop_data,
+        forward_kw=dict(
+            max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
+        ),
     ).to(rank)
     prop = DDP(prop, device_ids=[rank])
-
 
     # Setup optimiser to perform inversion
     loss_fn = torch.nn.MSELoss()
@@ -88,9 +90,7 @@ def run_rank(rank, world_size, data):
     for i, cutoff_freq in enumerate(freqs):
         print(i, flush=True)
         sos = butter(6, cutoff_freq, fs=1 / data["meta"].dt, output='sos')
-        sos = [
-            torch.tensor(sosi).to(obs_data.dtype).to(rank) for sosi in sos
-        ]
+        sos = [torch.tensor(sosi).to(obs_data.dtype).to(rank) for sosi in sos]
 
         def filt(x):
             return biquad(biquad(biquad(x, *sos[0]), *sos[1]), *sos[2])
@@ -104,9 +104,7 @@ def run_rank(rank, world_size, data):
                 nonlocal num_calls
                 num_calls += 1
                 optimiser.zero_grad()
-                out = prop(
-                    None
-                )
+                out = prop(None)
                 out_filt = filt(taper(out[-1]))
                 loss = 1e6 * loss_fn(out_filt, observed_data_filt)
                 loss.backward()
@@ -160,7 +158,7 @@ def run(world_size):
 
     # preprocess data like Alan and then deploy slices onto GPUs
     data["obs_data"] = taper(data["obs_data"])
-    mp.spawn(run_rank, args=(world_size,data), nprocs=world_size, join=True)
+    mp.spawn(run_rank, args=(world_size, data), nprocs=world_size, join=True)
 
 
 # Main function for running the script

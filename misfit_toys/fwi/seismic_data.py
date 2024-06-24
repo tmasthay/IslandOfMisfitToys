@@ -16,6 +16,7 @@ Functions:
 """
 
 from dataclasses import dataclass
+
 import torch
 from deepwave import elastic, scalar
 from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
@@ -669,19 +670,48 @@ class SeismicPropBatched(torch.nn.Module):
                 **self.extra_forward,
             )
 
-@dataclass(kw_only=True)
+
 class SeismicPropSimple(torch.nn.Module):
     vp: Param
-    rho: Param
     meta: DotDictImmutable
+    src_amp_y: Param
+    src_loc_y: torch.Tensor
+    rec_loc_y: torch.Tensor
+    rho: Param = None
     vs: Param = None
-    src_amp_y: Param = None
     src_amp_x: Param = None
-    src_loc_y: torch.Tensor = None
     src_loc_x: torch.Tensor = None
-    rec_loc_y: torch.Tensor = None
     rec_loc_x: torch.Tensor = None
     forward_kw: DotDictImmutable = None
+
+    def __init__(
+        self,
+        *,
+        vp,
+        meta,
+        rho=None,
+        vs=None,
+        src_amp_y=None,
+        src_amp_x=None,
+        src_loc_y=None,
+        src_loc_x=None,
+        rec_loc_y=None,
+        rec_loc_x=None,
+        forward_kw=None,
+    ):
+        super().__init__()
+        self.vp = vp
+        self.rho = rho
+        self.vs = vs
+        self.src_amp_y = src_amp_y
+        self.src_amp_x = src_amp_x
+        self.src_loc_y = src_loc_y
+        self.src_loc_x = src_loc_x
+        self.rec_loc_y = rec_loc_y
+        self.rec_loc_x = rec_loc_x
+        self.forward_kw = forward_kw or {}
+        self.meta = meta
+        self.__post_init__()
 
     def __ensure_immutable_dict(self, field):
         d = getattr(self, field)
@@ -696,21 +726,26 @@ class SeismicPropSimple(torch.nn.Module):
     def __ensure_keys(self, *, field, keys):
         d = getattr(self, field)
         if not set(keys).issubset(set(d.keys())):
-            raise ValueError(f'Expected {keys=} to be subset of {d.keys()=} for {field=}')
-    
+            raise ValueError(
+                f'Expected {keys=} to be subset of {d.keys()=} for {field=}'
+            )
+
     def __post_init__(self):
         self.forward_kw = self.__ensure_immutable_dict('forward_kw')
         self.meta = self.__ensure_immutable_dict('meta')
         self.__ensure_keys(field='meta', keys=['dx', 'dt'])
 
-    def forward(self, batch_slice):
-        v = self.model()
+    def forward(self, batch_slice=None):
+        v = self.vp()
+
+        if batch_slice is None:
+            batch_slice = slice(None)
         return scalar(
             v,
-            self.dx,
-            self.dt,
-            source_amplitudes=self.src_amp_y[batch_slice],
+            self.meta.dx,
+            self.meta.dt,
+            source_amplitudes=self.src_amp_y()[batch_slice],
             source_locations=self.src_loc_y[batch_slice],
             receiver_locations=self.rec_loc_y[batch_slice],
-            **self.forward_kw
+            **self.forward_kw,
         )
