@@ -1,0 +1,2 @@
+name: Alan's 16-shot small Marmousi section example
+callback: ^^|misfit_toys.examples.marmousi.alan.fwi_parallel|main

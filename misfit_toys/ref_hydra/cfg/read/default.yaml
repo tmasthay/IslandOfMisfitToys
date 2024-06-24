@@ -1,0 +1,19 @@
+mods:
+  utils:
+    load: ^^|misfit_toys.utils|
+    rt: self.mods.utils.load
+  types:
+    load: ^^|misfit_toys.types|
+    rt: self.mods.types.load
+
+relax: False
+runtime_func: ${.mods.types.rt}.PickleUnaryFunction
+kw:
+  callback: ${..mods.utils.rt}.preprocess_cfg
+  no_self_ref:
+  - rt
+  no_apply:
+  - rt
+  remove_self_read_key: null
+  eat_key: case
+  mutable: True

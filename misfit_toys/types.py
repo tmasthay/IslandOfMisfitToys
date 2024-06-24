@@ -1,4 +1,4 @@
-from typing import Callable, Protocol, TypeVar, Union
+from typing import Any, Callable, Protocol, TypeVar, Union
 
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
@@ -11,3 +11,12 @@ class HigherOrderUnary(Protocol[T1, T2]):
 
 
 ConfigurableUnaryFunction = Union[UnaryFunction, HigherOrderUnary]
+
+
+class PickleUnaryFunction:
+    def __init__(self, *, callback: HigherOrderUnary, **kwargs):
+        self.kwargs = kwargs
+        self.callback = callback
+
+    def __call__(self, x: Any):
+        return self.callback(x, **self.kwargs)

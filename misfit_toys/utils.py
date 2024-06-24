@@ -16,8 +16,9 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-from mh.core import DotDict, exec_imports
+from mh.core import DotDict, DotDictImmutable, exec_imports
 from mh.core_legacy import ctab, find_files, vco
+from omegaconf import DictConfig, OmegaConf
 from returns.curry import curry
 from torchaudio.functional import biquad
 
@@ -1218,3 +1219,45 @@ def all_detached_cpu(d: DotDict):
             d[k] = v.detach().cpu()
 
     return d
+
+
+def self_read_cfg(cfg: DictConfig, read_key='read'):
+    if 'read_key' in cfg:
+        read_key = cfg.read_key
+    relax = cfg[read_key].get('relax', False)
+    if read_key not in cfg.keys():
+        raise ValueError(f"Key {read_key} not found in cfg")
+    self_read = apply_all(
+        exec_imports(
+            DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
+        ).self_ref_resolve(relax=relax)
+    )
+    return self_read(cfg)
+
+
+def preprocess_cfg(
+    x: DictConfig,
+    *,
+    no_self_ref=None,
+    no_apply=None,
+    remove_self_read_key=None,
+    mutable=True,
+    compose=None,
+    eat_key=None,
+) -> DotDict:
+    container = DotDict if mutable else DotDictImmutable
+
+    d = exec_imports(container(OmegaConf.to_container(x, resolve=True)))
+    no_self_ref = no_self_ref or []
+    no_apply = no_apply or []
+    for k, v in d.items():
+        if k not in no_self_ref and isinstance(v, DotDict):
+            d[k] = v.self_ref_resolve()
+        if k not in no_apply:
+            d[k] = apply_all(d[k], relax=True)
+
+    if remove_self_read_key:
+        del d[remove_self_read_key]
+    if eat_key is not None:
+        d = d[eat_key]
+    return d if compose is None else compose(d)
