@@ -17,6 +17,7 @@ from misfit_toys.fwi.seismic_data import (
 )
 from misfit_toys.fwi.training import Training
 from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
+from deepwave import scalar
 
 
 def training_stages():
@@ -71,18 +72,18 @@ def training_stages():
 
 
 # Define _step for the training class
-def _step(self):
-    """
-    Performs a single step of the forward-backward optimization process.
+# def _step(self):
+#     """
+#     Performs a single step of the forward-backward optimization process.
 
-    Returns:
-        torch.Tensor: The loss value after the backward pass.
-    """
-    self.out = self.prop(None)
-    self.out_filt = filt(taper(self.out[-1]), self.sos)
-    self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
-    self.loss.backward()
-    return self.loss
+#     Returns:
+#         torch.Tensor: The loss value after the backward pass.
+#     """
+#     self.out = self.prop(None)
+#     self.out_filt = filt(taper(self.out[-1]), self.sos)
+#     self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+#     self.loss.backward()
+#     return self.loss
 
 
 # Syntactic sugar for converting from device to cpu
@@ -98,7 +99,44 @@ def d2cpu(x):
     """
     return x.detach().cpu()
 
+class Model(torch.nn.Module):
+    def __init__(self, initial, min_vel, max_vel):
+        super().__init__()
+        self.min_vel = min_vel
+        self.max_vel = max_vel
+        self.model = torch.nn.Parameter(
+            torch.logit((initial - min_vel) / (max_vel - min_vel))
+        )
 
+    def forward(self):
+        return (
+            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
+            + self.min_vel
+        )
+
+
+class Prop(torch.nn.Module):
+    def __init__(self, *, model, dx, dt, freq):
+        super().__init__()
+        self.vp = model
+        self.dx = dx
+        self.dt = dt
+        self.freq = freq
+
+    def forward(self, *, src_amp_y, rec_loc_y, src_loc_y):
+        v = self.vp()
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=src_amp_y,
+            source_locations=src_loc_y,
+            receiver_locations=rec_loc_y,
+            max_vel=2500,
+            pml_freq=self.freq,
+            time_pad_frac=0.2,
+        )
+    
 # Main function for training on each rank
 def run_rank(rank, world_size):
     """
@@ -149,25 +187,33 @@ def run_rank(rank, world_size):
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
-    model=data['vp']
+    model=Model(data['vp'](), 1000, 2500)
     dx=prop_data['meta']['dx']
     dt = prop_data['meta']['dt']
     pml_freq = prop_data['meta']['freq']
-    src_amp_y = prop_data['src_amp_y']
-    src_loc_y = prop_data['src_loc_y']
-    rec_loc_y = prop_data['rec_loc_y']
+    src_amp_y = prop_data['src_amp_y']().to(rank)
+    src_loc_y = prop_data['src_loc_y'].to(rank)
+    rec_loc_y = prop_data['rec_loc_y'].to(rank)
     forward_kw = dict(max_vel=2500, pml_freq=pml_freq, time_pad_frac=0.2)
-    prop = SeismicPropSimple(
-        vp=model,
-        dx=dx,
-        dt=dt,
-        src_amp_y=src_amp_y,
-        src_loc_y=src_loc_y,
-        rec_loc_y=rec_loc_y,
-        forward_kw=forward_kw,
-    )
+
+    prop = Prop(model=model, 
+                dx=dx, dt=dt, freq=pml_freq).to(rank)
     
     prop = DDP(prop, device_ids=[rank])
+
+
+    def _step(self):
+        """
+        Performs a single step of the forward-backward optimization process.
+
+        Returns:
+            torch.Tensor: The loss value after the backward pass.
+        """
+        self.out = self.prop(src_amp_y=src_amp_y, rec_loc_y=rec_loc_y, src_loc_y=src_loc_y)
+        self.out_filt = filt(taper(self.out[-1]), self.sos)
+        self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
+        self.loss.backward()
+        return self.loss
 
     # Define the training object
     train = Training(
