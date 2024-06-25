@@ -35,7 +35,7 @@ def d2cpu(x):
 
 
 # Main function for training on each rank
-def run_rank(rank, world_size, data):
+def run_rank(rank, world_size):
     """
     Runs the Distributed Data Parallel (DDP) training on a specific rank.
 
@@ -49,6 +49,8 @@ def run_rank(rank, world_size, data):
 
     print(f"Running DDP on rank {rank} / {world_size}.", flush=True)
     setup(rank, world_size, port=12355)
+
+    data = load_data()
 
     data = chunk_and_deploy(
         rank,
@@ -124,18 +126,7 @@ def run_rank(rank, world_size, data):
             torch.cuda.empty_cache()
     print(f'Exiting {rank=}')
 
-
-# Main function for spawning ranks
-def run(world_size):
-    """
-    Runs the FWI parallel process.
-
-    Args:
-        world_size (int): The number of processes to spawn.
-
-    Returns:
-        None
-    """
+def load_data():
     data_path = os.path.join(
         os.environ['CONDA_PREFIX'], 'data/marmousi/deepwave_example/shots16'
     )
@@ -158,7 +149,20 @@ def run(world_size):
 
     # preprocess data like Alan and then deploy slices onto GPUs
     data["obs_data"] = taper(data["obs_data"])
-    mp.spawn(run_rank, args=(world_size, data), nprocs=world_size, join=True)
+    return data
+
+# Main function for spawning ranks
+def run(world_size):
+    """
+    Runs the FWI parallel process.
+
+    Args:
+        world_size (int): The number of processes to spawn.
+
+    Returns:
+        None
+    """
+    mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
 
 
 # Main function for running the script
