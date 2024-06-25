@@ -13,6 +13,7 @@ from misfit_toys.fwi.seismic_data import (
     ParamConstrained,
     SeismicPropSimple,
     path_builder,
+    Model
 )
 from misfit_toys.fwi.training import Training
 from misfit_toys.utils import chunk_and_deploy, filt, setup, taper
@@ -29,7 +30,7 @@ def training_stages():
     """
 
     def freq_preprocess(training, freq):
-        sos = butter(6, freq, fs=1 / training.prop.module.meta.dt, output="sos")
+        sos = butter(6, freq, fs=1 / training.prop.module.dt, output="sos")
         sos = [torch.tensor(sosi).to(training.obs_data.dtype) for sosi in sos]
 
         training.sos = sos
@@ -148,9 +149,23 @@ def run_rank(rank, world_size):
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
-    # prop = SeismicPropSimple(
-    #     **prop_data, forward_kw=dict(max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2)
-    # ).to(rank)
+    model=data['vp']
+    dx=prop_data['meta']['dx']
+    dt = prop_data['meta']['dt']
+    pml_freq = prop_data['meta']['freq']
+    src_amp_y = prop_data['src_amp_y']
+    src_loc_y = prop_data['src_loc_y']
+    rec_loc_y = prop_data['rec_loc_y']
+    forward_kw = dict(max_vel=2500, pml_freq=pml_freq, time_pad_frac=0.2)
+    prop = SeismicPropSimple(
+        vp=model,
+        dx=dx,
+        dt=dt,
+        src_amp_y=src_amp_y,
+        src_loc_y=src_loc_y,
+        rec_loc_y=rec_loc_y,
+        forward_kw=forward_kw,
+    )
     
     prop = DDP(prop, device_ids=[rank])
 
