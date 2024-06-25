@@ -18,9 +18,18 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data.download_data import download_data
-from misfit_toys.utils import get_gpu_memory, parse_path, setup, cleanup
+from misfit_toys.utils import get_gpu_memory, parse_path, setup, cleanup, self_read_cfg
 from helpers import Prop, Model
+import hydra
+from omegaconf import DictConfig, OmegaConf
+from mh.core import set_print_options, torch_stats
 
+set_print_options(callback=torch_stats([
+            'shape',
+            'dtype',
+            'min',
+            'max',
+        ]))
 
 def cwd(x=''):
     if x.startswith('/'):
@@ -49,7 +58,7 @@ def save(tensor, name, *, rank='', path='out/parallel', ext='.pt'):
 def savefig(name, *, path='out/parallel', ext='.pt'):
     plt.savefig(get_file(name, rank='', path=path, ext=ext))
 
-def run_rank(rank, world_size):
+def run_rank(rank, world_size, c):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
     path = os.path.dirname(__file__)
@@ -57,35 +66,12 @@ def run_rank(rank, world_size):
     def get(x):
         return os.path.join(path, x)
 
-    ny = 2301
-    nx = 751
-    dx = 4.0
     v_true = load('vp.pt', path=get('out/base'))
 
-    # Select portion of model for inversion
-    ny = 600
-    nx = 250
-    v_true = v_true[:ny, :nx]
-
-    # Smooth to use as starting model
+    v_true = v_true[:c.ny, :c.nx]
     v_init = torch.tensor(1 / gaussian_filter(1 / v_true.numpy(), 40))
 
-    n_shots = 115
-
-    n_sources_per_shot = 1
-    d_source = 20  # 20 * 4m = 80m
-    first_source = 10  # 10 * 4m = 40m
-    source_depth = 2  # 2 * 4m = 8m
-
-    n_receivers_per_shot = 384
-    d_receiver = 6  # 6 * 4m = 24m
-    first_receiver = 0  # 0 * 4m = 0m
-    receiver_depth = 2  # 2 * 4m = 8m
-
-    freq = 25
-    nt = 750
-    dt = 0.004
-    peak_time = 1.5 / freq
+    peak_time = 1.5 / c.freq
 
     observed_data = load('obs_data.pt', path=get('out/base'))
 
@@ -93,33 +79,28 @@ def run_rank(rank, world_size):
         # Taper the ends of traces
         return deepwave.common.cosine_taper_end(x, 100)
 
-    # Select portion of data for inversion
-    n_shots = 16
-    n_receivers_per_shot = 100
-    nt = 300
-
-    observed_data = taper(observed_data[:n_shots, :n_receivers_per_shot, :nt])
+    observed_data = taper(observed_data[:c.n_shots, :c.n_receivers_per_shot, :c.nt])
 
     # source_locations
     source_locations = torch.zeros(
-        n_shots, n_sources_per_shot, 2, dtype=torch.long
+        c.n_shots, c.n_sources_per_shot, 2, dtype=torch.long
     )
-    source_locations[..., 1] = source_depth
-    source_locations[:, 0, 0] = torch.arange(n_shots) * d_source + first_source
+    source_locations[..., 1] = c.source_depth
+    source_locations[:, 0, 0] = torch.arange(c.n_shots) * c.d_source + c.first_source
 
     # receiver_locations
     receiver_locations = torch.zeros(
-        n_shots, n_receivers_per_shot, 2, dtype=torch.long
+        c.n_shots, c.n_receivers_per_shot, 2, dtype=torch.long
     )
-    receiver_locations[..., 1] = receiver_depth
+    receiver_locations[..., 1] = c.receiver_depth
     receiver_locations[:, :, 0] = (
-        torch.arange(n_receivers_per_shot) * d_receiver + first_receiver
-    ).repeat(n_shots, 1)
+        torch.arange(c.n_receivers_per_shot) * c.d_receiver + c.first_receiver
+    ).repeat(c.n_shots, 1)
 
     # source_amplitudes
     source_amplitudes = (
-        deepwave.wavelets.ricker(freq, nt, dt, peak_time)
-    ).repeat(n_shots, n_sources_per_shot, 1)
+        deepwave.wavelets.ricker(c.freq, c.nt, c.dt, peak_time)
+    ).repeat(c.n_shots, c.n_sources_per_shot, 1)
 
     observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
     source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
@@ -129,13 +110,15 @@ def run_rank(rank, world_size):
     receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
         rank
     )
+    print(f'{receiver_locations.max()=}')
+    print(f'{source_locations.max()=}')
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(
         model=model,
-        dx=dx,
-        dt=dt,
-        freq=freq,
+        dx=c.dx,
+        dt=c.dt,
+        freq=c.freq,
         source_amplitudes=source_amplitudes,
         source_locations=source_locations,
         receiver_locations=receiver_locations
@@ -162,7 +145,7 @@ def run_rank(rank, world_size):
 
     for i, cutoff_freq in enumerate(freqs):
         print(i, flush=True)
-        sos = butter(6, cutoff_freq, fs=1 / dt, output='sos')
+        sos = butter(6, cutoff_freq, fs=1 / c.dt, output='sos')
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
         ]
@@ -256,11 +239,14 @@ def run_rank(rank, world_size):
     cleanup()
 
 
-def run(world_size):
-    mp.spawn(run_rank, args=(world_size,), nprocs=world_size, join=True)
+def run(world_size, c):
+    c = self_read_cfg(c, read_key='common_preprocess')
+    print(f'{c=}')
+    return
+    mp.spawn(run_rank, args=(world_size,c), nprocs=world_size, join=True)
 
-
-def main():
+@hydra.main(config_path='cfg', config_name='cfg', version_base=None)
+def main(cfg: DictConfig):
     root = os.path.abspath(os.path.dirname(__file__))
     data_path = os.path.abspath(
         os.path.join(parse_path('conda/data'), 'marmousi')
@@ -280,7 +266,8 @@ def main():
             download_data(os.path.dirname(data_path), inclusions=['marmousi'])
         for f in files:
             shutil.copy(f'{data_path}/{f}.pt', f'{lcl_path}/{f}.pt')
-    run(torch.cuda.device_count())
+    c = self_read_cfg(cfg, read_key='common_load')
+    run(torch.cuda.device_count(), c)
 
 
 if __name__ == "__main__":

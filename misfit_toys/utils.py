@@ -21,6 +21,7 @@ from mh.core_legacy import ctab, find_files, vco
 from omegaconf import DictConfig, OmegaConf
 from returns.curry import curry
 from torchaudio.functional import biquad
+from misfit_toys.types import PickleUnaryFunction as PUF
 
 
 def find_available_port(start_port, max_attempts=5):
@@ -1221,15 +1222,19 @@ def all_detached_cpu(d: DotDict):
     return d
 
 
-def self_read_cfg(cfg: DictConfig, read_key='read'):
+def self_read_cfg(cfg: DictConfig, *, read_key='read'):
     if 'read_key' in cfg:
         read_key = cfg.read_key
     relax = cfg[read_key].get('relax', False)
     if read_key not in cfg.keys():
         raise ValueError(f"Key {read_key} not found in cfg")
-    self_read = apply_all(
+    if not isinstance(cfg, DotDict):
+        c = DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
+    else:
+        c = cfg[read_key]
+    self_read: PUF = apply_all(
         exec_imports(
-            DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
+            c
         ).self_ref_resolve(relax=relax)
     )
     return self_read(cfg)

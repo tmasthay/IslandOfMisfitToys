@@ -14,7 +14,7 @@ ConfigurableUnaryFunction = Union[UnaryFunction, HigherOrderUnary]
 
 
 class PickleUnaryFunction:
-    def __init__(self, *, callback: HigherOrderUnary, **kwargs):
+    def __init__(self, *, callback: Callable[[Any, dict], Any], **kwargs):
         self.kwargs = kwargs
         self.callback = callback
 
