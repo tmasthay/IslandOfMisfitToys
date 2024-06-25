@@ -21,6 +21,7 @@ from mh.core_legacy import ctab, find_files, vco
 from omegaconf import DictConfig, OmegaConf
 from returns.curry import curry
 from torchaudio.functional import biquad
+
 from misfit_toys.types import PickleUnaryFunction as PUF
 
 
@@ -1222,7 +1223,7 @@ def all_detached_cpu(d: DotDict):
     return d
 
 
-def self_read_cfg(cfg: DictConfig, *, read_key='read'):
+def self_read_cfg(cfg: DictConfig, *, read_key='read', **kw):
     if 'read_key' in cfg:
         read_key = cfg.read_key
     relax = cfg[read_key].get('relax', False)
@@ -1232,12 +1233,8 @@ def self_read_cfg(cfg: DictConfig, *, read_key='read'):
         c = DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
     else:
         c = cfg[read_key]
-    self_read: PUF = apply_all(
-        exec_imports(
-            c
-        ).self_ref_resolve(relax=relax)
-    )
-    return self_read(cfg)
+    self_read: PUF = apply_all(exec_imports(c).self_ref_resolve(relax=relax))
+    return self_read(cfg, **kw)
 
 
 def preprocess_cfg(

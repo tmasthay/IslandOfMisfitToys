@@ -7,29 +7,41 @@ import os
 import shutil
 
 import deepwave
+import hydra
 import matplotlib.pyplot as plt
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from deepwave import scalar
+from helpers import Model, Prop
+from mh.core import DotDict, set_print_options, torch_stats
+from omegaconf import DictConfig, OmegaConf
 from scipy.ndimage import gaussian_filter
 from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
 from misfit_toys.data.download_data import download_data
-from misfit_toys.utils import get_gpu_memory, parse_path, setup, cleanup, self_read_cfg
-from helpers import Prop, Model
-import hydra
-from omegaconf import DictConfig, OmegaConf
-from mh.core import set_print_options, torch_stats
+from misfit_toys.utils import (
+    cleanup,
+    get_gpu_memory,
+    parse_path,
+    self_read_cfg,
+    setup,
+    taper,
+)
 
-set_print_options(callback=torch_stats([
+set_print_options(
+    callback=torch_stats(
+        [
             'shape',
             'dtype',
             'min',
             'max',
-        ]))
+        ]
+    )
+)
+
 
 def cwd(x=''):
     if x.startswith('/'):
@@ -58,60 +70,44 @@ def save(tensor, name, *, rank='', path='out/parallel', ext='.pt'):
 def savefig(name, *, path='out/parallel', ext='.pt'):
     plt.savefig(get_file(name, rank='', path=path, ext=ext))
 
-def run_rank(rank, world_size, c):
+
+def run_rank(rank, world_size, cfg):
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size)
     path = os.path.dirname(__file__)
 
-    c = self_read_cfg(c, read_key='common_load')
-    c = self_read_cfg(c, read_key='common_preprocess')
-    print(f'{c=}')
-    exit(1)
+    c = self_read_cfg(cfg, read_key='common_load')
+    # c = self_read_cfg(c, read_key='common_preprocess')
+    # c = self_read_cfg(c, read_key='rank_transform', rank=rank, world_size=world_size)
 
+    observed_data = c.data.obs_data
+    source_amplitudes = c.data.src_amp_y
+    source_locations = c.data.src_loc_y
+    receiver_locations = c.data.rec_loc_y
 
-    def get(x):
-        return os.path.join(path, x)
-
-    v_true = load('vp.pt', path=get('out/base'))
-
-    v_true = v_true[:c.ny, :c.nx]
-    v_init = torch.tensor(1 / gaussian_filter(1 / v_true.numpy(), 40))
-
-    peak_time = 1.5 / c.freq
-
-    observed_data = load('obs_data.pt', path=get('out/base'))
-
-    def taper(x):
-        # Taper the ends of traces
-        return deepwave.common.cosine_taper_end(x, 100)
-
-    observed_data = taper(observed_data[:c.n_shots, :c.n_receivers_per_shot, :c.nt])
-
-    # source_amplitudes
-    source_amplitudes = (
-        deepwave.wavelets.ricker(c.freq, c.nt, c.dt, peak_time)
-    ).repeat(c.n_shots, c.n_sources_per_shot, 1)
-
-    observed_data = torch.chunk(observed_data, world_size)[rank].to(rank)
-    source_amplitudes = torch.chunk(source_amplitudes, world_size)[rank].to(
+    observed_data = torch.chunk(observed_data, world_size, dim=0)[rank].to(rank)
+    source_amplitudes = torch.chunk(source_amplitudes, world_size, dim=0)[
         rank
-    )
-    source_locations = torch.chunk(source_locations, world_size)[rank].to(rank)
-    receiver_locations = torch.chunk(receiver_locations, world_size)[rank].to(
+    ].to(rank)
+    source_locations = torch.chunk(source_locations, world_size, dim=0)[
         rank
-    )
-    print(f'{receiver_locations.max()=}')
-    print(f'{source_locations.max()=}')
+    ].to(rank)
+    receiver_locations = torch.chunk(receiver_locations, world_size, dim=0)[
+        rank
+    ].to(rank)
+
+    v_init = c.data.v_init
+    v_true = c.data.v_true
 
     model = Model(v_init, 1000, 2500)
     prop = Prop(
         model=model,
-        dx=c.dx,
-        dt=c.dt,
-        freq=c.freq,
+        dx=c.meta.dx,
+        dt=c.meta.dt,
+        freq=c.meta.freq,
         source_amplitudes=source_amplitudes,
         source_locations=source_locations,
-        receiver_locations=receiver_locations
+        receiver_locations=receiver_locations,
     ).to(rank)
 
     prop = DDP(prop, device_ids=[rank])
@@ -135,7 +131,7 @@ def run_rank(rank, world_size, c):
 
     for i, cutoff_freq in enumerate(freqs):
         print(i, flush=True)
-        sos = butter(6, cutoff_freq, fs=1 / c.dt, output='sos')
+        sos = butter(6, cutoff_freq, fs=1 / c.meta.dt, output='sos')
         sos = [
             torch.tensor(sosi).to(observed_data.dtype).to(rank) for sosi in sos
         ]
@@ -230,7 +226,8 @@ def run_rank(rank, world_size, c):
 
 
 def run(world_size, c):
-    mp.spawn(run_rank, args=(world_size,c), nprocs=world_size, join=True)
+    mp.spawn(run_rank, args=(world_size, c), nprocs=world_size, join=True)
+
 
 @hydra.main(config_path='cfg', config_name='cfg', version_base=None)
 def main(cfg: DictConfig):

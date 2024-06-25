@@ -20,3 +20,17 @@ class PickleUnaryFunction:
 
     def __call__(self, x: Any):
         return self.callback(x, **self.kwargs)
+
+
+class SingleArgPlusKwEnforcer:
+    def __init__(
+        self, *, callback: Callable[[Any, dict], Any], expected_keys, **kwargs
+    ):
+        self.kwargs = kwargs
+        self.callback = callback
+        self.expected_keys = expected_keys
+
+    def __call__(self, x, **kwargs):
+        for key in self.expected_keys:
+            assert key in kwargs, f'Expected key {key} in kwargs'
+        return self.callback(x, **self.kwargs, **kwargs)

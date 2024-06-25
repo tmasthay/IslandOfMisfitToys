@@ -1,8 +1,7 @@
 runtime_func: ^^|misfit_toys.types|PickleUnaryFunction
 kw:
   callback: ^^cwd|helpers|load_data
-  delete_keys:
-    - common_load
+  delete_keys: null
   path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
   fields:
     obs_data: obs_data

@@ -1,8 +1,10 @@
+from os.path import abspath as absp
+from os.path import join as pj
+
 import torch
 from deepwave import scalar
 from mh.core import DotDict, DotDictImmutable
-from omegaconf import OmegaConf, DictConfig
-from os.path import join as pj, abspath as absp
+from omegaconf import DictConfig, OmegaConf
 
 
 # Generate a velocity model constrained to be within a desired range
@@ -32,7 +34,7 @@ class Prop(torch.nn.Module):
         freq,
         source_amplitudes,
         source_locations,
-        receiver_locations
+        receiver_locations,
     ):
         super().__init__()
         self.model = model
@@ -64,12 +66,13 @@ def cl_assert(value, *msg, sep='\n    '):
     full_msg = sep + sep.join(msg)
     assert value, full_msg
 
+
 def assert_key(key, d):
     cl_assert(
         key not in d,
         f'"{key}" is a pre-existing key in config',
         'This is incompatible with the load_data function',
-        f'Your dictionary d =\n{d}'
+        f'Your dictionary d =\n{d}',
     )
 
 
@@ -94,7 +97,7 @@ def load_data(c: DictConfig, *, fields: dict, delete_keys=None, path=None):
             return absp(x)
         else:
             return pj(path, x)
-        
+
     d.data = DotDict()
     for field, lcl_path in fields.items():
         if field == 'meta':
@@ -105,18 +108,29 @@ def load_data(c: DictConfig, *, fields: dict, delete_keys=None, path=None):
             d.data[field] = torch.load(getp(lcl_path))
     return d
 
+
 def preprocess_data(c, *, callbacks, delete_keys=None):
     delete_keys = delete_keys or []
     callbacks = callbacks or {}
     data = c.data
-    cl_assert(set(callbacks.keys()).issubset(set(data.keys())),
-              f'callbacks keys must be subset of data, {callbacks.keys()=}, {data.keys()=}')
+    cl_assert(
+        set(callbacks.keys()).issubset(set(data.keys())),
+        f'callbacks keys must be subset of data, {callbacks.keys()=},'
+        f' {data.keys()=}',
+    )
     for field, callback in callbacks.items():
         if callback:
             data[field] = callback(field)
     for key in delete_keys:
         del c[key]
-    return c  
+    return c
 
-        
-    
+
+def split_rank_data(c, *, rank, world_size, split_fields, delete_keys=None):
+    delete_keys = delete_keys or []
+    data = c.data
+    for k in split_fields:
+        c.data[k] = torch.chunk(data[k], world_size, dim=0)[rank].to(rank)
+    for key in delete_keys:
+        del c[key]
+    return c

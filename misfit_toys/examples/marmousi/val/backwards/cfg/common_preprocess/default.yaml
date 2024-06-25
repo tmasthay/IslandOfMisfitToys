@@ -1,6 +1,5 @@
 runtime_func: ^^|misfit_toys.types|PickleUnaryFunction
 kw:
   callback: ^^cwd|helpers|preprocess_data
-  delete_keys:
-    - common_preprocess
+  delete_keys: null
   callbacks: null
