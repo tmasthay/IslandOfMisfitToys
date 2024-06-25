@@ -734,18 +734,16 @@ class SeismicPropSimple(torch.nn.Module):
         self.forward_kw = self.__ensure_immutable_dict('forward_kw')
         self.meta = self.__ensure_immutable_dict('meta')
         self.__ensure_keys(field='meta', keys=['dx', 'dt'])
+        assert isinstance(self.src_amp_y, Param), f"{type(self.src_amp_y)=}"
 
-    def forward(self, batch_slice=None):
+    def forward(self, dummy=None):
         v = self.vp()
-
-        if batch_slice is None:
-            batch_slice = slice(None)
         return scalar(
             v,
             self.meta.dx,
             self.meta.dt,
-            source_amplitudes=self.src_amp_y()[batch_slice],
-            source_locations=self.src_loc_y[batch_slice],
-            receiver_locations=self.rec_loc_y[batch_slice],
+            source_amplitudes=self.src_amp_y(),
+            source_locations=self.src_loc_y,
+            receiver_locations=self.rec_loc_y,
             **self.forward_kw,
         )
