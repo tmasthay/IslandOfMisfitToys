@@ -2,9 +2,8 @@ name: GPU Validation and Docs Deployment Workflow
 
 on:
   push:
-    branches:
-    - main
-    - devel
+    branches_ignore:
+    - temp*
     tags-ignore:
     - tmp_ci_leaderboard
 
