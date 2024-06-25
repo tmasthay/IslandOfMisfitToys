@@ -63,6 +63,12 @@ def run_rank(rank, world_size, c):
     setup(rank, world_size)
     path = os.path.dirname(__file__)
 
+    c = self_read_cfg(c, read_key='common_load')
+    c = self_read_cfg(c, read_key='common_preprocess')
+    print(f'{c=}')
+    exit(1)
+
+
     def get(x):
         return os.path.join(path, x)
 
@@ -80,22 +86,6 @@ def run_rank(rank, world_size, c):
         return deepwave.common.cosine_taper_end(x, 100)
 
     observed_data = taper(observed_data[:c.n_shots, :c.n_receivers_per_shot, :c.nt])
-
-    # source_locations
-    source_locations = torch.zeros(
-        c.n_shots, c.n_sources_per_shot, 2, dtype=torch.long
-    )
-    source_locations[..., 1] = c.source_depth
-    source_locations[:, 0, 0] = torch.arange(c.n_shots) * c.d_source + c.first_source
-
-    # receiver_locations
-    receiver_locations = torch.zeros(
-        c.n_shots, c.n_receivers_per_shot, 2, dtype=torch.long
-    )
-    receiver_locations[..., 1] = c.receiver_depth
-    receiver_locations[:, :, 0] = (
-        torch.arange(c.n_receivers_per_shot) * c.d_receiver + c.first_receiver
-    ).repeat(c.n_shots, 1)
 
     # source_amplitudes
     source_amplitudes = (
@@ -240,9 +230,6 @@ def run_rank(rank, world_size, c):
 
 
 def run(world_size, c):
-    c = self_read_cfg(c, read_key='common_preprocess')
-    print(f'{c=}')
-    return
     mp.spawn(run_rank, args=(world_size,c), nprocs=world_size, join=True)
 
 @hydra.main(config_path='cfg', config_name='cfg', version_base=None)
@@ -266,8 +253,7 @@ def main(cfg: DictConfig):
             download_data(os.path.dirname(data_path), inclusions=['marmousi'])
         for f in files:
             shutil.copy(f'{data_path}/{f}.pt', f'{lcl_path}/{f}.pt')
-    c = self_read_cfg(cfg, read_key='common_load')
-    run(torch.cuda.device_count(), c)
+    run(torch.cuda.device_count(), cfg)
 
 
 if __name__ == "__main__":
