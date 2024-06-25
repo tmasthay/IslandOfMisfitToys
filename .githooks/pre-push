@@ -30,9 +30,10 @@ est_upload_time() {
     echo "Pessimistic upload time: $pess_res seconds"
 }
 
-commit_msg=$(git log -1 --pretty=%B | grep -e "\[skip ci\]" -e "\[skip docs\]" | wc -l)
+commit_msg_neg=$(git log -1 --pretty=%B | grep -e "\[skip ci\]" | wc -l)
+commit_msg_pos=$(git log -1 --pretty=%B | grep -e "\[gen docs\]" | wc -l)
 
-if [ $commit_msg -gt 0 ]; then
+if [ $commit_msg_neg -gt 0 || $commit_msg_pos -eq 0 ]; then
     echo "Skipping leaderboard generation"
     exit 0
 fi
