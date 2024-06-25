@@ -11,7 +11,7 @@ from misfit_toys.data.download_data import download_data
 from misfit_toys.fwi.seismic_data import (
     Param,
     ParamConstrained,
-    SeismicProp,
+    SeismicPropSimple,
     path_builder,
 )
 from misfit_toys.fwi.training import Training
@@ -148,9 +148,10 @@ def run_rank(rank, world_size):
 
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(data, exc=["obs_data"])
-    prop = SeismicProp(
-        **prop_data, max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2
-    ).to(rank)
+    # prop = SeismicPropSimple(
+    #     **prop_data, forward_kw=dict(max_vel=2500, pml_freq=data["meta"].freq, time_pad_frac=0.2)
+    # ).to(rank)
+    
     prop = DDP(prop, device_ids=[rank])
 
     # Define the training object

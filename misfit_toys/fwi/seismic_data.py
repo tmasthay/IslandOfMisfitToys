@@ -667,3 +667,29 @@ class SeismicPropBatched(torch.nn.Module):
                 receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )
+
+class SeismicPropSimple(torch.nn.Module):
+    def __init__(self, *, model, dx, dt, freq, src_amp_y, src_loc_y, rec_loc_y, forward_kw):
+        super().__init__()
+        self.model = model
+        self.dx = dx
+        self.dt = dt
+        self.freq = freq
+        self.src_amp_y = src_amp_y
+        self.src_loc_y = src_loc_y
+        self.rec_loc_y = rec_loc_y
+        self.forward_kw = forward_kw
+
+    def forward(self, slicer):
+        v = self.model()
+        if slicer is None:
+            slicer = slice(None)
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=self.src_amp_y,
+            source_locations=self.src_loc_y,
+            receiver_locations=self.rec_loc_y,
+            **self.forward_kw
+        )
