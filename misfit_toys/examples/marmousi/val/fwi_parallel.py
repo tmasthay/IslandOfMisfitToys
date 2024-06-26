@@ -151,7 +151,6 @@ class OtherProp(torch.nn.Module):
         freq,
         rec_loc_y,
         src_loc_y,
-        src_amp_y,
     ):
         super().__init__()
         self.vp = model
@@ -160,15 +159,14 @@ class OtherProp(torch.nn.Module):
         self.freq = freq
         self.rec_loc_y = rec_loc_y
         self.src_loc_y = src_loc_y
-        self.src_amp_y = src_amp_y
 
-    def forward(self, **kw):
+    def forward(self, src_amp_y, **kw):
         v = self.vp()
         return scalar(
             v,
             self.dx,
             self.dt,
-            source_amplitudes=self.src_amp_y(),
+            source_amplitudes=src_amp_y,
             source_locations=self.src_loc_y,
             receiver_locations=self.rec_loc_y,
             **kw
@@ -241,7 +239,6 @@ def run_rank(rank, world_size):
         freq=pml_freq,
         src_loc_y=src_loc_y,
         rec_loc_y=rec_loc_y,
-        src_amp_y=src_amp_y,
     ).to(rank)
     # prop = Prop(
     #     model=model,
@@ -262,7 +259,7 @@ def run_rank(rank, world_size):
         Returns:
             torch.Tensor: The loss value after the backward pass.
         """
-        self.out = self.prop(**forward_kw)
+        self.out = self.prop(src_amp_y(), **forward_kw)
         self.out_filt = filt(taper(self.out[-1]), self.sos)
         self.loss = 1e6 * self.loss_fn(self.out_filt, self.obs_data_filt)
         self.loss.backward()
