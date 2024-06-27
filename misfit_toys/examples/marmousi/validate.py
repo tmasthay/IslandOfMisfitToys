@@ -112,7 +112,14 @@ def get_files():
         iomt()
         ran_iomt = True
     if not all_exist(alan_files.values()) or not all_exist(iomt_files.values()):
+        alan_paths = list(alan_files.values())
+        iomt_paths = list(iomt_files.values())
+        exist_alan = [e for e in alan_paths if os.path.exists(e)]
+        exist_iomt = [e for e in iomt_paths if os.path.exists(e)]
+
+
         print('Error: could not generate all files')
+        print(f'{alan_paths=}\n{exist_alan}\n{iomt_paths=}\n{exist_iomt=}')
         sys.exit(1)
     return alan_files, iomt_files, ran_alan, ran_iomt
 

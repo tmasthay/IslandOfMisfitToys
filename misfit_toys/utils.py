@@ -77,7 +77,9 @@ def cleanup():
     Returns:
         None
     """
+    print('yo', flush=True)
     dist.destroy_process_group()
+    print('destroyed', flush=True)
 
 
 def get_file(name, *, rank="", path="out/parallel", ext=".pt"):
@@ -950,7 +952,7 @@ def chunk_tensors(rank, world_size, *, data, chunk_keys):
 
     """
     for k in chunk_keys:
-        data[k] = torch.chunk(data[k], world_size)[rank]
+        data[k] = torch.chunk(data[k], world_size)[rank].to(rank)
     return data
 
 
