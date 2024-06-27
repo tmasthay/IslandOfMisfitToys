@@ -2,8 +2,7 @@ from time import time
 
 from misfit_toys.utils import taper
 
-
-def taper_only(*, length=None, num_batches=None, scale=1.0):
+def taper_only(*, length=None, num_batches=None, scale=1.0, src_amp_y, **kw):
     """
     Applies tapering to the output of a neural network model.
 
@@ -24,7 +23,7 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
 
     def helper(self):
         nonlocal length, scale, num_batches
-        self.out = self.prop(None)[-1]
+        self.out = self.prop(src_amp_y(), **kw)[-1]
 
         if length is not None:
             if length <= 0:

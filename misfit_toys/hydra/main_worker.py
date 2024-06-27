@@ -19,7 +19,7 @@ from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from misfit_toys.fwi.seismic_data import SeismicProp, path_builder
+from misfit_toys.fwi.seismic_data import SeismicProp, path_builder, DebugProp
 from misfit_toys.fwi.training import Training
 from misfit_toys.swiffer import dupe
 from misfit_toys.utils import (
@@ -145,14 +145,28 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     # Build seismic propagation module and wrap in DDP
     prop_data = subdict(c.runtime.data, exc=["obs_data"])
     c.obs_data = c.runtime.data.obs_data
-    print(prop_data.keys(), flush=True)
-    exit(1)
-    c['runtime.prop'] = SeismicProp(
-        **prop_data,
-        max_vel=c.data.preprocess.maxv,
-        pml_freq=c.runtime.data.meta.freq,
-        time_pad_frac=c.data.preprocess.time_pad_frac,
-    ).to(rank)
+    # print(prop_data.keys(), flush=True)
+
+    # keys:
+    # - vp
+    # - meta
+    # - src_loc_y
+    # - rec_loc_y
+    # - src_amp_y
+    # c['runtime.prop'] = SeismicProp(
+    #     **prop_data,
+    #     max_vel=c.data.preprocess.maxv,
+    #     pml_freq=c.runtime.data.meta.freq,
+    #     time_pad_frac=c.data.preprocess.time_pad_frac,
+    # ).to(rank)
+    c['runtime.prop'] = DebugProp(
+        vp=prop_data['vp'],
+        dx=prop_data['meta']['dx'],
+        dt=prop_data['meta']['dt'],
+        freq=prop_data['meta']['freq'],
+        rec_loc_y=prop_data['rec_loc_y'],
+        src_loc_y=prop_data['src_loc_y']
+    )
     c.runtime.prop = DDP(c.runtime.prop, device_ids=[rank])
 
     c = resolve(c, relax=False)
@@ -207,7 +221,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     # torch.distributed.barrier()
     # print('Past barrier', flush=True)
-    cleanup()
+    # cleanup()
     # make multiprocessing barrier
     # mp.barrier()
 

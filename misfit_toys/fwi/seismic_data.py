@@ -736,5 +736,6 @@ class DebugProp(torch.nn.Module):
             source_amplitudes=src_amp_y,
             source_locations=self.src_loc_y,
             receiver_locations=self.rec_loc_y,
+            pml_freq=self.freq,
             **kw
         )
