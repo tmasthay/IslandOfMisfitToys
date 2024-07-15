@@ -1,4 +1,5 @@
 import os
+import sys
 from subprocess import check_output as co
 from time import time
 
@@ -33,14 +34,16 @@ from misfit_toys.utils import (
     setup,
 )
 
-opts = 'all'
-set_print_options(
-    precision=3,
-    sci_mode=True,
-    threshold=5,
-    linewidth=10,
-    callback=torch_stats(opts),
-)
+
+def set_options():
+    opts = 'all'
+    set_print_options(
+        precision=3,
+        sci_mode=True,
+        threshold=5,
+        linewidth=10,
+        callback=torch_stats(opts),
+    )
 
 
 def sco(cmd, verbose=False):
@@ -145,6 +148,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     optimizer = apply(c.train.optimizer)
     step = apply(c.train.step)
+    print(str(step))
+    # sys.exit(1)
     training_stages = apply(c.train.stages)
 
     pre_time = time() - start_pre
@@ -453,4 +458,5 @@ def main(cfg: DictConfig) -> None:
 
 # Run the script from command line
 if __name__ == "__main__":
+    set_options()
     main()

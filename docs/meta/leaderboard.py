@@ -271,6 +271,19 @@ def gen_csv_table(
 
 
 def make_leaderboard_page(path: str, *, title, headers, table_params) -> None:
+    """
+    Generates a leaderboard page based on the given parameters.
+
+    Args:
+        path (str): The path to the directory where the leaderboard page will be generated.
+        title: The title of the leaderboard page.
+        headers: The headers for the leaderboard table.
+        table_params: Additional parameters for the leaderboard table.
+
+    Returns:
+        None
+    """
+
     content = []
     title = path.split('/')[-1]
 
@@ -329,10 +342,7 @@ def make_leaderboard_page(path: str, *, title, headers, table_params) -> None:
         idt_lvl=0,
     )
     rst_contents += gen_csv_table(
-        title=title,
-        headers=headers,
-        lines=data,
-        table_params=table_params,
+        title=title, headers=headers, lines=data, table_params=table_params
     )
     # Write the content to index.rst
     index_rst_path = os.path.join(path, 'index.rst')
@@ -465,6 +475,23 @@ def get_callback(*, path, idx_gen):
     raise ValueError(f"No callback found for path {path}")
 
 
+def remove_duplicates_by_keys(lst_of_dicts, *, keys, check=False):
+    seen = set()
+    new_lst = []
+    for d in lst_of_dicts:
+        t = tuple(d[k] for k in keys)
+        if t not in seen:
+            seen.add(t)
+            new_lst.append(d)
+    if check:
+        unique_key_finds = set(tuple(e[k] for k in keys) for e in lst_of_dicts)
+        if len(unique_key_finds) != len(new_lst):
+            raise ValueError(
+                f"Expected {len(unique_key_finds)=}, found {len(new_lst)=}"
+            )
+    return new_lst
+
+
 def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     registered_tests = sco(f"""
         find {paths.src}/data -mindepth 1 -type d |
@@ -495,12 +522,15 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
     def deploy():
         nonlocal reg_dict
         for k, v in reg_dict.items():
-            reg_dict[k] = sorted(v, key=lambda x: float(x[score]), reverse=True)
+            reg_dict[k] = sorted(
+                v, key=lambda x: float(x[score]), reverse=False
+            )
 
         # remove duplicates and select out the top leaderboard_size
         for k, v in reg_dict.items():
-            unique_items = {tuple(sorted(e.items())): e for e in v}
-            reg_dict[k] = list(unique_items.values())
+            reg_dict[k] = remove_duplicates_by_keys(
+                v, keys=['orig_root'], check=True
+            )
             reg_dict[k] = reg_dict[k][:leaderboard_size]
 
         for k, v in reg_dict.items():
@@ -546,8 +576,28 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
 def main(cfg: DictConfig):
     # TODO: this would be better to refactor with a _templates directory
     c = convert_dictconfig(cfg, self_ref_resolve=False, mutable=False)
-    os.system(f'rm -rf {c.git.repo_name}')
-    os.system(f'git clone --branch {c.git.branch} --single-branch {c.git.url}')
+    if c.git.get('always_fresh', True):
+        print(
+            f"Cleaning {c.git.repo_name}/{c.git.branch} and getting everything"
+            " fresh"
+        )
+        os.system(f'rm -rf {c.git.repo_name}')
+        os.system(
+            f'git clone --branch {c.git.branch} --single-branch {c.git.url}'
+        )
+    elif os.path.exists(c.git.repo_name):
+        print(f"Updating {c.git.repo_name}/{c.git.branch} to current state")
+        os.system(
+            f'cd {c.git.repo_name}; git reset --hard origin/{c.git.branch}'
+        )
+    else:
+        print(
+            f"Initializing {c.git.repo_name}/{c.git.branch} for the first time"
+        )
+        os.system(
+            f'git clone --branch {c.git.branch} --single-branch {c.git.url}'
+        )
+
     os.makedirs(c.rst.dest, exist_ok=True)
     os.system(f'rm -rf {c.folder_name}')
     os.system(f'rm -rf {c.paths.final}')
@@ -572,7 +622,7 @@ def main(cfg: DictConfig):
     os.system(
         f'rm -rf {c.rst.dest}/{c.paths.final}; mv {c.paths.final} {c.rst.dest}'
     )
-    os.system(f'rm -rf {c.git.repo_name}')
+    # os.system(f'rm -rf {c.git.repo_name}')
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ git:
   repo_name: IslandOfMisfitToys
   url: git@github.com:${.user}/${.repo_name}.git
   branch: gh-pages
+  always_fresh: false
 paths:
   src: ../../misfit_toys
   final: ${..folder_name}
@@ -14,7 +15,7 @@ params:
 - vp
 - src_amp_y
 score: l2_diff
-leaderboard_size: 10
+leaderboard_size: 100
 extensions: [gif, jpg, png]
 rst:
   dest: ../custom_pages
