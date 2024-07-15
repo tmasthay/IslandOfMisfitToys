@@ -1,7 +1,4 @@
-import sys
 from time import time
-
-import torch
 
 from misfit_toys.utils import taper
 
@@ -45,7 +42,7 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
     return helper
 
 
-def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=True):
+def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
     """
     Applies tapering to the output of a neural network model.
 
@@ -62,13 +59,14 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=True):
         helper (function): A helper function that applies tapering to the output of a neural network model.
     """
     num_calls = 0
+    num_calls = 0
 
     def helper(self):
         nonlocal length, scale, batch_size, num_calls
+        num_calls += 1
         start_time = time()
         if verbose:
-            num_calls += 1
-            print(f"Call {num_calls}...", flush=True, end='')
+            print(f"    taper_batch: call == {num_calls}", flush=True, end="")
         num_shots = self.obs_data.shape[0]
         num_batches = -(-num_shots // batch_size)
         slices = [
@@ -77,7 +75,6 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=True):
         ]
 
         self.loss = 0.0
-        # self.out = torch.zeros_like(self.obs_data)
         epoch_loss = 0.0
         for _, s in enumerate(slices):
             self.optimizer.zero_grad()
@@ -97,18 +94,11 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=True):
             else:
                 obs_data_filt = self.obs_data[s]
 
-            lcl_loss = scale * self.loss_fn(self.out, obs_data_filt)
-            epoch_loss += lcl_loss.item()
-            # epoch_loss += self.loss.item()
-            # if verbose:
-            #     print(f"Batch {s.start // batch_size + 1}/{num_batches}: Loss={self.loss}", flush=True)
-            lcl_loss.backward()
-            self.optimizer.step()
-        # self.loss = epoch_loss
-        self.loss = epoch_loss
-
+            self.loss = scale * self.loss_fn(self.out, obs_data_filt)
+            epoch_loss += self.loss
+            self.loss.backward()
+        self.loss = epoch_loss / num_batches
         if verbose:
-            total_time = time() - start_time
-            print(f"took {total_time:.2f} seconds", flush=True)
+            print(f"...took {time() - start_time}s", flush=True)
 
     return helper
