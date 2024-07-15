@@ -144,24 +144,30 @@ class TrainingAbstract(ABC):
         Returns:
             loss (float): The loss value after the optimization step.
         """
-        num_calls = 0
+        # num_calls = 0
 
-        def closure():
-            nonlocal num_calls
-            num_calls += 1
-            self.optimizer.zero_grad()
+        # def closure():
+        #     nonlocal num_calls
+        #     num_calls += 1
+        #     self.optimizer.zero_grad()
 
-            self.__set_loss_status(num_calls == 1)
+        #     self.__set_loss_status(num_calls == 1)
 
-            self._step()
-            if num_calls == 1:
-                self._update_records()
-                self._report_iteration()
-            return self.loss
+        #     self._step()
+        #     if num_calls == 1:
+        #         self._update_records()
+        #         self._report_iteration()
+        #     return self.loss
+        self.optimizer.zero_grad()
+        self.__set_loss_status(True)
+        self._step()
+        self._update_records()
+        self._report_iteration()
+        # self.loss.backward()
 
-        self.optimizer.step(closure)
-        if self.scheduler:
-            self.scheduler.step()
+        # self.optimizer.step()
+        # if self.scheduler:
+        #     self.scheduler.step()
         return self.loss
 
     def reset_optimizer(self):
