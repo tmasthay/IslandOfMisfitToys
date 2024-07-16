@@ -15,10 +15,8 @@ from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
 
 class Factory(DataFactory):
     def _manufacture_data(self):
-        # if self.installed(
-        #     "vp_true", "rho_true", "src_loc_y", "rec_loc_y", "obs_data"
-        # ):
-        #     return
+        if self.installed("vp_true", "vp_strat"):
+            return
 
         self.tensors.vp_true = torch.load(pj(self.src_path, "vmig2A.pt"))
         self.tensors.vp_strat = torch.load(pj(self.src_path, "vstr2A.pt"))

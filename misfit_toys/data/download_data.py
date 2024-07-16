@@ -4,7 +4,7 @@ from misfit_toys.data.dataset import DataFactory
 
 
 def download_data(storage, *, inclusions):
-    all = {'das_curtin', 'marmousi', 'marmousi2'}
+    all = {'das_curtin', 'marmousi', 'marmousi2', 'sigsbee'}
     exclusions = list(all - set(inclusions))
     DataFactory.create_database(storage=storage, exclusions=exclusions)
 
