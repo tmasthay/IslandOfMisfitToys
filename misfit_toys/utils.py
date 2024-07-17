@@ -1219,3 +1219,49 @@ def all_detached_cpu(d: DotDict):
             d[k] = v.detach().cpu()
 
     return d
+
+
+# the following two functions were created in the tri_gpu branch, which was merged into feature/source
+# a bit prematurely. These functions can look a little confusing at first, but they are super useful.
+# Point is to encode how to preprocess the config by passing a subdictionary and then "eating" that subdictionary
+# up after the initialization (since that is the only scope it is needed in).
+def self_read_cfg(cfg: DictConfig, *, read_key='read', **kw):
+    if 'read_key' in cfg:
+        read_key = cfg.read_key
+    relax = cfg[read_key].get('relax', False)
+    if read_key not in cfg.keys():
+        raise ValueError(f"Key {read_key} not found in cfg")
+    if not isinstance(cfg, DotDict):
+        c = DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
+    else:
+        c = cfg[read_key]
+    self_read: PUF = apply_all(exec_imports(c).self_ref_resolve(relax=relax))
+    return self_read(cfg, **kw)
+
+
+def preprocess_cfg(
+    x: DictConfig,
+    *,
+    no_self_ref=None,
+    no_apply=None,
+    remove_self_read_key=None,
+    mutable=True,
+    compose=None,
+    eat_key=None,
+) -> DotDict:
+    container = DotDict if mutable else DotDictImmutable
+
+    d = exec_imports(container(OmegaConf.to_container(x, resolve=True)))
+    no_self_ref = no_self_ref or []
+    no_apply = no_apply or []
+    for k, v in d.items():
+        if k not in no_self_ref and isinstance(v, DotDict):
+            d[k] = v.self_ref_resolve()
+        if k not in no_apply:
+            d[k] = apply_all(d[k], relax=True)
+
+    if remove_self_read_key:
+        del d[remove_self_read_key]
+    if eat_key is not None:
+        d = d[eat_key]
+    return d if compose is None else compose(d)

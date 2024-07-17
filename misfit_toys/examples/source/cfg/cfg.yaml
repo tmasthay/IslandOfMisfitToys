@@ -9,11 +9,22 @@ freq: 10.0
 vp:
   default: 1000.0
   piecewise_boxes:
-  - [0.25, 0.5, 0.25, 0.5, 2000.0]
+  - [0.25, 0.35, 0.0, 1.0, 2000.0]
+  smoother: null
+  plt:
+    imshow:
+      aspect: auto
+      cmap: seismic
+    colorbar: true
+    save_path: vp.jpg
+    title: vp
 
 src:
-  y_idx: 100
-  x_idx: 100
+  y_idx: 0.5
+  x_idx: 0.5
+
+rec:
+
 
 units:
   dy: m
