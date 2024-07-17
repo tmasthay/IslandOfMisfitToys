@@ -76,6 +76,10 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
         self.loss = 0.0
         epoch_loss = 0.0
         for _, s in enumerate(slices):
+            self.optimizer.zero_grad()
+            # if verbose:
+            #     print(f"Batch {s.start // batch_size + 1}/{num_batches}", flush=True, end='\r')
+            # self.out[s] = self.prop(s)[-1]
             self.out = self.prop(s)[-1]
 
             if length is not None:
@@ -83,10 +87,11 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
                     raise ValueError("taper length must be positive")
                 elif length < 1.0:
                     length = int(length * self.out.shape[-1])
+                # self.out[s] = taper(self.out[s], length=length)
                 self.out = taper(self.out, length=length)
                 obs_data_filt = taper(self.obs_data[s], length=length)
             else:
-                obs_data_filt = self.obs_data
+                obs_data_filt = self.obs_data[s]
 
             self.loss = scale * self.loss_fn(self.out, obs_data_filt)
             epoch_loss += self.loss
