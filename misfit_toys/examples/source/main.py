@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 from mh.core import DotDict, exec_imports, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig, OmegaConf
-from src_types import *
+
+from misfit_toys.utils import apply_all
 
 set_print_options(callback=torch_stats('all'))
 
@@ -37,7 +38,7 @@ def create_velocity_model(*, ny, nx, default, piecewise_boxes, smoother):
             x_right = rel2abs(x_right, nx)
             v[y_left:y_right, x_left:x_right] = value
     if smoother is not None:
-        v = smoother(v)
+        v = smoother(v.unsqueeze(0))
     return v
 
 
@@ -45,25 +46,16 @@ def preprocess_cfg(cfg: DictConfig):
     c = DotDict(OmegaConf.to_container(cfg, resolve=True))
     c = exec_imports(c)
     c = c.self_ref_resolve()
+    c = apply_all(c, relax=True, exc=['rt', 'docs'])
+    c = apply_all(c, relax=False, exc=['rt', 'docs'])
     return c
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg):
     c = preprocess_cfg(cfg)
-    v = create_velocity_model(
-        ny=c.ny,
-        nx=c.nx,
-        default=c.vp.default,
-        piecewise_boxes=c.vp.piecewise_boxes,
-        smoother=c.vp.smoother,
-    )
-    plt.imshow(v, **c.vp.plt.imshow)
-    plt.title(c.vp.plt.title)
-    if c.vp.plt.colorbar:
-        plt.colorbar()
-    plt.savefig(c.vp.plt.save_path)
-    print(f"Saved figure to {pj(os.getcwd(), c.vp.plt.save_path)}")
+    c.rt = apply_all(c.rt, relax=False)
+    print(c)
 
 
 if __name__ == "__main__":

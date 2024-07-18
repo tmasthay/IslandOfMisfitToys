@@ -10,7 +10,11 @@ vp:
   default: 1000.0
   piecewise_boxes:
   - [0.25, 0.35, 0.0, 1.0, 2000.0]
-  smoother: null
+  smoother:
+    runtime_func: ^^|torchvision.transforms|GaussianBlur
+    kw:
+      kernel_size: [51, 51]
+      sigma: [1.0, 1.0]
   plt:
     imshow:
       aspect: auto
@@ -18,13 +22,6 @@ vp:
     colorbar: true
     save_path: vp.jpg
     title: vp
-
-src:
-  y_idx: 0.5
-  x_idx: 0.5
-
-rec:
-
 
 units:
   dy: m
@@ -47,3 +44,13 @@ docs:
     piecewise_boxes: |
       List of boxes where the velocity is different from the default value
       Format: [y_min, y_max, x_min, x_max, velocity_value]
+
+rt:
+  vp:
+    runtime_func: ^^cwd|main|create_velocity_model
+    kw:
+      ny: ${ny}
+      nx: ${nx}
+      default: ${vp.default}
+      piecewise_boxes: ${vp.piecewise_boxes}
+      smoother: ${vp.smoother}
