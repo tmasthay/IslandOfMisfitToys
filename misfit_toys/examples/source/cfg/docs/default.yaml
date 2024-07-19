@@ -1,0 +1,14 @@
+coords:
+  y: Horizontal
+  x: Depth
+freq: Dominant frequency of the Ricker wavelet
+src:
+  y_idx: y-index of the source
+  x_idx: x-index of the source
+
+vp:
+  default: |
+    Default "background" velocity outside of the union of all piecewise boxes
+  piecewise_boxes: |
+    List of boxes where the velocity is different from the default value
+    Format: [y_min, y_max, x_min, x_max, velocity_value]

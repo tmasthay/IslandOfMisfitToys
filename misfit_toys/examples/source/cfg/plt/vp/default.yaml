@@ -1,0 +1,6 @@
+defaults:
+- ../default.yaml
+- _self_
+
+save_path: vp.jpg
+title: vp
