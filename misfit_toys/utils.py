@@ -1117,7 +1117,8 @@ def apply(lcl, relax=True, call_key='__call__'):
         # )
         if call_key in kwargs.keys():
             kwargs = apply(kwargs, relax=True)
-        lcl = lcl.runtime_func(*args, **kwargs)
+        lcl_callback = getattr(lcl, call_key)
+        lcl = lcl_callback(*args, **kwargs)
         return lcl
     except Exception as e:
         v = RuntimeError(
