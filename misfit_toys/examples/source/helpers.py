@@ -2,9 +2,11 @@ import os
 from os.path import join as pj
 
 import deepwave as dw
+import matplotlib.pyplot as plt
 import torch
 
-from misfit_toys.utils import apply_all
+from misfit_toys.types import SoftPlotter
+from misfit_toys.utils import apply_all, bool_slice
 
 
 def create_velocity_model(*, ny, nx, default, piecewise_boxes, smoother):
@@ -32,4 +34,22 @@ def create_velocity_model(*, ny, nx, default, piecewise_boxes, smoother):
             v[y_left:y_right, x_left:x_right] = value
     if smoother is not None:
         v = smoother(v.unsqueeze(0))
-    return v
+    return v.squeeze()
+
+
+def plot_vp(*, data, imshow, title, save_path):
+    plt.clf()
+    plt.imshow(data, **imshow.kw)
+    if imshow.colorbar:
+        plt.colorbar()
+    if imshow.legend:
+        plt.legend()
+    plt.title(title)
+    plt.savefig(save_path)
+
+
+# class SimplePlot:
+#     def __init__(self, *, data, iter, callback, callback_kw):
+#         self.callback = SoftPlotter(callback=callback, **callback_kw)
+#         self.data = data
+#         self.iter = bool_slice(*data.shape, )

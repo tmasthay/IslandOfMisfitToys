@@ -2,6 +2,7 @@ defaults:
 - _self_
 - docs: default
 - rt: default
+- plt: default
 
 ny: 200
 nx: 200

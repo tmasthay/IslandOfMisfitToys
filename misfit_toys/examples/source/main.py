@@ -4,6 +4,7 @@ from os.path import join as pj
 import deepwave as dw
 import hydra
 import torch
+import yaml
 from matplotlib import pyplot as plt
 from mh.core import DotDict, exec_imports, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
@@ -18,16 +19,21 @@ def preprocess_cfg(cfg: DictConfig):
     c = DotDict(OmegaConf.to_container(cfg, resolve=True))
     c = exec_imports(c)
     c = c.self_ref_resolve()
-    c = apply_all(c, relax=True, exc=['rt', 'docs'])
-    c = apply_all(c, relax=False, exc=['rt', 'docs'])
+    c = apply_all(c, relax=True, exc=['rt', 'docs', 'plt'])
+    c = apply_all(c, relax=False, exc=['rt', 'docs', 'plt'])
     return c
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg):
-    c = preprocess_cfg(cfg)
+    c: DotDict = preprocess_cfg(cfg)
     c.rt = apply_all(c.rt, relax=False)
-    print(c)
+    c.plt = c.plt.self_ref_resolve(self_key='slf_plt')
+    apply_all(c.plt, call_key='__plot__', relax=False)
+
+    for k, v in c.plt.items():
+        if 'frame_callback' in v:
+            v.frame_callback(data=c.rt[k])
 
 
 if __name__ == "__main__":

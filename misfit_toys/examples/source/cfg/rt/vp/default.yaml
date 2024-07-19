@@ -8,5 +8,5 @@ kw:
   smoother:
     __call__: ^^|torchvision.transforms|GaussianBlur
     kw:
-      kernel_size: [51, 51]
-      sigma: [1.0, 1.0]
+      kernel_size: [51, 21]
+      sigma: [50.0, 100.0]

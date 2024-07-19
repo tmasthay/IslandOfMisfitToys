@@ -2,11 +2,6 @@ defaults:
 - _self_
 - vp: default
 
-imshow:
-  aspect: auto
-  cmap: seismic
-colorbar: true
-
 units:
   dy: m
   dx: m
