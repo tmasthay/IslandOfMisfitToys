@@ -10,3 +10,4 @@ kw:
     kw:
       kernel_size: [51, 21]
       sigma: [50.0, 100.0]
+  device: self.device

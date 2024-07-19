@@ -4,12 +4,15 @@ from os.path import join as pj
 import deepwave as dw
 import matplotlib.pyplot as plt
 import torch
+from deepwave.wavelets import ricker
 
 from misfit_toys.types import SoftPlotter
 from misfit_toys.utils import apply_all, bool_slice
 
 
-def create_velocity_model(*, ny, nx, default, piecewise_boxes, smoother):
+def create_velocity_model(
+    *, ny, nx, default, piecewise_boxes, smoother, device
+):
     v = default * torch.ones(ny, nx)
 
     def rel2abs(coord, n):
@@ -34,7 +37,7 @@ def create_velocity_model(*, ny, nx, default, piecewise_boxes, smoother):
             v[y_left:y_right, x_left:x_right] = value
     if smoother is not None:
         v = smoother(v.unsqueeze(0))
-    return v.squeeze()
+    return v.squeeze().to(device)
 
 
 def plot_vp(*, data, imshow, title, save_path):
@@ -48,8 +51,39 @@ def plot_vp(*, data, imshow, title, save_path):
     plt.savefig(save_path)
 
 
-# class SimplePlot:
-#     def __init__(self, *, data, iter, callback, callback_kw):
-#         self.callback = SoftPlotter(callback=callback, **callback_kw)
-#         self.data = data
-#         self.iter = bool_slice(*data.shape, )
+def gen_src_loc(*, n_shots, src_per_shot, ndims, depth, d_src, fst_src, device):
+    assert src_per_shot == 1, "Only 1 source per shot is supported for now"
+    src_loc = torch.zeros(
+        n_shots, src_per_shot, ndims, device=device, dtype=torch.long
+    )
+    src_loc[..., 1] = depth
+    src_loc[:, 0, 0] = torch.arange(n_shots) * d_src + fst_src
+    return src_loc
+
+
+def gen_rec_loc(*, n_shots, rec_per_shot, ndims, depth, d_rec, fst_rec, device):
+    rec_loc = torch.zeros(
+        n_shots, rec_per_shot, ndims, device=device, dtype=torch.long
+    )
+    rec_loc[..., 1] = depth
+    rec_loc[:, :, 0] = (torch.arange(n_shots) * d_rec + fst_rec).repeat(
+        n_shots, 1
+    )
+    return rec_loc
+
+
+def gen_time_sig(*, freq, nt, dt, peak_time):
+    return ricker(freq, nt, dt, peak_time)
+
+
+def same_src_amp(
+    *, n_shots, src_per_shot, nt, dt, peak_time_factor, freq, device
+):
+    time_sig = gen_time_sig(
+        freq=freq, nt=nt, dt=dt, peak_time=peak_time_factor / freq
+    )
+    return time_sig.repeat(n_shots, src_per_shot, 1).to(device)
+
+
+def gen_obs_data(**kw):
+    return dw.scalar(**kw)[-1]

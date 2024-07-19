@@ -1,3 +1,7 @@
 defaults:
 - _self_
 - vp: default
+- src_loc_y: default
+- rec_loc_y: default
+- src_amp_y: default
+- obs_data: default

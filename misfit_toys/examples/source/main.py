@@ -28,12 +28,16 @@ def preprocess_cfg(cfg: DictConfig):
 def main(cfg):
     c: DotDict = preprocess_cfg(cfg)
     c.rt = apply_all(c.rt, relax=False)
-    c.plt = c.plt.self_ref_resolve(self_key='slf_plt')
+    c = c.self_ref_resolve(self_key='slf_obs')
+    c.rt = apply_all(c.rt, relax=False, call_key='__call_obs__')
+    c = c.self_ref_resolve(self_key='slf_plt')
     apply_all(c.plt, call_key='__plot__', relax=False)
 
     for k, v in c.plt.items():
         if 'frame_callback' in v:
-            v.frame_callback(data=c.rt[k])
+            v.frame_callback(data=c.rt[k].detach().cpu())
+
+    print(c)
 
 
 if __name__ == "__main__":
