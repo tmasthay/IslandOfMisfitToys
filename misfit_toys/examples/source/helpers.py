@@ -73,8 +73,8 @@ def easy_plot(
     data,
     iter,
     plotter,
-    subplot_shape,
-    subplot_kw,
+    subplot_shape=None,
+    subplot_kw=None,
     framer=None,
     path,
     movie_format='gif',
@@ -82,9 +82,11 @@ def easy_plot(
     verbose=False,
     loop=0,
 ):
+    subplot_shape = subplot_shape or (1, 1)
+    subplot_kw = subplot_kw or {}
     fig, axes = plt.subplots(*subplot_shape, **subplot_kw)
 
-    final_iter = iter_sugar(data_shape=data.shape, iter=iter)
+    final_iter = iter_sugar(data_shape=data.shape, **iter)
     frames = get_frames_bool(
         data=data,
         iter=final_iter,
