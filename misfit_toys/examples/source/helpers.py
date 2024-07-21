@@ -5,6 +5,7 @@ import deepwave as dw
 import matplotlib.pyplot as plt
 import torch
 from deepwave.wavelets import ricker
+from mh.typlotlib import get_frames_bool, save_frames
 
 from misfit_toys.types import SoftPlotter
 from misfit_toys.utils import apply_all, bool_slice
@@ -49,6 +50,44 @@ def plot_vp(*, data, imshow, title, save_path):
         plt.legend()
     plt.title(title)
     plt.savefig(save_path)
+
+
+def plot_src_loc_idx(*, data, idx, imshow, title):
+    plt.clf()
+    plt.plot(data[idx], **imshow.kw)
+    if imshow.colorbar:
+        plt.colorbar()
+    if imshow.legend:
+        plt.legend()
+    plt.title(title)
+
+
+def easy_plot(
+    *,
+    data,
+    iter,
+    plotter,
+    subplot_shape,
+    subplot_kw,
+    framer=None,
+    path,
+    movie_format='gif',
+    duration=100,
+    verbose=False,
+    loop=0,
+):
+    fig, axes = plt.subplots(*subplot_shape, **subplot_kw)
+    frames = get_frames_bool(
+        data=data, iter=iter, fig=fig, axes=axes, plotter=plotter, framer=framer
+    )
+    save_frames(
+        frames,
+        path=path,
+        movie_format=movie_format,
+        duration=duration,
+        verbose=verbose,
+        loop=loop,
+    )
 
 
 def gen_src_loc(*, n_shots, src_per_shot, ndims, depth, d_src, fst_src, device):

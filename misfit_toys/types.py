@@ -24,62 +24,41 @@ class PickleUnaryFunction:
 
 class SingleArgPlusKwEnforcer:
     def __init__(
-        self, *, callback: Callable[[Any, dict], Any], expected_keys, **kwargs
+        self, *, callback: Callable[[Any, dict], Any], required_keys, **kwargs
     ):
         self.kwargs = kwargs
         self.callback = callback
-        self.expected_keys = expected_keys
+        self.required_keys = required_keys
 
     def __call__(self, x, **kwargs):
-        for key in self.expected_keys:
+        for key in self.required_keys:
             assert key in kwargs, f'Expected key {key} in kwargs'
         return self.callback(x, **self.kwargs, **kwargs)
 
 
-class HardKwEnforcer:
+class KwEnforcer:
     def __init__(
-        self, *, callback: Callable[[dict], Any], expected_keys, **kwargs
+        self, *, callback: Callable[[dict], Any], required_keys, **kwargs
     ):
         self.kwargs = kwargs
         self.callback = callback
-        self.expected_keys = expected_keys
+        self.required_keys = required_keys
 
     def __call__(self, **kwargs):
-        for key in self.expected_keys:
+        for key in self.required_keys:
             assert key in kwargs, f'Expected key {key} in kwargs'
         return self.callback(**{**self.kwargs, **kwargs})
 
 
-# I think I may have been errant in the need of this class in the past
-# Reconcile this decision later...move on for now, not a huge deal
-# Do not think this subclass is necessary OR wanted actually
-class SoftKwEnforcer(HardKwEnforcer):
-    def __init__(
-        self, *, callback: Callable[[dict], Any], expected_keys, **kwargs
-    ):
-        self.kwargs = kwargs
-        self.callback = callback
-        self.expected_keys = expected_keys + list(kwargs.keys())
-
-
-class Plotter(HardKwEnforcer):
+class Plotter(KwEnforcer):
     def __init__(self, *, callback: Callable[[dict], Any], **kwargs):
         super().__init__(
             callback=callback,
-            expected_keys=['data', 'idx', 'fig', 'axes'],
+            required_keys=['data', 'idx', 'fig', 'axes'],
             **kwargs,
         )
 
 
-class SoftPlotter(SoftKwEnforcer):
+class FlatPlotter(KwEnforcer):
     def __init__(self, *, callback: Callable[[dict], Any], **kwargs):
-        super().__init__(
-            callback=callback,
-            expected_keys=['data', 'idx', 'fig', 'axes'],
-            **kwargs,
-        )
-
-
-class FlatPlotter(HardKwEnforcer):
-    def __init__(self, *, callback: Callable[[dict], Any], **kwargs):
-        super().__init__(callback=callback, expected_keys=['data'], **kwargs)
+        super().__init__(callback=callback, required_keys=['data'], **kwargs)
