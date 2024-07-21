@@ -7,7 +7,7 @@ import torch
 from deepwave.wavelets import ricker
 from mh.typlotlib import get_frames_bool, save_frames
 
-from misfit_toys.types import SoftPlotter
+from misfit_toys.types import FlatPlotter
 from misfit_toys.utils import apply_all, bool_slice
 
 
@@ -62,6 +62,12 @@ def plot_src_loc_idx(*, data, idx, imshow, title):
     plt.title(title)
 
 
+def iter_sugar(*, data_shape, shape=None, **kw):
+    if shape is None:
+        shape = data_shape
+    return bool_slice(*shape, **kw)
+
+
 def easy_plot(
     *,
     data,
@@ -77,8 +83,15 @@ def easy_plot(
     loop=0,
 ):
     fig, axes = plt.subplots(*subplot_shape, **subplot_kw)
+
+    final_iter = iter_sugar(data_shape=data.shape, iter=iter)
     frames = get_frames_bool(
-        data=data, iter=iter, fig=fig, axes=axes, plotter=plotter, framer=framer
+        data=data,
+        iter=final_iter,
+        fig=fig,
+        axes=axes,
+        plotter=plotter,
+        framer=framer,
     )
     save_frames(
         frames,
