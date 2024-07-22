@@ -35,7 +35,11 @@ def main(cfg):
 
     for k, v in c.plt.items():
         if 'frame_callback' in v:
-            v.frame_callback(data=c.rt[k].detach().cpu())
+            try:
+                v.frame_callback(data=c.rt[k].detach().cpu())
+            except Exception as e:
+                v = ValueError(f'{k=}, caused by error above')
+                raise v from e
 
     print(c)
 

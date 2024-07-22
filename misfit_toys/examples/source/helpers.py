@@ -41,7 +41,9 @@ def create_velocity_model(
     return v.squeeze().to(device)
 
 
-def plot_vp(*, data, imshow, title, save_path):
+def simple_imshow(
+    *, data, imshow, title, save_path=None, xlabel=None, ylabel=None
+):
     plt.clf()
     plt.imshow(data, **imshow.kw)
     if imshow.colorbar:
@@ -49,17 +51,20 @@ def plot_vp(*, data, imshow, title, save_path):
     if imshow.legend:
         plt.legend()
     plt.title(title)
-    plt.savefig(save_path)
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+    if save_path is not None:
+        plt.savefig(save_path)
+
+
+def plot_vp(*, data, imshow, title, save_path):
+    simple_imshow(data=data, imshow=imshow, title=title, save_path=save_path)
 
 
 def plot_src_loc_idx(*, data, idx, imshow, title):
-    plt.clf()
-    plt.plot(data[idx], **imshow.kw)
-    if imshow.colorbar:
-        plt.colorbar()
-    if imshow.legend:
-        plt.legend()
-    plt.title(title)
+    simple_imshow(data=data[idx], imshow=imshow, title=title, save_path=None)
 
 
 def iter_sugar(*, data_shape, shape=None, **kw):
@@ -141,3 +146,68 @@ def same_src_amp(
 
 def gen_obs_data(**kw):
     return dw.scalar(**kw)[-1]
+
+
+def plot_src_amp(
+    *,
+    data,
+    iter,
+    imshow,
+    title='Source Amplitude',
+    path='src_amp',
+    loop=0,
+    duration=100,
+    verbose=False,
+    movie_format='gif',
+    subplot_shape=None,
+    subplot_kw=None,
+):
+    def plotter(*, data, idx, fig, axes):
+        plt.plot(data[idx], **imshow.kw)
+        plt.title(title)
+
+    easy_plot(
+        data=data,
+        iter=iter,
+        plotter=plotter,
+        subplot_shape=subplot_shape,
+        subplot_kw=subplot_kw,
+        path=path,
+        movie_format=movie_format,
+        duration=duration,
+        verbose=verbose,
+        loop=loop,
+    )
+
+
+def plot_obs_data(
+    *,
+    data,
+    iter,
+    imshow,
+    title='Observed Data',
+    path='obs_data',
+    loop=0,
+    duration=100,
+    verbose=False,
+    movie_format='gif',
+    subplot_shape=None,
+    subplot_kw=None,
+):
+    def plotter(*, data, idx, fig, axes):
+        simple_imshow(
+            data=data[idx], imshow=imshow, title=title, save_path=None
+        )
+
+    easy_plot(
+        data=data,
+        iter=iter,
+        plotter=plotter,
+        subplot_shape=subplot_shape,
+        subplot_kw=subplot_kw,
+        path=path,
+        movie_format=movie_format,
+        duration=duration,
+        verbose=verbose,
+        loop=loop,
+    )
