@@ -21,9 +21,13 @@ def main(cfg):
     runtime_reduce_simple('src_loc_y')
     runtime_reduce_simple('src_amp_y')
     runtime_reduce_simple('gbl_rec_loc')
-    # runtime_reduce_simple('gbl_obs_data')
     c = runtime_reduce(c, **c.resolve, self_key='slf_gbl_obs_data')
 
+    c = runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
+    for k, v in c.plt.items():
+        if k == 'resolve':
+            continue
+        v(data=c[k].detach().cpu())
     print(c)
 
 
