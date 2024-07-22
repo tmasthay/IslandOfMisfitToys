@@ -1,0 +1,21 @@
+path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
+resolve:
+  relax: false
+  call_key: __call__
+  exc: resolve
+vp:
+  __call__: ^^|torch|load
+  kw:
+    f: ${...path}/vp.pt
+rec_loc_y:
+  __call__: ^^|torch|load
+  kw:
+    f: ${...path}/rec_loc_y.pt
+src_loc_y:
+  __call__: ^^|torch|load
+  kw:
+    f: ${...path}/src_loc_y.pt
+src_amp_y:
+  __call__: ^^|torch|load
+  kw:
+    f: ${...path}/src_amp_y.pt

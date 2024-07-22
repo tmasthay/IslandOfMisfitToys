@@ -511,7 +511,7 @@ class SlotMeta(type):
 
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
-            # class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
+            # class_dict["__annotations__"] = Ant[Any, "NOT ANNOTATED"]
 
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
@@ -1151,6 +1151,19 @@ def apply_all(lcl, relax=True, exc=None, call_key='__call__'):
         if isinstance(v, DotDict) or isinstance(v, dict):
             lcl[k] = apply_all(v, relax=relax, exc=exc, call_key=call_key)
     return lcl
+
+
+def runtime_reduce(
+    config: DotDict,
+    *,
+    relax: bool = False,
+    call_key: str = '__call__',
+    self_key: str = 'self',
+    exc: list = None,
+):
+    config = config.self_ref_resolve(self_key=self_key)
+    config = apply_all(config, relax=relax, call_key=call_key, exc=exc)
+    return config
 
 
 def resolve(c: DotDict, relax) -> DotDict:
