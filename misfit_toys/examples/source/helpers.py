@@ -164,7 +164,7 @@ def plot_src_amp(
 ):
     def plotter(*, data, idx, fig, axes):
         plt.plot(data[idx], **imshow.kw)
-        plt.title(title)
+        plt.title(title + " idx=" + str(idx))
 
     easy_plot(
         data=data,
