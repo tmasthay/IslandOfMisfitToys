@@ -1,3 +1,7 @@
+defaults:
+- _self_
+- data: default
+
 path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
 
 resolve:
@@ -26,63 +30,6 @@ peak_time: 0.06
 accuracy: 8
 
 device: cuda:1
-
-vp:
-  __call__: ^^cwd|helpers|build_vp
-  kw:
-    path: ${...path}/vp.pt
-    device: ${...device}
-rec_loc_y:
-  __call__: ^^cwd|helpers|take_first
-  kw:
-    path: ${...path}/rec_loc_y.pt
-    device: ${...device}
-src_loc_y:
-  __call__: ^^cwd|helpers|build_src_loc_y
-  kw:
-    ny: ${...ny}
-    nx: ${...nx}
-    n_shots: ${...n_shots}
-    src_per_shot: ${...src_per_shot}
-    rel_idx_src_loc_y:
-      upper_left: [0.5, 0.5]
-      lower_left: [0.5, 0.5]
-      lower_right: [0.5, 0.5]
-      upper_right: [0.5, 0.5]
-    nt: ${...nt}
-    dt: ${...dt}
-    device: ${...device}
-
-src_amp_y:
-  __call__: ^^cwd|helpers|take_first
-  kw:
-    path: ${...path}/src_amp_y.pt
-    device: ${...device}
-
-gbl_rec_loc:
-  __call__: ^^cwd|helpers|build_gbl_rec_loc
-  kw:
-    ny: ${...ny}
-    nx: ${...nx}
-    downsample_y: 1
-    downsample_x: 1
-    device: ${...device}
-
-gbl_obs_data:
-  self_key: gbl_obs_data
-  __call__: ^^cwd|helpers|build_gbl_obs_data
-  kw:
-    v: slf_${..self_key}.vp
-    grid_spacing: ${...dy}
-    dt: ${...dt}
-    source_amplitudes: slf_${..self_key}.src_amp_y
-    source_locations: slf_${..self_key}.src_loc_y
-    receiver_locations: slf_${..self_key}.gbl_rec_loc
-    accuracy: 8
-    downsample_y: ${...gbl_rec_loc.kw.downsample_y}
-    downsample_x: ${...gbl_rec_loc.kw.downsample_x}
-    ny: ${...ny}
-    nx: ${...nx}
 
 plt:
   resolve:
