@@ -25,9 +25,8 @@ def main(cfg):
 
     c = runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
     for k, v in c.plt.items():
-        if k == 'resolve':
-            continue
-        v(data=c[k].detach().cpu())
+        if k != 'resolve':
+            v(data=c[k].detach().cpu())
     print(c)
 
 

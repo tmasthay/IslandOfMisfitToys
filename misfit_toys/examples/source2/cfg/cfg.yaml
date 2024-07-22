@@ -1,23 +1,29 @@
-path: ${oc.env:CONDA_PREFIX}/data/marmousi
+path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
 
 resolve:
   relax: false
   call_key: __call__
   exc: resolve
 
-ny: 2301
-nx: 751
-nt: 750
-dy: 4.0
-dx: 4.0
+ny: 600
+nx: 250
+nt: 300
+dy: 4
+dx: 4
 dt: 0.004
-
 n_shots: 1
 src_per_shot: 1
-
-rec_per_shot: 384
+d_src: 20
+fst_src: 10
+src_depth: 2
+rec_per_shot: 100
 d_rec: 6
+fst_rec: 0
 rec_depth: 2
+d_intra_shot: 0
+freq: 25
+peak_time: 0.06
+accuracy: 8
 
 device: cuda:1
 
@@ -58,8 +64,8 @@ gbl_rec_loc:
   kw:
     ny: ${...ny}
     nx: ${...nx}
-    downsample_y: 4
-    downsample_x: 4
+    downsample_y: 1
+    downsample_x: 1
     device: ${...device}
 
 gbl_obs_data:
@@ -88,8 +94,8 @@ plt:
     kw:
       callback: ^^cwd|plotters|plot_gbl_obs_data
       iter:
-        none_dims: [1, 2]
-        strides: [1, 1, 1]
+        none_dims: [0, 1]
+        strides: [1, 1, 10]
       imshow:
         kw:
           aspect: auto
