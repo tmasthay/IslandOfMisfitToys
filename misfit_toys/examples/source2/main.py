@@ -16,17 +16,17 @@ def main(cfg):
         resolve_rules = c[key].get('resolve', c.resolve)
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=f'slf_{key}')
 
-    runtime_reduce_simple('vp')
-    runtime_reduce_simple('rec_loc_y')
-    runtime_reduce_simple('src_loc_y')
-    runtime_reduce_simple('src_amp_y')
-    runtime_reduce_simple('gbl_rec_loc')
+    runtime_reduce_simple('data.vp')
+    runtime_reduce_simple('data.rec_loc_y')
+    runtime_reduce_simple('data.src_loc_y')
+    runtime_reduce_simple('data.src_amp_y')
+    runtime_reduce_simple('data.gbl_rec_loc')
     c = runtime_reduce(c, **c.resolve, self_key='slf_gbl_obs_data')
 
     c = runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
     for k, v in c.plt.items():
         if k != 'resolve':
-            v(data=c[k].detach().cpu())
+            v(data=c[f'data.{k}'].detach().cpu())
     print(c)
 
 
