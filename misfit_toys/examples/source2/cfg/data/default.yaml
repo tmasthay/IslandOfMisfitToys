@@ -41,7 +41,7 @@ gbl_rec_loc:
 
 gbl_obs_data:
   self_key: gbl_obs_data
-  __call__: ^^cwd|helpers|build_gbl_obs_data
+  __call_gbl_obs__: ^^cwd|helpers|build_gbl_obs_data
   kw:
     v: slf_${..self_key}.data.vp
     grid_spacing: ${....dy}
@@ -54,3 +54,16 @@ gbl_obs_data:
     downsample_x: ${...gbl_rec_loc.kw.downsample_x}
     ny: ${....ny}
     nx: ${....nx}
+
+obs_data:
+  self_key: obs_data
+  __call_obs__: ^^cwd|helpers|build_obs_data
+  kw:
+    v: slf_${..self_key}.data.vp
+    grid_spacing: ${....dy}
+    dt: ${....dt}
+    source_amplitudes: slf_${..self_key}.data.src_amp_y
+    source_locations: slf_${..self_key}.data.src_loc_y
+    receiver_locations: slf_${..self_key}.data.rec_loc_y
+    accuracy: 8
+    pml_freq: ${....freq}

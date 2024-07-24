@@ -57,7 +57,7 @@ def build_gbl_obs_data(
     downsample_y,
     downsample_x,
     ny,
-    nx
+    nx,
 ):
     u = dw.scalar(
         v=v,
@@ -73,3 +73,24 @@ def build_gbl_obs_data(
     shape_x = torch.ceil(torch.tensor(nx / downsample_x)).int()
     u = u.reshape(shape_y, shape_x, -1)
     return u
+
+
+def build_obs_data(
+    *,
+    v,
+    grid_spacing,
+    dt,
+    source_amplitudes,
+    source_locations,
+    receiver_locations,
+    **kw,
+):
+    return dw.scalar(
+        v=v,
+        grid_spacing=grid_spacing,
+        dt=dt,
+        source_amplitudes=source_amplitudes,
+        source_locations=source_locations,
+        receiver_locations=receiver_locations,
+        **kw,
+    )[-1]

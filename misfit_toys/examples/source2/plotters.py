@@ -11,7 +11,11 @@ def iter_sugar(*, data_shape, shape=None, **kw):
 
 
 def simple_imshow(
-    *, data, imshow, title, save_path=None, xlabel=None, ylabel=None
+    *,
+    data,
+    imshow,
+    title,
+    save_path=None,
 ):
     plt.clf()
     if not imshow.transpose:
@@ -23,10 +27,10 @@ def simple_imshow(
     if imshow.legend:
         plt.legend()
     plt.title(title)
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
+    if imshow.xlabel is not None:
+        plt.xlabel(imshow.xlabel)
+    if imshow.ylabel is not None:
+        plt.ylabel(imshow.ylabel)
     if save_path is not None:
         plt.savefig(save_path)
 

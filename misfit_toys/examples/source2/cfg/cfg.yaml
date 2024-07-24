@@ -1,6 +1,7 @@
 defaults:
 - _self_
 - data: default
+- plt: default
 
 path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
 
@@ -12,8 +13,8 @@ resolve:
 ny: 600
 nx: 250
 nt: 300
-dy: 4
-dx: 4
+dy: 4.0
+dx: 4.0
 dt: 0.004
 n_shots: 1
 src_per_shot: 1
@@ -30,24 +31,3 @@ peak_time: 0.06
 accuracy: 8
 
 device: cuda:1
-
-plt:
-  resolve:
-    call_key: __plot__
-    exc: resolve
-    relax: false
-  gbl_obs_data:
-    __plot__: ^^|misfit_toys.types|FlatPlotter
-    kw:
-      callback: ^^cwd|plotters|plot_gbl_obs_data
-      iter:
-        none_dims: [0, 1]
-        strides: [1, 1, 10]
-      imshow:
-        kw:
-          aspect: auto
-          cmap: seismic
-        colorbar: true
-        legend: false
-        transpose: true
-      title: Global Observed Data
