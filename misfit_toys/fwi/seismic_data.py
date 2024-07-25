@@ -727,15 +727,16 @@ class DebugProp(torch.nn.Module):
         self.rec_loc_y = rec_loc_y
         self.src_loc_y = src_loc_y
 
-    def forward(self, src_amp_y, **kw):
+    def forward(self, s, src_amp_y, **kw):
+        s = s or slice(None)
         v = self.vp()
         return scalar(
             v,
             self.dx,
             self.dt,
-            source_amplitudes=src_amp_y,
-            source_locations=self.src_loc_y,
-            receiver_locations=self.rec_loc_y,
+            source_amplitudes=src_amp_y[s],
+            source_locations=self.src_loc_y[s],
+            receiver_locations=self.rec_loc_y[s],
             pml_freq=self.freq,
             **kw
         )

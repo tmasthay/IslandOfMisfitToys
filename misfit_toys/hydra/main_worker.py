@@ -143,8 +143,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     ).to(rank)
 
     # Build seismic propagation module and wrap in DDP
-    prop_data = subdict(c.runtime.data, exc=["obs_data"])
-    c.obs_data = c.runtime.data.obs_data
+    # prop_data = subdict(c.runtime.data, exc=["obs_data"])
+    # c.obs_data = c.runtime.data.obs_data
     # print(prop_data.keys(), flush=True)
 
     # keys:
@@ -159,17 +159,21 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     #     pml_freq=c.runtime.data.meta.freq,
     #     time_pad_frac=c.data.preprocess.time_pad_frac,
     # ).to(rank)
-    c['runtime.prop'] = DebugProp(
-        vp=prop_data['vp'],
-        dx=prop_data['meta']['dx'],
-        dt=prop_data['meta']['dt'],
-        freq=prop_data['meta']['freq'],
-        rec_loc_y=prop_data['rec_loc_y'],
-        src_loc_y=prop_data['src_loc_y']
-    )
+    # c['runtime.prop'] = DebugProp(
+    #     vp=prop_data['vp'],
+    #     dx=prop_data['meta']['dx'],
+    #     dt=prop_data['meta']['dt'],
+    #     freq=prop_data['meta']['freq'],
+    #     rec_loc_y=prop_data['rec_loc_y'],
+    #     src_loc_y=prop_data['src_loc_y']
+    # )
+    c = resolve(c, relax=True)
+    
+    c.runtime.prop = apply(c.train.prop)
     c.runtime.prop = DDP(c.runtime.prop, device_ids=[rank])
 
     c = resolve(c, relax=False)
+
     loss_fn = apply(c.train.loss)
     if hasattr(loss_fn, 'to'):
         loss_fn = loss_fn.to(rank)
