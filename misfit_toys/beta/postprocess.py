@@ -32,7 +32,16 @@ def core_meta(
     return meta
 
 
-def vp_compare(data: DotDict, *, path: str, **kw) -> None:
+def vp_compare(
+    data: DotDict,
+    *,
+    path: str,
+    proj_path: str,
+    train_time: float,
+    name: str,
+    max_iters: int,
+    omit_infinity: bool=True
+) -> None:
     vp_true = data.vp_true.reshape(1, -1)
     vp = data.vp.reshape(data.vp.shape[0], -1)
     diff = vp - vp_true
@@ -41,7 +50,13 @@ def vp_compare(data: DotDict, *, path: str, **kw) -> None:
     diff_norm = torch.sqrt(torch.mean(diff_flat**2, dim=-1))
     max_diff_norm = torch.min(diff_norm)
 
-    d = core_meta(path=path, **kw)
+    d = core_meta(
+        path=path,
+        proj_path=proj_path,
+        train_time=train_time,
+        name=name,
+        max_iters=max_iters,
+    )
     d['l2_diff'] = max_diff_norm.item()
 
     filename = os.path.join(path, 'vp_compare.yaml')

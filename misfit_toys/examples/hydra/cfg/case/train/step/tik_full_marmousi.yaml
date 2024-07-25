@@ -5,6 +5,3 @@ kw:
   scale: 1.0e+06
   verbose: true
   src_amp_y: self.runtime.data.src_amp_y
-
-
-nonexist: checking_the_yaml_format_hook
