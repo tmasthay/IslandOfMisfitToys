@@ -1,0 +1,9 @@
+runtime_func: ^^|misfit_toys.fwi.seismic_data|DebugProp
+kw:
+  vp: self.runtime.data.vp
+  dx: self.runtime.data.meta.dx
+  dt: self.runtime.data.meta.dt
+  freq: self.runtime.data.meta.freq
+  rec_loc_y: self.runtime.data.rec_loc_y
+  src_loc_y: self.runtime.data.src_loc_y
+
