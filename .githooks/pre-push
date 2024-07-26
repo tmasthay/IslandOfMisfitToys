@@ -71,4 +71,6 @@ echo "Upload time: $((UPLOAD_END - UPLOAD_START)) seconds"
 # cleanup
 rm custom_pages.tar.gz || { exit_prog "Cleanup failed"; }
 
+gh workflow run docs.yaml || { exit_prog "Workflow dispatch failed"; }
+
 exit 0

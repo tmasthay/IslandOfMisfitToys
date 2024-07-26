@@ -1,12 +1,7 @@
 name: documentation
 
 on:
-  push:
-    branches:
-    - main
-    - devel
-    tags-ignore:
-    - tmp_ci_leaderboard
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,20 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # check-commit-msg:
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     skip_e2e_tests: ${{ steps.check_commit_msg.outputs.skip_e2e_tests }}
-  #   steps:
-  #   - name: Check commit message
-  #     id: check_commit_msg
-  #     run: |
-  #       if [[ "${{ github.event.head_commit.message }}" == *"[skip docs]"* ]]; then
-  #         echo "::set-output name=skip_docs::true"
-  #       else
-  #         echo "::set-output name=skip_docs::false"
-  #       fi
-
   docs:
     runs-on: ubuntu-latest
     steps:
