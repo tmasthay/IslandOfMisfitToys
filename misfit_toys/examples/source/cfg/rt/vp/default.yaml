@@ -1,0 +1,13 @@
+__call__: ^^cwd|helpers|create_velocity_model
+kw:
+  ny: self.ny
+  nx: self.nx
+  default: 1000.0
+  piecewise_boxes:
+  - [0.25, 0.35, 0.0, 1.0, 2000.0]
+  smoother:
+    __call__: ^^|torchvision.transforms|GaussianBlur
+    kw:
+      kernel_size: [51, 21]
+      sigma: [50.0, 100.0]
+  device: self.device

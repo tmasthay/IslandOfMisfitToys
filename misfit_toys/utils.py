@@ -16,10 +16,13 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-from mh.core import DotDict, exec_imports
+from mh.core import DotDict, DotDictImmutable, exec_imports
 from mh.core_legacy import ctab, find_files, vco
+from omegaconf import DictConfig, OmegaConf
 from returns.curry import curry
 from torchaudio.functional import biquad
+
+from misfit_toys.types import PickleUnaryFunction as PUF
 
 
 def find_available_port(start_port, max_attempts=5):
@@ -513,7 +516,7 @@ class SlotMeta(type):
 
         # Add the default annotations for non-annotated attributes
         for key in non_annotated_attrs:
-            # class_dict["__annotations__"][key] = Ant[Any, "NOT ANNOTATED"]
+            # class_dict["__annotations__"] = Ant[Any, "NOT ANNOTATED"]
 
             # Optional: Remove the attributes as they'll be defined by __slots__
             class_dict.pop(key, None)
@@ -1077,28 +1080,28 @@ def apply_builder(lcl, gbl):
     return obj
 
 
-def apply(lcl, relax=True):
+def apply(lcl, relax=True, call_key='__call__'):
     """
     Applies the given local variables (`lcl`) to a runtime function.
 
     Args:
         lcl (dict): The local variables to be applied.
-        relax (bool, optional): Whether to relax the requirement of having 'runtime_func' as a key in `lcl`.
-            If set to True and 'runtime_func' is not found in `lcl`, the function will simply return `lcl`.
-            If set to False and 'runtime_func' is not found in `lcl`, a ValueError will be raised.
+        relax (bool, optional): Whether to relax the requirement of having '__call__' as a key in `lcl`.
+            If set to True and '__call__' is not found in `lcl`, the function will simply return `lcl`.
+            If set to False and '__call__' is not found in `lcl`, a ValueError will be raised.
 
     Returns:
         The result of applying the local variables to the runtime function.
 
     Raises:
-        ValueError: If 'runtime_func' is not found in `lcl` and `relax` is set to False.
+        ValueError: If '__call__' is not found in `lcl` and `relax` is set to False.
         RuntimeError: If an error occurs during the application process.
 
     """
     try:
-        if 'runtime_func' not in lcl.keys() and relax:
+        if call_key not in lcl.keys() and relax:
             return lcl
-        elif 'runtime_func' not in lcl.keys() and not relax:
+        elif call_key not in lcl.keys() and not relax:
             raise ValueError(
                 "To apply lcl, we need runtime_func to be a key "
                 f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
@@ -1113,13 +1116,14 @@ def apply(lcl, relax=True):
             if isinstance(v, DotDict) or isinstance(v, dict):
                 kwargs[k] = apply(v, relax=True)
 
-        keys = set(kwargs.keys())
-        is_reducible = keys.issubset(
-            set(['args', 'kwargs', 'kw', 'runtime_func'])
-        )
-        if is_reducible:
+        # keys = set(kwargs.keys())
+        # is_reducible = keys.issubset(
+        #     set(['args', 'kwargs', 'kw', call_key])
+        # )
+        if call_key in kwargs.keys():
             kwargs = apply(kwargs, relax=True)
-        lcl = lcl.runtime_func(*args, **kwargs)
+        lcl_callback = getattr(lcl, call_key)
+        lcl = lcl_callback(*args, **kwargs)
         return lcl
     except Exception as e:
         v = RuntimeError(
@@ -1131,7 +1135,7 @@ def apply(lcl, relax=True):
         raise v from e
 
 
-def apply_all(lcl, relax=True, exc=None):
+def apply_all(lcl, relax=True, exc=None, call_key='__call__'):
     """
     Recursively applies the `apply` function to all values in a dictionary or DotDict.
 
@@ -1143,16 +1147,28 @@ def apply_all(lcl, relax=True, exc=None):
     Returns:
         dict or DotDict: The modified dictionary or DotDict after applying the `apply` function.
     """
-    exc = exc or []
-    for k, v in lcl.items():
-        if k in exc:
-            continue
-        elif isinstance(v, DotDict) or isinstance(v, dict):
-            if 'runtime_func' in v.keys():
-                lcl[k] = apply(v, relax=relax)
-            else:
-                lcl[k] = apply_all(v, relax=relax, exc=exc)
+    if isinstance(lcl, DotDict) or isinstance(lcl, dict):
+        if call_key in lcl.keys():
+            return apply(lcl, relax=relax, call_key=call_key)
+
+    valid_items = [(k, v) for k, v in lcl.items() if k not in (exc or [])]
+    for k, v in valid_items:
+        if isinstance(v, DotDict) or isinstance(v, dict):
+            lcl[k] = apply_all(v, relax=relax, exc=exc, call_key=call_key)
     return lcl
+
+
+def runtime_reduce(
+    config: DotDict,
+    *,
+    relax: bool = False,
+    call_key: str = '__call__',
+    self_key: str = 'self',
+    exc: list = None,
+):
+    config = config.self_ref_resolve(self_key=self_key)
+    config = apply_all(config, relax=relax, call_key=call_key, exc=exc)
+    return config
 
 
 def resolve(c: DotDict, relax) -> DotDict:
@@ -1221,3 +1237,49 @@ def all_detached_cpu(d: DotDict):
             d[k] = v.detach().cpu()
 
     return d
+
+
+# the following two functions were created in the tri_gpu branch, which was merged into feature/source
+# a bit prematurely. These functions can look a little confusing at first, but they are super useful.
+# Point is to encode how to preprocess the config by passing a subdictionary and then "eating" that subdictionary
+# up after the initialization (since that is the only scope it is needed in).
+def self_read_cfg(cfg: DictConfig, *, read_key='read', **kw):
+    if 'read_key' in cfg:
+        read_key = cfg.read_key
+    relax = cfg[read_key].get('relax', False)
+    if read_key not in cfg.keys():
+        raise ValueError(f"Key {read_key} not found in cfg")
+    if not isinstance(cfg, DotDict):
+        c = DotDict(OmegaConf.to_container(cfg[read_key], resolve=True))
+    else:
+        c = cfg[read_key]
+    self_read: PUF = apply_all(exec_imports(c).self_ref_resolve(relax=relax))
+    return self_read(cfg, **kw)
+
+
+def preprocess_cfg(
+    x: DictConfig,
+    *,
+    no_self_ref=None,
+    no_apply=None,
+    remove_self_read_key=None,
+    mutable=True,
+    compose=None,
+    eat_key=None,
+) -> DotDict:
+    container = DotDict if mutable else DotDictImmutable
+
+    d = exec_imports(container(OmegaConf.to_container(x, resolve=True)))
+    no_self_ref = no_self_ref or []
+    no_apply = no_apply or []
+    for k, v in d.items():
+        if k not in no_self_ref and isinstance(v, DotDict):
+            d[k] = v.self_ref_resolve()
+        if k not in no_apply:
+            d[k] = apply_all(d[k], relax=True)
+
+    if remove_self_read_key:
+        del d[remove_self_read_key]
+    if eat_key is not None:
+        d = d[eat_key]
+    return d if compose is None else compose(d)

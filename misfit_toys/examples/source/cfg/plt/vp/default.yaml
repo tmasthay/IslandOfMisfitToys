@@ -1,0 +1,14 @@
+units: ${..units}
+
+frame_callback:
+  __plot__: ^^|misfit_toys.types|FlatPlotter
+  kw:
+    callback: ^^cwd|helpers|plot_vp
+    imshow:
+      kw:
+        aspect: auto
+        cmap: seismic
+      colorbar: true
+      legend: false
+    title: vp
+    save_path: vp.jpg
