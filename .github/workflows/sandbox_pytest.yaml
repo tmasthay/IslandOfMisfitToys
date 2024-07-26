@@ -2,14 +2,18 @@ name: GPU Validation and Docs Deployment Workflow
 
 on:
   push:
-    branches-ignore:
-    - gh-pages
+    branches:
+    - '**'
+    - '!gh-pages'
     tags-ignore:
     - tmp_ci_leaderboard
 
   pull_request:
-    branches-ignore:
-    - gh-pages
+    branches:
+    - '**'
+    - '!gh-pages'
+    tags-ignore:
+    - tmp_ci_leaderboard
 
 
 concurrency:
