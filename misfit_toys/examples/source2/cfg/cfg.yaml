@@ -31,3 +31,8 @@ peak_time: 0.06
 accuracy: 8
 
 device: cuda:1
+
+train:
+  n_epochs: 250
+  num_captured_frames: 25
+  threshold: 1e-7

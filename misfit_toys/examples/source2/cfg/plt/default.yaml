@@ -40,4 +40,17 @@ obs_data:
       transpose: true
       xlabel: Horizontal Extent
       ylabel: Time (s)
-    title: True Observed Data(base)
+    title: True Observed Data
+src_amp_y:
+  __plot__: ^^|misfit_toys.types|FlatPlotter
+  kw:
+    callback: ^^cwd|plotters|plot_src
+    path: true_source
+    title: True Source Time Signature
+
+src_amp_y_init:
+  __plot__: ^^|misfit_toys.types|FlatPlotter
+  kw:
+    callback: ^^cwd|plotters|plot_src
+    path: initial_source
+    title: Initial Source Guess

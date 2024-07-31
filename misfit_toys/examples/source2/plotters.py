@@ -10,13 +10,7 @@ def iter_sugar(*, data_shape, shape=None, **kw):
     return bool_slice(*shape, **kw)
 
 
-def simple_imshow(
-    *,
-    data,
-    imshow,
-    title,
-    save_path=None,
-):
+def simple_imshow(*, data, imshow, title, save_path=None):
     plt.clf()
     if not imshow.transpose:
         plt.imshow(data, **imshow.kw)
@@ -106,3 +100,9 @@ def plot_gbl_obs_data(
         verbose=verbose,
         loop=loop,
     )
+
+
+def plot_src(*, data, path, title='Source'):
+    plt.plot(data[0, 0])
+    plt.title(title)
+    plt.savefig(path.replace('.jpg', '') + '.jpg')

@@ -94,3 +94,21 @@ def build_obs_data(
         receiver_locations=receiver_locations,
         **kw,
     )[-1]
+
+
+def shift_data(*, data, shifts, dims=None):
+    assert min(shifts) >= 0.0
+    assert max(shifts) <= 1.0
+
+    dims = list(range(len(data.shape))) if dims is None else dims
+    assert len(shifts) == len(dims)
+    assert len(dims) <= len(data.shape)
+
+    abs_shifts = torch.tensor(shifts) * torch.tensor(data.shape)[dims]
+    abs_shifts = abs_shifts.round().int().tolist()
+    return torch.roll(data, shifts=tuple(abs_shifts), dims=dims)
+
+
+if __name__ == "__main__":
+    u = torch.arange(110).reshape(10, 11)
+    print(shift_data(data=u, shifts=[0.0, 0.2], dims=[0, 1]))
