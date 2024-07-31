@@ -30,6 +30,14 @@ src_amp_y:
     path: ${....path}/src_amp_y.pt
     device: ${....device}
 
+src_amp_y_init:
+  self_key: src_amp_y_init
+  __call_src__: ^^cwd|helpers|shift_data
+  kw:
+    data: slf_${..self_key}.data.src_amp_y
+    shifts: [0.5]
+    dims: [-1]
+
 gbl_rec_loc:
   __call__: ^^cwd|helpers|build_gbl_rec_loc
   kw:
