@@ -47,7 +47,8 @@ def main(cfg):
         c.data.vp.requires_grad = False
         c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
         c.data.curr_src_amp_y.requires_grad = True
-        optimizer = torch.optim.LBFGS([c.data.curr_src_amp_y])
+        # optimizer = torch.optim.LBFGS([c.data.curr_src_amp_y])
+        optimizer = torch.optim.Adam([c.data.curr_src_amp_y], lr=c.train.lr)
         loss_fn = torch.nn.MSELoss()
 
         capture_freq = c.train.n_epochs // c.train.num_captured_frames
@@ -93,9 +94,15 @@ def main(cfg):
         def src_amp_plotter(*, data, idx, fig, axes):
             plt.clf()
             plt.title(idx)
-            plt.plot(data[idx].detach().cpu(), label='Curr Src Amp')
             plt.plot(
-                c.data.src_amp_y.squeeze().detach().cpu(), label='True Src Amp'
+                c.data.src_amp_y.squeeze().detach().cpu(),
+                'ro',
+                label='True Src Amp',
+                markersize=3,
+                alpha=0.5,
+            )
+            plt.plot(
+                data[idx].detach().cpu(), 'b--', label='Curr Src Amp', lw=1
             )
             plt.legend()
 
