@@ -43,7 +43,7 @@ def main(cfg):
             plt.clf()
             v(data=c[f'data.{k}'].detach().cpu())
 
-    if c.get('do_training', False):
+    if c.get('do_training', True):
         c.data.vp.requires_grad = False
         c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
         c.data.curr_src_amp_y.requires_grad = True
