@@ -20,6 +20,7 @@ def main(cfg):
         resolve_rules = c[key].get('resolve', c.resolve)
         self_key = f'slf_{key.split(".")[-1]}'
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
+        c[key] = c[key].to(c.device)
 
     def full_runtime_reduce(lcl_cfg, **kw):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})

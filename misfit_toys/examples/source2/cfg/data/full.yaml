@@ -9,20 +9,15 @@ rec_loc_y:
     path: ${....path}/rec_loc_y.pt
     device: ${....device}
 src_loc_y:
-  __call__: ^^cwd|helpers|build_src_loc_y
+  __call__: ^^cwd|full|rect_grid
   kw:
-    ny: ${....ny}
-    nx: ${....nx}
+    sy: 300
+    ey: 301
+    dy: 1
+    sx: 125
+    ex: 126
+    dx: 1
     n_shots: ${....n_shots}
-    src_per_shot: ${....src_per_shot}
-    rel_idx_src_loc_y:
-      upper_left: [0.5, 0.5]
-      lower_left: [0.5, 0.5]
-      lower_right: [0.5, 0.5]
-      upper_right: [0.5, 0.5]
-    nt: ${....nt}
-    dt: ${....dt}
-    device: ${....device}
 
 src_amp_y:
   __call__: ^^cwd|helpers|take_first
