@@ -2,7 +2,7 @@ import deepwave as dw
 import hydra
 import matplotlib.pyplot as plt
 import torch
-from mh.core import DotDict, set_print_options, torch_stats
+from mh.core import DotDict, hydra_out, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import OmegaConf
 
@@ -96,10 +96,10 @@ def main(cfg):
             plt.title(idx)
             plt.plot(
                 c.data.src_amp_y.squeeze().detach().cpu(),
-                'ro',
+                'r-',
                 label='True Src Amp',
                 markersize=3,
-                alpha=0.5,
+                alpha=0.75,
             )
             plt.plot(
                 data[idx].detach().cpu(), 'b--', label='Curr Src Amp', lw=1
@@ -114,7 +114,12 @@ def main(cfg):
             axes=axes,
             plotter=src_amp_plotter,
         )
-        save_frames(frames, path='history')
+        save_frames(frames, path=hydra_out('history'))
+
+        with open('.latest', 'w') as f:
+            f.write(f'cd {hydra_out()}')
+
+        print('Run following for latest run directory\n        . .latest')
 
 
 if __name__ == "__main__":

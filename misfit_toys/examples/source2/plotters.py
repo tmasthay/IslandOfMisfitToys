@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from mh.core import hydra_out
 from mh.typlotlib import get_frames_bool, save_frames
 
 from misfit_toys.utils import bool_slice, clean_idx
@@ -58,7 +59,7 @@ def easy_plot(
     )
     save_frames(
         frames,
-        path=path,
+        path=hydra_out(path),
         movie_format=movie_format,
         duration=duration,
         verbose=verbose,
@@ -94,7 +95,7 @@ def plot_gbl_obs_data(
         plotter=plotter,
         subplot_shape=subplot_shape,
         subplot_kw=subplot_kw,
-        path=path,
+        path=hydra_out(path),
         movie_format=movie_format,
         duration=duration,
         verbose=verbose,
@@ -105,4 +106,4 @@ def plot_gbl_obs_data(
 def plot_src(*, data, path, title='Source'):
     plt.plot(data[0, 0])
     plt.title(title)
-    plt.savefig(path.replace('.jpg', '') + '.jpg')
+    plt.savefig(hydra_out(path.replace('.jpg', '') + '.jpg'))
