@@ -9,15 +9,14 @@ rec_loc_y:
     path: ${....path}/rec_loc_y.pt
     device: ${....device}
 src_loc_y:
-  __call__: ^^cwd|full|rect_grid
+  __call__: ^^cwd|full|cent_grid
   kw:
-    sy: 300
-    ey: 301
-    dy: 1
-    sx: 125
-    ex: 126
-    dx: 1
+    cy: 300
+    cx: 125
+    ny: 1
+    nx: 1
     n_shots: ${....n_shots}
+    device: ${....device}
 
 src_amp_y:
   __call__: ^^cwd|helpers|take_first
