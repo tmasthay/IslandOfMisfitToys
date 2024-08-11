@@ -1,26 +1,59 @@
+from typing import Union
+
 import torch
+from mh.core import enforce_types
 
 
-def rect_grid(*, sy, ey, dy, sx, ex, dx, n_shots=None):
-    for k, v in locals().items():
-        if k != 'n_shots':
-            assert isinstance(v, int), f'{k} must be an integer, got {type(v)}'
-    assert isinstance(
-        n_shots, (int, type(None))
-    ), f'n_shots must be an integer or None, got {type(n_shots)}'
+@enforce_types
+def rect_grid(
+    *,
+    sy: int,
+    ey: int,
+    dy: int,
+    sx: int,
+    ex: int,
+    dx: int,
+    n_shots: Union[int, None] = None,
+    device: str = 'cpu',
+):
+    type_check = {
+        k: (v, int)
+        for k, v in locals().items()
+        if k not in ['n_shots', 'device']
+    }
+    type_check['n_shots'] = (n_shots, (int, type(None)))
+    type_check['device'] = (device, str)
+    for k, v in type_check.items():
+        if not isinstance(v[0], v[1]):
+            raise ValueError(f"{k} must be of type {v[1]}, got {type(v[0])}")
     y = torch.arange(sy, ey, dy)
     x = torch.arange(sx, ex, dx)
     u = torch.cartesian_prod(y, x)
     if n_shots is not None:
-        return u.unsqueeze(0).expand(n_shots, *u.shape)
+        return u.unsqueeze(0).expand(n_shots, *u.shape).to(device)
     else:
-        return u
+        return u.to(device)
 
 
-def cent_grid(*, cy, cx, dy=1, dx=1, ny, nx):
-    for k, v in locals().items():
-        assert isinstance(v, int), f'{k} must be an integer, got {type(v)}'
-    y = torch.arange(cy - dy * (ny - 1) / 2, cy + dy * (ny + 1) / 2, dy)
-    x = torch.arange(cx - dx * (nx - 1) / 2, cx + dx * (nx + 1) / 2, dx)
-    u = torch.cartesian_prod(y, x)
-    return u
+@enforce_types
+def cent_grid(
+    *,
+    cy: int,
+    cx: int,
+    dy: int = 1,
+    dx: int = 1,
+    ny: int,
+    nx: int,
+    n_shots: Union[int, None] = None,
+    device: str = 'cpu',
+):
+    delta_y, delta_x = dy * (ny - 1) // 2, dx * (nx - 1) // 2
+    sy = cy - delta_y
+    sx = cx - delta_x
+
+    # ensure at least one point is included
+    ey = cy + max(1, delta_y)
+    ex = cx + max(1, delta_x)
+    return rect_grid(
+        sy=sy, ey=ey, dy=dy, sx=sx, ex=ex, dx=dx, n_shots=n_shots
+    ).to(device)
