@@ -3,6 +3,8 @@ vp:
   kw:
     path: ${....path}/vp.pt
     device: ${....device}
+    ny: ${ny}
+    nx: ${nx}
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:
@@ -13,10 +15,10 @@ src_loc_y:
   kw:
     cy: 300
     cx: 125
-    ny: 1
-    nx: 1
-    n_shots: ${....n_shots}
-    device: ${....device}
+    ny: ${ny}
+    nx: ${nx}
+    n_shots: ${n_shots}
+    device: ${device}
 
 src_amp_y:
   __call__: ^^cwd|helpers|take_first
