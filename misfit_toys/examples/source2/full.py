@@ -48,12 +48,33 @@ def cent_grid(
     device: str = 'cpu',
 ):
     delta_y, delta_x = dy * (ny - 1) // 2, dx * (nx - 1) // 2
+    delta_y = max(1, delta_y)
+    delta_x = max(1, delta_x)
     sy = cy - delta_y
     sx = cx - delta_x
 
     # ensure at least one point is included
-    ey = cy + max(1, delta_y)
-    ex = cx + max(1, delta_x)
+    ey = cy + delta_y
+    ex = cx + delta_x
+
+    if ny != 1:
+        ey += dy
+    if nx != 1:
+        ex += dx
+
+    # input(locals())
     return rect_grid(
         sy=sy, ey=ey, dy=dy, sx=sx, ex=ex, dx=dx, n_shots=n_shots
     ).to(device)
+
+
+def main_grid():
+    u = rect_grid(sy=300, ey=301, dy=1, sx=300, ex=301, dx=1)
+    v = cent_grid(cy=300, cx=125, dy=1, dx=2, ny=3, nx=3)
+
+    print(u)
+    print(v)
+
+
+if __name__ == "__main__":
+    main_grid()
