@@ -15,8 +15,8 @@ src_loc_y:
   kw:
     cy: 300
     cx: 125
-    ny: ${ny}
-    nx: ${nx}
+    ny: ${src_ny}
+    nx: ${src_nx}
     n_shots: ${n_shots}
     device: ${device}
 

@@ -40,9 +40,7 @@ def main(cfg):
     runtime_reduce_simple('data.vp', (c.ny, c.nx))
     runtime_reduce_simple('data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2))
     runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
-    runtime_reduce_simple(
-        'data.src_amp_y', (c.n_shots, c.src_per_shot, c.data.nt)
-    )
+    runtime_reduce_simple('data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt))
     # runtime_reduce_simple('data.src_amp_y_init')
     runtime_reduce_simple('data.gbl_rec_loc', None)
 
@@ -50,15 +48,13 @@ def main(cfg):
         c, self_key='slf_gbl_obs_data', call_key="__call_gbl_obs__"
     )
     c = full_runtime_reduce(c, self_key='slf_obs_data', call_key="__call_obs__")
-    check_shape(
-        c.data.obs_data, (c.n_shots, c.rec_per_shot, c.data.nt), 'obs_data'
-    )
+    check_shape(c.data.obs_data, (c.n_shots, c.rec_per_shot, c.nt), 'obs_data')
     c = full_runtime_reduce(
         c, self_key='slf_src_amp_y_init', call_key="__call_src__"
     )
     check_shape(
         c.data.src_amp_y_init,
-        (c.n_shots, c.src_per_shot, c.data.nt),
+        (c.n_shots, c.src_per_shot, c.nt),
         'src_amp_y_init',
     )
     c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
