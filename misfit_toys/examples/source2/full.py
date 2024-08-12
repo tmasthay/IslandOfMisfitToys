@@ -48,14 +48,17 @@ def cent_grid(
     device: str = 'cpu',
 ):
     delta_y, delta_x = dy * (ny - 1) // 2, dx * (nx - 1) // 2
-    delta_y = max(1, delta_y)
-    delta_x = max(1, delta_x)
+    if ny != 1:
+        delta_y = max(1, delta_y)
+    if nx != 1:
+        delta_x = max(1, delta_x)
     sy = cy - delta_y
     sx = cx - delta_x
 
     # ensure at least one point is included
-    ey = cy + delta_y
-    ex = cx + delta_x
+    # NOTE: both max(1,...) are needed here...there's a cleaner way but this works for now!
+    ey = cy + max(1, delta_y)
+    ex = cx + max(1, delta_x)
 
     if ny != 1:
         ey += dy
