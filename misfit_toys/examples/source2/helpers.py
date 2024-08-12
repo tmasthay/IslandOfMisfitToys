@@ -12,9 +12,9 @@ def build_vp(*, path, device):
     return vp
 
 
-def take_first(*, path, device):
+def take_first(*, path, num_grab=1, device='cpu'):
     src_amp_y = torch.load(path).to(device)
-    return src_amp_y[0].unsqueeze(0)
+    return src_amp_y[:num_grab]
 
 
 def build_src_loc_y(
