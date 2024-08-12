@@ -2,6 +2,7 @@ import deepwave as dw
 import hydra
 import matplotlib.pyplot as plt
 import torch
+import yaml
 from mh.core import DotDict, hydra_out, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import OmegaConf
@@ -11,32 +12,54 @@ from misfit_toys.utils import exec_imports, runtime_reduce
 set_print_options(callback=torch_stats('all'))
 
 
+def check_shape(data, shape, field):
+    if shape is None:
+        return
+    if data.shape != shape:
+        raise ValueError(
+            f"Expected shape {shape} for {field}, got {data.shape}"
+        )
+
+
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
 def main(cfg):
     c = DotDict(OmegaConf.to_container(cfg, resolve=True))
     c = exec_imports(c)
 
-    def runtime_reduce_simple(key):
+    def runtime_reduce_simple(key, expected_shape):
         resolve_rules = c[key].get('resolve', c.resolve)
         self_key = f'slf_{key.split(".")[-1]}'
+        field_name = key.split('.')[-1]
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
         c[key] = c[key].to(c.device)
+        check_shape(c[key], expected_shape, field_name)
 
     def full_runtime_reduce(lcl_cfg, **kw):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})
 
-    runtime_reduce_simple('data.vp')
-    runtime_reduce_simple('data.rec_loc_y')
-    runtime_reduce_simple('data.src_loc_y')
-    runtime_reduce_simple('data.src_amp_y')
+    runtime_reduce_simple('data.vp', (c.ny, c.nx))
+    runtime_reduce_simple('data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2))
+    runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
+    runtime_reduce_simple(
+        'data.src_amp_y', (c.n_shots, c.src_per_shot, c.data.nt)
+    )
     # runtime_reduce_simple('data.src_amp_y_init')
-    runtime_reduce_simple('data.gbl_rec_loc')
+    runtime_reduce_simple('data.gbl_rec_loc', None)
+
     c = full_runtime_reduce(
         c, self_key='slf_gbl_obs_data', call_key="__call_gbl_obs__"
     )
     c = full_runtime_reduce(c, self_key='slf_obs_data', call_key="__call_obs__")
+    check_shape(
+        c.data.obs_data, (c.n_shots, c.rec_per_shot, c.data.nt), 'obs_data'
+    )
     c = full_runtime_reduce(
         c, self_key='slf_src_amp_y_init', call_key="__call_src__"
+    )
+    check_shape(
+        c.data.src_amp_y_init,
+        (c.n_shots, c.src_per_shot, c.data.nt),
+        'src_amp_y_init',
     )
     c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
     for k, v in c.plt.items():

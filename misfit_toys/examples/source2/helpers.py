@@ -6,10 +6,12 @@ def direct_load(*, path, device):
     return torch.load(path).to(device)
 
 
-def build_vp(*, path, device):
+def build_vp(*, path, device, ny=None, nx=None):
     vp = torch.load(path).to(device)
     vp = vp.mean() * torch.ones_like(vp)
-    return vp
+    ny = vp.shape[0] if ny is None else ny
+    nx = vp.shape[1] if nx is None else nx
+    return vp[:ny, :nx]
 
 
 def take_first(*, path, num_grab=1, device='cpu'):
