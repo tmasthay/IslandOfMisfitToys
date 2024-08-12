@@ -1,5 +1,24 @@
+from typing import List
+
 import deepwave as dw
 import torch
+from mh.core import enforce_types
+
+
+def check_dim(data, *, dim, left=-torch.inf, right=torch.inf):
+    val = data.shape[dim]
+    if not (left <= val <= right):
+        raise ValueError(
+            f"Expected {left} <= val <= {right} for dim {dim}, got {val=},"
+            f" {data.shape=}"
+        )
+
+
+def check_dims(data, *, dims, left=None, right=None):
+    left = [-torch.inf] * len(dims) if left is None else left
+    right = [torch.inf] * len(dims) if right is None else right
+    for dim, curr_left, curr_right in zip(dims, left, right):
+        check_dim(data, dim=dim, left=curr_left, right=curr_right)
 
 
 def direct_load(*, path, device):
@@ -14,9 +33,10 @@ def build_vp(*, path, device, ny=None, nx=None):
     return vp[:ny, :nx]
 
 
-def take_first(*, path, num_grab=1, device='cpu'):
+def take_first(*, path, n_shots=1, num_per_shot, device='cpu'):
     src_amp_y = torch.load(path).to(device)
-    return src_amp_y[:num_grab]
+    check_dims(src_amp_y, dims=[0, 1], left=[n_shots, num_per_shot])
+    return src_amp_y[:n_shots, :num_per_shot, :]
 
 
 def build_src_loc_y(
@@ -109,6 +129,34 @@ def shift_data(*, data, shifts, dims=None):
     abs_shifts = torch.tensor(shifts) * torch.tensor(data.shape)[dims]
     abs_shifts = abs_shifts.round().int().tolist()
     return torch.roll(data, shifts=tuple(abs_shifts), dims=dims)
+
+
+# @enforce_types
+def sparse_amps(
+    *,
+    path: str,
+    n_shots: int = 1,
+    num_per_shot,
+    device: str = 'cpu',
+    nonzeros: List[float],
+):
+    src_amp_y = torch.load(path)[:n_shots]
+    check_dim(src_amp_y, dim=0, left=1, right=1)
+    assert len(src_amp_y.shape) == 3, f'{src_amp_y.shape=}, expected 3'
+
+    # repeat along 2nd dimension
+    src_amp_y = src_amp_y.repeat(1, num_per_shot, 1)
+
+    assert (0 <= min(nonzeros)) and (
+        max(nonzeros) <= 1.0
+    ), f'nonzeros must between 1 and {nonzeros=}'
+    nonzeros = [int(e * src_amp_y.shape[1]) for e in nonzeros]
+    for i in range(src_amp_y.shape[1]):
+        if i not in nonzeros:
+            src_amp_y[:, i, :] = 0.0
+
+    # src_amp_y = src_amp_y.to_sparse().to(device)
+    return src_amp_y.to(device)
 
 
 if __name__ == "__main__":

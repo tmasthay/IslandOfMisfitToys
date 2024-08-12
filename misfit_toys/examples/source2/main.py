@@ -12,13 +12,25 @@ from misfit_toys.utils import exec_imports, runtime_reduce
 set_print_options(callback=torch_stats('all'))
 
 
-def check_shape(data, shape, field):
+def check_shape(data, shape, field, custom_str=''):
     if shape is None:
         return
     if data.shape != shape:
         raise ValueError(
-            f"Expected shape {shape} for {field}, got {data.shape}"
+            f"Expected shape {shape} for {field}, got"
+            f" {data.shape}\n{custom_str}"
         )
+
+
+def pretty_dict(d, depth=0, indent_str='  ', s=''):
+    for k, v in d.items():
+        if isinstance(v, dict) or isinstance(v, DotDict):
+            s += f'{indent_str*depth}{k}:\n' + pretty_dict(
+                v, depth + 1, indent_str
+            )
+        else:
+            s += f'{indent_str*depth}{k}: {v}\n'
+    return s
 
 
 @hydra.main(config_path="cfg", config_name="cfg", version_base=None)
@@ -30,9 +42,10 @@ def main(cfg):
         resolve_rules = c[key].get('resolve', c.resolve)
         self_key = f'slf_{key.split(".")[-1]}'
         field_name = key.split('.')[-1]
+        before_reduction = f'\n\nBefore reduction:\n{pretty_dict(c[key])}'
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
         c[key] = c[key].to(c.device)
-        check_shape(c[key], expected_shape, field_name)
+        check_shape(c[key], expected_shape, field_name, before_reduction)
 
     def full_runtime_reduce(lcl_cfg, **kw):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})

@@ -8,8 +8,10 @@ vp:
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:
-    path: ${....path}/rec_loc_y.pt
-    device: ${....device}
+    path: ${path}/rec_loc_y.pt
+    device: ${device}
+    num_per_shot: ${rec_per_shot}
+    n_shots: ${n_shots}
 src_loc_y:
   __call__: ^^cwd|full|cent_grid
   kw:
@@ -21,10 +23,14 @@ src_loc_y:
     device: ${device}
 
 src_amp_y:
-  __call__: ^^cwd|helpers|take_first
+  __call__: ^^cwd|helpers|sparse_amps
   kw:
-    path: ${....path}/src_amp_y.pt
-    device: ${....device}
+    path: ${path}/src_amp_y.pt
+    device: ${device}
+    n_shots: ${n_shots}
+    num_per_shot: ${src_per_shot}
+    nonzeros:
+    - 0.5
 
 src_amp_y_init:
   self_key: src_amp_y_init
