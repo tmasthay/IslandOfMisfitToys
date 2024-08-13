@@ -1,0 +1,3 @@
+__call_opt__: ^^|misfit_toys.types|PickleUnaryFunction
+kw:
+  callback: ^^|torch.optim|LBFGS
