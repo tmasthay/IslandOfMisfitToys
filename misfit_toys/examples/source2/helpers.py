@@ -139,6 +139,7 @@ def sparse_amps(
     num_per_shot,
     device: str = 'cpu',
     nonzeros: List[float],
+    eta: float = 0.0,
 ):
     src_amp_y = torch.load(path)[:n_shots]
     check_dim(src_amp_y, dim=0, left=1, right=1)
@@ -153,6 +154,7 @@ def sparse_amps(
     nonzeros = [int(e * src_amp_y.shape[1]) for e in nonzeros]
     for i in range(src_amp_y.shape[1]):
         if i not in nonzeros:
+            # src_amp_y[:, i, :] = eta * torch.randn_like(src_amp_y[:, i, :])
             src_amp_y[:, i, :] = 0.0
 
     # src_amp_y = src_amp_y.to_sparse().to(device)

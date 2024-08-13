@@ -103,7 +103,37 @@ def plot_gbl_obs_data(
     )
 
 
-def plot_src(*, data, path, title='Source'):
-    plt.plot(data[0, 0])
-    plt.title(title)
-    plt.savefig(hydra_out(path.replace('.jpg', '') + '.jpg'))
+def plot_full_src(
+    *,
+    data,
+    iter,
+    imshow,
+    title='Source Amplitudes',
+    path='src_amp_y',
+    loop=0,
+    duration=100,
+    verbose=False,
+    movie_format='gif',
+    subplot_shape=None,
+    subplot_kw=None,
+):
+    def plotter(*, data, idx, fig, axes):
+        simple_imshow(
+            data=data[idx],
+            imshow=imshow,
+            title=f'{title}: {clean_idx(idx)}',
+            save_path=None,
+        )
+
+    easy_plot(
+        data=data,
+        iter=iter,
+        plotter=plotter,
+        subplot_shape=subplot_shape,
+        subplot_kw=subplot_kw,
+        path=hydra_out(path),
+        movie_format=movie_format,
+        duration=duration,
+        verbose=verbose,
+        loop=loop,
+    )
