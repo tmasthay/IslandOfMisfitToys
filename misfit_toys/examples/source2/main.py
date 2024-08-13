@@ -85,9 +85,7 @@ def main(cfg):
         # c.data.curr_src_amp_y = torch.rand(*c.data.src_amp_y_init.shape).to(c.device)
         c.data.curr_src_amp_y.requires_grad = True
 
-        input(c.train.opt)
         c.train.opt = c.train.opt([c.data.curr_src_amp_y])
-        input(type(c.train.opt))
         loss_fn = torch.nn.MSELoss()
 
         capture_freq = c.train.n_epochs // c.train.num_captured_frames
