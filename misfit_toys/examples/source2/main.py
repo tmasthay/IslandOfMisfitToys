@@ -86,15 +86,16 @@ def main(cfg):
         c.data.curr_src_amp_y.requires_grad = True
 
         c.train.opt = c.train.opt([c.data.curr_src_amp_y])
-        loss_fn = torch.nn.MSELoss()
 
         capture_freq = c.train.n_epochs // c.train.num_captured_frames
-        src_amp_frames = []
+        src_amp_frames = [
+            c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
+        ]
         obs_frames = []
         for epoch in range(c.train.n_epochs):
             if epoch % capture_freq == 0:
                 src_amp_frames.append(
-                    c.data.curr_src_amp_y.squeeze().detach().clone()
+                    c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
                 )
             c.train.opt.zero_grad()
 
@@ -113,7 +114,7 @@ def main(cfg):
                     receiver_locations=c.data.rec_loc_y,
                     pml_freq=c.freq,
                 )
-                loss = 1e6 * loss_fn(out[-1], c.data.obs_data)
+                loss = 1e6 * c.train.loss(out[-1])
                 if num_calls == 1 and epoch % capture_freq == 0:
                     obs_frames.append(out[-1].squeeze().detach().cpu().clone())
 
@@ -133,7 +134,9 @@ def main(cfg):
             #     break
             # c.train.opt.step()
 
-        src_amp_frames.append(c.data.curr_src_amp_y.squeeze().detach().clone())
+        src_amp_frames.append(
+            c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
+        )
         src_amp_frames = torch.stack(src_amp_frames)
         obs_frames = torch.stack(obs_frames)
 
