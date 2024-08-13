@@ -41,16 +41,44 @@ obs_data:
       xlabel: Horizontal Extent
       ylabel: Time (s)
     title: True Observed Data
+
 src_amp_y:
   __plot__: ^^|misfit_toys.types|FlatPlotter
   kw:
-    callback: ^^cwd|plotters|plot_src
-    path: true_source
-    title: True Source Time Signature
+    callback: ^^cwd|plotters|plot_full_src
+    subplot_shape:
+    - ${src_ny}
+    - ${src_nx}
+    iter:
+      none_dims: [1, 2]
+      strides: [1, 1, 1]
+    imshow:
+      kw:
+        aspect: auto
+        cmap: seismic
+      colorbar: True
+      legend: false
+      transpose: True
+      xlabel: Horizonal Extent
+      ylabel: Time (s)
+      title: Amplitude
 
 src_amp_y_init:
   __plot__: ^^|misfit_toys.types|FlatPlotter
   kw:
-    callback: ^^cwd|plotters|plot_src
+    callback: ^^cwd|plotters|plot_full_src
     path: initial_source
     title: Initial Source Guess
+    imshow:
+      kw:
+        aspect: auto
+        cmap: seismic
+      colorbar: True
+      legend: false
+      transpose: True
+      xlabel: Horizontal Extent
+      ylabel: Time (s)
+      title: Initial Amplitude
+    iter:
+      none_dims: [1, 2]
+      strides: [1, 1, 1]

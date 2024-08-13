@@ -35,6 +35,9 @@ accuracy: 8
 device: cuda:1
 
 train:
-  n_epochs: 250
+  n_epochs: 100
   num_captured_frames: 25
-  threshold: 1e-7
+  threshold: 1e-5
+  optimizer: adam
+
+save_tensors: true

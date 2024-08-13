@@ -30,15 +30,27 @@ src_amp_y:
     n_shots: ${n_shots}
     num_per_shot: ${src_per_shot}
     nonzeros:
-    - 0.5
+      __call__: ^^|torch|linspace
+      kw:
+        start: 0.1
+        end: 1.0
+        steps: 2
+        device: ${device}
 
 src_amp_y_init:
-  self_key: src_amp_y_init
-  __call_src__: ^^cwd|helpers|shift_data
+  __call_src__: ^^cwd|helpers|sparse_amps
   kw:
-    data: slf_${..self_key}.data.src_amp_y
-    shifts: [0.5]
-    dims: [-1]
+    path: ${path}/src_amp_y.pt
+    device: ${device}
+    n_shots: ${n_shots}
+    num_per_shot: ${src_per_shot}
+    nonzeros:
+      __call__: ^^|torch|linspace
+      kw:
+        start: 0.5
+        end: 0.8
+        steps: 2
+        device: ${device}
 
 gbl_rec_loc:
   __call__: ^^cwd|helpers|build_gbl_rec_loc

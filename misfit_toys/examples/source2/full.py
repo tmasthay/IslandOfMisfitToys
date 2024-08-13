@@ -47,7 +47,7 @@ def cent_grid(
     n_shots: Union[int, None] = None,
     device: str = 'cpu',
 ):
-    delta_y, delta_x = dy * (ny - 1) // 2, dx * (nx - 1) // 2
+    delta_y, delta_x = dy * ny // 2, dx * nx // 2
     if ny != 1:
         delta_y = max(1, delta_y)
     if nx != 1:
@@ -60,10 +60,10 @@ def cent_grid(
     ey = cy + max(1, delta_y)
     ex = cx + max(1, delta_x)
 
-    if ny != 1:
-        ey += dy
-    if nx != 1:
-        ex += dx
+    # if ny != 1:
+    #     ey += dy
+    # if nx != 1:
+    #     ex += dx
 
     # input(locals())
     return rect_grid(
@@ -72,11 +72,11 @@ def cent_grid(
 
 
 def main_grid():
-    u = rect_grid(sy=300, ey=301, dy=1, sx=300, ex=301, dx=1)
-    v = cent_grid(cy=300, cx=125, dy=1, dx=2, ny=3, nx=3)
+    # u = rect_grid(sy=300, ey=301, dy=1, sx=300, ex=301, dx=1)
+    v = cent_grid(cy=300, cx=125, ny=20, nx=20, n_shots=1, device='cuda:1')
 
-    print(u)
-    print(v)
+    # print(u)
+    print(v.shape)
 
 
 if __name__ == "__main__":

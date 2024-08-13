@@ -1,3 +1,5 @@
+import os
+
 import deepwave as dw
 import hydra
 import matplotlib.pyplot as plt
@@ -79,13 +81,18 @@ def main(cfg):
     if c.get('do_training', True):
         c.data.vp.requires_grad = False
         c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
+        # c.data.curr_src_amp_y = torch.rand(*c.data.src_amp_y_init.shape).to(c.device)
         c.data.curr_src_amp_y.requires_grad = True
-        # optimizer = torch.optim.LBFGS([c.data.curr_src_amp_y])
-        optimizer = torch.optim.Adam([c.data.curr_src_amp_y], lr=c.train.lr)
+
+        if c.train.optimizer == 'lbfgs':
+            optimizer = torch.optim.LBFGS([c.data.curr_src_amp_y])
+        else:
+            optimizer = torch.optim.Adam([c.data.curr_src_amp_y], lr=c.train.lr)
         loss_fn = torch.nn.MSELoss()
 
         capture_freq = c.train.n_epochs // c.train.num_captured_frames
         src_amp_frames = []
+        obs_frames = []
         for epoch in range(c.train.n_epochs):
             if epoch % capture_freq == 0:
                 src_amp_frames.append(
@@ -93,7 +100,11 @@ def main(cfg):
                 )
             optimizer.zero_grad()
 
+            num_calls = 0
+
             def closure():
+                nonlocal num_calls
+                num_calls += 1
                 optimizer.zero_grad()
                 out = dw.scalar(
                     c.data.vp,
@@ -104,7 +115,10 @@ def main(cfg):
                     receiver_locations=c.data.rec_loc_y,
                     pml_freq=c.freq,
                 )
-                loss = loss_fn(out[-1], c.data.obs_data)
+                loss = 1e6 * loss_fn(out[-1], c.data.obs_data)
+                if num_calls == 1 and epoch % capture_freq == 0:
+                    obs_frames.append(out[-1].squeeze().detach().cpu().clone())
+
                 loss.backward()
                 return loss
 
@@ -123,6 +137,7 @@ def main(cfg):
 
         src_amp_frames.append(c.data.curr_src_amp_y.squeeze().detach().clone())
         src_amp_frames = torch.stack(src_amp_frames)
+        obs_frames = torch.stack(obs_frames)
 
         def src_amp_plotter(*, data, idx, fig, axes):
             plt.clf()
@@ -148,6 +163,24 @@ def main(cfg):
             plotter=src_amp_plotter,
         )
         save_frames(frames, path=hydra_out('history'))
+
+        if c.save_tensors:
+            torch.save(
+                src_amp_frames.detach().cpu(), hydra_out('src_amp_frames.pt')
+            )
+            torch.save(
+                c.data.src_amp_y.squeeze().detach().cpu(),
+                hydra_out('true_src_amp_y.pt'),
+            )
+            os.system(
+                'ln -s "$(pwd)/tmp_plotter.py" ' + hydra_out('tmp_plotter.py')
+            )
+
+            torch.save(obs_frames.detach().cpu(), hydra_out('obs_frames.pt'))
+            torch.save(
+                c.data.obs_data.squeeze().detach().cpu(),
+                hydra_out('true_obs_data.pt'),
+            )
 
         with open('.latest', 'w') as f:
             f.write(f'cd {hydra_out()}')
