@@ -67,6 +67,7 @@ def main(cfg):
     c = full_runtime_reduce(
         c, self_key='slf_src_amp_y_init', call_key="__call_src__"
     )
+    c = full_runtime_reduce(c, self_key='self', call_key='__call__')
     check_shape(
         c.data.src_amp_y_init,
         (c.n_shots, c.src_per_shot, c.nt),
@@ -84,10 +85,9 @@ def main(cfg):
         # c.data.curr_src_amp_y = torch.rand(*c.data.src_amp_y_init.shape).to(c.device)
         c.data.curr_src_amp_y.requires_grad = True
 
-        if c.train.optimizer == 'lbfgs':
-            optimizer = torch.optim.LBFGS([c.data.curr_src_amp_y])
-        else:
-            optimizer = torch.optim.Adam([c.data.curr_src_amp_y], lr=c.train.lr)
+        input(c.train.opt)
+        c.train.opt = c.train.opt([c.data.curr_src_amp_y])
+        input(type(c.train.opt))
         loss_fn = torch.nn.MSELoss()
 
         capture_freq = c.train.n_epochs // c.train.num_captured_frames
@@ -98,14 +98,14 @@ def main(cfg):
                 src_amp_frames.append(
                     c.data.curr_src_amp_y.squeeze().detach().clone()
                 )
-            optimizer.zero_grad()
+            c.train.opt.zero_grad()
 
             num_calls = 0
 
             def closure():
                 nonlocal num_calls
                 num_calls += 1
-                optimizer.zero_grad()
+                c.train.opt.zero_grad()
                 out = dw.scalar(
                     c.data.vp,
                     c.dx,
@@ -122,7 +122,7 @@ def main(cfg):
                 loss.backward()
                 return loss
 
-            loss = optimizer.step(closure)
+            loss = c.train.opt.step(closure)
             print(f'Epoch: {epoch}, Loss: {loss.item()}')
             if loss.item() < c.train.threshold:
                 print('Threshold reached')
@@ -133,7 +133,7 @@ def main(cfg):
             # )
             # if loss.item() < c.train.threshold:
             #     break
-            # optimizer.step()
+            # c.train.opt.step()
 
         src_amp_frames.append(c.data.curr_src_amp_y.squeeze().detach().clone())
         src_amp_frames = torch.stack(src_amp_frames)

@@ -1,1 +1,4 @@
+defaults:
+- _self_
+- opt: adam
 lr: 0.1
