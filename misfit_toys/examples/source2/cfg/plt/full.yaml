@@ -1,33 +1,7 @@
-resolve:
-  call_key: __plot__
-  exc: resolve
-  relax: false
-
-skip:
-- gbl_obs_data
-
-gbl_obs_data:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_gbl_obs_data
-    iter:
-      none_dims: [0, 1]
-      strides: [1, 1, 10]
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: true
-      legend: false
-      transpose: true
-      xlabel: Horizontal Extent
-      ylabel: Depth
-    title: Global Observed Data
-
 obs_data:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
+  __plot__: ^^cwd|plotters|plot_gbl_obs_data
   kw:
-    callback: ^^cwd|plotters|plot_gbl_obs_data
+    data: slf_plt.
     iter:
       none_dims: [1, 2]
       strides: [1, 1, 1]
@@ -64,9 +38,9 @@ src_amp_y:
       title: Amplitude
 
 src_amp_y_init:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
+  __plot__: ^^cwd|plotters|plot_full_src
   kw:
-    callback: ^^cwd|plotters|plot_full_src
+    data: slf_plt.src_amp_y_init
     path: initial_source
     title: Initial Source Guess
     imshow:
