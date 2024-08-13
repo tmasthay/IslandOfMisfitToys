@@ -86,7 +86,9 @@ def main(cfg):
         c.data.curr_src_amp_y.requires_grad = True
         c.train.opt = c.train.opt([c.data.curr_src_amp_y])
 
-        res = c.train.loop(c)
+        c.results = c.train.loop(c)
+
+        c.plt.gen
 
         def src_amp_plotter(*, data, idx, fig, axes):
             plt.clf()
