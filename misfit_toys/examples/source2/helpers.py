@@ -2,7 +2,7 @@ from typing import List
 
 import deepwave as dw
 import torch
-from mh.core import enforce_types
+from mh.core import DotDict, DotDictImmutable, enforce_types
 
 
 def check_dim(data, *, dim, left=-torch.inf, right=torch.inf):
@@ -159,6 +159,58 @@ def sparse_amps(
 
     # src_amp_y = src_amp_y.to_sparse().to(device)
     return src_amp_y.to(device)
+
+
+def vanilla_train(c: DotDict):
+    capture_freq = c.train.n_epochs // c.train.num_captured_frames
+    src_amp_frames = [c.data.curr_src_amp_y.squeeze().detach().cpu().clone()]
+    obs_frames = []
+    for epoch in range(c.train.n_epochs):
+        if epoch % capture_freq == 0:
+            src_amp_frames.append(
+                c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
+            )
+        c.train.opt.zero_grad()
+
+        num_calls = 0
+
+        def closure():
+            nonlocal num_calls
+            num_calls += 1
+            c.train.opt.zero_grad()
+            out = dw.scalar(
+                c.data.vp,
+                c.dx,
+                c.dt,
+                source_amplitudes=c.data.curr_src_amp_y,
+                source_locations=c.data.src_loc_y,
+                receiver_locations=c.data.rec_loc_y,
+                pml_freq=c.freq,
+            )
+            loss = 1e6 * c.train.loss(out[-1])
+            if num_calls == 1 and epoch % capture_freq == 0:
+                obs_frames.append(out[-1].squeeze().detach().cpu().clone())
+
+            loss.backward()
+            return loss
+
+        loss = c.train.opt.step(closure)
+        print(f'Epoch: {epoch}, Loss: {loss.item()}')
+        if loss.item() < c.train.threshold:
+            print('Threshold reached')
+            break
+
+    src_amp_frames.append(
+        c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
+    )
+    src_amp_frames = torch.stack(src_amp_frames)
+    obs_frames = torch.stack(obs_frames)
+    return DotDictImmutable(
+        {
+            'src_amp_frames': src_amp_frames,
+            'obs_frames': obs_frames,
+        }
+    )
 
 
 if __name__ == "__main__":

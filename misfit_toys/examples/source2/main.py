@@ -74,71 +74,19 @@ def main(cfg):
         'src_amp_y_init',
     )
     c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
-    for k, v in c.plt.items():
-        if k not in ['final', 'resolve', 'skip'] + c.plt.get('skip', []):
-            plt.clf()
-            v(data=c[f'data.{k}'].detach().cpu())
+    # for k, v in c.plt.items():
+    #     if k not in ['final', 'resolve', 'skip'] + c.plt.get('skip', []):
+    #         plt.clf()
+    #         v(data=c[f'data.{k}'].detach().cpu())
 
     if c.get('do_training', True):
         c.data.vp.requires_grad = False
         c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
         # c.data.curr_src_amp_y = torch.rand(*c.data.src_amp_y_init.shape).to(c.device)
         c.data.curr_src_amp_y.requires_grad = True
-
         c.train.opt = c.train.opt([c.data.curr_src_amp_y])
 
-        capture_freq = c.train.n_epochs // c.train.num_captured_frames
-        src_amp_frames = [
-            c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
-        ]
-        obs_frames = []
-        for epoch in range(c.train.n_epochs):
-            if epoch % capture_freq == 0:
-                src_amp_frames.append(
-                    c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
-                )
-            c.train.opt.zero_grad()
-
-            num_calls = 0
-
-            def closure():
-                nonlocal num_calls
-                num_calls += 1
-                c.train.opt.zero_grad()
-                out = dw.scalar(
-                    c.data.vp,
-                    c.dx,
-                    c.dt,
-                    source_amplitudes=c.data.curr_src_amp_y,
-                    source_locations=c.data.src_loc_y,
-                    receiver_locations=c.data.rec_loc_y,
-                    pml_freq=c.freq,
-                )
-                loss = 1e6 * c.train.loss(out[-1])
-                if num_calls == 1 and epoch % capture_freq == 0:
-                    obs_frames.append(out[-1].squeeze().detach().cpu().clone())
-
-                loss.backward()
-                return loss
-
-            loss = c.train.opt.step(closure)
-            print(f'Epoch: {epoch}, Loss: {loss.item()}')
-            if loss.item() < c.train.threshold:
-                print('Threshold reached')
-                break
-            # torch.nn.utils.clip_grad_value_(
-            #     c.data.curr_src_amp_y,
-            #     torch.quantile(c.data.curr_src_amp_y.grad.detach().abs(), 0.98),
-            # )
-            # if loss.item() < c.train.threshold:
-            #     break
-            # c.train.opt.step()
-
-        src_amp_frames.append(
-            c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
-        )
-        src_amp_frames = torch.stack(src_amp_frames)
-        obs_frames = torch.stack(obs_frames)
+        res = c.train.loop(c)
 
         def src_amp_plotter(*, data, idx, fig, axes):
             plt.clf()
@@ -157,8 +105,8 @@ def main(cfg):
 
         fig, axes = plt.subplots(1, 1)
         frames = get_frames_bool(
-            data=src_amp_frames,
-            iter=[(i, True) for i in range(src_amp_frames.shape[0])],
+            data=res.src_amp_frames,
+            iter=[(i, True) for i in range(res.src_amp_frames.shape[0])],
             fig=fig,
             axes=axes,
             plotter=src_amp_plotter,
@@ -167,7 +115,8 @@ def main(cfg):
 
         if c.save_tensors:
             torch.save(
-                src_amp_frames.detach().cpu(), hydra_out('src_amp_frames.pt')
+                res.src_amp_frames.detach().cpu(),
+                hydra_out('src_amp_frames.pt'),
             )
             torch.save(
                 c.data.src_amp_y.squeeze().detach().cpu(),
@@ -177,7 +126,9 @@ def main(cfg):
                 'ln -s "$(pwd)/tmp_plotter.py" ' + hydra_out('tmp_plotter.py')
             )
 
-            torch.save(obs_frames.detach().cpu(), hydra_out('obs_frames.pt'))
+            torch.save(
+                res.obs_frames.detach().cpu(), hydra_out('obs_frames.pt')
+            )
             torch.save(
                 c.data.obs_data.squeeze().detach().cpu(),
                 hydra_out('true_obs_data.pt'),
