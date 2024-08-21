@@ -206,10 +206,7 @@ def vanilla_train(c: DotDict):
     src_amp_frames = torch.stack(src_amp_frames)
     obs_frames = torch.stack(obs_frames)
     return DotDictImmutable(
-        {
-            'src_amp_frames': src_amp_frames,
-            'obs_frames': obs_frames,
-        }
+        {'src_amp_frames': src_amp_frames, 'obs_frames': obs_frames}
     )
 
 
