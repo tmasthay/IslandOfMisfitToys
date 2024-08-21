@@ -73,7 +73,7 @@ def main(cfg):
         (c.n_shots, c.src_per_shot, c.nt),
         'src_amp_y_init',
     )
-    c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
+    # c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
     # for k, v in c.plt.items():
     #     if k not in ['final', 'resolve', 'skip'] + c.plt.get('skip', []):
     #         plt.clf()
@@ -88,48 +88,17 @@ def main(cfg):
 
         c.results = c.train.loop(c)
 
-        c.plt.gen
-
-        def src_amp_plotter(*, data, idx, fig, axes):
-            plt.clf()
-            plt.title(idx)
-            plt.plot(
-                c.data.src_amp_y.squeeze().detach().cpu(),
-                'r-',
-                label='True Src Amp',
-                markersize=3,
-                alpha=0.75,
-            )
-            plt.plot(
-                data[idx].detach().cpu(), 'b--', label='Curr Src Amp', lw=1
-            )
-            plt.legend()
-
-        fig, axes = plt.subplots(1, 1)
-        frames = get_frames_bool(
-            data=res.src_amp_frames,
-            iter=[(i, True) for i in range(res.src_amp_frames.shape[0])],
-            fig=fig,
-            axes=axes,
-            plotter=src_amp_plotter,
-        )
-        save_frames(frames, path=hydra_out('history'))
-
         if c.save_tensors:
             torch.save(
-                res.src_amp_frames.detach().cpu(),
+                c.results.src_amp_frames.detach().cpu(),
                 hydra_out('src_amp_frames.pt'),
             )
             torch.save(
                 c.data.src_amp_y.squeeze().detach().cpu(),
                 hydra_out('true_src_amp_y.pt'),
             )
-            os.system(
-                'ln -s "$(pwd)/tmp_plotter.py" ' + hydra_out('tmp_plotter.py')
-            )
-
             torch.save(
-                res.obs_frames.detach().cpu(), hydra_out('obs_frames.pt')
+                c.results.obs_frames.detach().cpu(), hydra_out('obs_frames.pt')
             )
             torch.save(
                 c.data.obs_data.squeeze().detach().cpu(),

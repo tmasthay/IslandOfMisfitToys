@@ -3,11 +3,14 @@ vp:
   kw:
     path: ${....path}/vp.pt
     device: ${....device}
+    ny: ${ny}
+    nx: ${nx}
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:
     path: ${....path}/rec_loc_y.pt
     device: ${....device}
+    num_per_shot: ${rec_per_shot}
 src_loc_y:
   __call__: ^^cwd|helpers|build_src_loc_y
   kw:
@@ -29,6 +32,7 @@ src_amp_y:
   kw:
     path: ${....path}/src_amp_y.pt
     device: ${....device}
+    num_per_shot: ${src_per_shot}
 
 src_amp_y_init:
   self_key: src_amp_y_init
