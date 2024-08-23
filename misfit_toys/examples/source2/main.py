@@ -105,6 +105,9 @@ def main(cfg):
                 hydra_out('true_obs_data.pt'),
             )
 
+        file_path = os.path.dirname(os.path.realpath(__file__))
+        os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')
+
         with open('.latest', 'w') as f:
             f.write(f'cd {hydra_out()}')
 
