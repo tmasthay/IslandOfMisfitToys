@@ -1,58 +1,11 @@
 obs_data:
-  __plot__: ^^cwd|plotters|plot_gbl_obs_data
-  kw:
-    data: slf_plt.
-    iter:
-      none_dims: [1, 2]
-      strides: [1, 1, 1]
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: true
-      legend: false
-      transpose: true
-      xlabel: Horizontal Extent
-      ylabel: Time (s)
-    title: True Observed Data
+  path: obs_frames.pt
 
-src_amp_y:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_full_src
-    subplot_shape:
-    - ${src_ny}
-    - ${src_nx}
-    iter:
-      none_dims: [1, 2]
-      strides: [1, 1, 1]
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: True
-      legend: false
-      transpose: True
-      xlabel: Horizonal Extent
-      ylabel: Time (s)
-      title: Amplitude
+src_amp:
+  path: src_amp_frames.pt
 
-src_amp_y_init:
-  __plot__: ^^cwd|plotters|plot_full_src
-  kw:
-    data: slf_plt.src_amp_y_init
-    path: initial_source
-    title: Initial Source Guess
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: True
-      legend: false
-      transpose: True
-      xlabel: Horizontal Extent
-      ylabel: Time (s)
-      title: Initial Amplitude
-    iter:
-      none_dims: [1, 2]
-      strides: [1, 1, 1]
+true_obs_data:
+  path: true_obs_data.pt
+
+true_src_amp:
+  path: true_src_amp_y.pt

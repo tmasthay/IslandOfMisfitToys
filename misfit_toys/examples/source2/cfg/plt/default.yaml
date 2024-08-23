@@ -1,56 +1,11 @@
-resolve:
-  call_key: __plot__
-  exc: resolve
-  relax: false
-
-skip:
-- gbl_obs_data
-
-gbl_obs_data:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_gbl_obs_data
-    iter:
-      none_dims: [0, 1]
-      strides: [1, 1, 10]
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: true
-      legend: false
-      transpose: true
-      xlabel: Horizontal Extent
-      ylabel: Depth
-    title: Global Observed Data
-
 obs_data:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_gbl_obs_data
-    iter:
-      none_dims: [1, 2]
-      strides: [1, 1, 1]
-    imshow:
-      kw:
-        aspect: auto
-        cmap: seismic
-      colorbar: true
-      legend: false
-      transpose: true
-      xlabel: Horizontal Extent
-      ylabel: Time (s)
-    title: True Observed Data
-src_amp_y:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_src
-    path: true_source
-    title: True Source Time Signature
+  path: obs_frames.pt
 
-src_amp_y_init:
-  __plot__: ^^|misfit_toys.types|FlatPlotter
-  kw:
-    callback: ^^cwd|plotters|plot_src
-    path: initial_source
-    title: Initial Source Guess
+src_amp:
+  path: src_amp_frames.pt
+
+true_obs_data:
+  path: true_obs_data.pt
+
+true_src_amp:
+  path: true_src_amp_y.pt
