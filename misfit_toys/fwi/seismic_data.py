@@ -43,6 +43,7 @@ def path_builder(path, *, remap=None, **kw):
         if v is None:
             d[k] = get_data3(field=k, path=path)
         else:
+            input(v)
             d[k] = v(get_data3(field=k, path=path))
     d['meta'] = get_pydict(path=path, as_class=True)
     for k in remap.keys():
@@ -668,6 +669,7 @@ class SeismicPropBatched(torch.nn.Module):
                 **self.extra_forward,
             )
 
+
 class Model(torch.nn.Module):
     def __init__(self, initial, min_vel, max_vel):
         super().__init__()
@@ -682,9 +684,12 @@ class Model(torch.nn.Module):
             torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
             + self.min_vel
         )
-    
+
+
 class SeismicPropSimple(torch.nn.Module):
-    def __init__(self, *, vp, dx, dt, src_amp_y, src_loc_y, rec_loc_y, forward_kw):
+    def __init__(
+        self, *, vp, dx, dt, src_amp_y, src_loc_y, rec_loc_y, forward_kw
+    ):
         super().__init__()
         self.vp = vp
         self.dx = dx
@@ -705,9 +710,10 @@ class SeismicPropSimple(torch.nn.Module):
             source_amplitudes=self.src_amp_y()[slicer],
             source_locations=self.src_loc_y[slicer],
             receiver_locations=self.rec_loc_y[slicer],
-            **self.forward_kw
+            **self.forward_kw,
         )
-    
+
+
 class DebugProp(torch.nn.Module):
     def __init__(
         self,
@@ -738,5 +744,5 @@ class DebugProp(torch.nn.Module):
             source_locations=self.src_loc_y[s],
             receiver_locations=self.rec_loc_y[s],
             pml_freq=self.freq,
-            **kw
+            **kw,
         )
