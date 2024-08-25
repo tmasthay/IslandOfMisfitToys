@@ -111,6 +111,10 @@ def main(cfg):
         with open('.latest', 'w') as f:
             f.write(f'cd {hydra_out()}')
 
+        os.makedirs(hydra_out('cfg'), exist_ok=True)
+        with open(hydra_out('cfg/plot_cfg.yaml'), 'w') as f:
+            yaml.dump(c.plt.dict(), f)
+
         print('Run following for latest run directory\n        . .latest')
 
 
