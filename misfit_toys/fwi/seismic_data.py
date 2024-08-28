@@ -43,7 +43,6 @@ def path_builder(path, *, remap=None, **kw):
         if v is None:
             d[k] = get_data3(field=k, path=path)
         else:
-            input(v)
             d[k] = v(get_data3(field=k, path=path))
     d['meta'] = get_pydict(path=path, as_class=True)
     for k in remap.keys():

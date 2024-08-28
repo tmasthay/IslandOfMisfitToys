@@ -8,13 +8,13 @@ path_builder_kw:
   remap:
     vp_init: vp
   vp_init:
-    runtime_func: self.data.preprocess.dep.ParamConstrained.delay_init
+    __call__: self.data.preprocess.dep.ParamConstrained.delay_init
     kw:
       minv: ${case.data.preprocess.minv}
       maxv: ${case.data.preprocess.maxv}
       requires_grad: true
   src_amp_y:
-    runtime_func: self.data.preprocess.dep.Param.delay_init
+    __call__: self.data.preprocess.dep.Param.delay_init
     kw:
       requires_grad: false
   obs_data: null

@@ -1,4 +1,4 @@
-runtime_func: ^^|misfit_toys.fwi.seismic_data|DebugProp
+__call__: ^^|misfit_toys.fwi.seismic_data|DebugProp
 kw:
   vp: self.runtime.data.vp
   dx: self.runtime.data.meta.dx
