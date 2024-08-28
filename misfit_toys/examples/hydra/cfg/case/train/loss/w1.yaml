@@ -1,4 +1,4 @@
-runtime_func: ^^null|misfit_toys.beta.w1|working_w1
+__call__: ^^null|misfit_toys.beta.w1|working_w1
 kw:
   obs_data: self.runtime.data.obs_data
   model_params: self.runtime.prop.module.vp

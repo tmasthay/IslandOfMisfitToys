@@ -1,4 +1,4 @@
-runtime_func: "eval(lambda *args, **kw: [torch.optim.LBFGS, kw])"
+__call__: "eval(lambda *args, **kw: [torch.optim.LBFGS, kw])"
 args: []
 kw:
   lr: 1.0

@@ -1,4 +1,4 @@
-runtime_func: ^^null|misfit_toys.workflows.tik.steps|taper_only
+__call__: ^^null|misfit_toys.workflows.tik.steps|taper_only
 kw:
   length: 100
   num_batches: null

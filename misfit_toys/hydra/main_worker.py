@@ -31,7 +31,8 @@ from misfit_toys.utils import (
     git_dump_info,
     resolve,
     setup,
-    cleanup
+    cleanup,
+    runtime_reduce
 )
 from os.path import join as pj, exists as exists
 
@@ -121,6 +122,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                     c.data.preprocess.path_builder_kw[k]
                 )
 
+    c.data.preprocess.path_builder_kw = runtime_reduce(c.data.preprocess.path_builder_kw)
     c['runtime.data'] = path_builder(
         c.data.path, **c.data.preprocess.path_builder_kw
     )

@@ -1,3 +1,3 @@
-runtime_func: ^^null|misfit_toys.beta.steps|direct
+__call__: ^^null|misfit_toys.beta.steps|direct
 kw:
   scale: 1.0e+06
