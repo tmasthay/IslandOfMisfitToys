@@ -628,17 +628,20 @@ def inverse(f, x):
     spline = NCS(coeffs)
     return spline
 
+
 from typing import Callable
+
+import deepwave as dw
+import hydra
+import matplotlib.pyplot as plt
+import torch
+from dotmap import DotMap
+from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig
 from sklearn.neighbors import NearestNeighbors
-import torch
-import matplotlib.pyplot as plt
-import deepwave as dw
-from misfit_toys.data.dataset import towed_src, fixed_rec
-from mh.typlotlib import save_frames, get_frames_bool
+
+from misfit_toys.data.dataset import fixed_rec, towed_src
 from misfit_toys.utils import bool_slice, clean_idx
-import hydra
-from dotmap import DotMap
 
 
 def get_grid(a, b, c, d, M, N):
@@ -712,7 +715,9 @@ def weighted_average(
     # refactor if performance is an issue
     # list comprehension is slow compared to torch operations
 
-    assert len(values.shape) == 1, "values must be 1D...flatten it"
+    assert (
+        len(values.shape) == 1
+    ), f"values must be 1D...flatten it...{values.shape=}"
     assert values.dtype in [
         torch.float32,
         torch.float64,
@@ -740,7 +745,7 @@ def proj_function(
 ):
     assert (
         len(function_vals.shape) == 1
-    ), "function_vals must be 1D...flatten it"
+    ), f"function_vals must be 1D...flatten it {function_vals.shape=}"
 
     weights, indices = proj_indices(
         domain, embedding, num_neighbors, eps=eps, alpha=alpha
@@ -760,7 +765,6 @@ def batch_proj_function(
     num_neighbors: int,
     eps: float = 1e-6,
     alpha: float = 1.0,
-    device: str = "cpu",
 ):
     res = [None for _ in range(embeddings.shape[0])]
     weights = [None for _ in range(embeddings.shape[0])]
@@ -774,9 +778,9 @@ def batch_proj_function(
             eps=eps,
             alpha=alpha,
         )
-    res = torch.stack(res, 0).to(device)
-    weights = torch.stack(weights, 0).to(device)
-    indices = torch.stack(indices, 0).to(device)
+    res = torch.stack(res, 0)
+    weights = torch.stack(weights, 0)
+    indices = torch.stack(indices, 0)
     return res, weights, indices
 
 
@@ -791,11 +795,12 @@ class SlicerLoss(torch.nn.Module):
         num_neighbors=1,
         alpha=1.0,
         eps=1e-6,
-        device,
     ):
         super().__init__()
 
-        self.domain = torch.cartesian_prod(rec_loc, t).to(device)
+        fake_rec_loc = 4.0 * torch.arange(rec_loc.shape[1]).float()
+        fake_rec_loc = fake_rec_loc.to(rec_loc.device)
+        self.domain = torch.cartesian_prod(fake_rec_loc, t)
         assert data.dtype in [
             torch.float32,
             torch.float64,
@@ -804,19 +809,23 @@ class SlicerLoss(torch.nn.Module):
             torch.float32,
             torch.float64,
         ], "domain must be float"
-        assert len(data.shape) == 2, "data must be 2D"
+        assert len(data.shape) == 2, f"data must be 2D, {data.shape=}"
         assert (
             len(self.domain.shape) == 2 & self.domain.shape[1] == 2
         ), "domain must be 2D"
 
-        evaled_embeddings = embeddings(rec_loc=rec_loc, t=t)
+        evaled_embeddings = embeddings(rec_loc=fake_rec_loc, t=t)
         assert evaled_embeddings.dtype in [
             torch.float32,
             torch.float64,
         ], "evaled_embeddings must be float"
         assert (
-            len(evaled_embeddings.shape) == 3 & evaled_embeddings.shape[2] == 2
-        ), "evaled_embeddings must be batched 2D data"
+            len(evaled_embeddings.shape) == 3
+            and evaled_embeddings.shape[2] == 2
+        ), (
+            "evaled_embeddings must be batched 2D data,"
+            f" {evaled_embeddings.shape=}"
+        )
 
         self.data, self.weights, self.indices = batch_proj_function(
             function_vals=data,
@@ -825,25 +834,25 @@ class SlicerLoss(torch.nn.Module):
             num_neighbors=num_neighbors,
             eps=eps,
             alpha=alpha,
-            device=device,
         )
         self.reduction_callback = MyW1(data=self.data, scale=1.0)
-        self.device = device
 
     def forward(self, x):
         u = weighted_average(
             values=x, weights=self.weights, indices=self.indices
         )
-        return self.reduction_callback(u).to(self.device)
+        return self.reduction_callback(u)
 
-def get_cdf(f, *, scale: float=1.0):
+
+def get_cdf(f, *, scale: float = 1.0):
     u = torch.log(1 + torch.exp(scale * f)) / scale
     u = u / torch.trapz(u, dx=1.0, dim=-1).unsqueeze(-1)
     CDF = torch.cumulative_trapezoid(u, dx=1.0, dim=-1)
     return CDF
 
+
 class MyW1(torch.nn.Module):
-    def __init__(self, *, data: torch.Tensor, scale: float=1.0):
+    def __init__(self, *, data: torch.Tensor, scale: float = 1.0):
         super().__init__()
 
         self.scale = scale
@@ -852,9 +861,38 @@ class MyW1(torch.nn.Module):
     def forward(self, y):
         u = get_cdf(y, scale=self.scale)
         return torch.nn.functional.mse_loss(self.cdf, u)
-        
+
 
 def tbt_embed(*, rec_loc: torch.Tensor, t: torch.Tensor):
-    return torch.cartesian_prod(rec_loc, t).reshape(rec_loc.shape[0], t.shape[0], 2)
+    return torch.cartesian_prod(rec_loc, t).reshape(
+        rec_loc.shape[0], t.shape[0], 2
+    )
 
 
+class BatchedSlicerLoss(torch.nn.Module):
+    def __init__(
+        self,
+        *,
+        data: torch.Tensor,
+        rec_loc: torch.Tensor,
+        t: torch.Tensor,
+        embeddings: Callable[[torch.Tensor], torch.Tensor],
+        num_neighbors=1,
+        alpha=1.0,
+        eps=1e-6,
+    ):
+        self.slicers = [
+            SlicerLoss(
+                data=data[i].squeeze(),
+                rec_loc=rec_loc,
+                t=t,
+                embeddings=embeddings,
+                num_neighbors=num_neighbors,
+                alpha=alpha,
+                eps=eps,
+            )
+            for i in range(data.shape[0])
+        ]
+
+    def forward(self, x):
+        return sum(s(x) for s in self.slicers)
