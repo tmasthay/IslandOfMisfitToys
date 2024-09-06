@@ -1,5 +1,40 @@
+helpers:
+  rec:
+    __call__: ^^cwd|helpers|dlinspace
+    kw:
+      start: ${fst_src}
+      step: ${d_rec}
+      num: ${rec_per_shot}
+
+  shot:
+  - 0
+  - ${n_shots}
+
+  time:
+    __call__: ^^cwd|helpers|dlinspace
+    kw:
+      start: 0.0
+      step: ${dt}
+      num: ${nt}
+
 obs_data:
   path: obs_frames.pt
+  column_names:
+  - Shot Number
+  - Offset (m)
+  - Time (s)
+  unsqueeze:
+    perform: True
+  cols: 3
+  two:
+    loop_info:
+      base_title: Observed Data
+      bounds:
+        __call__: ^^cwd|helpers|dict_values
+        kw:
+          a: self.plt.helpers.shot
+          b: self.plt.helpers.rec
+          c: self.plt.helpers.time
 
 src_amp:
   path: src_amp_frames.pt
