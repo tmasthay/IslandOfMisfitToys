@@ -40,14 +40,15 @@ def main(cfg):
     c = DotDict(OmegaConf.to_container(cfg, resolve=True))
     c = exec_imports(c)
 
-    def runtime_reduce_simple(key, expected_shape):
+    def runtime_reduce_simple(key, expected_shape=None):
         resolve_rules = c[key].get('resolve', c.resolve)
         self_key = f'slf_{key.split(".")[-1]}'
         field_name = key.split('.')[-1]
         before_reduction = f'\n\nBefore reduction:\n{pretty_dict(c[key])}'
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
         c[key] = c[key].to(c.device)
-        check_shape(c[key], expected_shape, field_name, before_reduction)
+        if expected_shape is not None:
+            check_shape(c[key], expected_shape, field_name, before_reduction)
 
     def full_runtime_reduce(lcl_cfg, **kw):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})

@@ -210,6 +210,16 @@ def vanilla_train(c: DotDict):
     )
 
 
+def dlinspace(*, start, step, num):
+    a = start
+    b = start + step * (num - 1)
+    return [a, b]
+
+
+def dict_values(**kw):
+    return list(kw.values())
+
+
 if __name__ == "__main__":
     u = torch.arange(110).reshape(10, 11)
     print(shift_data(data=u, shifts=[0.0, 0.2], dims=[0, 1]))
