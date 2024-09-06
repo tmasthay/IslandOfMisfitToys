@@ -105,6 +105,16 @@ def main(cfg):
                 c.data.obs_data.squeeze().detach().cpu(),
                 hydra_out('true_obs_data.pt'),
             )
+            diff_obs = (
+                c.results.obs_frames
+                - c.data.obs_data.detach().cpu().unsqueeze(0)
+            )
+            diff_src = (
+                c.results.src_amp_frames
+                - c.data.src_amp_y.detach().cpu().unsqueeze(0)
+            )
+            torch.save(diff_obs.detach().cpu().squeeze(), hydra_out('diff_obs_data.pt'))
+            torch.save(diff_src.detach().cpu().squeeze(), hydra_out('diff_src_amp.pt'))
 
         file_path = os.path.dirname(os.path.realpath(__file__))
         os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')
