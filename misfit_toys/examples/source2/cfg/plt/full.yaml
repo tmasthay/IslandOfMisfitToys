@@ -21,9 +21,9 @@ helpers:
 
   obs_data_opts: &obs_data_opts
     column_names:
-    - Iteration Number
-    - Offset (m)
-    - Time (s)
+      - Iteration Number
+      - Offset (m)
+      - Time (s)
     unsqueeze:
       perform: True
     cols: 3
@@ -36,6 +36,9 @@ helpers:
             a: self.plt.helpers.iterations
             b: self.plt.helpers.rec
             c: self.plt.helpers.time
+    one:
+      loop_info:
+        base_title: Observed Data
 
   src_amp_opts: &src_amp_opts
     column_names:
@@ -53,6 +56,15 @@ helpers:
             a: self.plt.helpers.iterations
             b: self.plt.helpers.time
 
+    one:
+      loop_info:
+        base_title: Source Amplitude
+        # bounds:
+        #   __call__: ^^cwd|helpers|dict_values
+        #   kw:
+        #     a: self.plt.helpers.iterations
+        #     b: self.plt.helpers.time
+
 obs_data:
   path: obs_frames.pt
   <<: *obs_data_opts
@@ -65,15 +77,15 @@ true_obs_data:
   path: true_obs_data.pt
   <<: *obs_data_opts
   column_names:
-  - Offset (m)
-  - Time (s)
+    - Offset (m)
+    - Time (s)
   cols: 2
 
 true_src_amp:
   path: true_src_amp_y.pt
   <<: *src_amp_opts
   column_names:
-  - Time (s)
+    - Time (s)
   cols: 1
 
 diff_src_amp:
