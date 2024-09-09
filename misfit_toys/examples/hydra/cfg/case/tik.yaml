@@ -9,6 +9,7 @@ defaults:
 - train/loss: tik
 - train/optimizer: lbfgs
 - train/stages: vanilla
-- train/step: tik
+- train/step: refactor
+- train/prop: refactor
 
-name: Tikhonov Regularization
+name: tik

@@ -3,7 +3,7 @@ from time import time
 from misfit_toys.utils import taper
 
 
-def taper_only(*, length=None, num_batches=None, scale=1.0):
+def taper_only(*, length=None, num_batches=None, scale=1.0, src_amp_y, **kw):
     """
     Applies tapering to the output of a neural network model.
 
@@ -24,7 +24,7 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
 
     def helper(self):
         nonlocal length, scale, num_batches
-        self.out = self.prop(None)[-1]
+        self.out = self.prop(None, src_amp_y(), **kw)[-1]
 
         if length is not None:
             if length <= 0:
@@ -42,7 +42,11 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
     return helper
 
 
+<<<<<<< HEAD
 def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
+=======
+def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False, src_amp_y, **kw):
+>>>>>>> feature/full_marmousi
     """
     Applies tapering to the output of a neural network model.
 
@@ -59,7 +63,10 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
         helper (function): A helper function that applies tapering to the output of a neural network model.
     """
     num_calls = 0
+<<<<<<< HEAD
     num_calls = 0
+=======
+>>>>>>> feature/full_marmousi
 
     def helper(self):
         nonlocal length, scale, batch_size, num_calls
@@ -76,12 +83,18 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False):
 
         self.loss = 0.0
         epoch_loss = 0.0
+<<<<<<< HEAD
         for _, s in enumerate(slices):
             self.optimizer.zero_grad()
             # if verbose:
             #     print(f"Batch {s.start // batch_size + 1}/{num_batches}", flush=True, end='\r')
             # self.out[s] = self.prop(s)[-1]
             self.out = self.prop(s)[-1]
+=======
+        amps = src_amp_y()
+        for _, s in enumerate(slices):
+            self.out = self.prop(s, amps, **kw)[-1]
+>>>>>>> feature/full_marmousi
 
             if length is not None:
                 if length <= 0:

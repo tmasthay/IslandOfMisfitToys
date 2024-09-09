@@ -1,2 +1,2 @@
-np: self.runtime.prop.module.meta.nt
+np: self.runtime.data.meta.nt
 dupe: true

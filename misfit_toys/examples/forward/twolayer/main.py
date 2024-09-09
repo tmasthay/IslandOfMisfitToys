@@ -15,7 +15,7 @@ from misfit_toys.utils import bool_slice
 
 def out_plotter(*, data, idx, fig, axes, cfg):
     plt.clf()
-    plt.imshow(data[idx].cpu(), **cfg.plot.out.imshow_kw)
+    plt.imshow(data[idx].cpu().T, **cfg.plot.out.imshow_kw)
     plt.title(f'{cfg.plot.out.title}, time_step={idx[-1]}')
     plt.xlabel(cfg.plot.out.xlabel)
     plt.ylabel(cfg.plot.out.ylabel)
@@ -72,7 +72,7 @@ def main(cfg):
     # out = out.permute(1, 0, 2)
     out = out.reshape(cfg.ny - 2 * cfg.rec.pady, cfg.nx - 2 * cfg.rec.padx, -1)
 
-    plt.imshow(v.cpu().T, **cfg.plot.v.imshow_kw)
+    plt.imshow(v.cpu(), **cfg.plot.v.imshow_kw)
     plt.title(cfg.plot.v.title)
     plt.xlabel(cfg.plot.v.xlabel)
     plt.ylabel(cfg.plot.v.ylabel)

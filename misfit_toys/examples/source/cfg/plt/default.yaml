@@ -1,0 +1,13 @@
+defaults:
+- _self_
+- vp: default
+- src_loc_y: default
+- rec_loc_y: default
+- obs_data: default
+- src_amp_y: default
+
+units:
+  dy: m
+  dx: m
+  dt: s
+  freq: Hz

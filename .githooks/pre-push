@@ -33,8 +33,8 @@ est_upload_time() {
 commit_msg_neg=$(git log -1 --pretty=%B | grep -e "\[skip ci\]" | wc -l)
 commit_msg_pos=$(git log -1 --pretty=%B | grep -e "\[gen docs\]" | wc -l)
 
-if [ $commit_msg_neg -gt 0 ] || [ $commit_msg_pos -eq 0 ]; then
-    echo "Skipping leaderboard generation"
+if [ $commit_msg_neg -gt 0 ] || [ $commit_msg_pos -gt 0 ]; then
+    echo "Skipping leaderboard generation: ($commit_msg_neg, $commit_msg_pos)"
     exit 0
 fi
 
@@ -70,5 +70,7 @@ echo "Upload time: $((UPLOAD_END - UPLOAD_START)) seconds"
 
 # cleanup
 rm custom_pages.tar.gz || { exit_prog "Cleanup failed"; }
+
+gh workflow run docs.yaml || { exit_prog "Workflow dispatch failed"; }
 
 exit 0

@@ -1,0 +1,9 @@
+__call__: ^^cwd|helpers|same_src_amp
+kw:
+  n_shots: self.n_shots
+  src_per_shot: self.src_per_shot
+  freq: self.freq
+  nt: self.nt
+  dt: self.dt
+  peak_time_factor: 1.5
+  device: self.device
