@@ -236,7 +236,7 @@ class TrainingAbstract(ABC):
         # raise ValueError(f'My report = {self.report.path}')
         for k, v in self.report.items():
             if k in self.report_spec_flip['presave'].keys():
-                print(f"Presaving {k}", flush=True)
+                print(f"Presaving {k} on rank {self.rank}", flush=True)
                 # print(f"v={v}", flush=True)
                 try:
                     v = self.report_spec_flip['presave'][k](v)
@@ -288,6 +288,7 @@ class TrainingAbstract(ABC):
             self._reduce_report()
         torch.distributed.barrier()
         cleanup()
+        pass
 
     def __recursive_train(self, *, level_data, depth=0, max_depth=0):
         """

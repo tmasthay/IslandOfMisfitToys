@@ -1,0 +1,9 @@
+__call__: ^^cwd|helpers|gen_rec_loc
+kw:
+  n_shots: self.n_shots
+  rec_per_shot: self.rec_per_shot
+  ndims: 2
+  depth: self.rec_depth
+  fst_rec: self.fst_rec
+  d_rec: self.d_rec
+  device: self.device

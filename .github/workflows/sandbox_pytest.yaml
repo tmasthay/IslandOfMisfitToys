@@ -2,14 +2,18 @@ name: GPU Validation and Docs Deployment Workflow
 
 on:
   push:
-    branches-ignore:
-    - gh-pages
+    branches:
+    - '**'
+    - '!gh-pages'
     tags-ignore:
     - tmp_ci_leaderboard
 
   pull_request:
-    branches-ignore:
-    - gh-pages
+    branches:
+    - '**'
+    - '!gh-pages'
+    tags-ignore:
+    - tmp_ci_leaderboard
 
 
 concurrency:
@@ -59,7 +63,7 @@ jobs:
   setup_sandbox:
     runs-on: ubuntu-latest
     needs: setup_dummy_repo
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
       REMOTE_HOST: ${{ secrets.REMOTE_HOST }}

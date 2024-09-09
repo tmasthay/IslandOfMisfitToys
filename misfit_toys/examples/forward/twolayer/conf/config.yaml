@@ -1,4 +1,5 @@
-path: /home/tyler/anaconda3/envs/dw/data/marmousi/vp.pt
+# path: /home/tyler/anaconda3/envs/dw/data/marmousi/vp.pt
+path: ${oc.env:CONDA_PREFIX}/data/marmousi/vp.pt
 
 twolayer: True
 

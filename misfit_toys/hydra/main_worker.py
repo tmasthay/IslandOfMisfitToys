@@ -1,4 +1,6 @@
 import os
+from os.path import exists as exists
+from os.path import join as pj
 from subprocess import check_output as co
 from time import time
 
@@ -19,7 +21,7 @@ from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from misfit_toys.fwi.seismic_data import SeismicProp, path_builder
+from misfit_toys.fwi.seismic_data import DebugProp, SeismicProp, path_builder
 from misfit_toys.fwi.training import Training
 from misfit_toys.swiffer import dupe
 from misfit_toys.utils import (
@@ -27,15 +29,17 @@ from misfit_toys.utils import (
     bool_slice,
     chunk_and_deploy,
     clean_idx,
+    cleanup,
     d2cpu,
     git_dump_info,
     resolve,
+    runtime_reduce,
     setup,
 )
 
 
 def set_options():
-    opts = 'all'
+    opts = ['shape']
     set_print_options(
         precision=3,
         sci_mode=True,
@@ -43,6 +47,10 @@ def set_options():
         linewidth=10,
         callback=torch_stats(opts),
     )
+    return
+
+
+set_options()
 
 
 def sco(cmd, verbose=False):
@@ -79,6 +87,17 @@ def check_keys(c, data):
         )
 
 
+def finished_writing(*, names, world_size, path):
+    def rank_name(rank, name):
+        return pj(path, name, f"_{rank}.pt")
+
+    for rank in world_size:
+        for name in names:
+            if not exists(rank_name(rank, name)):
+                return False
+    return True
+
+
 def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     """
     Runs the DDP (Distributed Data Parallel) training on a specific rank.
@@ -108,6 +127,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
                     c.data.preprocess.path_builder_kw[k]
                 )
 
+    c.data.preprocess.path_builder_kw = runtime_reduce(
+        c.data.preprocess.path_builder_kw
+    )
     c['runtime.data'] = path_builder(
         c.data.path, **c.data.preprocess.path_builder_kw
     )
@@ -130,17 +152,37 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     ).to(rank)
 
     # Build seismic propagation module and wrap in DDP
-    prop_data = subdict(c.runtime.data, exc=["obs_data"])
-    c.obs_data = c.runtime.data.obs_data
-    c['runtime.prop'] = SeismicProp(
-        **prop_data,
-        max_vel=c.data.preprocess.maxv,
-        pml_freq=c.runtime.data.meta.freq,
-        time_pad_frac=c.data.preprocess.time_pad_frac,
-    ).to(rank)
+    # prop_data = subdict(c.runtime.data, exc=["obs_data"])
+    # c.obs_data = c.runtime.data.obs_data
+    # print(prop_data.keys(), flush=True)
+
+    # keys:
+    # - vp
+    # - meta
+    # - src_loc_y
+    # - rec_loc_y
+    # - src_amp_y
+    # c['runtime.prop'] = SeismicProp(
+    #     **prop_data,
+    #     max_vel=c.data.preprocess.maxv,
+    #     pml_freq=c.runtime.data.meta.freq,
+    #     time_pad_frac=c.data.preprocess.time_pad_frac,
+    # ).to(rank)
+    # c['runtime.prop'] = DebugProp(
+    #     vp=prop_data['vp'],
+    #     dx=prop_data['meta']['dx'],
+    #     dt=prop_data['meta']['dt'],
+    #     freq=prop_data['meta']['freq'],
+    #     rec_loc_y=prop_data['rec_loc_y'],
+    #     src_loc_y=prop_data['src_loc_y']
+    # )
+    c = resolve(c, relax=True)
+
+    c.runtime.prop = apply(c.train.prop)
     c.runtime.prop = DDP(c.runtime.prop, device_ids=[rank])
 
     c = resolve(c, relax=False)
+
     loss_fn = apply(c.train.loss)
     if hasattr(loss_fn, 'to'):
         loss_fn = loss_fn.to(rank)
@@ -151,6 +193,9 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
 
     pre_time = time() - start_pre
     print(f"Preprocess time rank {rank}: {pre_time:.2f} seconds.", flush=True)
+
+    def _post_train(self):
+        self._save_report()
 
     train = Training(
         rank=rank,
@@ -180,12 +225,16 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
         },
         _step=step,
         _build_training_stages=training_stages,
+        _post_train=_post_train,
     )
     train_start = time()
     train.train()
     train_time = time() - train_start
     print(f"Train time rank {rank}: {train_time:.2f} seconds.", flush=True)
 
+    # torch.distributed.barrier()
+    # print('Past barrier', flush=True)
+    # cleanup()
     # make multiprocessing barrier
     # mp.barrier()
 

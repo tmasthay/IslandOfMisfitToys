@@ -6,12 +6,12 @@ rtm: self.runtime_mods
 conda: ${oc.env:CONDA_PREFIX}
 rel_path: marmousi/deepwave_example/shots16
 
-runtime_func: ${.rtm}.beta.Wasserstein
+__call__: ${.rtm}.beta.Wasserstein
 kw:
   input_path: ${..conda}/data/${..rel_path}
   output_path: ${..conda}/tmp/${..rel_path}
   transform: ${..rtm}.beta.softplus
   workers:
-    runtime_func: ${...rtm}.beta.get_cpus
+    __call__: ${...rtm}.beta.get_cpus
     kw:
       spare: 1

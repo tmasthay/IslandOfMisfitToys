@@ -1,0 +1,11 @@
+__call_obs__: ^^cwd|helpers|gen_obs_data
+kw:
+  v: slf_obs.rt.vp
+  grid_spacing: self.dx
+  dt: self.dt
+  source_amplitudes: slf_obs.rt.src_amp_y
+  source_locations: slf_obs.rt.src_loc_y
+  receiver_locations: slf_obs.rt.rec_loc_y
+  accuracy: 8
+  pml_freq: self.freq
+  time_pad_frac: 0.2

@@ -667,3 +667,81 @@ class SeismicPropBatched(torch.nn.Module):
                 receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )
+
+
+class Model(torch.nn.Module):
+    def __init__(self, initial, min_vel, max_vel):
+        super().__init__()
+        self.min_vel = min_vel
+        self.max_vel = max_vel
+        self.model = torch.nn.Parameter(
+            torch.logit((initial - min_vel) / (max_vel - min_vel))
+        )
+
+    def forward(self):
+        return (
+            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
+            + self.min_vel
+        )
+
+
+class SeismicPropSimple(torch.nn.Module):
+    def __init__(
+        self, *, vp, dx, dt, src_amp_y, src_loc_y, rec_loc_y, forward_kw
+    ):
+        super().__init__()
+        self.vp = vp
+        self.dx = dx
+        self.dt = dt
+        self.src_amp_y = src_amp_y
+        self.src_loc_y = src_loc_y
+        self.rec_loc_y = rec_loc_y
+        self.forward_kw = forward_kw
+
+    def forward(self, slicer):
+        v = self.vp()
+        if slicer is None:
+            slicer = slice(None)
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=self.src_amp_y()[slicer],
+            source_locations=self.src_loc_y[slicer],
+            receiver_locations=self.rec_loc_y[slicer],
+            **self.forward_kw,
+        )
+
+
+class DebugProp(torch.nn.Module):
+    def __init__(
+        self,
+        *,
+        vp,
+        dx,
+        dt,
+        freq,
+        rec_loc_y,
+        src_loc_y,
+    ):
+        super().__init__()
+        self.vp = vp
+        self.dx = dx
+        self.dt = dt
+        self.freq = freq
+        self.rec_loc_y = rec_loc_y
+        self.src_loc_y = src_loc_y
+
+    def forward(self, s, src_amp_y, **kw):
+        s = s or slice(None)
+        v = self.vp()
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=src_amp_y[s],
+            source_locations=self.src_loc_y[s],
+            receiver_locations=self.rec_loc_y[s],
+            pml_freq=self.freq,
+            **kw,
+        )

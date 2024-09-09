@@ -228,6 +228,10 @@ def store_metadata(*, path, metadata):
 
 
 # Extraneous comment
+# this should be deprecated -- it is less efficient than it could be
+# Setup cost does not matter but how the array is stored DOES
+# You pay a stride cost because you could be utilizing .repeat
+# which can leverage redundant values
 def towed_src(
     *, n_shots, src_per_shot, fst_src, d_src, src_depth, d_intra_shot
 ):
@@ -239,6 +243,7 @@ def towed_src(
     return res
 
 
+# this seems fine in performance since repeat is used
 def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
     res = torch.zeros(n_shots, rec_per_shot, 2)
     res[:, :, 1] = rec_depth
