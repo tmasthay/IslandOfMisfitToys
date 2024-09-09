@@ -1,0 +1,18 @@
+HASH: 2ca8819a2c2e9475c21c39d28cf8ca6d977715ca
+BRANCH: feature/full_marmousi
+
+UNTRACKED FILES: .latest_run
+.vscode/settings.json
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+
+********************************************************************************
+DIFF: 
+********************************************************************************

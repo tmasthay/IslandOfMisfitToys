@@ -1,0 +1,29 @@
+misfit_toys.workflows
+=====================
+
+.. py:module:: misfit_toys.workflows
+
+.. autoapi-nested-parse::
+
+   Custom staged-training workflows
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/workflows/tik/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/workflows/stages/index
+
+

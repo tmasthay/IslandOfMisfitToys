@@ -1,0 +1,18 @@
+HASH: d7d2df67cb9cc882c50e4ebc63a9f459d868ef0a
+BRANCH: devel
+
+UNTRACKED FILES: .latest_run
+.vscode/settings.json
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+
+********************************************************************************
+DIFF: 
+********************************************************************************

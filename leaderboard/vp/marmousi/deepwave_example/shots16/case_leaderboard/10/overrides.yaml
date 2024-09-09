@@ -1,0 +1,5 @@
+- case=w1
+- case.train.max_iters=100
+- case.train.loss.kw.weights=[1.0,0.21]
+- +run=w1_regularization_sweep
+- case.editor=null

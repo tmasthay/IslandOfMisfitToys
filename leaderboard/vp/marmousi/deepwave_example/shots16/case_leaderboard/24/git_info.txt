@@ -1,0 +1,60 @@
+HASH: ec935f1d9a5b44b019b8a028874c142b249caf8c
+BRANCH: devel
+
+UNTRACKED FILES: .latest_run
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+tmp.txt
+
+********************************************************************************
+DIFF: diff --git a/docs/meta/leaderboard.py b/docs/meta/leaderboard.py
+index 4485a38..6a9a8cb 100644
+--- a/docs/meta/leaderboard.py
++++ b/docs/meta/leaderboard.py
+@@ -306,7 +306,7 @@ def make_leaderboard_page(
+     data = []
+     for i, subdir in enumerate(subdirs):
+         d = [i + 1]
+-        subsubdirs = next(os.walk(pjoin(path, subdir)))[1]
++        subsubdirs = list(os.walk(pjoin(path, subdir)))[0][1]
+         matches = [e for e in subsubdirs if re.match(r'.*compare.yaml', e)]
+         if len(matches) != 1:
+             raise ValueError(
+@@ -471,6 +471,7 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
+         for line in lines:
+             with open(line, 'r') as f:
+                 meta = yaml.load(f, Loader=yaml.FullLoader)
++                meta['root'] = os.path.dirname(line)
+                 if meta['proj_path'] in reg_dict:
+                     reg_dict[meta['proj_path']].append(meta)
+                 else:
+@@ -495,7 +496,7 @@ def centralize_info(*, paths, param, score, leaderboard_size, idx_gen):
+             for rank, e in enumerate(v):
+                 # curr_dump_path = pjoin(dump_path, str(rank + 1))
+                 curr_dump_path = pjoin(dump_path, str(rank))
+-                input(f'{e["root"]=} {curr_dump_path=}')
++                # input(f'{e["root"]=} {curr_dump_path=}')
+                 os.system(f"cp -r {e['root']} {curr_dump_path}")
+                 with open(
+                     pjoin(curr_dump_path, f'{param}_compare.yaml'), 'w'
+diff --git a/misfit_toys/beta/postprocess.py b/misfit_toys/beta/postprocess.py
+index 2220da4..0572e82 100644
+--- a/misfit_toys/beta/postprocess.py
++++ b/misfit_toys/beta/postprocess.py
+@@ -24,7 +24,7 @@ def core_meta(
+     *, path: str, proj_path: str, train_time: float, name: str
+ ) -> dict:
+     meta = get_timestamps(path)
+-    meta['root'] = path
++    meta['orig_root'] = path
+     meta['proj_path'] = proj_path
+     meta['train_time'] = train_time
+     meta['name'] = name
+********************************************************************************

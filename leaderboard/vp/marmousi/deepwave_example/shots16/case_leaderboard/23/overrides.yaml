@@ -1,0 +1,3 @@
+- +run=test
+- case.train.max_iters=3
+- case.dupe=False

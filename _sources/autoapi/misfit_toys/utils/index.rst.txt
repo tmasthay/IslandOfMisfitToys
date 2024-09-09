@@ -1,0 +1,734 @@
+misfit_toys.utils
+=================
+
+.. py:module:: misfit_toys.utils
+
+.. autoapi-nested-parse::
+
+   Utility functions, many of which are deprecated or not used in current state of code.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.utils.SlotMeta
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.utils.find_available_port
+   misfit_toys.utils.setup
+   misfit_toys.utils.cleanup
+   misfit_toys.utils.get_file
+   misfit_toys.utils.load
+   misfit_toys.utils.load_all
+   misfit_toys.utils.save
+   misfit_toys.utils.savefig
+   misfit_toys.utils.filt
+   misfit_toys.utils.parse_path
+   misfit_toys.utils.auto_path
+   misfit_toys.utils.get_pydict
+   misfit_toys.utils.gaussian_perturb
+   misfit_toys.utils.verbosity_str_to_int
+   misfit_toys.utils.clean_levels
+   misfit_toys.utils.run_verbosity
+   misfit_toys.utils.mem_report
+   misfit_toys.utils.full_mem_report
+   misfit_toys.utils.taper
+   misfit_toys.utils.downsample_any
+   misfit_toys.utils.idt_print
+   misfit_toys.utils.canonical_tensors
+   misfit_toys.utils.canonical_reduce
+   misfit_toys.utils.see_data
+   misfit_toys.utils.check_devices
+   misfit_toys.utils.bool_slice
+   misfit_toys.utils.clean_idx
+   misfit_toys.utils.tensor_summary
+   misfit_toys.utils.pull_data
+   misfit_toys.utils.mean_filter_1d
+   misfit_toys.utils.get_tensors
+   misfit_toys.utils.d2cpu
+   misfit_toys.utils.chunk_params
+   misfit_toys.utils.chunk_tensors
+   misfit_toys.utils.deploy_data
+   misfit_toys.utils.chunk_and_deploy
+   misfit_toys.utils.read_and_chunk
+   misfit_toys.utils.get_gpu_memory
+   misfit_toys.utils.apply_builder
+   misfit_toys.utils.apply
+   misfit_toys.utils.apply_all
+   misfit_toys.utils.resolve
+   misfit_toys.utils.git_dump_info
+   misfit_toys.utils.all_detached_cpu
+
+
+Module Contents
+---------------
+
+.. py:function:: find_available_port(start_port, max_attempts=5)
+
+   Finds an available port starting from the given start_port.
+
+   :param start_port: The port number to start searching from.
+   :type start_port: int
+   :param max_attempts: The maximum number of attempts to find an available port. Defaults to 5.
+   :type max_attempts: int, optional
+
+   :returns: The first available port number found.
+   :rtype: int
+
+   :raises OSError: If an error occurs while attempting to bind to a port.
+
+
+.. py:function:: setup(rank, world_size, port=12358)
+
+   Set up the distributed training environment.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param port: The port number for communication. Defaults to 12355.
+   :type port: int, optional
+
+
+.. py:function:: cleanup()
+
+   Cleans up the process group.
+
+   This function destroys the process group using the `dist.destroy_process_group()` method.
+
+   :returns: None
+
+
+.. py:function:: get_file(name, *, rank='', path='out/parallel', ext='.pt')
+
+   Get the file path for saving or loading a tensor.
+
+   :param name: The name of the file.
+   :type name: str
+   :param rank: The rank of the current process. Defaults to "".
+   :type rank: str, optional
+   :param path: The directory path. Defaults to "out/parallel".
+   :type path: str, optional
+   :param ext: The file extension. Defaults to ".pt".
+   :type ext: str, optional
+
+   :returns: The file path.
+   :rtype: str
+
+
+.. py:function:: load(name, *, rank='', path='out/parallel', ext='.pt')
+
+   Load a tensor from a file.
+
+   :param name: The name of the file.
+   :type name: str
+   :param rank: The rank of the current process. Defaults to "".
+   :type rank: str, optional
+   :param path: The directory path. Defaults to "out/parallel".
+   :type path: str, optional
+   :param ext: The file extension. Defaults to ".pt".
+   :type ext: str, optional
+
+   :returns: The loaded tensor.
+   :rtype: torch.Tensor
+
+
+.. py:function:: load_all(name, *, world_size=0, path='out/parallel', ext='.pt')
+
+   Load tensors from multiple files.
+
+   :param name: The name of the file.
+   :type name: str
+   :param world_size: The total number of processes. Defaults to 0.
+   :type world_size: int, optional
+   :param path: The directory path. Defaults to "out/parallel".
+   :type path: str, optional
+   :param ext: The file extension. Defaults to ".pt".
+   :type ext: str, optional
+
+   :returns: The loaded tensor or a list of loaded tensors.
+   :rtype: Union[torch.Tensor, List[torch.Tensor]]
+
+
+.. py:function:: save(tensor, name, *, rank='', path='out/parallel', ext='.pt')
+
+   Save a tensor to a file.
+
+   :param tensor: The tensor to be saved.
+   :type tensor: torch.Tensor
+   :param name: The name of the file.
+   :type name: str
+   :param rank: The rank of the current process. Defaults to "".
+   :type rank: str, optional
+   :param path: The directory path. Defaults to "out/parallel".
+   :type path: str, optional
+   :param ext: The file extension. Defaults to ".pt".
+   :type ext: str, optional
+
+
+.. py:function:: savefig(name, *, path='out/parallel', ext='.pt')
+
+   Save the current figure to a file.
+
+   :param name: The name of the file.
+   :type name: str
+   :param path: The directory path. Defaults to "out/parallel".
+   :type path: str, optional
+   :param ext: The file extension. Defaults to ".pt".
+   :type ext: str, optional
+
+
+.. py:function:: filt(x, sos)
+
+   Apply a biquad filter to the input signal.
+
+   :param x: The input signal.
+   :type x: torch.Tensor
+   :param sos: The second-order sections of the filter.
+   :type sos: List[List[float]]
+
+   :returns: The filtered signal.
+   :rtype: torch.Tensor
+
+
+.. py:function:: parse_path(path)
+
+   Parse the input path.
+
+   :param path: The input path.
+   :type path: str
+
+   :returns: The parsed path.
+   :rtype: str
+
+
+.. py:function:: auto_path(kw_path='path', make_dir=False)
+
+   Decorator to automatically parse and create directories for file paths.
+
+   :param kw_path: The keyword argument name for the file path. Defaults to "path".
+   :type kw_path: str, optional
+   :param make_dir: Whether to create the directory if it doesn't exist. Defaults to False.
+   :type make_dir: bool, optional
+
+   :returns: The decorator function.
+   :rtype: Callable
+
+
+.. py:function:: get_pydict(path, *, filename='metadata', as_class=False)
+
+   Get a Python dictionary from a file.
+
+   :param path: The file path.
+   :type path: str
+   :param filename: The name of the file. Defaults to "metadata".
+   :type filename: str, optional
+   :param as_class: Whether to return the dictionary as a DotDict object. Defaults to False.
+   :type as_class: bool, optional
+
+   :returns: The Python dictionary.
+   :rtype: Union[dict, DotDict]
+
+
+.. py:function:: gaussian_perturb(ref, scaled_sigma, scaled_mu, scale=False)
+
+   Generate a Gaussian perturbation based on a reference tensor.
+
+   :param ref: The reference tensor.
+   :type ref: torch.Tensor
+   :param scaled_sigma: The scaled standard deviation of the Gaussian distribution.
+   :type scaled_sigma: float
+   :param scaled_mu: The scaled mean of the Gaussian distribution.
+   :type scaled_mu: float
+   :param scale: Whether to scale the perturbation based on the maximum absolute value of the reference tensor. Defaults to False.
+   :type scale: bool, optional
+
+   :returns: The perturbed tensor.
+   :rtype: torch.Tensor
+
+
+.. py:function:: verbosity_str_to_int(*, verbosity, levels)
+
+   Convert a verbosity string to an integer value.
+
+   :param verbosity: The verbosity level as an integer or string.
+   :type verbosity: Union[int, str]
+   :param levels: The list of verbosity levels and their corresponding names.
+   :type levels: List[Tuple[int, List[str]]]
+
+   :returns: The converted verbosity level as an integer.
+   :rtype: int
+
+   :raises ValueError: If the verbosity value is not recognized.
+
+
+.. py:function:: clean_levels(levels)
+
+   Clean and validate the verbosity levels.
+
+   :param levels: The list of verbosity levels.
+   :type levels: List[Union[int, Tuple[int, List[str]]]]
+
+   :returns: The cleaned and validated verbosity levels.
+   :rtype: List[Tuple[int, List[str]]]
+
+   :raises ValueError: If the levels are not in the correct format.
+
+
+.. py:function:: run_verbosity(*, verbosity, levels)
+
+   Decorator to control the verbosity of a function.
+
+   :param verbosity: The verbosity level as an integer or string.
+   :type verbosity: Union[int, str]
+   :param levels: The list of verbosity levels.
+   :type levels: List[Union[int, Tuple[int, List[str]]]]
+
+   :returns: The decorator function.
+   :rtype: Callable
+
+
+.. py:function:: mem_report(*args, precision=2, sep=', ', rep=None)
+
+   Generate a memory report.
+
+   :param args: The memory values to be reported.
+   :type args: float
+   :param precision: The number of decimal places for the memory values. Defaults to 2.
+   :type precision: int, optional
+   :param sep: The separator between memory values. Defaults to ", ".
+   :type sep: str, optional
+   :param rep: The labels for the memory values. Defaults to None.
+   :type rep: List[str], optional
+
+   :returns: The memory report.
+   :rtype: str
+
+
+.. py:function:: full_mem_report(precision=2, sep=', ', rep=('free', 'total'), title=None)
+
+   Generate a full memory report.
+
+   :param precision: The number of decimal places for the memory values. Defaults to 2.
+   :type precision: int, optional
+   :param sep: The separator between memory values. Defaults to ", ".
+   :type sep: str, optional
+   :param rep: The labels for the memory values. Defaults to ("free", "total").
+   :type rep: Tuple[str, str], optional
+   :param title: The title of the memory report. Defaults to None.
+   :type title: str, optional
+
+   :returns: The full memory report.
+   :rtype: str
+
+
+.. py:function:: taper(x, length=100)
+
+   Apply a cosine taper to the ends of a signal.
+
+   :param x: The input signal.
+   :type x: torch.Tensor
+   :param length: The length of the taper. Defaults to 100.
+   :type length: int, optional
+
+   :returns: The tapered signal.
+   :rtype: torch.Tensor
+
+
+.. py:function:: downsample_any(u, ratios)
+
+   Downsample a tensor along any dimension.
+
+   :param u: The input tensor.
+   :type u: torch.Tensor
+   :param ratios: The downsampling ratios for each dimension.
+   :type ratios: List[int]
+
+   :returns: The downsampled tensor.
+   :rtype: torch.Tensor
+
+   :raises AssertionError: If the number of ratios does not match the number of dimensions.
+   :raises AssertionError: If any ratio is not a positive integer.
+
+
+.. py:class:: SlotMeta
+
+   Bases: :py:obj:`type`
+
+
+   Metaclass that adds default annotations and __slots__ attribute to a class.
+
+   This metaclass is used to automatically add default annotations and define the __slots__
+   attribute for a class. It extracts the variable names from the annotations and finds
+   attributes that are not methods, not in special names, and not already annotated. It then
+   adds default annotations for these non-annotated attributes and removes them from the class
+   dictionary. Finally, it creates the __slots__ attribute from the updated annotations.
+
+   .. attribute:: None
+
+      
+
+   .. method:: __new__(cls, name, bases, class_dict)
+
+      Creates a new class with default annotations and __slots__ attribute.
+      
+
+   Example usage:
+       class MyClass(metaclass=SlotMeta):
+           attr1: int
+           attr2: str
+           ...
+
+
+.. py:function:: idt_print(*args, levels=None, idt='    ')
+
+   Print indented text with different indentation levels.
+
+   :param args: The text to be printed.
+   :type args: str
+   :param levels: The indentation levels for each text. Defaults to None.
+   :type levels: List[int], optional
+   :param idt: The indentation string. Defaults to "    ".
+   :type idt: str, optional
+
+   :returns: The indented text.
+   :rtype: str
+
+
+.. py:function:: canonical_tensors(exclude=None, extra=None)
+
+   Get the canonical tensor names.
+
+   :param exclude: The tensor names to be excluded. Defaults to None.
+   :type exclude: List[str], optional
+   :param extra: Additional tensor names to be included. Defaults to None.
+   :type extra: List[Union[str, Tuple[str, bool]]], optional
+
+   :returns: The canonical tensor names.
+   :rtype: List[str]
+
+
+.. py:function:: canonical_reduce(reduce=None, exclude=None, extra=None)
+
+   Get the canonical reduce operations for each tensor.
+
+   :param reduce: Custom reduce operations for specific tensors. Defaults to None.
+   :type reduce: Dict[str, str], optional
+   :param exclude: The tensor names to be excluded. Defaults to None.
+   :type exclude: List[str], optional
+   :param extra: Additional tensor names and their reduce operations to be included. Defaults to None.
+   :type extra: Dict[str, str], optional
+
+   :returns: The canonical reduce operations for each tensor.
+   :rtype: Dict[str, str]
+
+
+.. py:function:: see_data(path, cmap='nipy_spectral')
+
+   Visualize data stored in .pt files.
+
+   :param path: The directory path.
+   :type path: str
+   :param cmap: The colormap for visualization. Defaults to 'nipy_spectral'.
+   :type cmap: str, optional
+
+
+.. py:function:: check_devices(root)
+
+   Check the devices used for storing tensors.
+
+   :param root: The root directory path.
+   :type root: str
+
+
+.. py:function:: bool_slice(*args, permute=None, none_dims=(), ctrl=None, strides=None, start=None, cut=None, verbose=False)
+
+   Generate boolean slices based on the given arguments.
+
+   :param \*args: Variable length arguments representing the dimensions of the boolean slices.
+   :param permute: A list specifying the order in which the dimensions should be permuted.
+   :type permute: list
+   :param none_dims: A tuple containing the indices of dimensions that should be treated as None.
+   :type none_dims: tuple
+   :param ctrl: A function that takes in the indices and arguments and returns a boolean value.
+   :type ctrl: function
+   :param strides: A list specifying the strides for each dimension.
+   :type strides: list
+   :param start: A list specifying the starting indices for each dimension.
+   :type start: list
+   :param cut: A list specifying the cut values for each dimension.
+   :type cut: list
+   :param verbose: A boolean value indicating whether to print verbose output.
+   :type verbose: bool
+
+   :Yields: *tuple* -- A tuple containing the boolean slice indices and the result of the control function.
+
+
+.. py:function:: clean_idx(idx, show_colons=True)
+
+   Cleans up the given index by converting it to a string representation.
+
+   :param idx: The index to clean up.
+   :type idx: list
+   :param show_colons: Whether to include colons in the string representation.
+                       Defaults to True.
+   :type show_colons: bool, optional
+
+   :returns: The cleaned up string representation of the index.
+   :rtype: str
+
+
+.. py:function:: tensor_summary(t, num=5, inc='all', exc=None)
+
+   Summarizes the properties of a tensor.
+
+   :param t: The input tensor.
+   :type t: torch.Tensor
+   :param num: The number of top and bottom values to include in the summary. Defaults to 5.
+   :type num: int, optional
+   :param inc: The properties to include in the summary. Defaults to 'all'.
+   :type inc: list or str, optional
+   :param exc: The properties to exclude from the summary. Defaults to None.
+   :type exc: list, optional
+
+   :returns: A string containing the summary of the tensor properties.
+   :rtype: str
+
+
+.. py:function:: pull_data(path)
+
+   Loads data from the specified path.
+
+   :param path: The path to the directory containing the data files.
+   :type path: str
+
+   :returns: A dictionary-like object containing the loaded data.
+   :rtype: DotDict
+
+
+.. py:function:: mean_filter_1d(y, kernel_size)
+
+   Applies a 1-dimensional mean filter to the input tensor.
+
+   :param y: The input tensor to be filtered.
+   :type y: torch.Tensor
+   :param kernel_size: The size of the kernel for the mean filter.
+   :type kernel_size: int
+
+   :returns: The filtered output tensor.
+   :rtype: torch.Tensor
+
+   :raises None:
+
+   .. rubric:: Examples
+
+   >>> input_tensor = torch.tensor([1, 2, 3, 4, 5])
+   >>> filtered_tensor = mean_filter_1d(input_tensor, 3)
+   >>> print(filtered_tensor)
+   tensor([2., 3., 4., 3., 2.])
+
+
+.. py:function:: get_tensors(path, device='cpu')
+
+   Loads tensors from files in the specified path and returns them as a dictionary.
+
+   :param path: The path to the directory containing the tensor files.
+   :type path: str
+   :param device: The device to move the loaded tensors to. Defaults to 'cpu'.
+   :type device: str, optional
+
+   :returns: A dictionary where the keys are the filenames (without the file extension) and the values are the loaded tensors.
+   :rtype: dict
+
+
+.. py:function:: d2cpu(x)
+
+   Moves a tensor from GPU to CPU and detaches it from the computation graph.
+
+   :param x: The input tensor.
+   :type x: torch.Tensor
+
+   :returns: The tensor moved to CPU and detached from the computation graph.
+   :rtype: torch.Tensor
+
+
+.. py:function:: chunk_params(rank, world_size, *, params, chunk_keys)
+
+   Chunks the parameters based on the rank and world size.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param params: A dictionary containing the parameters.
+   :type params: dict
+   :param chunk_keys: A list of keys to chunk.
+   :type chunk_keys: list
+
+   :returns: A dictionary containing the chunked parameters.
+   :rtype: dict
+
+
+.. py:function:: chunk_tensors(rank, world_size, *, data, chunk_keys)
+
+   Chunks the tensors based on the rank and world size.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param data: A dictionary containing the tensors.
+   :type data: dict
+   :param chunk_keys: A list of keys to chunk.
+   :type chunk_keys: list
+
+   :returns: A dictionary containing the chunked tensors.
+   :rtype: dict
+
+
+.. py:function:: deploy_data(rank, data)
+
+   Deploys the data to the specified rank.
+
+   :param rank: The rank to deploy the data to.
+   :type rank: int
+   :param data: A dictionary containing the data.
+   :type data: dict
+
+   :returns: A dictionary containing the deployed data.
+   :rtype: dict
+
+
+.. py:function:: chunk_and_deploy(rank, world_size, *, data, chunk_keys)
+
+   Chunks and deploys the data based on the rank and world size.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param data: A dictionary containing the data.
+   :type data: dict
+   :param chunk_keys: A dictionary containing the keys to chunk.
+   :type chunk_keys: dict
+
+   :returns: A dictionary containing the chunked and deployed data.
+   :rtype: dict
+
+
+.. py:function:: read_and_chunk(*, path, rank, world_size, chunk_keys, remap=None, **kw)
+
+   Read data from a given path, perform remapping and transformations, and chunk the data for distributed processing.
+
+   :param path: The path to the data.
+   :type path: str
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param chunk_keys: A list of keys to chunk the data.
+   :type chunk_keys: list
+   :param remap: A dictionary to remap the keys of the data. Defaults to None.
+   :type remap: dict, optional
+   :param \*\*kw: Additional keyword arguments for transformations.
+
+   :returns: The processed data.
+   :rtype: dict
+
+
+.. py:function:: get_gpu_memory(rank)
+
+   Retrieves the GPU memory information for the specified GPU device.
+
+   :param rank: The rank of the GPU device.
+   :type rank: int
+
+   :returns:
+
+             A dictionary containing the GPU memory information.
+                 - 'rank' (int): The rank of the GPU device.
+                 - 'total_memory_GB' (float): The total GPU memory in gigabytes (GB).
+                 - 'allocated_memory_GB' (float): The currently allocated GPU memory in gigabytes (GB).
+                 - 'cached_memory_GB' (float): The GPU memory reserved for caching in gigabytes (GB).
+                 - 'available_memory_GB' (float): The available GPU memory in gigabytes (GB).
+   :rtype: dict
+
+
+.. py:function:: apply_builder(lcl, gbl)
+
+   Applies the builder to create and return an object.
+
+   :param lcl: The local namespace dictionary.
+   :type lcl: dict
+   :param gbl: The global namespace dictionary.
+   :type gbl: dict
+
+   :returns: The created object.
+   :rtype: object
+
+
+.. py:function:: apply(lcl, relax=True)
+
+   Applies the given local variables (`lcl`) to a runtime function.
+
+   :param lcl: The local variables to be applied.
+   :type lcl: dict
+   :param relax: Whether to relax the requirement of having 'runtime_func' as a key in `lcl`.
+                 If set to True and 'runtime_func' is not found in `lcl`, the function will simply return `lcl`.
+                 If set to False and 'runtime_func' is not found in `lcl`, a ValueError will be raised.
+   :type relax: bool, optional
+
+   :returns: The result of applying the local variables to the runtime function.
+
+   :raises ValueError: If 'runtime_func' is not found in `lcl` and `relax` is set to False.
+   :raises RuntimeError: If an error occurs during the application process.
+
+
+.. py:function:: apply_all(lcl, relax=True, exc=None)
+
+   Recursively applies the `apply` function to all values in a dictionary or DotDict.
+
+   :param lcl: The dictionary or DotDict to apply the `apply` function to.
+   :type lcl: dict or DotDict
+   :param relax: Whether to relax the application of `apply` function. Defaults to True.
+   :type relax: bool, optional
+   :param exc: List of keys to exclude from applying the `apply` function. Defaults to None.
+   :type exc: list, optional
+
+   :returns: The modified dictionary or DotDict after applying the `apply` function.
+   :rtype: dict or DotDict
+
+
+.. py:function:: resolve(c: mh.core.DotDict, relax) -> mh.core.DotDict
+
+   Resolves the given DotDict object by executing imports and resolving self-references.
+
+   :param c: The DotDict object to be resolved.
+   :type c: DotDict
+   :param relax: A flag indicating whether to relax the resolution process.
+
+   :returns: The resolved DotDict object.
+   :rtype: DotDict
+
+
+.. py:function:: git_dump_info(exc=None)
+
+   Retrieves information about the Git repository.
+
+   :param exc: List of directories or files to exclude from the untracked files list. Defaults to None.
+   :type exc: list, optional
+
+   :returns: A string containing information about the Git repository.
+   :rtype: str
+
+
+.. py:function:: all_detached_cpu(d: mh.core.DotDict)
+

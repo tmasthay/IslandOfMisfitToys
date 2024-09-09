@@ -1,0 +1,162 @@
+misfit_toys.examples.marmousi.alan.fwi_parallel
+===============================================
+
+.. py:module:: misfit_toys.examples.marmousi.alan.fwi_parallel
+
+.. autoapi-nested-parse::
+
+   This module recreates the exact workflow of Alan's deepwave Marmousi benchmark example.
+   This script is used as an end-to-end test to make sure that our package can reproduce the results of this benchmark example.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.alan.fwi_parallel.Model
+   misfit_toys.examples.marmousi.alan.fwi_parallel.Prop
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.alan.fwi_parallel.setup
+   misfit_toys.examples.marmousi.alan.fwi_parallel.cleanup
+   misfit_toys.examples.marmousi.alan.fwi_parallel.cwd
+   misfit_toys.examples.marmousi.alan.fwi_parallel.get_file
+   misfit_toys.examples.marmousi.alan.fwi_parallel.load
+   misfit_toys.examples.marmousi.alan.fwi_parallel.save
+   misfit_toys.examples.marmousi.alan.fwi_parallel.savefig
+   misfit_toys.examples.marmousi.alan.fwi_parallel.run_rank
+   misfit_toys.examples.marmousi.alan.fwi_parallel.run
+   misfit_toys.examples.marmousi.alan.fwi_parallel.main
+
+
+Module Contents
+---------------
+
+.. py:function:: setup(rank, world_size)
+
+.. py:function:: cleanup()
+
+.. py:function:: cwd(x='')
+
+.. py:function:: get_file(name, *, rank='', path='out/parallel', ext='.pt')
+
+.. py:function:: load(name, *, rank='', path='out/parallel', ext='.pt')
+
+.. py:function:: save(tensor, name, *, rank='', path='out/parallel', ext='.pt')
+
+.. py:function:: savefig(name, *, path='out/parallel', ext='.pt')
+
+.. py:class:: Model(initial, min_vel, max_vel)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Base class for all neural network modules.
+
+   Your models should also subclass this class.
+
+   Modules can also contain other Modules, allowing to nest them in
+   a tree structure. You can assign the submodules as regular attributes::
+
+       import torch.nn as nn
+       import torch.nn.functional as F
+
+       class Model(nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.conv1 = nn.Conv2d(1, 20, 5)
+               self.conv2 = nn.Conv2d(20, 20, 5)
+
+           def forward(self, x):
+               x = F.relu(self.conv1(x))
+               return F.relu(self.conv2(x))
+
+   Submodules assigned in this way will be registered, and will have their
+   parameters converted too when you call :meth:`to`, etc.
+
+   .. note::
+       As per the example above, an ``__init__()`` call to the parent class
+       must be made before assignment on the child.
+
+   :ivar training: Boolean represents whether this module is in training or
+                   evaluation mode.
+   :vartype training: bool
+
+
+   .. py:attribute:: min_vel
+
+
+   .. py:attribute:: max_vel
+
+
+   .. py:attribute:: model
+
+
+   .. py:method:: forward()
+
+
+.. py:class:: Prop(model, dx, dt, freq)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Base class for all neural network modules.
+
+   Your models should also subclass this class.
+
+   Modules can also contain other Modules, allowing to nest them in
+   a tree structure. You can assign the submodules as regular attributes::
+
+       import torch.nn as nn
+       import torch.nn.functional as F
+
+       class Model(nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.conv1 = nn.Conv2d(1, 20, 5)
+               self.conv2 = nn.Conv2d(20, 20, 5)
+
+           def forward(self, x):
+               x = F.relu(self.conv1(x))
+               return F.relu(self.conv2(x))
+
+   Submodules assigned in this way will be registered, and will have their
+   parameters converted too when you call :meth:`to`, etc.
+
+   .. note::
+       As per the example above, an ``__init__()`` call to the parent class
+       must be made before assignment on the child.
+
+   :ivar training: Boolean represents whether this module is in training or
+                   evaluation mode.
+   :vartype training: bool
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: dx
+
+
+   .. py:attribute:: dt
+
+
+   .. py:attribute:: freq
+
+
+   .. py:method:: forward(source_amplitudes, source_locations, receiver_locations)
+
+
+.. py:function:: run_rank(rank, world_size)
+
+.. py:function:: run(world_size)
+
+.. py:function:: main()
+

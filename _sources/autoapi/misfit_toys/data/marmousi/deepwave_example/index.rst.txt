@@ -1,0 +1,29 @@
+misfit_toys.data.marmousi.deepwave_example
+==========================================
+
+.. py:module:: misfit_toys.data.marmousi.deepwave_example
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/marmousi/deepwave_example/shots16/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/marmousi/deepwave_example/factory/index
+
+

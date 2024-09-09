@@ -1,0 +1,37 @@
+misfit_toys.workflows.stages
+============================
+
+.. py:module:: misfit_toys.workflows.stages
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.workflows.stages.vanilla_stages
+
+
+Module Contents
+---------------
+
+.. py:function:: vanilla_stages(*, max_iters)
+
+   Returns a dictionary containing the stages for vanilla training.
+
+   :param max_iters: The maximum number of iterations.
+   :type max_iters: int
+
+   :returns:
+
+             A dictionary containing the stages for vanilla training. The dictionary has the following structure:
+                 {
+                     'epoch': {
+                         'data': range(max_iters),
+                         'preprocess': do_nothing,
+                         'postprocess': do_nothing,
+                     }
+                 }
+   :rtype: dict
+
+

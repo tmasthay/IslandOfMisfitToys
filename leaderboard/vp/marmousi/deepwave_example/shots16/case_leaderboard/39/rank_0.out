@@ -1,0 +1,36 @@
+Preprocessing took 0.00 seconds.
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer/vp_init.pt...torch.Size([600, 250])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer/src_amp_y.pt...torch.Size([16, 1, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer/obs_data.pt...torch.Size([16, 100, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer/src_loc_y.pt...torch.Size([16, 1, 2])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/twolayer/rec_loc_y.pt...torch.Size([16, 100, 2])
+Preprocess time rank 0: 0.38 seconds.
+iter=0, loss=3.13e-03, mse=3.13e-03, tik=0.00e+00, reg_strength=1.00e-07, training.loss: 3.13e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.04e+01, rank: 0
+iter=1, loss=2.07e-03, mse=2.02e-03, tik=4.53e-05, reg_strength=1.00e-07, training.loss: 2.07e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 2.92e+01, rank: 0
+iter=2, loss=1.91e-03, mse=1.87e-03, tik=4.01e-05, reg_strength=1.00e-07, training.loss: 1.91e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.02e+01, rank: 0
+iter=3, loss=1.83e-03, mse=1.79e-03, tik=3.73e-05, reg_strength=1.00e-07, training.loss: 1.83e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.08e+01, rank: 0
+iter=4, loss=1.78e-03, mse=1.74e-03, tik=3.52e-05, reg_strength=1.00e-07, training.loss: 1.78e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.10e+01, rank: 0
+iter=5, loss=1.75e-03, mse=1.72e-03, tik=3.22e-05, reg_strength=1.00e-07, training.loss: 1.75e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.10e+01, rank: 0
+iter=6, loss=1.69e-03, mse=1.66e-03, tik=3.02e-05, reg_strength=1.00e-07, training.loss: 1.69e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.14e+01, rank: 0
+iter=7, loss=1.63e-03, mse=1.60e-03, tik=2.84e-05, reg_strength=1.00e-07, training.loss: 1.63e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.18e+01, rank: 0
+iter=8, loss=1.43e-03, mse=1.40e-03, tik=3.15e-05, reg_strength=1.00e-07, training.loss: 1.43e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.33e+01, rank: 0
+iter=9, loss=2.27e-03, mse=2.24e-03, tik=3.08e-05, reg_strength=1.00e-07, training.loss: 2.27e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.05e+01, rank: 0
+iter=10, loss=2.09e-03, mse=2.00e-03, tik=9.10e-05, reg_strength=1.00e-07, training.loss: 2.09e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.10e+01, rank: 0
+iter=11, loss=4.41e-03, mse=3.99e-03, tik=4.25e-04, reg_strength=1.00e-07, training.loss: 4.41e+03, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.18e+01, rank: 0
+iter=12, loss=1.93e-02, mse=4.37e-03, tik=1.49e-02, reg_strength=1.00e-07, training.loss: 1.93e+04, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.01e+01, rank: 0
+iter=13, loss=6.73e-02, mse=4.38e-03, tik=6.29e-02, reg_strength=1.00e-07, training.loss: 6.73e+04, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 3.01e+01, rank: 0
+iter=14, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=15, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=16, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=17, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=18, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=19, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=20, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=21, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=22, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=23, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+iter=24, loss=inf, mse=7.76e-03, tik=inf, reg_strength=1.00e-07, training.loss: inf, lr: 1.000e+00, obs_data.norm: 3.94e+01, out.norm: 4.78e+01, rank: 0
+Presaving loss
+Presaving vp
+Presaving out
+Train time rank 0: 69.43 seconds.

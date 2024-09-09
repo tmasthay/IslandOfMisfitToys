@@ -1,0 +1,36 @@
+misfit_toys.beta.optimizers
+===========================
+
+.. py:module:: misfit_toys.beta.optimizers
+
+.. autoapi-nested-parse::
+
+   Small module for wrapping common PyTorch optimizers.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.optimizers.get_optimizer
+
+
+Module Contents
+---------------
+
+.. py:function:: get_optimizer(*, name, **kw)
+
+   Get an optimizer based on the specified name.
+
+   :param name: The name of the optimizer. Supported values are 'adam', 'sgd', and 'lbfgs'.
+   :type name: str
+   :param \*\*kw: Additional keyword arguments to be passed to the optimizer constructor.
+
+   :returns: A list containing the optimizer class and the keyword arguments.
+   :rtype: list
+
+   :raises ValueError: If the specified optimizer name is unknown.
+
+

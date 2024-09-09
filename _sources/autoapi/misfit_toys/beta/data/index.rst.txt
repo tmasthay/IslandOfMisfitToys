@@ -1,0 +1,87 @@
+misfit_toys.beta.data
+=====================
+
+.. py:module:: misfit_toys.beta.data
+
+.. autoapi-nested-parse::
+
+   Data generation module (will be deprecated soon).
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.data.random_trace
+   misfit_toys.beta.data.uniform
+   misfit_toys.beta.data.sine_wave
+   misfit_toys.beta.data.gaussian
+   misfit_toys.beta.data.gaussian_mixture
+
+
+Module Contents
+---------------
+
+.. py:function:: random_trace(path)
+
+   Returns a random trace from the given path.
+
+   :param path: The path to the file containing the traces.
+   :type path: str
+
+   :returns: A random trace from the file.
+   :rtype: torch.Tensor
+
+
+.. py:function:: uniform(x)
+
+   Returns a tensor of ones with the same shape as the input tensor x.
+
+   :param x: The input tensor.
+   :type x: torch.Tensor
+
+   :returns: A tensor of ones with the same shape as x.
+   :rtype: torch.Tensor
+
+
+.. py:function:: sine_wave(x)
+
+   Computes the sine of the input value.
+
+   :param x: The input value.
+   :type x: torch.Tensor
+
+   :returns: The sine of the input value.
+   :rtype: torch.Tensor
+
+
+.. py:function:: gaussian(x)
+
+   Computes the Gaussian distribution for the given input.
+
+   :param x: Input tensor.
+   :type x: torch.Tensor
+
+   :returns: Gaussian distribution tensor.
+   :rtype: torch.Tensor
+
+
+.. py:function:: gaussian_mixture(x, *, mu, sigma, weights)
+
+   Computes the Gaussian mixture distribution for the given input values.
+
+   :param x: Input values.
+   :type x: torch.Tensor
+   :param mu: List of means for each Gaussian component.
+   :type mu: List[float]
+   :param sigma: List of standard deviations for each Gaussian component.
+   :type sigma: List[float]
+   :param weights: List of weights for each Gaussian component.
+   :type weights: List[float]
+
+   :returns: The computed Gaussian mixture distribution.
+   :rtype: torch.Tensor
+
+

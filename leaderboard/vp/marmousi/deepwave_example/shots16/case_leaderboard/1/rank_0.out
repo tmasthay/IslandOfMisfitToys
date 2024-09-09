@@ -1,0 +1,36 @@
+Preprocessing took 0.00 seconds.
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/vp_init.pt...torch.Size([600, 250])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/src_amp_y.pt...torch.Size([16, 1, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/obs_data.pt...torch.Size([16, 100, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/src_loc_y.pt...torch.Size([16, 1, 2])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/rec_loc_y.pt...torch.Size([16, 100, 2])
+Preprocess time rank 0: 0.39 seconds.
+rank: 0, iter: 1, loss: 1.64e+02, training.loss: 1.64e+02, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.02e+01, rank: 0
+rank: 0, iter: 2, loss: 8.00e+01, training.loss: 8.00e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 3.94e+01, rank: 0
+rank: 0, iter: 3, loss: 5.23e+01, training.loss: 5.23e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 4, loss: 4.12e+01, training.loss: 4.12e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.04e+01, rank: 0
+rank: 0, iter: 5, loss: 3.10e+01, training.loss: 3.10e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 6, loss: 2.40e+01, training.loss: 2.40e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 7, loss: 1.99e+01, training.loss: 1.99e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 8, loss: 1.69e+01, training.loss: 1.69e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 9, loss: 1.47e+01, training.loss: 1.47e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 10, loss: 1.25e+01, training.loss: 1.25e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 11, loss: 1.11e+01, training.loss: 1.11e+01, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 12, loss: 9.87e+00, training.loss: 9.87e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 13, loss: 8.92e+00, training.loss: 8.92e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 14, loss: 8.02e+00, training.loss: 8.02e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 15, loss: 7.32e+00, training.loss: 7.32e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 16, loss: 6.80e+00, training.loss: 6.80e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.06e+01, rank: 0
+rank: 0, iter: 17, loss: 6.39e+00, training.loss: 6.39e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 18, loss: 6.05e+00, training.loss: 6.05e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 19, loss: 5.68e+00, training.loss: 5.68e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 20, loss: 5.31e+00, training.loss: 5.31e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 21, loss: 5.00e+00, training.loss: 5.00e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 22, loss: 4.74e+00, training.loss: 4.74e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 23, loss: 4.56e+00, training.loss: 4.56e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 24, loss: 4.40e+00, training.loss: 4.40e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+rank: 0, iter: 25, loss: 4.28e+00, training.loss: 4.28e+00, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 4.05e+01, rank: 0
+Presaving loss
+Presaving vp
+Presaving out
+Train time rank 0: 119.31 seconds.

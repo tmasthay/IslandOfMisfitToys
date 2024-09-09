@@ -1,0 +1,188 @@
+misfit_toys.fwi.loss.tikhonov
+=============================
+
+.. py:module:: misfit_toys.fwi.loss.tikhonov
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.tikhonov.TikhonovLoss
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.tikhonov.lin_reg_drop
+   misfit_toys.fwi.loss.tikhonov.lin_reg_drop_legacy2
+   misfit_toys.fwi.loss.tikhonov.lin_reg_drop_legacy
+   misfit_toys.fwi.loss.tikhonov.lin_reg_tmp
+
+
+Module Contents
+---------------
+
+.. py:class:: TikhonovLoss(weights: torch.Tensor, *, alpha: Callable[[float, float], float], max_iters: int = 100)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Tikhonov regularization loss module.
+
+   .. attribute:: weights
+
+      The weights tensor used for the regularization term.
+
+      :type: torch.Tensor
+
+   .. attribute:: alpha
+
+      A callable function that takes the current iteration and maximum iterations and returns the regularization strength.
+
+      :type: Callable[[float, float], float]
+
+   .. attribute:: max_iters
+
+      The maximum number of iterations.
+
+      :type: int
+
+   .. attribute:: iter
+
+      The current iteration.
+
+      :type: int
+
+   .. attribute:: build_status
+
+      Whether the status is being built (unused/deprecated).
+
+      :type: bool
+
+   .. attribute:: status
+
+      The current status message (unused/deprecated).
+
+      :type: str
+
+
+   .. py:attribute:: weights
+
+
+   .. py:attribute:: alpha
+
+
+   .. py:attribute:: max_iters
+
+
+   .. py:attribute:: iter
+      :value: 0
+
+
+
+   .. py:attribute:: build_status
+      :value: False
+
+
+
+   .. py:attribute:: status
+      :value: 'uninitialized'
+
+
+
+   .. py:method:: compute_gradient_penalty(param)
+
+      Compute the gradient penalty for the parameter tensor.
+
+      :param param: The parameter tensor for which the gradient penalty is computed.
+      :type param: torch.Tensor
+
+      :returns: The computed gradient penalty.
+      :rtype: torch.Tensor
+
+
+
+   .. py:method:: forward(pred, target)
+
+      Compute the total loss including the least squares and Tikhonov regularization term.
+
+      :param pred: The model output predictions.
+      :type pred: torch.Tensor
+      :param target: The ground truth or target data.
+      :type target: torch.Tensor
+
+      :returns: The total computed loss.
+      :rtype: torch.Tensor
+
+
+
+.. py:function:: lin_reg_drop(*, weights, max_iters, scale, _min) -> Callable[[int, int], float]
+
+   Creates a dictionary with weights, alpha function for linear regularization drop,
+   and maximum iterations.
+
+   :param weights: The weights tensor used for the regularization term.
+   :type weights: torch.Tensor
+   :param max_iters: The maximum number of iterations.
+   :type max_iters: int
+   :param scale: The scaling factor for the regularization strength.
+   :type scale: float
+   :param _min: The minimum regularization strength.
+   :type _min: float
+
+   :returns: A dictionary containing weights, alpha function, and maximum iterations.
+   :rtype: DotDict
+
+
+.. py:function:: lin_reg_drop_legacy2(c: mh.core.DotDict, *, scale, _min) -> Callable[[int, int], float]
+
+   Creates a dictionary with legacy configuration and alpha function for linear
+   regularization drop.
+
+   :param c: A configuration dictionary.
+   :type c: DotDict
+   :param scale: The scaling factor for the regularization strength.
+   :type scale: float
+   :param _min: The minimum regularization strength.
+   :type _min: float
+
+   :returns: A tuple containing an empty list and a dictionary with weights, alpha function,
+             and maximum iterations.
+   :rtype: tuple
+
+
+.. py:function:: lin_reg_drop_legacy(c: mh.core.DotDict, *, scale, _min) -> Callable[[int, int], float]
+
+   Creates a dictionary with legacy configuration and alpha function for linear
+   regularization drop, with validation for chosen loss type.
+
+   :param c: A configuration dictionary.
+   :type c: DotDict
+   :param scale: The scaling factor for the regularization strength.
+   :type scale: float
+   :param _min: The minimum regularization strength.
+   :type _min: float
+
+   :returns: A tuple containing an empty list and a dictionary with weights, alpha function,
+             and maximum iterations.
+   :rtype: tuple
+
+   :raises ValueError: If the chosen loss type or regularization method is not 'tik' or 'lin_reg_drop'.
+
+
+.. py:function:: lin_reg_tmp(c: mh.core.DotDict) -> Callable[[int, int], float]
+
+   Creates an alpha function for linear regularization drop based on temporary
+   configuration.
+
+   :param c: A configuration dictionary.
+   :type c: DotDict
+
+   :returns: A function that computes the regularization strength based on the iteration and maximum iterations.
+   :rtype: Callable[[int, int], float]
+
+

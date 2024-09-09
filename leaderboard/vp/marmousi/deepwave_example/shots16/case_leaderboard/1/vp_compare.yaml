@@ -1,0 +1,9 @@
+human_timestamp: June 11, 2024 12:53:27 AM
+l2_diff: 46.27617645263672
+max_iters: 25
+name: Earth Mover's Distance
+orig_root: /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/hydra/outputs/HYDRA_TIME_2024-06-11/HYDRA_TIME_00-53-27/marmousi/deepwave_example/shots16/
+proj_path: marmousi/deepwave_example/shots16
+root: ../../misfit_toys/hydra/outputs/HYDRA_TIME_2024-06-11/HYDRA_TIME_00-53-27/marmousi/deepwave_example/shots16
+timestamp: 2024-06-11 00-53-27
+train_time: 123.85815501213074

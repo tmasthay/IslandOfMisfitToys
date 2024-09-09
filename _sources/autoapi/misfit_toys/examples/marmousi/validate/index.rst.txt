@@ -1,0 +1,148 @@
+misfit_toys.examples.marmousi.validate
+======================================
+
+.. py:module:: misfit_toys.examples.marmousi.validate
+
+.. autoapi-nested-parse::
+
+   This script is a re-creation of Alan's FWI parallel program using the IOMT framework.
+   This is used as an end-to-end test to make sure that the Training, SeismicData, Param+ParamConstrained classes are working correctly.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.validate.args
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.validate.extend_files
+   misfit_toys.examples.marmousi.validate.all_exist
+   misfit_toys.examples.marmousi.validate.transpose
+   misfit_toys.examples.marmousi.validate.get_files
+   misfit_toys.examples.marmousi.validate.get_tensors
+   misfit_toys.examples.marmousi.validate.get_output
+   misfit_toys.examples.marmousi.validate.compare_output
+   misfit_toys.examples.marmousi.validate.make_gifs
+   misfit_toys.examples.marmousi.validate.clean_output
+   misfit_toys.examples.marmousi.validate.get_args
+   misfit_toys.examples.marmousi.validate.main
+
+
+Module Contents
+---------------
+
+.. py:function:: extend_files(path, filenames)
+
+   Extends the filenames by appending '_record.pt' and returns a dictionary
+   mapping the original filenames to the extended filenames.
+
+   :param path: The path to the directory containing the files.
+   :type path: str
+   :param filenames: A list of filenames to extend.
+   :type filenames: list
+
+   :returns: A dictionary mapping the original filenames to the extended filenames.
+   :rtype: dict
+
+
+.. py:function:: all_exist(filenames)
+
+   Check if all the given filenames exist.
+
+   :param filenames: A list of filenames to check.
+   :type filenames: list
+
+   :returns: True if all the filenames exist, False otherwise.
+   :rtype: bool
+
+
+.. py:function:: transpose(f)
+
+   Decorator function that transposes the result of the decorated function.
+
+   :param f: The function to be decorated.
+   :type f: function
+
+   :returns: The decorated function.
+   :rtype: function
+
+
+.. py:function:: get_files()
+
+   Retrieves the file paths for Alan's and IOMT's output files and checks if they exist.
+
+   :returns: A tuple containing the file paths for Alan's output files, IOMT's output files,
+             a boolean indicating whether Alan's version was executed, and a boolean indicating
+             whether IOMT's version was executed.
+
+
+.. py:function:: get_tensors(filenames)
+
+   Loads tensors from the given filenames.
+
+   :param filenames: A dictionary mapping keys to file paths.
+   :type filenames: dict
+
+   :returns: A dictionary mapping keys to loaded tensors.
+   :rtype: dict
+
+
+.. py:function:: get_output()
+
+   Retrieves the output tensors from the given files.
+
+   :returns: A tuple containing the output tensors from Alan files and IOMT files.
+
+
+.. py:function:: compare_output(*, row_gen, row_gen_label, output_filename='validate.txt', justify='right')
+
+   Compare the output of the `row_gen` function with the expected output.
+
+   :param row_gen: A function that generates rows of data based on the `alan_tensors` and `iomt_tensors`.
+   :type row_gen: function
+   :param row_gen_label: The label for the table.
+   :type row_gen_label: str
+   :param output_filename: The name of the output file. Defaults to 'validate.txt'.
+   :type output_filename: str, optional
+   :param justify: The justification for the columns in the table. Defaults to 'right'.
+   :type justify: str, optional
+
+   :returns: A dictionary containing the compared output values.
+   :rtype: dict
+
+
+.. py:function:: make_gifs(out_dir)
+
+   Generate GIFs and save them in the specified output directory.
+
+   :param out_dir: The path to the output directory.
+   :type out_dir: str
+
+   :returns: None
+
+
+.. py:function:: clean_output(clean, out_file_name)
+
+.. py:function:: get_args()
+
+.. py:function:: main(args)
+
+   Main function for validating the output.
+
+   :param args: Command-line arguments.
+   :type args: Namespace
+
+   :returns: List of results.
+   :rtype: list
+
+
+.. py:data:: args
+

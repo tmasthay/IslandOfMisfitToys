@@ -1,0 +1,1855 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="prev" title="misfit_toys.swiffer" href="../swiffer/index.html" />
+
+    <!-- Generated with Sphinx 8.0.2 and Furo 2024.08.06 -->
+        <title>misfit_toys.utils - Island of Misfit Toys 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=519d19f2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+    <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+    <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+    <header class="mobile-header">
+        <div class="header-left">
+            <label class="nav-overlay-icon" for="__navigation">
+                <div class="visually-hidden">Toggle site navigation sidebar</div>
+                <i class="icon"><svg>
+                        <use href="#svg-menu"></use>
+                    </svg></i>
+            </label>
+        </div>
+        <div class="header-center">
+            <a href="../../../index.html">
+                <div class="brand">Island of Misfit Toys 0.1.0 documentation</div>
+            </a>
+        </div>
+        <div class="header-right">
+            <div class="theme-toggle-container theme-toggle-header">
+                <button class="theme-toggle">
+                    <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+                    <svg class="theme-icon-when-auto-light">
+                        <use href="#svg-sun-with-moon"></use>
+                    </svg>
+                    <svg class="theme-icon-when-auto-dark">
+                        <use href="#svg-moon-with-sun"></use>
+                    </svg>
+                    <svg class="theme-icon-when-dark">
+                        <use href="#svg-moon"></use>
+                    </svg>
+                    <svg class="theme-icon-when-light">
+                        <use href="#svg-sun"></use>
+                    </svg>
+                </button>
+            </div>
+            <label class="toc-overlay-icon toc-header-icon" for="__toc">
+                <div class="visually-hidden">Toggle table of contents sidebar</div>
+                <i class="icon"><svg>
+                        <use href="#svg-toc"></use>
+                    </svg></i>
+            </label>
+        </div>
+    </header>
+    <aside class="sidebar-drawer">
+        <div class="sidebar-container">
+            
+            <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">Island of Misfit Toys 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/index.html">leaderboard</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of leaderboard</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/index.html">vp</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of vp</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/index.html">marmousi</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of marmousi</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/index.html">case_leaderboard</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of case_leaderboard</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/1/index.html">1</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of 1</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/2/index.html">2</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of 2</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/3/index.html">3</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of 3</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/4/index.html">4</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of 4</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/5/index.html">5</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of 5</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/6/index.html">6</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of 6</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/7/index.html">7</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of 7</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/8/index.html">8</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of 8</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/9/index.html">9</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of 9</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/10/index.html">10</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of 10</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/case_leaderboard/11/index.html">11</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle navigation of 11</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/index.html">deepwave_example</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle navigation of deepwave_example</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/index.html">shots16</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle navigation of shots16</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/index.html">case_leaderboard</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle navigation of case_leaderboard</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/1/index.html">1</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle navigation of 1</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/2/index.html">2</a><input class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><div class="visually-hidden">Toggle navigation of 2</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/3/index.html">3</a><input class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><div class="visually-hidden">Toggle navigation of 3</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/4/index.html">4</a><input class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><div class="visually-hidden">Toggle navigation of 4</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/5/index.html">5</a><input class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><div class="visually-hidden">Toggle navigation of 5</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/6/index.html">6</a><input class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><div class="visually-hidden">Toggle navigation of 6</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/7/index.html">7</a><input class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><div class="visually-hidden">Toggle navigation of 7</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/8/index.html">8</a><input class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><div class="visually-hidden">Toggle navigation of 8</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/9/index.html">9</a><input class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><div class="visually-hidden">Toggle navigation of 9</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/10/index.html">10</a><input class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><div class="visually-hidden">Toggle navigation of 10</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/11/index.html">11</a><input class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><div class="visually-hidden">Toggle navigation of 11</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/12/index.html">12</a><input class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><div class="visually-hidden">Toggle navigation of 12</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/13/index.html">13</a><input class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><div class="visually-hidden">Toggle navigation of 13</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/14/index.html">14</a><input class="toctree-checkbox" id="toctree-checkbox-32" name="toctree-checkbox-32" role="switch" type="checkbox"/><label for="toctree-checkbox-32"><div class="visually-hidden">Toggle navigation of 14</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/15/index.html">15</a><input class="toctree-checkbox" id="toctree-checkbox-33" name="toctree-checkbox-33" role="switch" type="checkbox"/><label for="toctree-checkbox-33"><div class="visually-hidden">Toggle navigation of 15</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/16/index.html">16</a><input class="toctree-checkbox" id="toctree-checkbox-34" name="toctree-checkbox-34" role="switch" type="checkbox"/><label for="toctree-checkbox-34"><div class="visually-hidden">Toggle navigation of 16</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/17/index.html">17</a><input class="toctree-checkbox" id="toctree-checkbox-35" name="toctree-checkbox-35" role="switch" type="checkbox"/><label for="toctree-checkbox-35"><div class="visually-hidden">Toggle navigation of 17</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/18/index.html">18</a><input class="toctree-checkbox" id="toctree-checkbox-36" name="toctree-checkbox-36" role="switch" type="checkbox"/><label for="toctree-checkbox-36"><div class="visually-hidden">Toggle navigation of 18</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/19/index.html">19</a><input class="toctree-checkbox" id="toctree-checkbox-37" name="toctree-checkbox-37" role="switch" type="checkbox"/><label for="toctree-checkbox-37"><div class="visually-hidden">Toggle navigation of 19</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/20/index.html">20</a><input class="toctree-checkbox" id="toctree-checkbox-38" name="toctree-checkbox-38" role="switch" type="checkbox"/><label for="toctree-checkbox-38"><div class="visually-hidden">Toggle navigation of 20</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/21/index.html">21</a><input class="toctree-checkbox" id="toctree-checkbox-39" name="toctree-checkbox-39" role="switch" type="checkbox"/><label for="toctree-checkbox-39"><div class="visually-hidden">Toggle navigation of 21</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/22/index.html">22</a><input class="toctree-checkbox" id="toctree-checkbox-40" name="toctree-checkbox-40" role="switch" type="checkbox"/><label for="toctree-checkbox-40"><div class="visually-hidden">Toggle navigation of 22</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/23/index.html">23</a><input class="toctree-checkbox" id="toctree-checkbox-41" name="toctree-checkbox-41" role="switch" type="checkbox"/><label for="toctree-checkbox-41"><div class="visually-hidden">Toggle navigation of 23</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/24/index.html">24</a><input class="toctree-checkbox" id="toctree-checkbox-42" name="toctree-checkbox-42" role="switch" type="checkbox"/><label for="toctree-checkbox-42"><div class="visually-hidden">Toggle navigation of 24</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/25/index.html">25</a><input class="toctree-checkbox" id="toctree-checkbox-43" name="toctree-checkbox-43" role="switch" type="checkbox"/><label for="toctree-checkbox-43"><div class="visually-hidden">Toggle navigation of 25</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/26/index.html">26</a><input class="toctree-checkbox" id="toctree-checkbox-44" name="toctree-checkbox-44" role="switch" type="checkbox"/><label for="toctree-checkbox-44"><div class="visually-hidden">Toggle navigation of 26</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/27/index.html">27</a><input class="toctree-checkbox" id="toctree-checkbox-45" name="toctree-checkbox-45" role="switch" type="checkbox"/><label for="toctree-checkbox-45"><div class="visually-hidden">Toggle navigation of 27</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/28/index.html">28</a><input class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><div class="visually-hidden">Toggle navigation of 28</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/29/index.html">29</a><input class="toctree-checkbox" id="toctree-checkbox-47" name="toctree-checkbox-47" role="switch" type="checkbox"/><label for="toctree-checkbox-47"><div class="visually-hidden">Toggle navigation of 29</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/30/index.html">30</a><input class="toctree-checkbox" id="toctree-checkbox-48" name="toctree-checkbox-48" role="switch" type="checkbox"/><label for="toctree-checkbox-48"><div class="visually-hidden">Toggle navigation of 30</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/31/index.html">31</a><input class="toctree-checkbox" id="toctree-checkbox-49" name="toctree-checkbox-49" role="switch" type="checkbox"/><label for="toctree-checkbox-49"><div class="visually-hidden">Toggle navigation of 31</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/32/index.html">32</a><input class="toctree-checkbox" id="toctree-checkbox-50" name="toctree-checkbox-50" role="switch" type="checkbox"/><label for="toctree-checkbox-50"><div class="visually-hidden">Toggle navigation of 32</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/33/index.html">33</a><input class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><div class="visually-hidden">Toggle navigation of 33</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/34/index.html">34</a><input class="toctree-checkbox" id="toctree-checkbox-52" name="toctree-checkbox-52" role="switch" type="checkbox"/><label for="toctree-checkbox-52"><div class="visually-hidden">Toggle navigation of 34</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/35/index.html">35</a><input class="toctree-checkbox" id="toctree-checkbox-53" name="toctree-checkbox-53" role="switch" type="checkbox"/><label for="toctree-checkbox-53"><div class="visually-hidden">Toggle navigation of 35</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/36/index.html">36</a><input class="toctree-checkbox" id="toctree-checkbox-54" name="toctree-checkbox-54" role="switch" type="checkbox"/><label for="toctree-checkbox-54"><div class="visually-hidden">Toggle navigation of 36</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/37/index.html">37</a><input class="toctree-checkbox" id="toctree-checkbox-55" name="toctree-checkbox-55" role="switch" type="checkbox"/><label for="toctree-checkbox-55"><div class="visually-hidden">Toggle navigation of 37</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/38/index.html">38</a><input class="toctree-checkbox" id="toctree-checkbox-56" name="toctree-checkbox-56" role="switch" type="checkbox"/><label for="toctree-checkbox-56"><div class="visually-hidden">Toggle navigation of 38</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/39/index.html">39</a><input class="toctree-checkbox" id="toctree-checkbox-57" name="toctree-checkbox-57" role="switch" type="checkbox"/><label for="toctree-checkbox-57"><div class="visually-hidden">Toggle navigation of 39</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/40/index.html">40</a><input class="toctree-checkbox" id="toctree-checkbox-58" name="toctree-checkbox-58" role="switch" type="checkbox"/><label for="toctree-checkbox-58"><div class="visually-hidden">Toggle navigation of 40</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/41/index.html">41</a><input class="toctree-checkbox" id="toctree-checkbox-59" name="toctree-checkbox-59" role="switch" type="checkbox"/><label for="toctree-checkbox-59"><div class="visually-hidden">Toggle navigation of 41</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/42/index.html">42</a><input class="toctree-checkbox" id="toctree-checkbox-60" name="toctree-checkbox-60" role="switch" type="checkbox"/><label for="toctree-checkbox-60"><div class="visually-hidden">Toggle navigation of 42</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/43/index.html">43</a><input class="toctree-checkbox" id="toctree-checkbox-61" name="toctree-checkbox-61" role="switch" type="checkbox"/><label for="toctree-checkbox-61"><div class="visually-hidden">Toggle navigation of 43</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/44/index.html">44</a><input class="toctree-checkbox" id="toctree-checkbox-62" name="toctree-checkbox-62" role="switch" type="checkbox"/><label for="toctree-checkbox-62"><div class="visually-hidden">Toggle navigation of 44</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/45/index.html">45</a><input class="toctree-checkbox" id="toctree-checkbox-63" name="toctree-checkbox-63" role="switch" type="checkbox"/><label for="toctree-checkbox-63"><div class="visually-hidden">Toggle navigation of 45</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/46/index.html">46</a><input class="toctree-checkbox" id="toctree-checkbox-64" name="toctree-checkbox-64" role="switch" type="checkbox"/><label for="toctree-checkbox-64"><div class="visually-hidden">Toggle navigation of 46</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/47/index.html">47</a><input class="toctree-checkbox" id="toctree-checkbox-65" name="toctree-checkbox-65" role="switch" type="checkbox"/><label for="toctree-checkbox-65"><div class="visually-hidden">Toggle navigation of 47</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/48/index.html">48</a><input class="toctree-checkbox" id="toctree-checkbox-66" name="toctree-checkbox-66" role="switch" type="checkbox"/><label for="toctree-checkbox-66"><div class="visually-hidden">Toggle navigation of 48</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/49/index.html">49</a><input class="toctree-checkbox" id="toctree-checkbox-67" name="toctree-checkbox-67" role="switch" type="checkbox"/><label for="toctree-checkbox-67"><div class="visually-hidden">Toggle navigation of 49</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/50/index.html">50</a><input class="toctree-checkbox" id="toctree-checkbox-68" name="toctree-checkbox-68" role="switch" type="checkbox"/><label for="toctree-checkbox-68"><div class="visually-hidden">Toggle navigation of 50</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/51/index.html">51</a><input class="toctree-checkbox" id="toctree-checkbox-69" name="toctree-checkbox-69" role="switch" type="checkbox"/><label for="toctree-checkbox-69"><div class="visually-hidden">Toggle navigation of 51</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/52/index.html">52</a><input class="toctree-checkbox" id="toctree-checkbox-70" name="toctree-checkbox-70" role="switch" type="checkbox"/><label for="toctree-checkbox-70"><div class="visually-hidden">Toggle navigation of 52</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/53/index.html">53</a><input class="toctree-checkbox" id="toctree-checkbox-71" name="toctree-checkbox-71" role="switch" type="checkbox"/><label for="toctree-checkbox-71"><div class="visually-hidden">Toggle navigation of 53</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/54/index.html">54</a><input class="toctree-checkbox" id="toctree-checkbox-72" name="toctree-checkbox-72" role="switch" type="checkbox"/><label for="toctree-checkbox-72"><div class="visually-hidden">Toggle navigation of 54</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/55/index.html">55</a><input class="toctree-checkbox" id="toctree-checkbox-73" name="toctree-checkbox-73" role="switch" type="checkbox"/><label for="toctree-checkbox-73"><div class="visually-hidden">Toggle navigation of 55</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/56/index.html">56</a><input class="toctree-checkbox" id="toctree-checkbox-74" name="toctree-checkbox-74" role="switch" type="checkbox"/><label for="toctree-checkbox-74"><div class="visually-hidden">Toggle navigation of 56</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/57/index.html">57</a><input class="toctree-checkbox" id="toctree-checkbox-75" name="toctree-checkbox-75" role="switch" type="checkbox"/><label for="toctree-checkbox-75"><div class="visually-hidden">Toggle navigation of 57</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/58/index.html">58</a><input class="toctree-checkbox" id="toctree-checkbox-76" name="toctree-checkbox-76" role="switch" type="checkbox"/><label for="toctree-checkbox-76"><div class="visually-hidden">Toggle navigation of 58</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../../../custom_pages/leaderboard/vp/marmousi/deepwave_example/shots16/case_leaderboard/59/index.html">59</a><input class="toctree-checkbox" id="toctree-checkbox-77" name="toctree-checkbox-77" role="switch" type="checkbox"/><label for="toctree-checkbox-77"><div class="visually-hidden">Toggle navigation of 59</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-78" name="toctree-checkbox-78" role="switch" type="checkbox"/><label for="toctree-checkbox-78"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../factory/index.html">factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../metadata/index.html">metadata</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html">misfit_toys</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-79" name="toctree-checkbox-79" role="switch" type="checkbox"/><label for="toctree-checkbox-79"><div class="visually-hidden">Toggle navigation of misfit_toys</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../beta/index.html">misfit_toys.beta</a><input class="toctree-checkbox" id="toctree-checkbox-80" name="toctree-checkbox-80" role="switch" type="checkbox"/><label for="toctree-checkbox-80"><div class="visually-hidden">Toggle navigation of misfit_toys.beta</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../beta/data/index.html">misfit_toys.beta.data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/helpers/index.html">misfit_toys.beta.helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/l1/index.html">misfit_toys.beta.l1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/loss/index.html">misfit_toys.beta.loss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/main/index.html">misfit_toys.beta.main</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/opt/index.html">misfit_toys.beta.opt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/optimizers/index.html">misfit_toys.beta.optimizers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/plotter/index.html">misfit_toys.beta.plotter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/postprocess/index.html">misfit_toys.beta.postprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/prob/index.html">misfit_toys.beta.prob</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/renorm/index.html">misfit_toys.beta.renorm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/sobolev/index.html">misfit_toys.beta.sobolev</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/steps/index.html">misfit_toys.beta.steps</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../beta/w1/index.html">misfit_toys.beta.w1</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../data/index.html">misfit_toys.data</a><input class="toctree-checkbox" id="toctree-checkbox-81" name="toctree-checkbox-81" role="switch" type="checkbox"/><label for="toctree-checkbox-81"><div class="visually-hidden">Toggle navigation of misfit_toys.data</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../data/custom/index.html">misfit_toys.data.custom</a><input class="toctree-checkbox" id="toctree-checkbox-82" name="toctree-checkbox-82" role="switch" type="checkbox"/><label for="toctree-checkbox-82"><div class="visually-hidden">Toggle navigation of misfit_toys.data.custom</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../data/custom/factory/index.html">misfit_toys.data.custom.factory</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../data/custom/metadata/index.html">misfit_toys.data.custom.metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../data/das_curtin/index.html">misfit_toys.data.das_curtin</a><input class="toctree-checkbox" id="toctree-checkbox-83" name="toctree-checkbox-83" role="switch" type="checkbox"/><label for="toctree-checkbox-83"><div class="visually-hidden">Toggle navigation of misfit_toys.data.das_curtin</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../data/das_curtin/factory/index.html">misfit_toys.data.das_curtin.factory</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../data/das_curtin/metadata/index.html">misfit_toys.data.das_curtin.metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../data/marmousi/index.html">misfit_toys.data.marmousi</a><input class="toctree-checkbox" id="toctree-checkbox-84" name="toctree-checkbox-84" role="switch" type="checkbox"/><label for="toctree-checkbox-84"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../data/marmousi/deepwave_example/index.html">misfit_toys.data.marmousi.deepwave_example</a><input class="toctree-checkbox" id="toctree-checkbox-85" name="toctree-checkbox-85" role="switch" type="checkbox"/><label for="toctree-checkbox-85"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi.deepwave_example</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/index.html">misfit_toys.data.marmousi.deepwave_example.shots16</a><input class="toctree-checkbox" id="toctree-checkbox-86" name="toctree-checkbox-86" role="switch" type="checkbox"/><label for="toctree-checkbox-86"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi.deepwave_example.shots16</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer</a><input class="toctree-checkbox" id="toctree-checkbox-87" name="toctree-checkbox-87" role="switch" type="checkbox"/><label for="toctree-checkbox-87"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi.deepwave_example.shots16.twolayer</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l8"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer/factory/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer_strong/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_strong</a><input class="toctree-checkbox" id="toctree-checkbox-88" name="toctree-checkbox-88" role="switch" type="checkbox"/><label for="toctree-checkbox-88"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_strong</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l8"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer_strong/factory/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_strong.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l7 has-children"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer_verystrong/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong</a><input class="toctree-checkbox" id="toctree-checkbox-89" name="toctree-checkbox-89" role="switch" type="checkbox"/><label for="toctree-checkbox-89"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l8"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/twolayer_verystrong/factory/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="../data/marmousi/deepwave_example/shots16/factory/index.html">misfit_toys.data.marmousi.deepwave_example.shots16.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="../data/marmousi/deepwave_example/factory/index.html">misfit_toys.data.marmousi.deepwave_example.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../data/marmousi/factory/index.html">misfit_toys.data.marmousi.factory</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../data/marmousi/metadata/index.html">misfit_toys.data.marmousi.metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../data/marmousi2/index.html">misfit_toys.data.marmousi2</a><input class="toctree-checkbox" id="toctree-checkbox-90" name="toctree-checkbox-90" role="switch" type="checkbox"/><label for="toctree-checkbox-90"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi2</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../data/marmousi2/medium/index.html">misfit_toys.data.marmousi2.medium</a><input class="toctree-checkbox" id="toctree-checkbox-91" name="toctree-checkbox-91" role="switch" type="checkbox"/><label for="toctree-checkbox-91"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi2.medium</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../data/marmousi2/medium/factory/index.html">misfit_toys.data.marmousi2.medium.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../data/marmousi2/tiny/index.html">misfit_toys.data.marmousi2.tiny</a><input class="toctree-checkbox" id="toctree-checkbox-92" name="toctree-checkbox-92" role="switch" type="checkbox"/><label for="toctree-checkbox-92"><div class="visually-hidden">Toggle navigation of misfit_toys.data.marmousi2.tiny</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../data/marmousi2/tiny/factory/index.html">misfit_toys.data.marmousi2.tiny.factory</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../data/marmousi2/factory/index.html">misfit_toys.data.marmousi2.factory</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../data/marmousi2/metadata/index.html">misfit_toys.data.marmousi2.metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../data/dataset/index.html">misfit_toys.data.dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../data/download_data/index.html">misfit_toys.data.download_data</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../examples/index.html">misfit_toys.examples</a><input class="toctree-checkbox" id="toctree-checkbox-93" name="toctree-checkbox-93" role="switch" type="checkbox"/><label for="toctree-checkbox-93"><div class="visually-hidden">Toggle navigation of misfit_toys.examples</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../examples/forward/index.html">misfit_toys.examples.forward</a><input class="toctree-checkbox" id="toctree-checkbox-94" name="toctree-checkbox-94" role="switch" type="checkbox"/><label for="toctree-checkbox-94"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.forward</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../examples/forward/twolayer/index.html">misfit_toys.examples.forward.twolayer</a><input class="toctree-checkbox" id="toctree-checkbox-95" name="toctree-checkbox-95" role="switch" type="checkbox"/><label for="toctree-checkbox-95"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.forward.twolayer</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../examples/forward/twolayer/main/index.html">misfit_toys.examples.forward.twolayer.main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../examples/hydra/index.html">misfit_toys.examples.hydra</a><input class="toctree-checkbox" id="toctree-checkbox-96" name="toctree-checkbox-96" role="switch" type="checkbox"/><label for="toctree-checkbox-96"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.hydra</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../examples/hydra/main/index.html">misfit_toys.examples.hydra.main</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../examples/marmousi/index.html">misfit_toys.examples.marmousi</a><input class="toctree-checkbox" id="toctree-checkbox-97" name="toctree-checkbox-97" role="switch" type="checkbox"/><label for="toctree-checkbox-97"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.marmousi</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../examples/marmousi/alan/index.html">misfit_toys.examples.marmousi.alan</a><input class="toctree-checkbox" id="toctree-checkbox-98" name="toctree-checkbox-98" role="switch" type="checkbox"/><label for="toctree-checkbox-98"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.marmousi.alan</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../examples/marmousi/alan/forward/index.html">misfit_toys.examples.marmousi.alan.forward</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../examples/marmousi/alan/fwi/index.html">misfit_toys.examples.marmousi.alan.fwi</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../examples/marmousi/alan/fwi_parallel/index.html">misfit_toys.examples.marmousi.alan.fwi_parallel</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../examples/marmousi/val/index.html">misfit_toys.examples.marmousi.val</a><input class="toctree-checkbox" id="toctree-checkbox-99" name="toctree-checkbox-99" role="switch" type="checkbox"/><label for="toctree-checkbox-99"><div class="visually-hidden">Toggle navigation of misfit_toys.examples.marmousi.val</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../examples/marmousi/val/fwi_parallel/index.html">misfit_toys.examples.marmousi.val.fwi_parallel</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../examples/marmousi/validate/index.html">misfit_toys.examples.marmousi.validate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../fwi/index.html">misfit_toys.fwi</a><input class="toctree-checkbox" id="toctree-checkbox-100" name="toctree-checkbox-100" role="switch" type="checkbox"/><label for="toctree-checkbox-100"><div class="visually-hidden">Toggle navigation of misfit_toys.fwi</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../fwi/loss/index.html">misfit_toys.fwi.loss</a><input class="toctree-checkbox" id="toctree-checkbox-101" name="toctree-checkbox-101" role="switch" type="checkbox"/><label for="toctree-checkbox-101"><div class="visually-hidden">Toggle navigation of misfit_toys.fwi.loss</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../fwi/loss/renorm/index.html">misfit_toys.fwi.loss.renorm</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../fwi/loss/tikhonov/index.html">misfit_toys.fwi.loss.tikhonov</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../fwi/loss/w2/index.html">misfit_toys.fwi.loss.w2</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../fwi/models/index.html">misfit_toys.fwi.models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../fwi/seismic_data/index.html">misfit_toys.fwi.seismic_data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../fwi/training/index.html">misfit_toys.fwi.training</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../hydra/index.html">misfit_toys.hydra</a><input class="toctree-checkbox" id="toctree-checkbox-102" name="toctree-checkbox-102" role="switch" type="checkbox"/><label for="toctree-checkbox-102"><div class="visually-hidden">Toggle navigation of misfit_toys.hydra</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../hydra/helpers/index.html">misfit_toys.hydra.helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hydra/main/index.html">misfit_toys.hydra.main</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hydra/main_worker/index.html">misfit_toys.hydra.main_worker</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../workflows/index.html">misfit_toys.workflows</a><input class="toctree-checkbox" id="toctree-checkbox-103" name="toctree-checkbox-103" role="switch" type="checkbox"/><label for="toctree-checkbox-103"><div class="visually-hidden">Toggle navigation of misfit_toys.workflows</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../workflows/tik/index.html">misfit_toys.workflows.tik</a><input class="toctree-checkbox" id="toctree-checkbox-104" name="toctree-checkbox-104" role="switch" type="checkbox"/><label for="toctree-checkbox-104"><div class="visually-hidden">Toggle navigation of misfit_toys.workflows.tik</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../workflows/tik/steps/index.html">misfit_toys.workflows.tik.steps</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../workflows/stages/index.html">misfit_toys.workflows.stages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../swiffer/index.html">misfit_toys.swiffer</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">misfit_toys.utils</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+            </div>
+            
+        </div>
+    </aside>
+    <div class="main">
+        <div class="content">
+            <div class="article-container">
+                <a href="#" class="back-to-top muted-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+                    </svg>
+                    <span>Back to top</span>
+                </a>
+                <div class="content-icon-container">
+                    <div class="view-this-page">
+  <a class="muted-link" href="../../../_sources/autoapi/misfit_toys/utils/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+                        <button class="theme-toggle">
+                            <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+                            <svg class="theme-icon-when-auto-light">
+                                <use href="#svg-sun-with-moon"></use>
+                            </svg>
+                            <svg class="theme-icon-when-auto-dark">
+                                <use href="#svg-moon-with-sun"></use>
+                            </svg>
+                            <svg class="theme-icon-when-dark">
+                                <use href="#svg-moon"></use>
+                            </svg>
+                            <svg class="theme-icon-when-light">
+                                <use href="#svg-sun"></use>
+                            </svg>
+                        </button>
+                    </div>
+                    <label class="toc-overlay-icon toc-content-icon"
+                        for="__toc">
+                        <div class="visually-hidden">Toggle table of contents sidebar</div>
+                        <i class="icon"><svg>
+                                <use href="#svg-toc"></use>
+                            </svg></i>
+                    </label>
+                </div>
+                <article role="main" id="furo-main-content">
+                    <section id="module-misfit_toys.utils">
+<span id="misfit-toys-utils"></span><h1>misfit_toys.utils<a class="headerlink" href="#module-misfit_toys.utils" title="Link to this heading">¶</a></h1>
+<p>Utility functions, many of which are deprecated or not used in current state of code.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.SlotMeta" title="misfit_toys.utils.SlotMeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlotMeta</span></code></a></p></td>
+<td><p>Metaclass that adds default annotations and __slots__ attribute to a class.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.find_available_port" title="misfit_toys.utils.find_available_port"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_available_port</span></code></a>(start_port[, max_attempts])</p></td>
+<td><p>Finds an available port starting from the given start_port.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.setup" title="misfit_toys.utils.setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code></a>(rank, world_size[, port])</p></td>
+<td><p>Set up the distributed training environment.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.cleanup" title="misfit_toys.utils.cleanup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cleanup</span></code></a>()</p></td>
+<td><p>Cleans up the process group.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.get_file" title="misfit_toys.utils.get_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_file</span></code></a>(name, *[, rank, path, ext])</p></td>
+<td><p>Get the file path for saving or loading a tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.load" title="misfit_toys.utils.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(name, *[, rank, path, ext])</p></td>
+<td><p>Load a tensor from a file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.load_all" title="misfit_toys.utils.load_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_all</span></code></a>(name, *[, world_size, path, ext])</p></td>
+<td><p>Load tensors from multiple files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.save" title="misfit_toys.utils.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(tensor, name, *[, rank, path, ext])</p></td>
+<td><p>Save a tensor to a file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.savefig" title="misfit_toys.utils.savefig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">savefig</span></code></a>(name, *[, path, ext])</p></td>
+<td><p>Save the current figure to a file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.filt" title="misfit_toys.utils.filt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filt</span></code></a>(x, sos)</p></td>
+<td><p>Apply a biquad filter to the input signal.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.parse_path" title="misfit_toys.utils.parse_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_path</span></code></a>(path)</p></td>
+<td><p>Parse the input path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.auto_path" title="misfit_toys.utils.auto_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auto_path</span></code></a>([kw_path, make_dir])</p></td>
+<td><p>Decorator to automatically parse and create directories for file paths.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.get_pydict" title="misfit_toys.utils.get_pydict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pydict</span></code></a>(path, *[, filename, as_class])</p></td>
+<td><p>Get a Python dictionary from a file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.gaussian_perturb" title="misfit_toys.utils.gaussian_perturb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gaussian_perturb</span></code></a>(ref, scaled_sigma, scaled_mu[, scale])</p></td>
+<td><p>Generate a Gaussian perturbation based on a reference tensor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.verbosity_str_to_int" title="misfit_toys.utils.verbosity_str_to_int"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verbosity_str_to_int</span></code></a>(*, verbosity, levels)</p></td>
+<td><p>Convert a verbosity string to an integer value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.clean_levels" title="misfit_toys.utils.clean_levels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clean_levels</span></code></a>(levels)</p></td>
+<td><p>Clean and validate the verbosity levels.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.run_verbosity" title="misfit_toys.utils.run_verbosity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_verbosity</span></code></a>(*, verbosity, levels)</p></td>
+<td><p>Decorator to control the verbosity of a function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.mem_report" title="misfit_toys.utils.mem_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mem_report</span></code></a>(*args[, precision, sep, rep])</p></td>
+<td><p>Generate a memory report.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.full_mem_report" title="misfit_toys.utils.full_mem_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">full_mem_report</span></code></a>([precision, sep, rep, title])</p></td>
+<td><p>Generate a full memory report.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.taper" title="misfit_toys.utils.taper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">taper</span></code></a>(x[, length])</p></td>
+<td><p>Apply a cosine taper to the ends of a signal.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.downsample_any" title="misfit_toys.utils.downsample_any"><code class="xref py py-obj docutils literal notranslate"><span class="pre">downsample_any</span></code></a>(u, ratios)</p></td>
+<td><p>Downsample a tensor along any dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.idt_print" title="misfit_toys.utils.idt_print"><code class="xref py py-obj docutils literal notranslate"><span class="pre">idt_print</span></code></a>(*args[, levels, idt])</p></td>
+<td><p>Print indented text with different indentation levels.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.canonical_tensors" title="misfit_toys.utils.canonical_tensors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_tensors</span></code></a>([exclude, extra])</p></td>
+<td><p>Get the canonical tensor names.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.canonical_reduce" title="misfit_toys.utils.canonical_reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_reduce</span></code></a>([reduce, exclude, extra])</p></td>
+<td><p>Get the canonical reduce operations for each tensor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.see_data" title="misfit_toys.utils.see_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">see_data</span></code></a>(path[, cmap])</p></td>
+<td><p>Visualize data stored in .pt files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.check_devices" title="misfit_toys.utils.check_devices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_devices</span></code></a>(root)</p></td>
+<td><p>Check the devices used for storing tensors.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.bool_slice" title="misfit_toys.utils.bool_slice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool_slice</span></code></a>(*args[, permute, none_dims, ctrl, strides, ...])</p></td>
+<td><p>Generate boolean slices based on the given arguments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.clean_idx" title="misfit_toys.utils.clean_idx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clean_idx</span></code></a>(idx[, show_colons])</p></td>
+<td><p>Cleans up the given index by converting it to a string representation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.tensor_summary" title="misfit_toys.utils.tensor_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor_summary</span></code></a>(t[, num, inc, exc])</p></td>
+<td><p>Summarizes the properties of a tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.pull_data" title="misfit_toys.utils.pull_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pull_data</span></code></a>(path)</p></td>
+<td><p>Loads data from the specified path.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.mean_filter_1d" title="misfit_toys.utils.mean_filter_1d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mean_filter_1d</span></code></a>(y, kernel_size)</p></td>
+<td><p>Applies a 1-dimensional mean filter to the input tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.get_tensors" title="misfit_toys.utils.get_tensors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tensors</span></code></a>(path[, device])</p></td>
+<td><p>Loads tensors from files in the specified path and returns them as a dictionary.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.d2cpu" title="misfit_toys.utils.d2cpu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">d2cpu</span></code></a>(x)</p></td>
+<td><p>Moves a tensor from GPU to CPU and detaches it from the computation graph.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.chunk_params" title="misfit_toys.utils.chunk_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chunk_params</span></code></a>(rank, world_size, *, params, chunk_keys)</p></td>
+<td><p>Chunks the parameters based on the rank and world size.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.chunk_tensors" title="misfit_toys.utils.chunk_tensors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chunk_tensors</span></code></a>(rank, world_size, *, data, chunk_keys)</p></td>
+<td><p>Chunks the tensors based on the rank and world size.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.deploy_data" title="misfit_toys.utils.deploy_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deploy_data</span></code></a>(rank, data)</p></td>
+<td><p>Deploys the data to the specified rank.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.chunk_and_deploy" title="misfit_toys.utils.chunk_and_deploy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chunk_and_deploy</span></code></a>(rank, world_size, *, data, chunk_keys)</p></td>
+<td><p>Chunks and deploys the data based on the rank and world size.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.read_and_chunk" title="misfit_toys.utils.read_and_chunk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_and_chunk</span></code></a>(*, path, rank, world_size, chunk_keys)</p></td>
+<td><p>Read data from a given path, perform remapping and transformations, and chunk the data for distributed processing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.get_gpu_memory" title="misfit_toys.utils.get_gpu_memory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gpu_memory</span></code></a>(rank)</p></td>
+<td><p>Retrieves the GPU memory information for the specified GPU device.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.apply_builder" title="misfit_toys.utils.apply_builder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_builder</span></code></a>(lcl, gbl)</p></td>
+<td><p>Applies the builder to create and return an object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.apply" title="misfit_toys.utils.apply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code></a>(lcl[, relax])</p></td>
+<td><p>Applies the given local variables (<cite>lcl</cite>) to a runtime function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.apply_all" title="misfit_toys.utils.apply_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_all</span></code></a>(lcl[, relax, exc])</p></td>
+<td><p>Recursively applies the <cite>apply</cite> function to all values in a dictionary or DotDict.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.resolve" title="misfit_toys.utils.resolve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve</span></code></a>(→ mh.core.DotDict)</p></td>
+<td><p>Resolves the given DotDict object by executing imports and resolving self-references.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#misfit_toys.utils.git_dump_info" title="misfit_toys.utils.git_dump_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">git_dump_info</span></code></a>([exc])</p></td>
+<td><p>Retrieves information about the Git repository.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#misfit_toys.utils.all_detached_cpu" title="misfit_toys.utils.all_detached_cpu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_detached_cpu</span></code></a>(d)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.find_available_port">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">find_available_port</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_port</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_attempts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#find_available_port"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.find_available_port" title="Link to this definition">¶</a></dt>
+<dd><p>Finds an available port starting from the given start_port.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start_port</strong> (<em>int</em>) – The port number to start searching from.</p></li>
+<li><p><strong>max_attempts</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of attempts to find an available port. Defaults to 5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The first available port number found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>OSError</strong> – If an error occurs while attempting to bind to a port.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.setup">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12358</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.setup" title="Link to this definition">¶</a></dt>
+<dd><p>Set up the distributed training environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rank</strong> (<em>int</em>) – The rank of the current process.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em>) – The total number of processes.</p></li>
+<li><p><strong>port</strong> (<em>int</em><em>, </em><em>optional</em>) – The port number for communication. Defaults to 12355.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.cleanup">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#cleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.cleanup" title="Link to this definition">¶</a></dt>
+<dd><p>Cleans up the process group.</p>
+<p>This function destroys the process group using the <cite>dist.destroy_process_group()</cite> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.get_file">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">get_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.pt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#get_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.get_file" title="Link to this definition">¶</a></dt>
+<dd><p>Get the file path for saving or loading a tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the file.</p></li>
+<li><p><strong>rank</strong> (<em>str</em><em>, </em><em>optional</em>) – The rank of the current process. Defaults to “”.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory path. Defaults to “out/parallel”.</p></li>
+<li><p><strong>ext</strong> (<em>str</em><em>, </em><em>optional</em>) – The file extension. Defaults to “.pt”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The file path.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.load">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.pt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.load" title="Link to this definition">¶</a></dt>
+<dd><p>Load a tensor from a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the file.</p></li>
+<li><p><strong>rank</strong> (<em>str</em><em>, </em><em>optional</em>) – The rank of the current process. Defaults to “”.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory path. Defaults to “out/parallel”.</p></li>
+<li><p><strong>ext</strong> (<em>str</em><em>, </em><em>optional</em>) – The file extension. Defaults to “.pt”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The loaded tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.load_all">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">load_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.pt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#load_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.load_all" title="Link to this definition">¶</a></dt>
+<dd><p>Load tensors from multiple files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the file.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The total number of processes. Defaults to 0.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory path. Defaults to “out/parallel”.</p></li>
+<li><p><strong>ext</strong> (<em>str</em><em>, </em><em>optional</em>) – The file extension. Defaults to “.pt”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The loaded tensor or a list of loaded tensors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[torch.Tensor, List[torch.Tensor]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.save">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.pt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.save" title="Link to this definition">¶</a></dt>
+<dd><p>Save a tensor to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>torch.Tensor</em>) – The tensor to be saved.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – The name of the file.</p></li>
+<li><p><strong>rank</strong> (<em>str</em><em>, </em><em>optional</em>) – The rank of the current process. Defaults to “”.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory path. Defaults to “out/parallel”.</p></li>
+<li><p><strong>ext</strong> (<em>str</em><em>, </em><em>optional</em>) – The file extension. Defaults to “.pt”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.savefig">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">savefig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/parallel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.pt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#savefig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.savefig" title="Link to this definition">¶</a></dt>
+<dd><p>Save the current figure to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the file.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory path. Defaults to “out/parallel”.</p></li>
+<li><p><strong>ext</strong> (<em>str</em><em>, </em><em>optional</em>) – The file extension. Defaults to “.pt”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.filt">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">filt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sos</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#filt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.filt" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a biquad filter to the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – The input signal.</p></li>
+<li><p><strong>sos</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>float</em><em>]</em><em>]</em>) – The second-order sections of the filter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The filtered signal.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.parse_path">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">parse_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#parse_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.parse_path" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the input path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – The input path.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parsed path.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.auto_path">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">auto_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kw_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'path'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#auto_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.auto_path" title="Link to this definition">¶</a></dt>
+<dd><p>Decorator to automatically parse and create directories for file paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kw_path</strong> (<em>str</em><em>, </em><em>optional</em>) – The keyword argument name for the file path. Defaults to “path”.</p></li>
+<li><p><strong>make_dir</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to create the directory if it doesn’t exist. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decorator function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.get_pydict">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">get_pydict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'metadata'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#get_pydict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.get_pydict" title="Link to this definition">¶</a></dt>
+<dd><p>Get a Python dictionary from a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The file path.</p></li>
+<li><p><strong>filename</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the file. Defaults to “metadata”.</p></li>
+<li><p><strong>as_class</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return the dictionary as a DotDict object. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Python dictionary.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[dict, DotDict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.gaussian_perturb">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">gaussian_perturb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaled_sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaled_mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#gaussian_perturb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.gaussian_perturb" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a Gaussian perturbation based on a reference tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<em>torch.Tensor</em>) – The reference tensor.</p></li>
+<li><p><strong>scaled_sigma</strong> (<em>float</em>) – The scaled standard deviation of the Gaussian distribution.</p></li>
+<li><p><strong>scaled_mu</strong> (<em>float</em>) – The scaled mean of the Gaussian distribution.</p></li>
+<li><p><strong>scale</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to scale the perturbation based on the maximum absolute value of the reference tensor. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The perturbed tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.verbosity_str_to_int">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">verbosity_str_to_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#verbosity_str_to_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.verbosity_str_to_int" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a verbosity string to an integer value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>verbosity</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em>) – The verbosity level as an integer or string.</p></li>
+<li><p><strong>levels</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>]</em>) – The list of verbosity levels and their corresponding names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The converted verbosity level as an integer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the verbosity value is not recognized.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.clean_levels">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">clean_levels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#clean_levels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.clean_levels" title="Link to this definition">¶</a></dt>
+<dd><p>Clean and validate the verbosity levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>levels</strong> (<em>List</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>]</em><em>]</em>) – The list of verbosity levels.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The cleaned and validated verbosity levels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Tuple[int, List[str]]]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the levels are not in the correct format.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.run_verbosity">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">run_verbosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#run_verbosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.run_verbosity" title="Link to this definition">¶</a></dt>
+<dd><p>Decorator to control the verbosity of a function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>verbosity</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em>) – The verbosity level as an integer or string.</p></li>
+<li><p><strong>levels</strong> (<em>List</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>]</em><em>]</em>) – The list of verbosity levels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decorator function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.mem_report">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">mem_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">',</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#mem_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.mem_report" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a memory report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>float</em>) – The memory values to be reported.</p></li>
+<li><p><strong>precision</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of decimal places for the memory values. Defaults to 2.</p></li>
+<li><p><strong>sep</strong> (<em>str</em><em>, </em><em>optional</em>) – The separator between memory values. Defaults to “, “.</p></li>
+<li><p><strong>rep</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The labels for the memory values. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The memory report.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.full_mem_report">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">full_mem_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">',</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('free',</span> <span class="pre">'total')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#full_mem_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.full_mem_report" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a full memory report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>precision</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of decimal places for the memory values. Defaults to 2.</p></li>
+<li><p><strong>sep</strong> (<em>str</em><em>, </em><em>optional</em>) – The separator between memory values. Defaults to “, “.</p></li>
+<li><p><strong>rep</strong> (<em>Tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The labels for the memory values. Defaults to (“free”, “total”).</p></li>
+<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – The title of the memory report. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The full memory report.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.taper">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">taper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#taper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.taper" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a cosine taper to the ends of a signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – The input signal.</p></li>
+<li><p><strong>length</strong> (<em>int</em><em>, </em><em>optional</em>) – The length of the taper. Defaults to 100.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The tapered signal.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.downsample_any">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">downsample_any</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratios</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#downsample_any"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.downsample_any" title="Link to this definition">¶</a></dt>
+<dd><p>Downsample a tensor along any dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>torch.Tensor</em>) – The input tensor.</p></li>
+<li><p><strong>ratios</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – The downsampling ratios for each dimension.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The downsampled tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>AssertionError</strong> – If the number of ratios does not match the number of dimensions.</p></li>
+<li><p><strong>AssertionError</strong> – If any ratio is not a positive integer.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="misfit_toys.utils.SlotMeta">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">SlotMeta</span></span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#SlotMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.SlotMeta" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></p>
+<p>Metaclass that adds default annotations and __slots__ attribute to a class.</p>
+<p>This metaclass is used to automatically add default annotations and define the __slots__
+attribute for a class. It extracts the variable names from the annotations and finds
+attributes that are not methods, not in special names, and not already annotated. It then
+adds default annotations for these non-annotated attributes and removes them from the class
+dictionary. Finally, it creates the __slots__ attribute from the updated annotations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="misfit_toys.utils.SlotMeta.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#misfit_toys.utils.SlotMeta.None" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="misfit_toys.utils.SlotMeta.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#SlotMeta.__new__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.SlotMeta.__new__" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a new class with default annotations and __slots__ attribute.</p>
+</dd></dl>
+
+<dl class="simple">
+<dt>Example usage:</dt><dd><dl class="simple">
+<dt>class MyClass(metaclass=SlotMeta):</dt><dd><p>attr1: int
+attr2: str
+…</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.idt_print">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">idt_print</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'</span>&#160;&#160;&#160; <span class="pre">'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#idt_print"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.idt_print" title="Link to this definition">¶</a></dt>
+<dd><p>Print indented text with different indentation levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>str</em>) – The text to be printed.</p></li>
+<li><p><strong>levels</strong> (<em>List</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – The indentation levels for each text. Defaults to None.</p></li>
+<li><p><strong>idt</strong> (<em>str</em><em>, </em><em>optional</em>) – The indentation string. Defaults to “    “.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The indented text.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.canonical_tensors">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">canonical_tensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#canonical_tensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.canonical_tensors" title="Link to this definition">¶</a></dt>
+<dd><p>Get the canonical tensor names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exclude</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The tensor names to be excluded. Defaults to None.</p></li>
+<li><p><strong>extra</strong> (<em>List</em><em>[</em><em>Union</em><em>[</em><em>str</em><em>, </em><em>Tuple</em><em>[</em><em>str</em><em>, </em><em>bool</em><em>]</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Additional tensor names to be included. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The canonical tensor names.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.canonical_reduce">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">canonical_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#canonical_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.canonical_reduce" title="Link to this definition">¶</a></dt>
+<dd><p>Get the canonical reduce operations for each tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reduce</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Custom reduce operations for specific tensors. Defaults to None.</p></li>
+<li><p><strong>exclude</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – The tensor names to be excluded. Defaults to None.</p></li>
+<li><p><strong>extra</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Additional tensor names and their reduce operations to be included. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The canonical reduce operations for each tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.see_data">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">see_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nipy_spectral'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#see_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.see_data" title="Link to this definition">¶</a></dt>
+<dd><p>Visualize data stored in .pt files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The directory path.</p></li>
+<li><p><strong>cmap</strong> (<em>str</em><em>, </em><em>optional</em>) – The colormap for visualization. Defaults to ‘nipy_spectral’.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.check_devices">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">check_devices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#check_devices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.check_devices" title="Link to this definition">¶</a></dt>
+<dd><p>Check the devices used for storing tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>root</strong> (<em>str</em>) – The root directory path.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.bool_slice">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">bool_slice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#bool_slice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.bool_slice" title="Link to this definition">¶</a></dt>
+<dd><p>Generate boolean slices based on the given arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> – Variable length arguments representing the dimensions of the boolean slices.</p></li>
+<li><p><strong>permute</strong> (<em>list</em>) – A list specifying the order in which the dimensions should be permuted.</p></li>
+<li><p><strong>none_dims</strong> (<em>tuple</em>) – A tuple containing the indices of dimensions that should be treated as None.</p></li>
+<li><p><strong>ctrl</strong> (<em>function</em>) – A function that takes in the indices and arguments and returns a boolean value.</p></li>
+<li><p><strong>strides</strong> (<em>list</em>) – A list specifying the strides for each dimension.</p></li>
+<li><p><strong>start</strong> (<em>list</em>) – A list specifying the starting indices for each dimension.</p></li>
+<li><p><strong>cut</strong> (<em>list</em>) – A list specifying the cut values for each dimension.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – A boolean value indicating whether to print verbose output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>tuple</em> – A tuple containing the boolean slice indices and the result of the control function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.clean_idx">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">clean_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_colons</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#clean_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.clean_idx" title="Link to this definition">¶</a></dt>
+<dd><p>Cleans up the given index by converting it to a string representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> (<em>list</em>) – The index to clean up.</p></li>
+<li><p><strong>show_colons</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to include colons in the string representation.
+Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The cleaned up string representation of the index.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.tensor_summary">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">tensor_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#tensor_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.tensor_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Summarizes the properties of a tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>torch.Tensor</em>) – The input tensor.</p></li>
+<li><p><strong>num</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of top and bottom values to include in the summary. Defaults to 5.</p></li>
+<li><p><strong>inc</strong> (<em>list</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – The properties to include in the summary. Defaults to ‘all’.</p></li>
+<li><p><strong>exc</strong> (<em>list</em><em>, </em><em>optional</em>) – The properties to exclude from the summary. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A string containing the summary of the tensor properties.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.pull_data">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">pull_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#pull_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.pull_data" title="Link to this definition">¶</a></dt>
+<dd><p>Loads data from the specified path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – The path to the directory containing the data files.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary-like object containing the loaded data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DotDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.mean_filter_1d">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">mean_filter_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#mean_filter_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.mean_filter_1d" title="Link to this definition">¶</a></dt>
+<dd><p>Applies a 1-dimensional mean filter to the input tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>torch.Tensor</em>) – The input tensor to be filtered.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – The size of the kernel for the mean filter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The filtered output tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>None</strong> – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">input_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filtered_tensor</span> <span class="o">=</span> <span class="n">mean_filter_1d</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">filtered_tensor</span><span class="p">)</span>
+<span class="go">tensor([2., 3., 4., 3., 2.])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.get_tensors">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">get_tensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#get_tensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.get_tensors" title="Link to this definition">¶</a></dt>
+<dd><p>Loads tensors from files in the specified path and returns them as a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The path to the directory containing the tensor files.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – The device to move the loaded tensors to. Defaults to ‘cpu’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary where the keys are the filenames (without the file extension) and the values are the loaded tensors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.d2cpu">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">d2cpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#d2cpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.d2cpu" title="Link to this definition">¶</a></dt>
+<dd><p>Moves a tensor from GPU to CPU and detaches it from the computation graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – The input tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The tensor moved to CPU and detached from the computation graph.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.chunk_params">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">chunk_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#chunk_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.chunk_params" title="Link to this definition">¶</a></dt>
+<dd><p>Chunks the parameters based on the rank and world size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rank</strong> (<em>int</em>) – The rank of the current process.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em>) – The total number of processes.</p></li>
+<li><p><strong>params</strong> (<em>dict</em>) – A dictionary containing the parameters.</p></li>
+<li><p><strong>chunk_keys</strong> (<em>list</em>) – A list of keys to chunk.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the chunked parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.chunk_tensors">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">chunk_tensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#chunk_tensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.chunk_tensors" title="Link to this definition">¶</a></dt>
+<dd><p>Chunks the tensors based on the rank and world size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rank</strong> (<em>int</em>) – The rank of the current process.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em>) – The total number of processes.</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – A dictionary containing the tensors.</p></li>
+<li><p><strong>chunk_keys</strong> (<em>list</em>) – A list of keys to chunk.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the chunked tensors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.deploy_data">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">deploy_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#deploy_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.deploy_data" title="Link to this definition">¶</a></dt>
+<dd><p>Deploys the data to the specified rank.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rank</strong> (<em>int</em>) – The rank to deploy the data to.</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – A dictionary containing the data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the deployed data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.chunk_and_deploy">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">chunk_and_deploy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#chunk_and_deploy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.chunk_and_deploy" title="Link to this definition">¶</a></dt>
+<dd><p>Chunks and deploys the data based on the rank and world size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rank</strong> (<em>int</em>) – The rank of the current process.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em>) – The total number of processes.</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – A dictionary containing the data.</p></li>
+<li><p><strong>chunk_keys</strong> (<em>dict</em>) – A dictionary containing the keys to chunk.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the chunked and deployed data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.read_and_chunk">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">read_and_chunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">world_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#read_and_chunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.read_and_chunk" title="Link to this definition">¶</a></dt>
+<dd><p>Read data from a given path, perform remapping and transformations, and chunk the data for distributed processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The path to the data.</p></li>
+<li><p><strong>rank</strong> (<em>int</em>) – The rank of the current process.</p></li>
+<li><p><strong>world_size</strong> (<em>int</em>) – The total number of processes.</p></li>
+<li><p><strong>chunk_keys</strong> (<em>list</em>) – A list of keys to chunk the data.</p></li>
+<li><p><strong>remap</strong> (<em>dict</em><em>, </em><em>optional</em>) – A dictionary to remap the keys of the data. Defaults to None.</p></li>
+<li><p><strong>**kw</strong> – Additional keyword arguments for transformations.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The processed data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.get_gpu_memory">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">get_gpu_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#get_gpu_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.get_gpu_memory" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieves the GPU memory information for the specified GPU device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rank</strong> (<em>int</em>) – The rank of the GPU device.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary containing the GPU memory information.</dt><dd><ul class="simple">
+<li><p>’rank’ (int): The rank of the GPU device.</p></li>
+<li><p>’total_memory_GB’ (float): The total GPU memory in gigabytes (GB).</p></li>
+<li><p>’allocated_memory_GB’ (float): The currently allocated GPU memory in gigabytes (GB).</p></li>
+<li><p>’cached_memory_GB’ (float): The GPU memory reserved for caching in gigabytes (GB).</p></li>
+<li><p>’available_memory_GB’ (float): The available GPU memory in gigabytes (GB).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.apply_builder">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">apply_builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lcl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gbl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#apply_builder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.apply_builder" title="Link to this definition">¶</a></dt>
+<dd><p>Applies the builder to create and return an object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lcl</strong> (<em>dict</em>) – The local namespace dictionary.</p></li>
+<li><p><strong>gbl</strong> (<em>dict</em>) – The global namespace dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.apply">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lcl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.apply" title="Link to this definition">¶</a></dt>
+<dd><p>Applies the given local variables (<cite>lcl</cite>) to a runtime function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lcl</strong> (<em>dict</em>) – The local variables to be applied.</p></li>
+<li><p><strong>relax</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to relax the requirement of having ‘runtime_func’ as a key in <cite>lcl</cite>.
+If set to True and ‘runtime_func’ is not found in <cite>lcl</cite>, the function will simply return <cite>lcl</cite>.
+If set to False and ‘runtime_func’ is not found in <cite>lcl</cite>, a ValueError will be raised.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The result of applying the local variables to the runtime function.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – If ‘runtime_func’ is not found in <cite>lcl</cite> and <cite>relax</cite> is set to False.</p></li>
+<li><p><strong>RuntimeError</strong> – If an error occurs during the application process.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.apply_all">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">apply_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lcl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#apply_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.apply_all" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively applies the <cite>apply</cite> function to all values in a dictionary or DotDict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lcl</strong> (<em>dict</em><em> or </em><em>DotDict</em>) – The dictionary or DotDict to apply the <cite>apply</cite> function to.</p></li>
+<li><p><strong>relax</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to relax the application of <cite>apply</cite> function. Defaults to True.</p></li>
+<li><p><strong>exc</strong> (<em>list</em><em>, </em><em>optional</em>) – List of keys to exclude from applying the <cite>apply</cite> function. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The modified dictionary or DotDict after applying the <cite>apply</cite> function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict or DotDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.resolve">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">resolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">mh.core.DotDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relax</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mh.core.DotDict</span></span></span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#resolve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.resolve" title="Link to this definition">¶</a></dt>
+<dd><p>Resolves the given DotDict object by executing imports and resolving self-references.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>DotDict</em>) – The DotDict object to be resolved.</p></li>
+<li><p><strong>relax</strong> – A flag indicating whether to relax the resolution process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resolved DotDict object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DotDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.git_dump_info">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">git_dump_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#git_dump_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.git_dump_info" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieves information about the Git repository.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exc</strong> (<em>list</em><em>, </em><em>optional</em>) – List of directories or files to exclude from the untracked files list. Defaults to None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A string containing information about the Git repository.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="misfit_toys.utils.all_detached_cpu">
+<span class="sig-prename descclassname"><span class="pre">misfit_toys.utils.</span></span><span class="sig-name descname"><span class="pre">all_detached_cpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">mh.core.DotDict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/misfit_toys/utils.html#all_detached_cpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#misfit_toys.utils.all_detached_cpu" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+                </article>
+            </div>
+            <footer>
+                
+                <!-- <div class="related-pages">
+                    
+                    <a class="prev-page" href="../swiffer/index.html">
+                        <svg class="furo-related-icon">
+                            <use href="#svg-arrow-right"></use>
+                        </svg>
+                        <div class="page-info">
+                            <div class="context">
+                                <span>Previous</span>
+                            </div>
+                            
+                            <div class="title">misfit_toys.swiffer</div>
+                            
+                        </div>
+                    </a>
+                </div> -->
+                <div class="bottom-of-page">
+                    <div class="left-details">
+                        <div class="copyright">
+                            Copyright &#169; 2024, Tyler Masthay
+                        </div>
+                        Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+                        
+                        <a href="https://github.com/pradyunsg/furo">Furo</a>
+                        
+                    </div>
+                    <div class="right-details">
+                        
+                    </div>
+                </div>
+                
+            </footer>
+        </div>
+        <!-- <aside class="toc-drawer"> -->
+        <aside class="toc-drawer">
+            
+            <div class="toc-sticky toc-scroll">
+                <div class="related-pages">
+                    
+                    <a class="prev-page" href="../swiffer/index.html">
+                        <svg class="furo-related-icon">
+                            <use href="#svg-arrow-right"></use>
+                        </svg>
+                        <div class="page-info">
+                            <div class="context">
+                                <span>Previous</span>
+                            </div>
+                            
+                            <div class="title">misfit_toys.swiffer</div>
+                            
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="toc-title-container">
+                    <span class="toc-title">
+                        On this page
+                    </span>
+                </div>
+                <div class="toc-tree-container">
+                    <div class="toc-tree">
+                        <ul>
+<li><a class="reference internal" href="#">misfit_toys.utils</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#misfit_toys.utils.find_available_port"><code class="docutils literal notranslate"><span class="pre">find_available_port()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.setup"><code class="docutils literal notranslate"><span class="pre">setup()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.cleanup"><code class="docutils literal notranslate"><span class="pre">cleanup()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.get_file"><code class="docutils literal notranslate"><span class="pre">get_file()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.load_all"><code class="docutils literal notranslate"><span class="pre">load_all()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.savefig"><code class="docutils literal notranslate"><span class="pre">savefig()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.filt"><code class="docutils literal notranslate"><span class="pre">filt()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.parse_path"><code class="docutils literal notranslate"><span class="pre">parse_path()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.auto_path"><code class="docutils literal notranslate"><span class="pre">auto_path()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.get_pydict"><code class="docutils literal notranslate"><span class="pre">get_pydict()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.gaussian_perturb"><code class="docutils literal notranslate"><span class="pre">gaussian_perturb()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.verbosity_str_to_int"><code class="docutils literal notranslate"><span class="pre">verbosity_str_to_int()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.clean_levels"><code class="docutils literal notranslate"><span class="pre">clean_levels()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.run_verbosity"><code class="docutils literal notranslate"><span class="pre">run_verbosity()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.mem_report"><code class="docutils literal notranslate"><span class="pre">mem_report()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.full_mem_report"><code class="docutils literal notranslate"><span class="pre">full_mem_report()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.taper"><code class="docutils literal notranslate"><span class="pre">taper()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.downsample_any"><code class="docutils literal notranslate"><span class="pre">downsample_any()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.SlotMeta"><code class="docutils literal notranslate"><span class="pre">SlotMeta</span></code></a><ul>
+<li><a class="reference internal" href="#misfit_toys.utils.SlotMeta.None"><code class="docutils literal notranslate"><span class="pre">SlotMeta.None</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.SlotMeta.__new__"><code class="docutils literal notranslate"><span class="pre">SlotMeta.__new__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#misfit_toys.utils.idt_print"><code class="docutils literal notranslate"><span class="pre">idt_print()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.canonical_tensors"><code class="docutils literal notranslate"><span class="pre">canonical_tensors()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.canonical_reduce"><code class="docutils literal notranslate"><span class="pre">canonical_reduce()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.see_data"><code class="docutils literal notranslate"><span class="pre">see_data()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.check_devices"><code class="docutils literal notranslate"><span class="pre">check_devices()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.bool_slice"><code class="docutils literal notranslate"><span class="pre">bool_slice()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.clean_idx"><code class="docutils literal notranslate"><span class="pre">clean_idx()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.tensor_summary"><code class="docutils literal notranslate"><span class="pre">tensor_summary()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.pull_data"><code class="docutils literal notranslate"><span class="pre">pull_data()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.mean_filter_1d"><code class="docutils literal notranslate"><span class="pre">mean_filter_1d()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.get_tensors"><code class="docutils literal notranslate"><span class="pre">get_tensors()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.d2cpu"><code class="docutils literal notranslate"><span class="pre">d2cpu()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.chunk_params"><code class="docutils literal notranslate"><span class="pre">chunk_params()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.chunk_tensors"><code class="docutils literal notranslate"><span class="pre">chunk_tensors()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.deploy_data"><code class="docutils literal notranslate"><span class="pre">deploy_data()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.chunk_and_deploy"><code class="docutils literal notranslate"><span class="pre">chunk_and_deploy()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.read_and_chunk"><code class="docutils literal notranslate"><span class="pre">read_and_chunk()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.get_gpu_memory"><code class="docutils literal notranslate"><span class="pre">get_gpu_memory()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.apply_builder"><code class="docutils literal notranslate"><span class="pre">apply_builder()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.apply"><code class="docutils literal notranslate"><span class="pre">apply()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.apply_all"><code class="docutils literal notranslate"><span class="pre">apply_all()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.resolve"><code class="docutils literal notranslate"><span class="pre">resolve()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.git_dump_info"><code class="docutils literal notranslate"><span class="pre">git_dump_info()</span></code></a></li>
+<li><a class="reference internal" href="#misfit_toys.utils.all_detached_cpu"><code class="docutils literal notranslate"><span class="pre">all_detached_cpu()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+                    </div>
+                </div>
+            </div>
+            
+            
+        </aside>
+    </div>
+</div><script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    </body>
+</html>

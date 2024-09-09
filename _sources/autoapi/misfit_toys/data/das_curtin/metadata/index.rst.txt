@@ -1,0 +1,19 @@
+misfit_toys.data.das_curtin.metadata
+====================================
+
+.. py:module:: misfit_toys.data.das_curtin.metadata
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.data.das_curtin.metadata.metadata
+
+
+Module Contents
+---------------
+
+.. py:function:: metadata()
+

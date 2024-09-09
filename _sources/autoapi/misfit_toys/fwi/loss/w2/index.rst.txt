@@ -1,0 +1,380 @@
+misfit_toys.fwi.loss.w2
+=======================
+
+.. py:module:: misfit_toys.fwi.loss.w2
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.w2.w2_const
+   misfit_toys.fwi.loss.w2.w2
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.w2.W2Loss
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.w2.unbatch_splines
+   misfit_toys.fwi.loss.w2.unbatch_spline_eval
+   misfit_toys.fwi.loss.w2.spline_func
+   misfit_toys.fwi.loss.w2.cum_trap
+   misfit_toys.fwi.loss.w2.get_cdf
+   misfit_toys.fwi.loss.w2.true_quantile
+   misfit_toys.fwi.loss.w2.true_quantile_choppy
+   misfit_toys.fwi.loss.w2.cts_quantile
+   misfit_toys.fwi.loss.w2.quantile
+   misfit_toys.fwi.loss.w2.w2_builder
+   misfit_toys.fwi.loss.w2.simple_quantile
+
+
+Module Contents
+---------------
+
+.. py:function:: unbatch_splines(coeffs)
+
+   Unbatches a set of spline coefficients.
+
+   :param coeffs: A list of spline coefficients.
+   :type coeffs: list
+
+   :returns: An array of NaturalCubicSpline objects.
+   :rtype: ndarray
+
+   :raises ValueError: If the shape of coeffs[1] is not (..., 1).
+
+   .. rubric:: Example
+
+   coeffs = [
+       np.array([1, 2, 3]),
+       np.array([[4], [5], [6]]),
+       np.array([[7], [8], [9]]),
+       np.array([[10], [11], [12]]),
+       np.array([[13], [14], [15]])
+   ]
+   unbatch_splines(coeffs)
+
+
+.. py:function:: unbatch_spline_eval(splines, t, *, deriv=False)
+
+   Evaluates a batch of splines at given parameter values.
+
+   :param splines: A tensor containing the batch of splines.
+   :type splines: torch.Tensor
+   :param t: A tensor containing the parameter values at which to evaluate the splines.
+   :type t: torch.Tensor
+   :param deriv: If True, evaluates the derivative of the splines. Defaults to False.
+   :type deriv: bool, optional
+
+   :returns: A tensor containing the evaluated values of the splines.
+   :rtype: torch.Tensor
+
+   :raises ValueError: If the shape of t does not match the shape of splines.
+
+
+.. py:function:: spline_func(t, y)
+
+   Creates a spline function based on the given data points.
+
+   :param t: The input values.
+   :type t: array-like
+   :param y: The corresponding output values.
+   :type y: array-like
+
+   :returns: A function that can be used to evaluate the spline at any given point.
+   :rtype: callable
+
+
+.. py:function:: cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True)
+
+   Computes the cumulative trapezoidal integration of `y` along the specified dimension.
+
+   :param y: The input tensor.
+   :type y: torch.Tensor
+   :param x: The optional input tensor representing the spacing between adjacent elements of `y`.
+   :type x: torch.Tensor, optional
+   :param dx: The optional spacing between adjacent elements of `y`. If provided, `x` should be None.
+   :type dx: float, optional
+   :param dim: The dimension along which to compute the cumulative trapezoidal integration. Default is -1.
+   :type dim: int, optional
+   :param preserve_dims: Whether to preserve the dimensions of the input tensor. Default is True.
+   :type preserve_dims: bool, optional
+
+   :returns: The tensor containing the cumulative trapezoidal integration of `y` along the specified dimension.
+   :rtype: torch.Tensor
+
+   :raises ValueError: If both `x` and `dx` are provided.
+
+
+.. py:function:: get_cdf(y, x=None, *, dx=None, dim=-1)
+
+   Computes the cumulative distribution function (CDF) of the input tensor.
+
+   :param y: The input tensor.
+   :type y: Tensor
+   :param x: The x-values corresponding to the y-values. If not provided, the x-values are assumed to be evenly spaced.
+   :type x: Tensor, optional
+   :param dx: The spacing between consecutive x-values. If provided, the x-values are assumed to be evenly spaced.
+   :type dx: float, optional
+   :param dim: The dimension along which to compute the CDF. Default is -1.
+   :type dim: int, optional
+
+   :returns: The computed CDF tensor.
+   :rtype: Tensor
+
+   :raises ValueError: If both x and dx are provided.
+
+
+.. py:function:: true_quantile(pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=0.01, err_top=50)
+
+   Computes the true quantile of a probability distribution function (PDF).
+
+   :param pdf: The probability distribution function.
+   :type pdf: torch.Tensor
+   :param x: The values corresponding to the PDF.
+   :type x: torch.Tensor
+   :param p: The quantile probabilities.
+   :type p: torch.Tensor
+   :param dx: The spacing between values in `x`. Defaults to None.
+   :type dx: float, optional
+   :param ltol: The left tolerance for the CDF. Defaults to 0.0.
+   :type ltol: float, optional
+   :param rtol: The right tolerance for the CDF. Defaults to 0.0.
+   :type rtol: float, optional
+   :param atol: The absolute tolerance for the CDF. Defaults to 1e-2.
+   :type atol: float, optional
+   :param err_top: The maximum number of elements to display in error messages. Defaults to 50.
+   :type err_top: int, optional
+
+   :returns: The quantile values corresponding to the given probabilities.
+   :rtype: torch.Tensor
+
+   :raises ValueError: If the CDFs are not within the expected range.
+
+
+.. py:function:: true_quantile_choppy(pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=0.01, err_top=50)
+
+   Computes the true quantile of a given probability distribution function (pdf).
+
+   :param pdf: The probability distribution function.
+   :type pdf: torch.Tensor
+   :param x: The values corresponding to the pdf.
+   :type x: torch.Tensor
+   :param p: The probabilities at which to compute the quantile.
+   :type p: torch.Tensor
+   :param dx: The spacing between values in `x`. Defaults to None.
+   :type dx: float, optional
+   :param ltol: The left tolerance for the cumulative distribution function (cdf). Defaults to 0.0.
+   :type ltol: float, optional
+   :param rtol: The right tolerance for the cumulative distribution function (cdf). Defaults to 0.0.
+   :type rtol: float, optional
+   :param atol: The absolute tolerance for the cdf. Defaults to 1e-2.
+   :type atol: float, optional
+   :param err_top: The maximum number of elements to display in error messages. Defaults to 50.
+   :type err_top: int, optional
+
+   :returns: The computed quantile values.
+   :rtype: torch.Tensor
+
+   :raises ValueError: If the cumulative distribution function (cdf) is not within the expected range.
+
+
+.. py:function:: cts_quantile(pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=0.01, err_top=50)
+
+   Computes the continuous quantile function using natural cubic splines.
+
+   :param pdf: The probability density function.
+   :type pdf: Tensor
+   :param x: The input values.
+   :type x: Tensor
+   :param p: The probabilities.
+   :type p: Tensor
+   :param dx: The spacing between consecutive x values. Defaults to None.
+   :type dx: Tensor, optional
+   :param ltol: The left tolerance for the quantile function. Defaults to 0.0.
+   :type ltol: float, optional
+   :param rtol: The right tolerance for the quantile function. Defaults to 0.0.
+   :type rtol: float, optional
+   :param atol: The absolute tolerance for the quantile function. Defaults to 1e-2.
+   :type atol: float, optional
+   :param err_top: The maximum number of iterations for the quantile function. Defaults to 50.
+   :type err_top: int, optional
+
+   :returns: The natural cubic spline coefficients.
+   :rtype: Tensor
+
+   :raises ValueError: If p is not a 1D or 2D tensor.
+
+
+.. py:function:: quantile(pdf, x, p, *, dx=None, ltol=0.0, rtol=0.0, atol=0.01, err_top=50)
+
+   Computes the quantile function for a given probability distribution.
+
+   :param pdf: The probability density function.
+   :type pdf: callable
+   :param x: The input values at which to evaluate the quantile function.
+   :type x: array-like
+   :param p: The probabilities at which to compute the quantile values.
+   :type p: array-like
+   :param dx: The spacing between consecutive values in `x`. Defaults to None.
+   :type dx: float, optional
+   :param ltol: The left tolerance for the quantile computation. Defaults to 0.0.
+   :type ltol: float, optional
+   :param rtol: The right tolerance for the quantile computation. Defaults to 0.0.
+   :type rtol: float, optional
+   :param atol: The absolute tolerance for the quantile computation. Defaults to 1e-2.
+   :type atol: float, optional
+   :param err_top: The maximum number of error terms to use in the quantile computation. Defaults to 50.
+   :type err_top: int, optional
+
+   :returns: A function that computes the quantile values for a given input value `t`.
+   :rtype: callable
+
+
+.. py:function:: w2_builder(is_const)
+
+   Builds a helper function for calculating the W2 loss.
+
+   :param is_const: Indicates whether the input function is constant or not.
+   :type is_const: bool
+
+   :returns: The helper function for calculating the W2 loss.
+   :rtype: helper (function)
+
+   :raises None:
+
+
+.. py:data:: w2_const
+
+.. py:data:: w2
+
+.. py:function:: simple_quantile(cdf_spline, *, p, tol=0.0001, max_iter=100, start, end)
+
+   Calculates the quantile values for given probabilities using a binary search algorithm.
+
+   :param cdf_spline: A function that returns the cumulative distribution function (CDF) value at a given point.
+   :type cdf_spline: callable
+   :param p: The probabilities for which quantile values need to be calculated.
+   :type p: torch.Tensor
+   :param tol: The tolerance value for convergence. Defaults to 1e-4.
+   :type tol: float, optional
+   :param max_iter: The maximum number of iterations for the binary search algorithm. Defaults to 100.
+   :type max_iter: int, optional
+   :param start: The starting point of the search space.
+   :type start: float
+   :param end: The ending point of the search space.
+   :type end: float
+
+   :returns: The quantile values corresponding to the given probabilities.
+   :rtype: torch.Tensor
+
+   :raises ValueError: If the quantile calculation does not converge for any of the probabilities.
+
+
+.. py:class:: W2Loss(*, t, p, obs_data, renorm, gen_deriv, down=1)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   W2Loss calculates the W2 Wasserstein loss between the given traces and the observed data.
+
+   :param t: The time values.
+   :type t: torch.Tensor
+   :param p: The probability values.
+   :type p: torch.Tensor
+   :param obs_data: The observed data.
+   :type obs_data: torch.Tensor
+   :param renorm: A function to renormalize the data.
+   :type renorm: callable
+   :param gen_deriv: A function to generate derivatives.
+   :type gen_deriv: callable
+   :param down: The downsampling factor. Defaults to 1.
+   :type down: int, optional
+
+   .. attribute:: obs_data
+
+      The renormalized observed data.
+
+      :type: torch.Tensor
+
+   .. attribute:: renorm
+
+      The renormalization function.
+
+      :type: callable
+
+   .. attribute:: q_raw
+
+      The true quantile values.
+
+      :type: torch.Tensor
+
+   .. attribute:: p
+
+      The probability values.
+
+      :type: torch.Tensor
+
+   .. attribute:: t
+
+      The time values.
+
+      :type: torch.Tensor
+
+   .. attribute:: q
+
+      The spline function.
+
+      :type: callable
+
+   .. attribute:: qd
+
+      The derivative function.
+
+      :type: callable
+
+
+   .. py:attribute:: obs_data
+
+
+   .. py:attribute:: renorm
+
+
+   .. py:attribute:: q_raw
+
+
+   .. py:attribute:: p
+
+
+   .. py:attribute:: t
+
+
+   .. py:attribute:: q
+
+
+   .. py:attribute:: qd
+
+
+   .. py:method:: forward(traces)
+
+      Calculates the W2 Wasserstein loss between the given traces and the observed data.
+
+      :param traces: The input traces.
+      :type traces: torch.Tensor
+
+      :returns: The calculated loss.
+      :rtype: torch.Tensor
+
+
+

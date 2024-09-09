@@ -1,0 +1,128 @@
+misfit_toys.hydra.main_worker
+=============================
+
+.. py:module:: misfit_toys.hydra.main_worker
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.hydra.main_worker.set_options
+   misfit_toys.hydra.main_worker.sco
+   misfit_toys.hydra.main_worker.check_keys
+   misfit_toys.hydra.main_worker.run_rank
+   misfit_toys.hydra.main_worker.run
+   misfit_toys.hydra.main_worker.preprocess_cfg
+   misfit_toys.hydra.main_worker.plotter
+   misfit_toys.hydra.main_worker.trace_plotter
+   misfit_toys.hydra.main_worker.main
+
+
+Module Contents
+---------------
+
+.. py:function:: set_options()
+
+.. py:function:: sco(cmd, verbose=False)
+
+.. py:function:: check_keys(c, data)
+
+   Check if all the required fields are present in the data dictionary.
+
+   :param c: The configuration object.
+   :type c: object
+   :param data: The data dictionary to be checked.
+   :type data: dict
+
+   :raises ValueError: If any of the required fields are missing in the data dictionary.
+
+
+.. py:function:: run_rank(rank: int, world_size: int, c: mh.core.DotDict) -> None
+
+   Runs the DDP (Distributed Data Parallel) training on a specific rank.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+   :param c: The configuration dictionary.
+   :type c: DotDict
+
+   :returns: None
+
+
+.. py:function:: run(world_size: int, c: mh.core.DotDict) -> None
+
+   Runs the main worker process.
+
+   :param world_size: The number of processes to spawn.
+   :type world_size: int
+   :param c: The configuration for the worker process.
+   :type c: DotDict
+
+   :returns: None
+
+
+.. py:function:: preprocess_cfg(cfg: omegaconf.DictConfig) -> mh.core.DotDict
+
+   Preprocesses the configuration dictionary.
+
+   :param cfg: The input configuration dictionary.
+   :type cfg: DictConfig
+
+   :returns: The preprocessed configuration dictionary.
+   :rtype: DotDict
+
+   :raises ValueError: If 'name' is not provided in the configuration dictionary.
+
+
+.. py:function:: plotter(*, data, idx, fig, axes, c)
+
+   Plots the data and returns a dictionary containing the input parameters.
+
+   :param data: The input data.
+   :type data: numpy.ndarray
+   :param idx: The index of the data to plot.
+   :type idx: numpy.ndarray
+   :param fig: The figure object to plot on.
+   :type fig: matplotlib.figure.Figure
+   :param axes: The axes object to plot on.
+   :type axes: matplotlib.axes.Axes
+   :param c: A dictionary containing configuration parameters.
+   :type c: dict
+
+   :returns: A dictionary containing the input parameters.
+   :rtype: dict
+
+
+.. py:function:: trace_plotter(*, data, idx, fig, axes, c)
+
+   Plots the observed and predicted data for each sample in a trace plot.
+
+   :param data: The input data.
+   :type data: numpy.ndarray
+   :param idx: The index of the iteration.
+   :type idx: tuple
+   :param fig: The figure object to plot on.
+   :type fig: matplotlib.figure.Figure
+   :param axes: The axes object to plot on.
+   :type axes: matplotlib.axes.Axes
+   :param c: The configuration parameters for the plot.
+   :type c: dict
+
+   :returns: A dictionary containing the configuration parameters.
+   :rtype: dict
+
+
+.. py:function:: main(cfg: omegaconf.DictConfig) -> None
+
+   Main function for processing data and generating plots.
+
+   :param cfg: Configuration object containing the settings.
+   :type cfg: DictConfig
+
+   :returns: None
+
+

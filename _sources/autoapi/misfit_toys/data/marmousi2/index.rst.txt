@@ -1,0 +1,31 @@
+misfit_toys.data.marmousi2
+==========================
+
+.. py:module:: misfit_toys.data.marmousi2
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/marmousi2/medium/index
+   /autoapi/misfit_toys/data/marmousi2/tiny/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/marmousi2/factory/index
+   /autoapi/misfit_toys/data/marmousi2/metadata/index
+
+

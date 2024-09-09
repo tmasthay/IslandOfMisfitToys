@@ -1,0 +1,341 @@
+Preprocessing took 0.00 seconds.
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/vp_init.pt...torch.Size([2301, 751])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/src_amp_y.pt...torch.Size([115, 1, 750])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/obs_data.pt...torch.Size([115, 384, 750])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/src_loc_y.pt...torch.Size([115, 1, 2])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/rec_loc_y.pt...torch.Size([115, 384, 2])
+Preprocess time rank 1: 0.81 seconds.
+    taper_batch: call == 1...took 63.72073292732239s
+iter=14, loss=7.57e-04, mse=7.52e-04, tik=4.80e-06, reg_strength=5.33e-07, training.loss: 1.01e+03, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.39e+01, rank: 1
+    taper_batch: call == 2...took 64.43383193016052s
+    taper_batch: call == 3...took 64.51778316497803s
+    taper_batch: call == 4...took 64.68359446525574s
+    taper_batch: call == 5...took 64.53598713874817s
+    taper_batch: call == 6...took 64.56868076324463s
+    taper_batch: call == 7...took 64.69948816299438s
+    taper_batch: call == 8...took 64.66118025779724s
+    taper_batch: call == 9...took 64.55913233757019s
+    taper_batch: call == 10...took 64.62862229347229s
+    taper_batch: call == 11...took 64.5420069694519s
+iter=29, loss=2.44e-04, mse=2.42e-04, tik=2.76e-06, reg_strength=1.00e-07, training.loss: 2.93e+02, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 8.49e+00, rank: 1
+    taper_batch: call == 12...took 64.48828864097595s
+    taper_batch: call == 13...took 64.506680727005s
+    taper_batch: call == 14...took 64.62250924110413s
+    taper_batch: call == 15...took 64.40583348274231s
+    taper_batch: call == 16...took 64.55810856819153s
+    taper_batch: call == 17...took 64.59387636184692s
+    taper_batch: call == 18...took 64.44043207168579s
+    taper_batch: call == 19...took 64.4217677116394s
+    taper_batch: call == 20...took 64.6045823097229s
+    taper_batch: call == 21...took 64.53940415382385s
+iter=44, loss=1.87e-04, mse=1.84e-04, tik=2.66e-06, reg_strength=1.00e-07, training.loss: 2.01e+02, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 8.76e+00, rank: 1
+    taper_batch: call == 22...took 64.41905546188354s
+    taper_batch: call == 23...took 64.4771146774292s
+    taper_batch: call == 24...took 64.41993165016174s
+    taper_batch: call == 25...took 64.46749210357666s
+    taper_batch: call == 26...took 64.61761522293091s
+    taper_batch: call == 27...took 64.54354763031006s
+    taper_batch: call == 28...took 64.47192621231079s
+    taper_batch: call == 29...took 64.33235454559326s
+    taper_batch: call == 30...took 64.52264618873596s
+    taper_batch: call == 31...took 64.53579926490784s
+iter=59, loss=1.01e-04, mse=9.82e-05, tik=2.97e-06, reg_strength=1.00e-07, training.loss: 1.50e+02, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.01e+01, rank: 1
+    taper_batch: call == 32...took 64.55182766914368s
+    taper_batch: call == 33...took 64.55785489082336s
+    taper_batch: call == 34...took 64.41537022590637s
+    taper_batch: call == 35...took 64.36996150016785s
+    taper_batch: call == 36...took 64.60755896568298s
+    taper_batch: call == 37...took 64.52822756767273s
+    taper_batch: call == 38...took 64.5901129245758s
+    taper_batch: call == 39...took 64.47699069976807s
+    taper_batch: call == 40...took 64.43726396560669s
+    taper_batch: call == 41...took 64.53481698036194s
+iter=74, loss=4.86e-05, mse=4.52e-05, tik=3.43e-06, reg_strength=1.00e-07, training.loss: 1.04e+02, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.01e+01, rank: 1
+    taper_batch: call == 42...took 64.6388349533081s
+    taper_batch: call == 43...took 64.39432144165039s
+    taper_batch: call == 44...took 64.6552300453186s
+    taper_batch: call == 45...took 64.53626418113708s
+    taper_batch: call == 46...took 64.59260106086731s
+    taper_batch: call == 47...took 64.46685743331909s
+    taper_batch: call == 48...took 64.46053886413574s
+    taper_batch: call == 49...took 64.4399311542511s
+    taper_batch: call == 50...took 64.61645841598511s
+    taper_batch: call == 51...took 64.49669742584229s
+iter=89, loss=3.59e-05, mse=3.25e-05, tik=3.43e-06, reg_strength=1.00e-07, training.loss: 7.80e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.06e+01, rank: 1
+    taper_batch: call == 52...took 64.43369889259338s
+    taper_batch: call == 53...took 64.48641610145569s
+    taper_batch: call == 54...took 64.54286336898804s
+    taper_batch: call == 55...took 64.56500720977783s
+    taper_batch: call == 56...took 64.6622908115387s
+    taper_batch: call == 57...took 64.53210926055908s
+    taper_batch: call == 58...took 64.47117805480957s
+    taper_batch: call == 59...took 64.44959616661072s
+    taper_batch: call == 60...took 64.59447073936462s
+    taper_batch: call == 61...took 64.56168985366821s
+iter=104, loss=2.63e-05, mse=2.32e-05, tik=3.17e-06, reg_strength=1.00e-07, training.loss: 6.31e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.11e+01, rank: 1
+    taper_batch: call == 62...took 64.44132995605469s
+    taper_batch: call == 63...took 64.50412201881409s
+    taper_batch: call == 64...took 64.45191144943237s
+    taper_batch: call == 65...took 64.46066951751709s
+    taper_batch: call == 66...took 64.6260552406311s
+    taper_batch: call == 67...took 64.57296299934387s
+    taper_batch: call == 68...took 64.51588916778564s
+    taper_batch: call == 69...took 64.57105541229248s
+    taper_batch: call == 70...took 64.57635116577148s
+    taper_batch: call == 71...took 64.42153406143188s
+iter=119, loss=2.16e-05, mse=1.84e-05, tik=3.26e-06, reg_strength=1.00e-07, training.loss: 5.62e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.11e+01, rank: 1
+    taper_batch: call == 72...took 64.51044464111328s
+    taper_batch: call == 73...took 64.47275590896606s
+    taper_batch: call == 74...took 64.64531207084656s
+    taper_batch: call == 75...took 64.58271288871765s
+    taper_batch: call == 76...took 64.47407650947571s
+    taper_batch: call == 77...took 64.51660299301147s
+    taper_batch: call == 78...took 64.50372076034546s
+    taper_batch: call == 79...took 64.55399250984192s
+    taper_batch: call == 80...took 64.60414958000183s
+    taper_batch: call == 81...took 64.56185173988342s
+iter=134, loss=1.96e-05, mse=1.59e-05, tik=3.65e-06, reg_strength=1.00e-07, training.loss: 5.17e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 82...took 64.50451445579529s
+    taper_batch: call == 83...took 64.40322756767273s
+    taper_batch: call == 84...took 64.58061933517456s
+    taper_batch: call == 85...took 64.51881098747253s
+    taper_batch: call == 86...took 64.61163091659546s
+    taper_batch: call == 87...took 64.52286219596863s
+    taper_batch: call == 88...took 64.50421953201294s
+    taper_batch: call == 89...took 64.6349241733551s
+    taper_batch: call == 90...took 64.65503787994385s
+    taper_batch: call == 91...took 64.63579607009888s
+iter=149, loss=1.73e-05, mse=1.34e-05, tik=3.91e-06, reg_strength=1.00e-07, training.loss: 4.83e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 92...took 64.63291430473328s
+    taper_batch: call == 93...took 64.42028713226318s
+    taper_batch: call == 94...took 64.69884467124939s
+    taper_batch: call == 95...took 64.53497314453125s
+    taper_batch: call == 96...took 64.54551315307617s
+    taper_batch: call == 97...took 64.51618242263794s
+    taper_batch: call == 98...took 64.69867038726807s
+    taper_batch: call == 99...took 64.58167791366577s
+    taper_batch: call == 100...took 64.50123405456543s
+    taper_batch: call == 101...took 64.49955344200134s
+iter=164, loss=1.67e-05, mse=1.25e-05, tik=4.17e-06, reg_strength=1.00e-07, training.loss: 4.58e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 102...took 64.56319689750671s
+    taper_batch: call == 103...took 64.58985900878906s
+    taper_batch: call == 104...took 64.50849723815918s
+    taper_batch: call == 105...took 64.56643199920654s
+    taper_batch: call == 106...took 64.57811522483826s
+    taper_batch: call == 107...took 64.56029987335205s
+    taper_batch: call == 108...took 64.53951072692871s
+    taper_batch: call == 109...took 64.55207324028015s
+    taper_batch: call == 110...took 64.58017444610596s
+    taper_batch: call == 111...took 64.74172806739807s
+iter=179, loss=1.59e-05, mse=1.16e-05, tik=4.30e-06, reg_strength=1.00e-07, training.loss: 4.33e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 112...took 64.52747821807861s
+    taper_batch: call == 113...took 64.56266379356384s
+    taper_batch: call == 114...took 64.44564652442932s
+    taper_batch: call == 115...took 64.65471291542053s
+    taper_batch: call == 116...took 64.60750675201416s
+    taper_batch: call == 117...took 64.47129201889038s
+    taper_batch: call == 118...took 64.5230827331543s
+    taper_batch: call == 119...took 64.39621353149414s
+    taper_batch: call == 120...took 64.5103178024292s
+    taper_batch: call == 121...took 65.00048398971558s
+iter=194, loss=1.55e-05, mse=1.11e-05, tik=4.39e-06, reg_strength=1.00e-07, training.loss: 4.14e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.16e+01, rank: 1
+    taper_batch: call == 122...took 64.5099823474884s
+    taper_batch: call == 123...took 64.55480933189392s
+    taper_batch: call == 124...took 64.57221460342407s
+    taper_batch: call == 125...took 64.5493016242981s
+    taper_batch: call == 126...took 64.56288266181946s
+    taper_batch: call == 127...took 64.58951592445374s
+    taper_batch: call == 128...took 64.58568406105042s
+    taper_batch: call == 129...took 64.58025050163269s
+    taper_batch: call == 130...took 64.56806015968323s
+    taper_batch: call == 131...took 64.7419011592865s
+iter=209, loss=1.53e-05, mse=1.09e-05, tik=4.46e-06, reg_strength=1.00e-07, training.loss: 4.01e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 132...took 64.56020474433899s
+    taper_batch: call == 133...took 64.59542679786682s
+    taper_batch: call == 134...took 64.58214569091797s
+    taper_batch: call == 135...took 64.56781721115112s
+    taper_batch: call == 136...took 64.58758783340454s
+    taper_batch: call == 137...took 64.5925133228302s
+    taper_batch: call == 138...took 64.55211186408997s
+    taper_batch: call == 139...took 64.57147359848022s
+    taper_batch: call == 140...took 64.57260417938232s
+    taper_batch: call == 141...took 64.7319848537445s
+iter=224, loss=1.53e-05, mse=1.09e-05, tik=4.47e-06, reg_strength=1.00e-07, training.loss: 3.91e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 142...took 64.59860420227051s
+    taper_batch: call == 143...took 64.59752225875854s
+    taper_batch: call == 144...took 64.57531714439392s
+    taper_batch: call == 145...took 64.59557175636292s
+    taper_batch: call == 146...took 64.58036780357361s
+    taper_batch: call == 147...took 64.59862160682678s
+    taper_batch: call == 148...took 64.57555627822876s
+    taper_batch: call == 149...took 64.56180596351624s
+    taper_batch: call == 150...took 64.57789707183838s
+    taper_batch: call == 151...took 64.75923943519592s
+iter=239, loss=1.50e-05, mse=1.05e-05, tik=4.49e-06, reg_strength=1.00e-07, training.loss: 3.80e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 152...took 64.56448721885681s
+    taper_batch: call == 153...took 64.57790613174438s
+    taper_batch: call == 154...took 64.59434700012207s
+    taper_batch: call == 155...took 64.59036612510681s
+    taper_batch: call == 156...took 64.57031416893005s
+    taper_batch: call == 157...took 64.59399318695068s
+    taper_batch: call == 158...took 64.58693599700928s
+    taper_batch: call == 159...took 64.57774376869202s
+    taper_batch: call == 160...took 64.58488726615906s
+    taper_batch: call == 161...took 64.8079903125763s
+iter=254, loss=1.49e-05, mse=1.04e-05, tik=4.55e-06, reg_strength=1.00e-07, training.loss: 3.70e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 162...took 64.58154273033142s
+    taper_batch: call == 163...took 64.5752580165863s
+    taper_batch: call == 164...took 64.5908854007721s
+    taper_batch: call == 165...took 64.5621645450592s
+    taper_batch: call == 166...took 64.55879974365234s
+    taper_batch: call == 167...took 64.57995080947876s
+    taper_batch: call == 168...took 64.57002568244934s
+    taper_batch: call == 169...took 64.56752109527588s
+    taper_batch: call == 170...took 64.57411241531372s
+    taper_batch: call == 171...took 64.72138953208923s
+iter=269, loss=1.47e-05, mse=1.01e-05, tik=4.58e-06, reg_strength=1.00e-07, training.loss: 3.60e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 172...took 64.55711770057678s
+    taper_batch: call == 173...took 64.56884455680847s
+    taper_batch: call == 174...took 64.56975817680359s
+    taper_batch: call == 175...took 64.56925868988037s
+    taper_batch: call == 176...took 64.54276299476624s
+    taper_batch: call == 177...took 64.5367214679718s
+    taper_batch: call == 178...took 64.57839059829712s
+    taper_batch: call == 179...took 64.56682324409485s
+    taper_batch: call == 180...took 64.5749192237854s
+    taper_batch: call == 181...took 64.7435667514801s
+iter=284, loss=1.46e-05, mse=9.98e-06, tik=4.64e-06, reg_strength=1.00e-07, training.loss: 3.51e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 182...took 64.54157590866089s
+    taper_batch: call == 183...took 64.54776334762573s
+    taper_batch: call == 184...took 64.58109617233276s
+    taper_batch: call == 185...took 64.57650995254517s
+    taper_batch: call == 186...took 64.58344984054565s
+    taper_batch: call == 187...took 64.580082654953s
+    taper_batch: call == 188...took 64.53827619552612s
+    taper_batch: call == 189...took 64.56012773513794s
+    taper_batch: call == 190...took 64.57219290733337s
+    taper_batch: call == 191...took 64.75436210632324s
+iter=299, loss=1.46e-05, mse=9.87e-06, tik=4.72e-06, reg_strength=1.00e-07, training.loss: 3.42e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.14e+01, rank: 1
+    taper_batch: call == 192...took 64.57625579833984s
+    taper_batch: call == 193...took 64.55321621894836s
+    taper_batch: call == 194...took 64.56508350372314s
+    taper_batch: call == 195...took 64.57350206375122s
+    taper_batch: call == 196...took 64.56480479240417s
+    taper_batch: call == 197...took 64.57006311416626s
+    taper_batch: call == 198...took 64.56109714508057s
+    taper_batch: call == 199...took 64.59101295471191s
+    taper_batch: call == 200...took 64.5670804977417s
+    taper_batch: call == 201...took 64.68140435218811s
+iter=314, loss=1.45e-05, mse=9.71e-06, tik=4.82e-06, reg_strength=1.00e-07, training.loss: 3.32e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 202...took 64.56991744041443s
+    taper_batch: call == 203...took 64.56388282775879s
+    taper_batch: call == 204...took 64.57851815223694s
+    taper_batch: call == 205...took 64.58490943908691s
+    taper_batch: call == 206...took 64.59957599639893s
+    taper_batch: call == 207...took 64.5598955154419s
+    taper_batch: call == 208...took 64.53717136383057s
+    taper_batch: call == 209...took 64.55358624458313s
+    taper_batch: call == 210...took 64.56054496765137s
+    taper_batch: call == 211...took 64.7521231174469s
+iter=329, loss=1.44e-05, mse=9.52e-06, tik=4.87e-06, reg_strength=1.00e-07, training.loss: 3.21e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 212...took 64.56325197219849s
+    taper_batch: call == 213...took 64.62088704109192s
+    taper_batch: call == 214...took 64.5679578781128s
+    taper_batch: call == 215...took 64.5940055847168s
+    taper_batch: call == 216...took 64.53033375740051s
+    taper_batch: call == 217...took 64.66303610801697s
+    taper_batch: call == 218...took 64.53918361663818s
+    taper_batch: call == 219...took 64.58376407623291s
+    taper_batch: call == 220...took 64.50238227844238s
+    taper_batch: call == 221...took 64.52535700798035s
+iter=344, loss=1.45e-05, mse=9.57e-06, tik=4.94e-06, reg_strength=1.00e-07, training.loss: 3.12e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 222...took 64.66589522361755s
+    taper_batch: call == 223...took 64.69674324989319s
+    taper_batch: call == 224...took 64.6924500465393s
+    taper_batch: call == 225...took 64.68608665466309s
+    taper_batch: call == 226...took 64.73888802528381s
+    taper_batch: call == 227...took 64.7164363861084s
+    taper_batch: call == 228...took 64.65912890434265s
+    taper_batch: call == 229...took 64.68893313407898s
+    taper_batch: call == 230...took 64.64829921722412s
+    taper_batch: call == 231...took 64.73745918273926s
+iter=359, loss=1.44e-05, mse=9.43e-06, tik=4.97e-06, reg_strength=1.00e-07, training.loss: 3.06e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 232...took 64.68925452232361s
+    taper_batch: call == 233...took 64.66662979125977s
+    taper_batch: call == 234...took 64.68027091026306s
+    taper_batch: call == 235...took 64.68529152870178s
+    taper_batch: call == 236...took 64.70662188529968s
+    taper_batch: call == 237...took 64.6766951084137s
+    taper_batch: call == 238...took 64.7724039554596s
+    taper_batch: call == 239...took 64.68513083457947s
+    taper_batch: call == 240...took 64.75851011276245s
+    taper_batch: call == 241...took 64.587238073349s
+iter=374, loss=1.45e-05, mse=9.47e-06, tik=5.00e-06, reg_strength=1.00e-07, training.loss: 3.00e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 242...took 64.66586828231812s
+    taper_batch: call == 243...took 64.70525336265564s
+    taper_batch: call == 244...took 64.62981843948364s
+    taper_batch: call == 245...took 64.68464922904968s
+    taper_batch: call == 246...took 64.68693137168884s
+    taper_batch: call == 247...took 64.6830792427063s
+    taper_batch: call == 248...took 64.64247632026672s
+    taper_batch: call == 249...took 64.67988896369934s
+    taper_batch: call == 250...took 64.68034267425537s
+    taper_batch: call == 251...took 64.74113631248474s
+iter=389, loss=1.44e-05, mse=9.36e-06, tik=5.02e-06, reg_strength=1.00e-07, training.loss: 2.94e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 252...took 64.69284272193909s
+    taper_batch: call == 253...took 64.72723460197449s
+    taper_batch: call == 254...took 64.72812509536743s
+    taper_batch: call == 255...took 64.69445610046387s
+    taper_batch: call == 256...took 64.73754239082336s
+    taper_batch: call == 257...took 64.69069218635559s
+    taper_batch: call == 258...took 64.69324588775635s
+    taper_batch: call == 259...took 64.69475197792053s
+    taper_batch: call == 260...took 64.75278568267822s
+    taper_batch: call == 261...took 64.61682391166687s
+iter=404, loss=1.44e-05, mse=9.37e-06, tik=5.05e-06, reg_strength=1.00e-07, training.loss: 2.88e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 262...took 64.68642544746399s
+    taper_batch: call == 263...took 64.73479676246643s
+    taper_batch: call == 264...took 64.76215386390686s
+    taper_batch: call == 265...took 64.68631744384766s
+    taper_batch: call == 266...took 64.74533748626709s
+    taper_batch: call == 267...took 64.69236850738525s
+    taper_batch: call == 268...took 64.6495771408081s
+    taper_batch: call == 269...took 64.6927101612091s
+    taper_batch: call == 270...took 64.65861248970032s
+    taper_batch: call == 271...took 64.73277521133423s
+iter=419, loss=1.43e-05, mse=9.28e-06, tik=5.04e-06, reg_strength=1.00e-07, training.loss: 2.82e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 272...took 64.69106268882751s
+    taper_batch: call == 273...took 64.65258955955505s
+    taper_batch: call == 274...took 64.67190885543823s
+    taper_batch: call == 275...took 64.69090032577515s
+    taper_batch: call == 276...took 64.77082443237305s
+    taper_batch: call == 277...took 64.67676401138306s
+    taper_batch: call == 278...took 64.74270963668823s
+    taper_batch: call == 279...took 64.68127083778381s
+    taper_batch: call == 280...took 64.75232863426208s
+    taper_batch: call == 281...took 64.65242600440979s
+iter=434, loss=1.42e-05, mse=9.15e-06, tik=5.06e-06, reg_strength=1.00e-07, training.loss: 2.74e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 282...took 64.68713068962097s
+    taper_batch: call == 283...took 64.72108578681946s
+    taper_batch: call == 284...took 64.75726342201233s
+    taper_batch: call == 285...took 64.68593907356262s
+    taper_batch: call == 286...took 64.72376155853271s
+    taper_batch: call == 287...took 64.68213629722595s
+    taper_batch: call == 288...took 64.76852011680603s
+    taper_batch: call == 289...took 64.68326425552368s
+    taper_batch: call == 290...took 64.74683451652527s
+    taper_batch: call == 291...took 64.57263088226318s
+iter=449, loss=1.41e-05, mse=9.08e-06, tik=5.06e-06, reg_strength=1.00e-07, training.loss: 2.67e+01, lr: 1.000e+00, obs_data.norm: 1.12e+02, out.norm: 1.15e+01, rank: 1
+    taper_batch: call == 292...took 64.69228482246399s
+    taper_batch: call == 293...took 64.63411450386047s
+    taper_batch: call == 294...took 64.67003178596497s
+    taper_batch: call == 295...took 64.69098162651062s
+    taper_batch: call == 296...took 64.6670310497284s
+    taper_batch: call == 297...took 64.68005681037903s
+    taper_batch: call == 298...took 64.67405033111572s
+    taper_batch: call == 299...took 64.68943881988525s
+    taper_batch: call == 300...took 64.77288246154785s
+Presaving loss
+Presaving vp
+Presaving out
+Train time rank 1: 19722.15 seconds.

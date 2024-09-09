@@ -1,0 +1,7 @@
+- case=tik
+- case/data=full_marmousi
+- case/data/preprocess=full_marmousi
+- case/train/step=tik_full_marmousi
+- +run=full_test
+- case.train.max_iters=4
+- case/train/optimizer=adam

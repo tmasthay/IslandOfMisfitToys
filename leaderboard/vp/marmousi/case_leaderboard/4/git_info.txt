@@ -1,0 +1,117 @@
+HASH: b133f576364bd26a9f933242f93468f076127e7c
+BRANCH: devel
+
+UNTRACKED FILES: .latest_run
+.vscode/settings.json
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+
+********************************************************************************
+DIFF: diff --git a/misfit_toys/examples/hydra/cfg/case/train/step/tik_full_marmousi.yaml b/misfit_toys/examples/hydra/cfg/case/train/step/tik_full_marmousi.yaml
+index 232dbca..2da21d0 100644
+--- a/misfit_toys/examples/hydra/cfg/case/train/step/tik_full_marmousi.yaml
++++ b/misfit_toys/examples/hydra/cfg/case/train/step/tik_full_marmousi.yaml
+@@ -3,5 +3,6 @@ kw:
+   length: 0.3
+   batch_size: 4
+   scale: 1.0e+06
++  verbose: true
+ 
+ nonexist: checking_the_yaml_format_hook
+diff --git a/misfit_toys/hydra/main_worker.py b/misfit_toys/hydra/main_worker.py
+index 0566d52..8837ace 100644
+--- a/misfit_toys/hydra/main_worker.py
++++ b/misfit_toys/hydra/main_worker.py
+@@ -1,5 +1,6 @@
+ import os
+ from subprocess import check_output as co
++import sys
+ from time import time
+ 
+ import hydra
+@@ -147,6 +148,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
+ 
+     optimizer = apply(c.train.optimizer)
+     step = apply(c.train.step)
++    print(str(step))
++    # sys.exit(1)
+     training_stages = apply(c.train.stages)
+ 
+     pre_time = time() - start_pre
+@@ -432,6 +435,9 @@ def main(cfg: DictConfig) -> None:
+     )
+     d = DotDict({'obs_data': traces, 'out': out_traces})
+     trace_iter = bool_slice(*d.out.shape, **c.plt.trace.iter)
++    input(d.out.shape)
++    input(c.plt.trace.iter)
++    input(list(trace_iter))
+     fig, axes = plt.subplots(*c.plt.trace.sub.shape, **c.plt.trace.sub.kw)
+     trace_frames = get_frames_bool(
+         data=d, iter=trace_iter, fig=fig, axes=axes, plotter=trace_plotter, c=c
+diff --git a/misfit_toys/workflows/tik/steps.py b/misfit_toys/workflows/tik/steps.py
+index 8c00408..7a53d54 100644
+--- a/misfit_toys/workflows/tik/steps.py
++++ b/misfit_toys/workflows/tik/steps.py
+@@ -1,5 +1,5 @@
+ from misfit_toys.utils import taper
+-
++from time import time
+ 
+ def taper_only(*, length=None, num_batches=None, scale=1.0):
+     """
+@@ -40,7 +40,7 @@ def taper_only(*, length=None, num_batches=None, scale=1.0):
+     return helper
+ 
+ 
+-def taper_batch(*, length=None, batch_size=1, scale=1.0):
++def taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=True):
+     """
+     Applies tapering to the output of a neural network model.
+ 
+@@ -56,9 +56,13 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
+     Returns:
+         helper (function): A helper function that applies tapering to the output of a neural network model.
+     """
+-
++    num_calls = 0
+     def helper(self):
+-        nonlocal length, scale, batch_size
++        nonlocal length, scale, batch_size, num_calls
++        start_time = time()
++        if verbose:
++            num_calls += 1
++            print(f"Call {num_calls}...", flush=True, end='')
+         num_shots = self.obs_data.shape[0]
+         num_batches = -(-num_shots // batch_size)
+         slices = [
+@@ -68,6 +72,8 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
+ 
+         self.loss = 0.0
+         for _, s in enumerate(slices):
++            # if verbose:
++            #     print(f"Batch {s.start // batch_size + 1}/{num_batches}", flush=True, end='\r')
+             self.out = self.prop(s)[-1]
+ 
+             if length is not None:
+@@ -81,6 +87,13 @@ def taper_batch(*, length=None, batch_size=1, scale=1.0):
+                 obs_data_filt = self.obs_data
+ 
+             self.loss = scale * self.loss_fn(self.out, obs_data_filt)
++            # if verbose:
++            #     print(f"Batch {s.start // batch_size + 1}/{num_batches}: Loss={self.loss}", flush=True)
+             self.loss.backward()
+ 
++        if verbose:
++            total_time = time() - start_time
++            print(f"took {total_time:.2f} seconds", flush=True)
++        
++
+     return helper
+********************************************************************************

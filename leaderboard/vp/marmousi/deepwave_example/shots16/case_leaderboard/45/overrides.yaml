@@ -1,0 +1,7 @@
+- case=tik
+- case.data.path=conda/data/marmousi/deepwave_example/shots16/twolayer
+- case.train.loss.kw.kw._min=1e-07
+- case.train.max_iters=25
+- case.train.loss.kw.kw.scale=0.1
+- +run=tik_strength_sweep
+- case.editor=null

@@ -1,0 +1,36 @@
+misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong.factory
+==============================================================================
+
+.. py:module:: misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong.factory
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong.factory.Factory
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.data.marmousi.deepwave_example.shots16.twolayer_verystrong.factory.main
+
+
+Module Contents
+---------------
+
+.. py:class:: Factory(*, device=None, src_path, root_out_path, root_path, **kw)
+
+   Bases: :py:obj:`misfit_toys.data.dataset.DataFactory`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:function:: main()
+

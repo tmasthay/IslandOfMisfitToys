@@ -1,0 +1,9 @@
+human_timestamp: July 25, 2024 09:57:15 AM
+l2_diff: 48.273643493652344
+max_iters: 25
+name: tik
+orig_root: /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/hydra/outputs/HYDRA_TIME_2024-07-25/HYDRA_TIME_09-57-15/marmousi/deepwave_example/shots16/
+proj_path: marmousi/deepwave_example/shots16
+root: ../../misfit_toys/hydra/outputs/HYDRA_TIME_2024-07-25/HYDRA_TIME_09-57-15/marmousi/deepwave_example/shots16
+timestamp: 2024-07-25 09-57-15
+train_time: 110.87736320495605

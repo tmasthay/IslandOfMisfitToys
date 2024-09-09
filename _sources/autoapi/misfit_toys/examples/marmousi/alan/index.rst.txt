@@ -1,0 +1,22 @@
+misfit_toys.examples.marmousi.alan
+==================================
+
+.. py:module:: misfit_toys.examples.marmousi.alan
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/examples/marmousi/alan/forward/index
+   /autoapi/misfit_toys/examples/marmousi/alan/fwi/index
+   /autoapi/misfit_toys/examples/marmousi/alan/fwi_parallel/index
+
+

@@ -1,0 +1,188 @@
+misfit_toys.swiffer
+===================
+
+.. py:module:: misfit_toys.swiffer
+
+.. autoapi-nested-parse::
+
+   Collection of miscellaneous helper functions to clean up code, like a Swiffer.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.swiffer.sco
+   misfit_toys.swiffer.sco_bash
+   misfit_toys.swiffer.human_time
+   misfit_toys.swiffer.see_fields
+   misfit_toys.swiffer.sub_dict
+   misfit_toys.swiffer.istr
+   misfit_toys.swiffer.iprint
+   misfit_toys.swiffer.iraise
+   misfit_toys.swiffer.ireraise
+   misfit_toys.swiffer.dupe
+
+
+Module Contents
+---------------
+
+.. py:function:: sco(s, split=True)
+
+   Execute a shell command and return the output.
+
+   :param s: The shell command to execute.
+   :type s: str
+   :param split: Whether to split the output by lines. Defaults to True.
+   :type split: bool, optional
+
+   :returns: The output of the shell command. If split is True, returns a list of lines, otherwise returns a single string.
+   :rtype: str or list
+
+
+.. py:function:: sco_bash(function_name, *args, split=False)
+
+   Execute a bash function and return the output.
+
+   :param function_name: The name of the bash function to execute.
+   :type function_name: str
+   :param args: The arguments to pass to the bash function.
+   :param split: Whether to split the output by lines. Defaults to False.
+   :type split: bool, optional
+
+   :returns: The output of the bash function. If split is True, returns a list of lines, otherwise returns a single string.
+   :rtype: str or list
+
+   :raises RuntimeError: If there is an error executing the bash function.
+
+
+.. py:function:: human_time(seconds, dec=2)
+
+   Convert seconds to a human-readable time format.
+
+   :param seconds: The number of seconds.
+   :type seconds: int
+   :param dec: The number of decimal places to include. Defaults to 2.
+   :type dec: int, optional
+
+   :returns: The human-readable time format.
+   :rtype: str
+
+
+.. py:function:: see_fields(obj, *, field, member_paths, idt='    ', level=0)
+
+   Get the values of specified fields in an object.
+
+   :param obj: The object to inspect.
+   :type obj: object
+   :param field: The name of the field to retrieve.
+   :type field: str
+   :param member_paths: A list of member paths to traverse in the object.
+   :type member_paths: list
+   :param idt: The indentation string. Defaults to "    ".
+   :type idt: str, optional
+   :param level: The indentation level. Defaults to 0.
+   :type level: int, optional
+
+   :returns: The values of the specified fields in the object.
+   :rtype: str
+
+   :raises ValueError: If member_paths is not a non-empty list of strings, or if a member path does not exist in the object.
+
+
+.. py:function:: sub_dict(d, keys)
+
+   Create a new dictionary with only the specified keys.
+
+   :param d: The original dictionary.
+   :type d: dict
+   :param keys: The keys to include in the new dictionary.
+   :type keys: list
+
+   :returns: The new dictionary with only the specified keys.
+   :rtype: dict
+
+
+.. py:function:: istr(*args, idt_level=0, idt_str='    ', cpl=80)
+
+   Indent and wrap a string.
+
+   :param args: The strings to be indented and wrapped.
+   :param idt_level: The indentation level. Defaults to 0.
+   :type idt_level: int, optional
+   :param idt_str: The indentation string. Defaults to "    ".
+   :type idt_str: str, optional
+   :param cpl: The maximum number of characters per line. Defaults to 80.
+   :type cpl: int, optional
+
+   :returns: The indented and wrapped string.
+   :rtype: str
+
+
+.. py:function:: iprint(*args, idt_level=0, idt_str='    ', cpl=80, **kw)
+
+   Print an indented and wrapped string.
+
+   :param args: The strings to be indented and wrapped.
+   :param idt_level: The indentation level. Defaults to 0.
+   :type idt_level: int, optional
+   :param idt_str: The indentation string. Defaults to "    ".
+   :type idt_str: str, optional
+   :param cpl: The maximum number of characters per line. Defaults to 80.
+   :type cpl: int, optional
+   :param \*\*kw: Additional keyword arguments to pass to the print function.
+
+   :returns: The indented and wrapped string is printed.
+   :rtype: None
+
+
+.. py:function:: iraise(error_type, *args, idt_level=0, idt_str='    ', cpl=80)
+
+   Raise an exception with an indented and wrapped error message.
+
+   :param error_type: The type of the exception to raise.
+   :type error_type: type
+   :param args: The strings to be indented and wrapped.
+   :param idt_level: The indentation level. Defaults to 0.
+   :type idt_level: int, optional
+   :param idt_str: The indentation string. Defaults to "    ".
+   :type idt_str: str, optional
+   :param cpl: The maximum number of characters per line. Defaults to 80.
+   :type cpl: int, optional
+
+   :raises error_type: The raised exception with the indented and wrapped error message.
+
+
+.. py:function:: ireraise(e, *args, idt_level=0, idt_str='    ', cpl=80, idt_further=True)
+
+   Re-raise an exception with an indented and wrapped error message.
+
+   :param e: The exception to re-raise.
+   :type e: Exception
+   :param args: The strings to be indented and wrapped.
+   :param idt_level: The indentation level. Defaults to 0.
+   :type idt_level: int, optional
+   :param idt_str: The indentation string. Defaults to "    ".
+   :type idt_str: str, optional
+   :param cpl: The maximum number of characters per line. Defaults to 80.
+   :type cpl: int, optional
+   :param idt_further: Whether to increase the indentation level for the additional strings. Defaults to True.
+   :type idt_further: bool, optional
+
+   :raises Exception: The re-raised exception with the indented and wrapped error message.
+
+
+.. py:function:: dupe(base, verbose=True, editor=None)
+
+   Duplicates the stdout and stderr streams to files.
+
+   :param base: The base name for the output and error files.
+   :type base: str
+   :param verbose: Whether to print the file names. Defaults to True.
+   :type verbose: bool, optional
+   :param editor: The editor command to open the output file. Defaults to None.
+   :type editor: str, optional
+
+

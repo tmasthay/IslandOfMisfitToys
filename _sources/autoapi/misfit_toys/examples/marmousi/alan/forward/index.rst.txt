@@ -1,0 +1,22 @@
+misfit_toys.examples.marmousi.alan.forward
+==========================================
+
+.. py:module:: misfit_toys.examples.marmousi.alan.forward
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.alan.forward.main
+
+
+Module Contents
+---------------
+
+.. py:function:: main()
+
+   Recreate exact workflow of Alan's deepwave Marmousi benchmark example.
+
+

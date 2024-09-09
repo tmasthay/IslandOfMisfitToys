@@ -1,0 +1,9 @@
+human_timestamp: June 11, 2024 06:17:13 PM
+l2_diff: 95.6635971069336
+max_iters: 25
+name: Tikhonov Regularization
+orig_root: /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/hydra/multirun/HYDRA_TIME_2024-06-11/HYDRA_TIME_18-17-13/marmousi/deepwave_example/shots16/18/
+proj_path: marmousi/deepwave_example/shots16
+root: ../../misfit_toys/hydra/multirun/HYDRA_TIME_2024-06-11/HYDRA_TIME_18-17-13/marmousi/deepwave_example/shots16/18
+timestamp: 2024-06-11 18-17-13
+train_time: 16.50976800918579

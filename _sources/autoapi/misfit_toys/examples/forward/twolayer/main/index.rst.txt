@@ -1,0 +1,27 @@
+misfit_toys.examples.forward.twolayer.main
+==========================================
+
+.. py:module:: misfit_toys.examples.forward.twolayer.main
+
+.. autoapi-nested-parse::
+
+   This script is used to generate a synthetic forward wavefield to verify that the forward solver works in the eyeball norm.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.forward.twolayer.main.out_plotter
+   misfit_toys.examples.forward.twolayer.main.main
+
+
+Module Contents
+---------------
+
+.. py:function:: out_plotter(*, data, idx, fig, axes, cfg)
+
+.. py:function:: main(cfg)
+

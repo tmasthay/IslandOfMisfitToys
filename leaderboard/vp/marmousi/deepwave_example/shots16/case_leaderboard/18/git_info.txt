@@ -1,0 +1,28 @@
+HASH: b0a3f70816345e4b12a6b7237eda6d3689a00711
+BRANCH: devel
+
+UNTRACKED FILES: .latest_run
+.vscode/settings.json
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+
+********************************************************************************
+DIFF: diff --git a/misfit_toys/examples/hydra/cfg/case/train/loss/w1.yaml b/misfit_toys/examples/hydra/cfg/case/train/loss/w1.yaml
+index 6eba65d..4b04709 100644
+--- a/misfit_toys/examples/hydra/cfg/case/train/loss/w1.yaml
++++ b/misfit_toys/examples/hydra/cfg/case/train/loss/w1.yaml
+@@ -8,4 +8,4 @@ kw:
+   reg_min: 0.0
+   t: self.runtime.t
+   max_calls: ${...max_iters}
+-  scale: 1.0
++  scale: 1.0
+\ No newline at end of file
+********************************************************************************

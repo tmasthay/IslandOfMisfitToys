@@ -1,0 +1,99 @@
+misfit_toys.fwi.models
+======================
+
+.. py:module:: misfit_toys.fwi.models
+
+.. autoapi-nested-parse::
+
+   This module contains classes for representing parameters used in a neural network model.
+
+   Classes:
+       Param: Represents a parameter used in a neural network model.
+       ParamConstrained: Represents a constrained parameter used in a neural network model.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.models.Param
+   misfit_toys.fwi.models.ParamConstrained
+
+
+Module Contents
+---------------
+
+.. py:class:: Param(*, p, requires_grad=False, **kw)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Represents a parameter used in a neural network model.
+
+   :param p: The parameter tensor.
+   :type p: torch.Tensor
+   :param requires_grad: Whether the parameter requires gradient computation. Defaults to False.
+   :type requires_grad: bool, optional
+   :param \*\*kw: Additional custom attributes for the parameter.
+
+   .. attribute:: p
+
+      The parameter tensor wrapped as a `torch.nn.Parameter`.
+
+      :type: torch.nn.Parameter
+
+   .. attribute:: custom
+
+      Additional custom attributes for the parameter.
+
+      :type: DotDict
+
+
+   .. py:attribute:: p
+
+
+   .. py:attribute:: custom
+
+
+   .. py:method:: forward()
+
+
+   .. py:method:: delay_init(**kw)
+      :classmethod:
+
+
+
+.. py:class:: ParamConstrained(*, p, minv, maxv, requires_grad=False)
+
+   Bases: :py:obj:`Param`
+
+
+   Represents a constrained parameter used in a neural network model.
+
+   :param p: The parameter tensor.
+   :type p: torch.Tensor
+   :param minv: The minimum value of the parameter.
+   :type minv: float
+   :param maxv: The maximum value of the parameter.
+   :type maxv: float
+   :param requires_grad: Whether the parameter requires gradient computation. Defaults to False.
+   :type requires_grad: bool, optional
+
+   .. attribute:: p
+
+      The parameter tensor wrapped as a `torch.nn.Parameter`.
+
+      :type: torch.nn.Parameter
+
+   .. attribute:: custom
+
+      Additional custom attributes for the parameter, including minv and maxv.
+
+      :type: DotDict
+
+
+   .. py:method:: forward()
+
+

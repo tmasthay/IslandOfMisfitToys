@@ -1,0 +1,22 @@
+misfit_toys.examples.marmousi.alan.fwi
+======================================
+
+.. py:module:: misfit_toys.examples.marmousi.alan.fwi
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.alan.fwi.main
+
+
+Module Contents
+---------------
+
+.. py:function:: main()
+
+   TODO: Add docstring.
+
+

@@ -1,0 +1,33 @@
+HASH: c99f3b0b695a665f0244c6579c0539a82fcf229c
+BRANCH: devel
+
+UNTRACKED FILES: .vscode/settings.json
+out/loss_record.pt
+out/loss_record_0.pt
+out/loss_record_1.pt
+out/out_record.pt
+out/out_record_0.pt
+out/out_record_1.pt
+out/vp_record.pt
+out/vp_record_0.pt
+out/vp_record_1.pt
+
+********************************************************************************
+DIFF: diff --git a/GitHookEm b/GitHookEm
+index 74c433a..bbf17df 160000
+--- a/GitHookEm
++++ b/GitHookEm
+@@ -1 +1 @@
+-Subproject commit 74c433a1d1f73dd331561bec46374f3d85e28bb7
++Subproject commit bbf17df19799e727875b9b4100f9e07f51cefdbf
+diff --git a/misfit_toys/examples/hydra/cfg/case/w1.yaml b/misfit_toys/examples/hydra/cfg/case/w1.yaml
+index 363435c..4b59c7f 100644
+--- a/misfit_toys/examples/hydra/cfg/case/w1.yaml
++++ b/misfit_toys/examples/hydra/cfg/case/w1.yaml
+@@ -10,3 +10,5 @@ defaults:
+ - train/optimizer: lbfgs
+ - train/stages: vanilla
+ - train/step: direct
++
++name: Earth Mover's Distance
+********************************************************************************

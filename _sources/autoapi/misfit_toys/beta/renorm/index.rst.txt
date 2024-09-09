@@ -1,0 +1,105 @@
+misfit_toys.beta.renorm
+=======================
+
+.. py:module:: misfit_toys.beta.renorm
+
+.. autoapi-nested-parse::
+
+   This is centralized suite of renormalization functions for Wasserstein-2.
+   This is intended to make an easy way to configure with misfit_toys.examples.hydra.main.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.renorm.ensure_norm
+   misfit_toys.beta.renorm.identity
+   misfit_toys.beta.renorm.abs_renorm
+   misfit_toys.beta.renorm.square_renorm
+   misfit_toys.beta.renorm.softplus
+   misfit_toys.beta.renorm.relu
+   misfit_toys.beta.renorm.const
+
+
+Module Contents
+---------------
+
+.. py:function:: ensure_norm(f)
+
+   Ensures that the output of the given function `f` is normalized.
+
+   :param f: The function to be wrapped.
+   :type f: callable
+
+   :returns: The wrapped function that ensures the output is normalized.
+   :rtype: callable
+
+
+.. py:function:: identity(u)
+
+   Returns the input value `u` unchanged.
+
+   :param u: The input value.
+
+   :returns: The input value `u`.
+
+
+.. py:function:: abs_renorm(u)
+
+   Compute the absolute value of a tensor and apply renormalization.
+
+   :param u: The input tensor.
+   :type u: torch.Tensor
+
+   :returns: The renormalized tensor.
+   :rtype: torch.Tensor
+
+
+.. py:function:: square_renorm(u)
+
+   Squares the input value and applies renormalization.
+
+   :param u: The input value.
+   :type u: float
+
+   :returns: The squared and renormalized value.
+   :rtype: float
+
+
+.. py:function:: softplus(u, *, k=1.0)
+
+   Applies the softplus function element-wise to the input tensor.
+
+   :param u: The input tensor.
+   :type u: torch.Tensor
+   :param k: The scaling factor. Default is 1.0.
+   :type k: float, optional
+
+   :returns: The output tensor after applying the softplus function.
+   :rtype: torch.Tensor
+
+
+.. py:function:: relu(u)
+
+   Applies the rectified linear unit (ReLU) activation function element-wise.
+
+   :param u: Input tensor.
+   :type u: torch.Tensor
+
+   :returns: Output tensor with ReLU applied element-wise.
+   :rtype: torch.Tensor
+
+
+.. py:function:: const(u, *, c)
+
+   Adds a constant value to the input.
+
+   :param u: The input value.
+   :param c: The constant value to be added.
+
+   :returns: The sum of the input value and the constant value.
+
+

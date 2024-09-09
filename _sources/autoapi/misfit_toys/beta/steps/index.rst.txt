@@ -1,0 +1,33 @@
+misfit_toys.beta.steps
+======================
+
+.. py:module:: misfit_toys.beta.steps
+
+.. autoapi-nested-parse::
+
+   Centralized locations for _step attribute override of Training object in misfit_toys.examples.hydra.main.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.steps.direct
+
+
+Module Contents
+---------------
+
+.. py:function:: direct(*, scale=1.0)
+
+   A decorator that simply directly compares the output to the observed data, without filtering.
+
+   :param scale: The scale factor to apply to the loss function. Defaults to 1.0.
+   :type scale: float, optional
+
+   :returns: A helper function that performs the backward propagation.
+   :rtype: callable
+
+

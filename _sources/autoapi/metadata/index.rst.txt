@@ -1,0 +1,19 @@
+metadata
+========
+
+.. py:module:: metadata
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   metadata.metadata
+
+
+Module Contents
+---------------
+
+.. py:function:: metadata()
+

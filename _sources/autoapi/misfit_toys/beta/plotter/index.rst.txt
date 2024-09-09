@@ -1,0 +1,114 @@
+misfit_toys.beta.plotter
+========================
+
+.. py:module:: misfit_toys.beta.plotter
+
+.. autoapi-nested-parse::
+
+   This module is meant to provide a reference point for plotting functions to make configurable dynamic imports into misfit_toys.examples.hydra.main easier.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.plotter.gauss_plotter
+   misfit_toys.beta.plotter.w2_plotter
+   misfit_toys.beta.plotter.trace_plotter
+   misfit_toys.beta.plotter.trace_stack_plotter
+   misfit_toys.beta.plotter.trace_group_stack_plotter
+
+
+Module Contents
+---------------
+
+.. py:function:: gauss_plotter(*, data, idx, fig, axes, shape)
+
+   Plots the computed and analytic PDF, CDF, and quantile for a Gaussian distribution.
+
+   :param data: The data object containing the Gaussian distribution information.
+   :type data: object
+   :param idx: The indices of the data to plot.
+   :type idx: tuple
+   :param fig: The figure object to plot on.
+   :type fig: object
+   :param axes: The axes object to plot on.
+   :type axes: object
+   :param shape: The shape of the subplot grid.
+   :type shape: tuple
+
+   :returns: None
+
+
+.. py:function:: w2_plotter(*, data, idx, fig, axes, shape)
+
+   Plots various graphs related to probability density functions (PDFs), cumulative distribution functions (CDFs),
+   quantiles, and distances.
+
+   :param data: The data object containing the necessary data for plotting.
+   :type data: object
+   :param idx: The indices to select specific data from the data object.
+   :type idx: tuple
+   :param fig: The figure object to plot the graphs on.
+   :type fig: object
+   :param axes: The axes object to plot the graphs on.
+   :type axes: object
+   :param shape: The shape of the subplot grid.
+   :type shape: tuple
+
+   :returns: None
+
+
+.. py:function:: trace_plotter(*, data, idx, fig, axes, **kw)
+
+   Plots the trace data for a given index.
+
+   :param data: The data object containing the trace data.
+   :type data: object
+   :param idx: The index of the trace data to plot.
+   :type idx: tuple
+   :param fig: The figure object to plot on.
+   :type fig: object
+   :param axes: The axes object to plot on.
+   :type axes: object
+   :param \*\*kw: Additional keyword arguments.
+
+   :returns: None
+
+
+.. py:function:: trace_stack_plotter(*, data, idx, fig, axes, **kw)
+
+   Plots stacked intermediate data.
+
+   :param data: The data object containing intermediate data.
+   :type data: object
+   :param idx: The index of the intermediate data to plot.
+   :type idx: tuple
+   :param fig: The figure object to plot on.
+   :type fig: object
+   :param axes: The axes object to plot on.
+   :type axes: object
+   :param \*\*kw: Additional keyword arguments.
+
+   :returns: None
+
+
+.. py:function:: trace_group_stack_plotter(*, data, idx, fig, axes, **kw)
+
+   Plots a stack of line plots for a group of traces.
+
+   :param data: The data object containing the trace history.
+   :type data: object
+   :param idx: The index of the trace group to plot.
+   :type idx: tuple
+   :param fig: The figure object to plot on.
+   :type fig: object
+   :param axes: The axes object to plot on.
+   :type axes: object
+   :param \*\*kw: Additional keyword arguments.
+
+   :returns: None
+
+

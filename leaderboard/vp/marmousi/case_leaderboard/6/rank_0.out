@@ -1,0 +1,19 @@
+Preprocessing took 0.00 seconds.
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/vp_init.pt...torch.Size([2301, 751])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/src_amp_y.pt...torch.Size([115, 1, 750])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/obs_data.pt...torch.Size([115, 384, 750])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/src_loc_y.pt...torch.Size([115, 1, 2])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/rec_loc_y.pt...torch.Size([115, 384, 2])
+Preprocess time rank 0: 0.82 seconds.
+    taper_batch: call == 1...took 65.03335046768188s
+iter=14, loss=9.64e-04, mse=9.63e-04, tik=9.00e-07, reg_strength=1.00e-07, training.loss: 9.25e+02, lr: 1.000e-03, obs_data.norm: 1.15e+02, out.norm: 2.31e+01, rank: 0
+    taper_batch: call == 2...took 65.31651902198792s
+iter=29, loss=9.48e-04, mse=9.47e-04, tik=9.06e-07, reg_strength=1.00e-07, training.loss: 9.12e+02, lr: 1.000e-03, obs_data.norm: 1.15e+02, out.norm: 2.29e+01, rank: 0
+    taper_batch: call == 3...took 65.52510261535645s
+iter=44, loss=9.33e-04, mse=9.32e-04, tik=9.10e-07, reg_strength=1.00e-07, training.loss: 9.01e+02, lr: 1.000e-03, obs_data.norm: 1.15e+02, out.norm: 2.27e+01, rank: 0
+    taper_batch: call == 4...took 65.49502754211426s
+iter=59, loss=9.19e-04, mse=9.18e-04, tik=9.18e-07, reg_strength=1.00e-07, training.loss: 8.90e+02, lr: 1.000e-03, obs_data.norm: 1.15e+02, out.norm: 2.25e+01, rank: 0
+Presaving loss
+Presaving vp
+Presaving out
+Train time rank 0: 261.64 seconds.

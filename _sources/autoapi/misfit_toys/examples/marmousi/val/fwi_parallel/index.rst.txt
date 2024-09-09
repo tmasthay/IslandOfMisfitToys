@@ -1,0 +1,75 @@
+misfit_toys.examples.marmousi.val.fwi_parallel
+==============================================
+
+.. py:module:: misfit_toys.examples.marmousi.val.fwi_parallel
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.marmousi.val.fwi_parallel.training_stages
+   misfit_toys.examples.marmousi.val.fwi_parallel.d2cpu
+   misfit_toys.examples.marmousi.val.fwi_parallel.run_rank
+   misfit_toys.examples.marmousi.val.fwi_parallel.run
+   misfit_toys.examples.marmousi.val.fwi_parallel.main
+
+
+Module Contents
+---------------
+
+.. py:function:: training_stages()
+
+   Define the training stages for the training class.
+
+   :returns:
+
+             A dictionary containing the training stages.
+                 Each stage is represented by a key-value pair, where the key is the stage name
+                 and the value is a dictionary containing the stage data, preprocess function, and postprocess function.
+   :rtype: OrderedDict
+
+
+.. py:function:: d2cpu(x)
+
+   Moves a tensor `x` from GPU to CPU and detaches it from the computation graph.
+
+   :param x: The input tensor to be moved from GPU to CPU.
+   :type x: torch.Tensor
+
+   :returns: The tensor `x` moved to CPU and detached from the computation graph.
+   :rtype: torch.Tensor
+
+
+.. py:function:: run_rank(rank, world_size)
+
+   Runs the Distributed Data Parallel (DDP) training on a specific rank.
+
+   :param rank: The rank of the current process.
+   :type rank: int
+   :param world_size: The total number of processes.
+   :type world_size: int
+
+   :returns: None
+
+
+.. py:function:: run(world_size)
+
+   Runs the FWI parallel process.
+
+   :param world_size: The number of processes to spawn.
+   :type world_size: int
+
+   :returns: None
+
+
+.. py:function:: main()
+
+   Main function to run the FWI parallel program.
+
+   :param None:
+
+   :returns: None
+
+

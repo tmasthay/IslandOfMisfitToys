@@ -1,0 +1,21 @@
+misfit_toys.data.das_curtin
+===========================
+
+.. py:module:: misfit_toys.data.das_curtin
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/das_curtin/factory/index
+   /autoapi/misfit_toys/data/das_curtin/metadata/index
+
+

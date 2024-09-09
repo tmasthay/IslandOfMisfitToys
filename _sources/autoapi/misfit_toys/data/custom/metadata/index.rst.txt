@@ -1,0 +1,6 @@
+misfit_toys.data.custom.metadata
+================================
+
+.. py:module:: misfit_toys.data.custom.metadata
+
+

@@ -1,0 +1,223 @@
+misfit_toys.data.dataset
+========================
+
+.. py:module:: misfit_toys.data.dataset
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.data.dataset.DataFactory
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.data.dataset.fetch_warn
+   misfit_toys.data.dataset.expand_metadata
+   misfit_toys.data.dataset.segy_to_torch
+   misfit_toys.data.dataset.bin_to_torch
+   misfit_toys.data.dataset.any_to_torch
+   misfit_toys.data.dataset.fetch_data
+   misfit_toys.data.dataset.convert_data
+   misfit_toys.data.dataset.check_data_installation
+   misfit_toys.data.dataset.store_metadata
+   misfit_toys.data.dataset.towed_src
+   misfit_toys.data.dataset.fixed_rec
+   misfit_toys.data.dataset.fetch_and_convert_data
+   misfit_toys.data.dataset.get_data
+   misfit_toys.data.dataset.get_data2
+   misfit_toys.data.dataset.data_path
+   misfit_toys.data.dataset.get_data3
+   misfit_toys.data.dataset.field_getter
+   misfit_toys.data.dataset.field_saver
+   misfit_toys.data.dataset.get_metadata
+   misfit_toys.data.dataset.get_primitives
+   misfit_toys.data.dataset.downsample_tensor
+   misfit_toys.data.dataset.fetch_meta
+
+
+Module Contents
+---------------
+
+.. py:function:: fetch_warn()
+
+.. py:function:: expand_metadata(meta)
+
+.. py:function:: segy_to_torch(*, input_path, output_path, device='cpu', transpose=False, out=sys.stdout, print_freq=100, **kw)
+
+.. py:function:: bin_to_torch(*, input_path, output_path, device='cpu', transpose=False, out=sys.stdout, ny, nx, **kw)
+
+.. py:function:: any_to_torch(*, input_path, output_path, device='cpu', transpose=False, out=sys.stdout, **kw)
+
+.. py:function:: fetch_data(d, *, path, unzip=True)
+
+.. py:function:: convert_data(d, *, path, calls=None)
+
+.. py:function:: check_data_installation(path)
+
+.. py:function:: store_metadata(*, path, metadata)
+
+.. py:function:: towed_src(*, n_shots, src_per_shot, fst_src, d_src, src_depth, d_intra_shot)
+
+.. py:function:: fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth)
+
+.. py:function:: fetch_and_convert_data(*, subset='all', path=os.getcwd(), check=False)
+
+.. py:function:: get_data(*, field, folder, path=None, check=False)
+
+.. py:function:: get_data2(*, field, path=None, allow_none=False)
+
+.. py:function:: data_path(path)
+
+.. py:function:: get_data3(*, field, path)
+
+.. py:function:: field_getter(path)
+
+.. py:function:: field_saver(path, verbose=True)
+
+.. py:function:: get_metadata(*, path)
+
+.. py:function:: get_primitives(d)
+
+.. py:function:: downsample_tensor(tensor, axis, ratio)
+
+   Downsample a torch.Tensor along a given axis by a specific ratio.
+
+   :param tensor: The input tensor to downsample.
+   :type tensor: torch.Tensor
+   :param axis: The axis along which to downsample. Must be in range [0, tensor.dim()).
+   :type axis: int
+   :param ratio: The downsampling ratio. Must be greater than 0.
+   :type ratio: int
+
+   :returns: The downsampled tensor.
+   :rtype: torch.Tensor
+
+
+.. py:function:: fetch_meta(*, obj)
+
+.. py:class:: DataFactory(*, device=None, src_path, root_out_path, root_path, **kw)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: src_path
+
+
+   .. py:attribute:: parent_path
+
+
+   .. py:attribute:: root_out_path
+
+
+   .. py:attribute:: root_path
+
+
+   .. py:attribute:: append_path
+
+
+   .. py:attribute:: out_path
+
+
+   .. py:attribute:: tensors
+
+
+   .. py:attribute:: py_exists
+
+
+   .. py:attribute:: pydict_exists
+
+
+   .. py:attribute:: metadata
+
+
+   .. py:method:: __extend_init__(**kw)
+
+
+   .. py:method:: manufacture_data(**kw)
+
+
+   .. py:method:: process_web_data(**kw)
+
+
+   .. py:method:: save_tensor(key)
+
+
+   .. py:method:: save_all_tensors()
+
+
+   .. py:method:: clear_tensor(key)
+
+
+   .. py:method:: clear_all_tensors()
+
+
+   .. py:method:: downsample_tensor(*, key, axes)
+
+
+   .. py:method:: downsample_subset_tensors(*, keys, axes)
+
+
+   .. py:method:: downsample_all_tensors(*, axes)
+
+
+   .. py:method:: slice_tensor(*slices, key)
+
+
+   .. py:method:: slice_subset_tensors(*slices, keys)
+
+
+   .. py:method:: slice_all_tensors(*slices)
+
+
+   .. py:method:: broadcast_meta()
+
+
+   .. py:method:: get_parent_tensors(place=True)
+
+
+   .. py:method:: place_tensors(*, tensors=None, device)
+
+
+   .. py:method:: installed(*keys)
+
+
+   .. py:method:: get_derived_meta(*, meta)
+      :staticmethod:
+
+
+
+   .. py:method:: manufacture_all(*, root, root_out_path, exclusions=None)
+      :staticmethod:
+
+
+
+   .. py:method:: create_database(*, storage, exclusions=None)
+      :staticmethod:
+
+
+
+   .. py:method:: deploy_factory(*, root, root_out_path, src_path)
+      :staticmethod:
+
+
+
+   .. py:method:: get_slices(metadata)
+      :staticmethod:
+
+
+
+   .. py:method:: cli_construct(*, device=None, src_path, **kw)
+      :classmethod:
+
+
+

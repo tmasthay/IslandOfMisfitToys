@@ -1,0 +1,3 @@
+- case=tik_full_marmousi
+- +run=tmp
+- case.train.max_iters=4

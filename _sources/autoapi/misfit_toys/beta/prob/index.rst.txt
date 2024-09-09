@@ -1,0 +1,64 @@
+misfit_toys.beta.prob
+=====================
+
+.. py:module:: misfit_toys.beta.prob
+
+.. autoapi-nested-parse::
+
+   TODO: Deprecate this after verifying that it is not used.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.beta.prob.Defaults
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.prob.unbatch_splines
+   misfit_toys.beta.prob.unbatch_splines_lambda
+   misfit_toys.beta.prob.pdf
+   misfit_toys.beta.prob.cdf
+   misfit_toys.beta.prob.disc_quantile
+   misfit_toys.beta.prob.cts_quantile2
+   misfit_toys.beta.prob.cts_quantile
+   misfit_toys.beta.prob.get_quantile_lambda
+   misfit_toys.beta.prob.combos
+
+
+Module Contents
+---------------
+
+.. py:class:: Defaults
+
+   .. py:attribute:: cdf_tol
+      :type:  float
+      :value: 0.001
+
+
+
+.. py:function:: unbatch_splines(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor
+
+.. py:function:: unbatch_splines_lambda(x: torch.Tensor, y: torch.Tensor) -> Callable[[torch.Tensor, bool], torch.Tensor]
+
+.. py:function:: pdf(u: torch.Tensor, x: torch.Tensor, *, renorm: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor
+
+.. py:function:: cdf(pdf: torch.Tensor, x: torch.Tensor, *, dim=-1) -> torch.Tensor
+
+.. py:function:: disc_quantile(cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor) -> torch.Tensor
+
+.. py:function:: cts_quantile2(cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor, tol: float = 0.0001, max_iters: int = 20)
+
+.. py:function:: cts_quantile(cdfs: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor, tol: float = 0.0001, max_iters: int = 20)
+
+.. py:function:: get_quantile_lambda(u: torch.Tensor, x: torch.Tensor, *, p: torch.Tensor, renorm: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], tol=0.0001, max_iters=20)
+
+.. py:function:: combos(*args, flat=True)
+

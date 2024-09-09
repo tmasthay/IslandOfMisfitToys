@@ -1,0 +1,36 @@
+factory
+=======
+
+.. py:module:: factory
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   factory.Factory
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   factory.main
+
+
+Module Contents
+---------------
+
+.. py:class:: Factory(*, device=None, src_path, root_out_path, root_path, **kw)
+
+   Bases: :py:obj:`misfit_toys.data.dataset.DataFactory`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+.. py:function:: main()
+

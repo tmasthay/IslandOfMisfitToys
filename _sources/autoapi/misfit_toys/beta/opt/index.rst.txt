@@ -1,0 +1,27 @@
+misfit_toys.beta.opt
+====================
+
+.. py:module:: misfit_toys.beta.opt
+
+.. autoapi-nested-parse::
+
+   TODO: Deprecate this module after termining that it is not used.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.opt.delay_opt
+
+
+Module Contents
+---------------
+
+.. py:function:: delay_opt(opt_type, **kw)
+
+   TODO: Deprecate if not used.
+
+

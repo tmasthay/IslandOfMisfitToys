@@ -1,0 +1,22 @@
+misfit_toys.fwi.loss
+====================
+
+.. py:module:: misfit_toys.fwi.loss
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/fwi/loss/renorm/index
+   /autoapi/misfit_toys/fwi/loss/tikhonov/index
+   /autoapi/misfit_toys/fwi/loss/w2/index
+
+

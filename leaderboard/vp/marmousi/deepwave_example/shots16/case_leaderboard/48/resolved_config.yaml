@@ -1,0 +1,176 @@
+case: 
+  data: 
+    path: conda/data/marmousi/deepwave_example/shots16/twolayer
+    postprocess: 
+      __call__: ^^null|misfit_toys.beta.postprocess|vp_compare
+      kw: 
+        max_iters: 25
+        name: Tikhonov Regularization
+        proj_path: marmousi/deepwave_example/shots16
+    prefix: conda/data
+    preprocess: 
+      chunk_keys: 
+        params:
+        - src_amp_y
+        tensors:
+        - obs_data
+        - src_loc_y
+        - rec_loc_y
+      dep: ^^null|misfit_toys.fwi.seismic_data|null
+      maxv: 2500
+      minv: 1000
+      path_builder_kw: 
+        obs_data: null
+        rec_loc_y: null
+        remap: 
+          vp_init: vp
+        src_amp_y: 
+          kw: 
+            requires_grad: false
+          runtime_func: self.data.preprocess.dep.Param.delay_init
+        src_loc_y: null
+        vp_init: 
+          kw: 
+            maxv: 2500
+            minv: 1000
+            requires_grad: true
+          runtime_func: self.data.preprocess.dep.ParamConstrained.delay_init
+      required_fields:
+      - vp_init
+      - src_amp_y
+      - obs_data
+      - src_loc_y
+      - rec_loc_y
+      - meta
+      time_pad_frac: 0.2
+    proj_path: marmousi/deepwave_example/shots16
+  dupe: true
+  editor: null
+  name: Tikhonov Regularization
+  np: self.runtime.prop.module.meta.nt
+  plt: 
+    trace: 
+      color_seq:
+      - red
+      - blue
+      iter: 
+        none_dims:
+        - 0
+        - -1
+      legend: 
+        framealpha: 0.5
+        loc: upper right
+      linestyles:
+      - solid
+      - dashed
+      save: 
+        duration: 250
+        path: figs/random_traces.gif
+      sub: 
+        kw: 
+          figsize:
+          - 10
+          - 10
+        shape:
+        - 2
+        - 2
+      suptitle: Observed Data at Random Receiver Locations
+      title: Observed Data at Receiver Location
+      xlabel: Time (s)
+      ylabel: Displacement (m)
+    vp: 
+      iter: 
+        none_dims:
+        - -2
+        - -1
+      order:
+      - vp
+      - vp_true
+      - rel_diff
+      plts: 
+        rel_diff: 
+          main: 
+            colorbar: true
+            filt: transpose
+            opts: 
+              aspect: auto
+              cmap: seismic
+            title: Relative Difference (%)
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+        vp: 
+          main: 
+            colorbar: true
+            filt: 'eval(lambda x : x.T)'
+            opts: 
+              aspect: auto
+              cmap: seismic
+            title: $v_p$
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+        vp_true: 
+          main: 
+            colorbar: true
+            filt: transpose
+            opts: 
+              aspect: auto
+              cmap: seismic
+            title: $v_{true}$
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+      save: 
+        duration: 250
+        movie_format: gif
+        path: figs/vp.gif
+      sub: 
+        adjust: 
+          hspace: 0.5
+          wspace: 0.5
+        kw: 
+          figsize:
+          - 10
+          - 10
+        shape:
+        - 2
+        - 2
+  port: 12576
+  train: 
+    loss: 
+      dep: 
+        mod: ^^misfit_toys.fwi.loss.tikhonov
+      kw: 
+        kw: 
+          _min: 1.0e-09
+          max_iters: 25
+          scale: 0.01
+          weights: self.runtime.prop.module.vp
+        runtime_func: self.train.loss.dep.mod.lin_reg_drop
+      runtime_func: self.train.loss.dep.mod.TikhonovLoss
+    max_iters: 25
+    optimizer: 
+      args: []
+      kw: 
+        history_size: 100
+        line_search_fn: null
+        lr: 1.0
+        max_eval: null
+        max_iter: 20
+        tolerance_change: 1.0e-09
+        tolerance_grad: 1.0e-07
+      runtime_func: 'eval(lambda *args, **kw: [torch.optim.LBFGS, kw])'
+    retrain: true
+    stages: 
+      kw: 
+        max_iters: 25
+      runtime_func: ^^null|misfit_toys.workflows.stages|vanilla_stages
+    step: 
+      kw: 
+        length: 100
+        num_batches: null
+        scale: 1000000.0
+      nonexist: checking_the_yaml_format_hook
+      runtime_func: ^^null|misfit_toys.workflows.tik.steps|taper_only
+run: tik_strength_sweep

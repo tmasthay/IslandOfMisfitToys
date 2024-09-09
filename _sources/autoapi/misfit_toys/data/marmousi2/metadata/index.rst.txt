@@ -1,0 +1,19 @@
+misfit_toys.data.marmousi2.metadata
+===================================
+
+.. py:module:: misfit_toys.data.marmousi2.metadata
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.data.marmousi2.metadata.metadata
+
+
+Module Contents
+---------------
+
+.. py:function:: metadata()
+

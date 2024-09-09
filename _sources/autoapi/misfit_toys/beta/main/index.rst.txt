@@ -1,0 +1,33 @@
+misfit_toys.beta.main
+=====================
+
+.. py:module:: misfit_toys.beta.main
+
+.. autoapi-nested-parse::
+
+   This is simply a dummy template script for hydra setup.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.main.preprocess_cfg
+   misfit_toys.beta.main.derive_cfg
+   misfit_toys.beta.main.postprocess_cfg
+   misfit_toys.beta.main.main
+
+
+Module Contents
+---------------
+
+.. py:function:: preprocess_cfg(cfg: omegaconf.DictConfig) -> mh.core.DotDict
+
+.. py:function:: derive_cfg(c: mh.core.DotDict) -> mh.core.DotDict
+
+.. py:function:: postprocess_cfg(c: mh.core.DotDict) -> Any
+
+.. py:function:: main(cfg: omegaconf.DictConfig) -> None
+

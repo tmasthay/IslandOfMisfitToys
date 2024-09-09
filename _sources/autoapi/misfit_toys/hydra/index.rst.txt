@@ -1,0 +1,22 @@
+misfit_toys.hydra
+=================
+
+.. py:module:: misfit_toys.hydra
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/hydra/helpers/index
+   /autoapi/misfit_toys/hydra/main/index
+   /autoapi/misfit_toys/hydra/main_worker/index
+
+

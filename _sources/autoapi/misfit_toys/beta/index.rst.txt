@@ -1,0 +1,33 @@
+misfit_toys.beta
+================
+
+.. py:module:: misfit_toys.beta
+
+.. autoapi-nested-parse::
+
+   This package is here beta-testing features. It is not intended for production use.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/beta/data/index
+   /autoapi/misfit_toys/beta/helpers/index
+   /autoapi/misfit_toys/beta/l1/index
+   /autoapi/misfit_toys/beta/loss/index
+   /autoapi/misfit_toys/beta/main/index
+   /autoapi/misfit_toys/beta/opt/index
+   /autoapi/misfit_toys/beta/optimizers/index
+   /autoapi/misfit_toys/beta/plotter/index
+   /autoapi/misfit_toys/beta/postprocess/index
+   /autoapi/misfit_toys/beta/prob/index
+   /autoapi/misfit_toys/beta/renorm/index
+   /autoapi/misfit_toys/beta/sobolev/index
+   /autoapi/misfit_toys/beta/steps/index
+   /autoapi/misfit_toys/beta/w1/index
+
+

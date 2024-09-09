@@ -1,0 +1,22 @@
+misfit_toys.examples
+====================
+
+.. py:module:: misfit_toys.examples
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/examples/forward/index
+   /autoapi/misfit_toys/examples/hydra/index
+   /autoapi/misfit_toys/examples/marmousi/index
+
+

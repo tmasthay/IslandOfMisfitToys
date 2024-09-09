@@ -1,0 +1,19 @@
+misfit_toys.beta.l1
+===================
+
+.. py:module:: misfit_toys.beta.l1
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.l1.working_w1
+
+
+Module Contents
+---------------
+
+.. py:function:: working_w1(obs_data, *, model_params, scale, weights, reg_min, t, max_calls)
+

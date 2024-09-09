@@ -1,0 +1,9 @@
+HASH: e8cf98d49e0be37cd9c76434651feccdae1d8dea
+BRANCH: feature/full_marmousi_debug_cleanup
+
+UNTRACKED FILES: .latest_run
+.vscode/settings.json
+
+********************************************************************************
+DIFF: 
+********************************************************************************

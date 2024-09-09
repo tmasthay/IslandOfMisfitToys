@@ -1,0 +1,25 @@
+misfit_toys.beta.postprocess
+============================
+
+.. py:module:: misfit_toys.beta.postprocess
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.postprocess.get_timestamps
+   misfit_toys.beta.postprocess.core_meta
+   misfit_toys.beta.postprocess.vp_compare
+
+
+Module Contents
+---------------
+
+.. py:function:: get_timestamps(path: str)
+
+.. py:function:: core_meta(*, path: str, proj_path: str, train_time: float, name: str, max_iters: int) -> dict
+
+.. py:function:: vp_compare(data: mh.core.DotDict, *, path: str, **kw) -> None
+

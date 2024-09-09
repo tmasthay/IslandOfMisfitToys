@@ -1,0 +1,210 @@
+misfit_toys.hydra.helpers
+=========================
+
+.. py:module:: misfit_toys.hydra.helpers
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.hydra.helpers.W2Loss
+   misfit_toys.hydra.helpers.W2LossTracker
+   misfit_toys.hydra.helpers.StdoutLogger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.hydra.helpers.relu_renorm
+   misfit_toys.hydra.helpers.softplus
+   misfit_toys.hydra.helpers.hydra_build
+   misfit_toys.hydra.helpers.hydra_build_two
+   misfit_toys.hydra.helpers.setup_logger
+   misfit_toys.hydra.helpers.main
+
+
+Module Contents
+---------------
+
+.. py:class:: W2Loss(*, t, p, obs_data, renorm, gen_deriv, down=1, track=False, alpha=1e-06, weights)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Base class for all neural network modules.
+
+   Your models should also subclass this class.
+
+   Modules can also contain other Modules, allowing to nest them in
+   a tree structure. You can assign the submodules as regular attributes::
+
+       import torch.nn as nn
+       import torch.nn.functional as F
+
+       class Model(nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.conv1 = nn.Conv2d(1, 20, 5)
+               self.conv2 = nn.Conv2d(20, 20, 5)
+
+           def forward(self, x):
+               x = F.relu(self.conv1(x))
+               return F.relu(self.conv2(x))
+
+   Submodules assigned in this way will be registered, and will have their
+   parameters converted too when you call :meth:`to`, etc.
+
+   .. note::
+       As per the example above, an ``__init__()`` call to the parent class
+       must be made before assignment on the child.
+
+   :ivar training: Boolean represents whether this module is in training or
+                   evaluation mode.
+   :vartype training: bool
+
+
+   .. py:attribute:: org_obs_data
+
+
+   .. py:attribute:: obs_data
+
+
+   .. py:attribute:: renorm
+
+
+   .. py:attribute:: q_raw
+
+
+   .. py:attribute:: p
+
+
+   .. py:attribute:: t
+
+
+   .. py:attribute:: q
+
+
+   .. py:attribute:: qd
+
+
+   .. py:attribute:: weights
+
+
+   .. py:attribute:: alpha
+
+
+   .. py:method:: compute_gradient_penalty(param)
+
+      Compute the gradient penalty for the parameter tensor
+
+
+
+   .. py:method:: forward(traces)
+
+
+.. py:class:: W2LossTracker(*, t, p, obs_data, renorm, gen_deriv, down=1, track=False)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Base class for all neural network modules.
+
+   Your models should also subclass this class.
+
+   Modules can also contain other Modules, allowing to nest them in
+   a tree structure. You can assign the submodules as regular attributes::
+
+       import torch.nn as nn
+       import torch.nn.functional as F
+
+       class Model(nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.conv1 = nn.Conv2d(1, 20, 5)
+               self.conv2 = nn.Conv2d(20, 20, 5)
+
+           def forward(self, x):
+               x = F.relu(self.conv1(x))
+               return F.relu(self.conv2(x))
+
+   Submodules assigned in this way will be registered, and will have their
+   parameters converted too when you call :meth:`to`, etc.
+
+   .. note::
+       As per the example above, an ``__init__()`` call to the parent class
+       must be made before assignment on the child.
+
+   :ivar training: Boolean represents whether this module is in training or
+                   evaluation mode.
+   :vartype training: bool
+
+
+   .. py:attribute:: org_obs_data
+
+
+   .. py:attribute:: obs_data
+
+
+   .. py:attribute:: renorm
+
+
+   .. py:attribute:: q_raw
+
+
+   .. py:attribute:: p
+
+
+   .. py:attribute:: t
+
+
+   .. py:attribute:: q
+
+
+   .. py:attribute:: qd
+
+
+   .. py:attribute:: track
+
+
+   .. py:method:: forward(traces)
+
+
+.. py:function:: relu_renorm(t)
+
+.. py:function:: softplus(t, eps, beta)
+
+.. py:function:: hydra_build(c: mh.core.DotDict, *, down)
+
+.. py:function:: hydra_build_two(*, obs_data, meta, num_probs, down, eps, track, beta, weights, alpha)
+
+.. py:class:: StdoutLogger(logger, level)
+
+   Bases: :py:obj:`object`
+
+
+   .. py:attribute:: logger
+
+
+   .. py:attribute:: level
+
+
+   .. py:method:: write(message)
+
+      Write the message to the logger.
+
+
+
+   .. py:method:: flush()
+
+      Flush the stream.
+
+
+
+.. py:function:: setup_logger()
+
+.. py:function:: main()
+

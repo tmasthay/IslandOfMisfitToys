@@ -1,0 +1,187 @@
+misfit_toys.fwi.training
+========================
+
+.. py:module:: misfit_toys.fwi.training
+
+.. autoapi-nested-parse::
+
+   Training module for FWI
+
+   Classes:
+       TrainingAbstract: Abstract base class for training modules.
+       Training: Subclass of TrainingAbstract where abstract methods supplied in __init__.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.training.TrainingAbstract
+   misfit_toys.fwi.training.Training
+
+
+Module Contents
+---------------
+
+.. py:class:: TrainingAbstract
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Abstract base class for training modules.
+
+
+
+   .. py:attribute:: rank
+      :type:  int
+
+
+   .. py:attribute:: world_size
+      :type:  int
+
+
+   .. py:attribute:: prop
+      :type:  torch.nn.Module
+
+
+   .. py:attribute:: obs_data
+      :type:  torch.Tensor
+
+
+   .. py:attribute:: loss_fn
+      :type:  torch.nn.Module
+
+
+   .. py:attribute:: optimizer
+      :type:  list
+
+
+   .. py:attribute:: report_spec
+      :type:  dict
+
+
+   .. py:attribute:: scheduler
+      :type:  list
+      :value: None
+
+
+
+   .. py:attribute:: verbose
+      :type:  int
+      :value: 1
+
+
+
+   .. py:attribute:: override_post_train
+      :type:  bool
+      :value: False
+
+
+
+   .. py:method:: __post_init__()
+
+      Perform post-initialization tasks.
+
+      :param None:
+
+      :returns: None
+
+      .. note::
+
+         This method initializes the following attributes:
+         - `self.optimizer_kwargs`: The optimizer keyword arguments.
+         - `self.optimizer`: The optimizer instance.
+         - `self.scheduler`: The scheduler instance.
+         - `self.report_spec`: The report specification dictionary.
+         - `self.report_spec_flip`: The flipped report specification dictionary.
+         - `self.report`: The report dictionary.
+         - `self.print`: The print function.
+         - `self.training_stages`: The training stages list.
+
+
+
+   .. py:method:: train()
+
+      Trains the model by performing pre-training, training, and post-training steps.
+
+
+
+   .. py:method:: step()
+
+      Performs a single optimization step.
+
+      :returns: The loss value after the optimization step.
+      :rtype: loss (float)
+
+
+
+   .. py:method:: reset_optimizer()
+
+      Resets the optimizer used for parameter updates.
+
+      :returns: None
+
+
+
+.. py:class:: Training(*, rank: int, world_size: int, prop: torch.nn.Module, obs_data: torch.Tensor, loss_fn: torch.nn.Module, optimizer: list, report_spec: dict, scheduler: list = None, verbose: int = 1, override_post_train: bool = False, _step: Callable[[TrainingAbstract], None], _pre_train: Callable[[TrainingAbstract], None] = None, _post_train: Callable[[TrainingAbstract], None] = None, _build_training_stages: Callable[[TrainingAbstract], collections.OrderedDict], ext=None)
+
+   Bases: :py:obj:`TrainingAbstract`
+
+
+   A class representing the training process.
+
+
+   .. py:attribute:: rank
+      :type:  int
+
+
+   .. py:attribute:: world_size
+      :type:  int
+
+
+   .. py:attribute:: prop
+      :type:  torch.nn.Module
+
+
+   .. py:attribute:: obs_data
+      :type:  torch.Tensor
+
+
+   .. py:attribute:: loss_fn
+      :type:  torch.nn.Module
+
+
+   .. py:attribute:: optimizer
+      :type:  list
+
+
+   .. py:attribute:: report_spec
+      :type:  dict
+
+
+   .. py:attribute:: scheduler
+      :type:  list
+      :value: None
+
+
+
+   .. py:attribute:: verbose
+      :type:  int
+      :value: 1
+
+
+
+   .. py:attribute:: override_post_train
+      :type:  bool
+      :value: False
+
+
+
+   .. py:attribute:: ext
+      :type:  mh.core.DotDict
+      :value: None
+
+
+

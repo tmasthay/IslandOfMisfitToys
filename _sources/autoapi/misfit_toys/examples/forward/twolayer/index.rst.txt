@@ -1,0 +1,20 @@
+misfit_toys.examples.forward.twolayer
+=====================================
+
+.. py:module:: misfit_toys.examples.forward.twolayer
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/examples/forward/twolayer/main/index
+
+

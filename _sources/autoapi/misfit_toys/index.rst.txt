@@ -1,0 +1,35 @@
+misfit_toys
+===========
+
+.. py:module:: misfit_toys
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/beta/index
+   /autoapi/misfit_toys/data/index
+   /autoapi/misfit_toys/examples/index
+   /autoapi/misfit_toys/fwi/index
+   /autoapi/misfit_toys/hydra/index
+   /autoapi/misfit_toys/workflows/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/swiffer/index
+   /autoapi/misfit_toys/utils/index
+
+

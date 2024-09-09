@@ -1,0 +1,54 @@
+misfit_toys.beta.sobolev
+========================
+
+.. py:module:: misfit_toys.beta.sobolev
+
+.. autoapi-nested-parse::
+
+   This module contains the Sobolev norm misfit function.
+   STATUS: Broken.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.sobolev.riel_legacy
+   misfit_toys.beta.sobolev.riel
+
+
+Module Contents
+---------------
+
+.. py:function:: riel_legacy(*, obs_data, t, alpha)
+
+   Computes the Riemann-Liouville functional for a given function.
+
+   :param obs_data: The observed data.
+   :type obs_data: torch.Tensor
+   :param t: The time values.
+   :type t: torch.Tensor
+   :param alpha: The alpha value.
+   :type alpha: float
+
+   :returns: A helper function that computes the Riel legacy function for a given input function.
+   :rtype: function
+
+
+.. py:function:: riel(*, obs_data, t, alpha)
+
+   Computes the Riemann-Liouville fractional integral of a 1D function.
+
+   :param obs_data: The observed data.
+   :type obs_data: torch.Tensor
+   :param t: The time values.
+   :type t: torch.Tensor
+   :param alpha: The alpha value.
+   :type alpha: float
+
+   :returns: A helper function that computes the Riel functional for a given function.
+   :rtype: function
+
+

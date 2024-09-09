@@ -1,0 +1,9 @@
+human_timestamp: June 17, 2024 01:42:19 AM
+l2_diff: 451.92156982421875
+max_iters: 25
+name: Tikhonov Regularization
+orig_root: /home/tyler/Documents/repos/IslandOfMisfitToys/misfit_toys/hydra/outputs/HYDRA_TIME_2024-06-17/HYDRA_TIME_01-42-19/marmousi/
+proj_path: marmousi
+root: ../../misfit_toys/hydra/outputs/HYDRA_TIME_2024-06-17/HYDRA_TIME_01-42-19/marmousi
+timestamp: 2024-06-17 01-42-19
+train_time: 0.0

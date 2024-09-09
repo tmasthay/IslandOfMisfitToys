@@ -1,0 +1,31 @@
+misfit_toys.fwi
+===============
+
+.. py:module:: misfit_toys.fwi
+
+.. autoapi-nested-parse::
+
+   TODO: make package-level docstring
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/fwi/loss/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/fwi/models/index
+   /autoapi/misfit_toys/fwi/seismic_data/index
+   /autoapi/misfit_toys/fwi/training/index
+
+

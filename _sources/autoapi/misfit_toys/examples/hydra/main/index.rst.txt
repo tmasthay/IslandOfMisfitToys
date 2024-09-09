@@ -1,0 +1,30 @@
+misfit_toys.examples.hydra.main
+===============================
+
+.. py:module:: misfit_toys.examples.hydra.main
+
+.. autoapi-nested-parse::
+
+   This example is a copy of ``misfit_toys.hydra.main`` but in an isolated directory rather
+   than inside the package itself.
+
+   .. seealso::
+
+      - Documentation for ``misfit_toys.hydra.main``.
+      - Hydra documentation: https://hydra.cc/docs/intro/
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.examples.hydra.main.main_dummy
+
+
+Module Contents
+---------------
+
+.. py:function:: main_dummy(cfg: omegaconf.DictConfig) -> None
+

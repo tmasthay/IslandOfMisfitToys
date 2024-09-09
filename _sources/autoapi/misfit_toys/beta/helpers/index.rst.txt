@@ -1,0 +1,65 @@
+misfit_toys.beta.helpers
+========================
+
+.. py:module:: misfit_toys.beta.helpers
+
+.. autoapi-nested-parse::
+
+   Helpers module for stitching development tests in a centralized location.
+   This module should not appear in the main branch.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.beta.helpers.Defaults
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.helpers.unbatch_splines
+   misfit_toys.beta.helpers.unbatch_splines_lambda
+   misfit_toys.beta.helpers.pdf
+   misfit_toys.beta.helpers.cdf
+   misfit_toys.beta.helpers.disc_quantile
+   misfit_toys.beta.helpers.cts_quantile_legacy
+   misfit_toys.beta.helpers.cts_quantile
+   misfit_toys.beta.helpers.get_quantile_lambda
+   misfit_toys.beta.helpers.combos
+
+
+Module Contents
+---------------
+
+.. py:class:: Defaults
+
+   .. py:attribute:: cdf_tol
+      :type:  float
+      :value: 0.001
+
+
+
+.. py:function:: unbatch_splines(x, y)
+
+.. py:function:: unbatch_splines_lambda(x, y)
+
+.. py:function:: pdf(u, x, *, renorm)
+
+.. py:function:: cdf(pdf, x, *, dim=-1)
+
+.. py:function:: disc_quantile(cdfs, x, *, p)
+
+.. py:function:: cts_quantile_legacy(cdfs, x, *, p, tol=0.0001, max_iters=20)
+
+.. py:function:: cts_quantile(cdfs, x, *, p, tol=0.0001, max_iters=20)
+
+.. py:function:: get_quantile_lambda(u, x, *, p, renorm, tol=0.0001, max_iters=20)
+
+.. py:function:: combos(*args, flat=True)
+

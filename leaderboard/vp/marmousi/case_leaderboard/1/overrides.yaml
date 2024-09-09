@@ -1,0 +1,5 @@
+- case=tik_full_marmousi
+- case.train.max_iters=30
+- case/train/optimizer=lbfgs
+- case.train.optimizer.kw.max_iter=10
+- +run=lbfgs_inaccurate

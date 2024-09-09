@@ -1,0 +1,57 @@
+misfit_toys.fwi.loss.renorm
+===========================
+
+.. py:module:: misfit_toys.fwi.loss.renorm
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.loss.renorm.square
+   misfit_toys.fwi.loss.renorm.shift
+   misfit_toys.fwi.loss.renorm.exp
+
+
+Module Contents
+---------------
+
+.. py:function:: square(x)
+
+   Squares each element of the input array and normalizes the result.
+
+   :param x: Input array.
+   :type x: numpy.ndarray
+
+   :returns: Array with squared and normalized values.
+   :rtype: numpy.ndarray
+
+
+.. py:function:: shift(x, s=None)
+
+   Shifts the input array `x` by subtracting the minimum value `s` (or the minimum value of `x` if `s` is not provided).
+   Returns the shifted array normalized by dividing each element by the sum of all elements in the shifted array.
+
+   :param x: The input array.
+   :type x: numpy.ndarray
+   :param s: The value to subtract from `x`. If not provided, the minimum value of `x` is used.
+   :type s: float, optional
+
+   :returns: The shifted and normalized array.
+   :rtype: numpy.ndarray
+
+
+.. py:function:: exp(x, alpha=-1.0)
+
+   Compute the exponential function with an optional scaling factor.
+
+   :param x: The input tensor.
+   :type x: torch.Tensor
+   :param alpha: The scaling factor. Defaults to -1.0.
+   :type alpha: float, optional
+
+   :returns: The result of applying the exponential function to the input tensor.
+   :rtype: torch.Tensor
+
+

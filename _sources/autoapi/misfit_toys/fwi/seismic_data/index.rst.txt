@@ -1,0 +1,475 @@
+misfit_toys.fwi.seismic_data
+============================
+
+.. py:module:: misfit_toys.fwi.seismic_data
+
+.. autoapi-nested-parse::
+
+   This module contains classes and functions related to seismic data processing and modeling.
+
+   Classes:
+       Param: A class representing a parameter.
+       ParamConstrained: A class representing a constrained parameter.
+       SeismicProp: A class representing a seismic propagation model.
+
+   Functions:
+       path_builder: Builds a dictionary of seismic data given a path and optional remapping.
+       chunk_params: Chunks the parameters based on the rank and world size.
+       chunk_tensors: Chunks the tensors based on the rank and world size.
+       deploy_data: Deploys the data to the specified rank.
+       chunk_and_deploy: Chunks and deploys the data based on the rank and world size.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.seismic_data.Param
+   misfit_toys.fwi.seismic_data.ParamConstrained
+   misfit_toys.fwi.seismic_data.SeismicPropLegacy
+   misfit_toys.fwi.seismic_data.SeismicProp
+   misfit_toys.fwi.seismic_data.SeismicPropBatched
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.fwi.seismic_data.path_builder
+
+
+Module Contents
+---------------
+
+.. py:function:: path_builder(path, *, remap=None, **kw)
+
+   Builds a dictionary of seismic data given a path and optional remapping.
+
+   :param path: The path to the seismic data.
+   :type path: str
+   :param remap: A dictionary specifying the remapping of keys. Defaults to None.
+   :type remap: dict, optional
+   :param \*\*kw: Additional keyword arguments representing the fields of the seismic data.
+
+   :returns: A dictionary containing the seismic data.
+   :rtype: dict
+
+
+.. py:class:: Param(*, p, requires_grad=False, **kw)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A class representing a parameter.
+
+   :param p: The parameter tensor.
+   :type p: torch.Tensor
+   :param requires_grad: Whether the parameter requires gradient computation. Defaults to False.
+   :type requires_grad: bool, optional
+   :param \*\*kw: Additional keyword arguments.
+
+   .. attribute:: p
+
+      The parameter tensor.
+
+      :type: torch.nn.Parameter
+
+   .. attribute:: custom
+
+      A dictionary containing custom attributes.
+
+      :type: DotDict
+
+
+   .. py:attribute:: p
+
+
+   .. py:attribute:: custom
+
+
+   .. py:method:: chunk(rank, world_size)
+
+      Chunks the parameter based on the rank and world size.
+
+      :param rank: The rank of the current process.
+      :type rank: int
+      :param world_size: The total number of processes.
+      :type world_size: int
+
+
+
+   .. py:method:: forward()
+
+      Returns the parameter tensor.
+
+      :returns: The parameter tensor.
+      :rtype: torch.Tensor
+
+
+
+   .. py:method:: delay_init(**kw)
+      :classmethod:
+
+
+      Delays the initialization of the parameter.
+
+      :param \*\*kw: Additional keyword arguments.
+
+      :returns: A function that initializes the parameter.
+      :rtype: function
+
+
+
+   .. py:method:: clone(obj, *, requires_grad=None, **kw)
+      :classmethod:
+
+
+      Clones the parameter.
+
+      :param p: The parameter tensor.
+      :type p: torch.Tensor
+      :param \*\*kw: Additional keyword arguments.
+
+      :returns: The cloned parameter.
+      :rtype: Param
+
+
+
+.. py:class:: ParamConstrained(*, p, minv, maxv, requires_grad=False)
+
+   Bases: :py:obj:`Param`
+
+
+   A class representing a constrained parameter.
+
+   :param p: The parameter tensor.
+   :type p: torch.Tensor
+   :param minv: The minimum value of the parameter.
+   :type minv: float
+   :param maxv: The maximum value of the parameter.
+   :type maxv: float
+   :param requires_grad: Whether the parameter requires gradient computation. Defaults to False.
+   :type requires_grad: bool, optional
+
+
+   .. py:method:: forward()
+
+      Returns the constrained parameter tensor.
+
+      :returns: The constrained parameter tensor.
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: SeismicPropLegacy(*, vp, vs=None, rho=None, model='acoustic', dx, dt, src_amp_y=None, src_loc_y=None, rec_loc_y=None, src_amp_x=None, src_loc_x=None, rec_loc_x=None, **kw)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A class representing a legacy seismic propagation model.
+
+   :param vp: The P-wave velocity tensor.
+   :type vp: torch.Tensor
+   :param vs: The S-wave velocity tensor. Defaults to None.
+   :type vs: torch.Tensor, optional
+   :param rho: The density tensor. Defaults to None.
+   :type rho: torch.Tensor, optional
+   :param model: The type of model ('acoustic' or 'elastic'). Defaults to 'acoustic'.
+   :type model: str, optional
+   :param dx: The spatial step size.
+   :type dx: float
+   :param dt: The temporal step size.
+   :type dt: float
+   :param src_amp_y: The source amplitudes in the y-direction. Defaults to None.
+   :type src_amp_y: torch.Tensor, optional
+   :param src_loc_y: The source locations in the y-direction. Defaults to None.
+   :type src_loc_y: torch.Tensor, optional
+   :param rec_loc_y: The receiver locations in the y-direction. Defaults to None.
+   :type rec_loc_y: torch.Tensor, optional
+   :param src_amp_x: The source amplitudes in the x-direction. Defaults to None.
+   :type src_amp_x: torch.Tensor, optional
+   :param src_loc_x: The source locations in the x-direction. Defaults to None.
+   :type src_loc_x: torch.Tensor, optional
+   :param rec_loc_x: The receiver locations in the x-direction. Defaults to None.
+   :type rec_loc_x: torch.Tensor, optional
+   :param \*\*kw: Additional keyword arguments.
+
+
+   .. py:attribute:: vp
+
+
+   .. py:attribute:: vs
+
+
+   .. py:attribute:: rho
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: dx
+
+
+   .. py:attribute:: dt
+
+
+   .. py:attribute:: src_amp_y
+
+
+   .. py:attribute:: src_loc_y
+
+
+   .. py:attribute:: rec_loc_y
+
+
+   .. py:attribute:: src_amp_x
+
+
+   .. py:attribute:: src_loc_x
+
+
+   .. py:attribute:: rec_loc_x
+
+
+   .. py:attribute:: extra_forward
+
+
+   .. py:method:: __validate_init__()
+
+      Validates the initialization of the seismic propagation model.
+
+      :raises ValueError: If the model is not 'acoustic' or 'elastic'.
+      :raises ValueError: If the required parameters are not set.
+
+
+
+   .. py:method:: __get_optional_param__(name)
+
+      Returns the optional parameter if it is set, otherwise returns None.
+
+      :param name: The name of the optional parameter.
+      :type name: str
+
+      :returns: The optional parameter tensor or None.
+      :rtype: torch.Tensor or None
+
+
+
+   .. py:method:: forward(dummy)
+
+      Performs forward propagation based on the model type.
+
+      :param dummy: A dummy input.
+
+      :returns: The output tensor.
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: SeismicProp(*, vp: Param, meta: mh.core.DotDict, vs: Param = None, rho: Param = None, src_amp_y: Param = None, src_loc_y: torch.Tensor = None, rec_loc_y: torch.Tensor = None, src_amp_x: Param = None, src_loc_x: torch.Tensor = None, rec_loc_x: torch.Tensor = None, **kw)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A class representing a seismic propagation model.
+
+   :param vp: The P-wave velocity tensor.
+   :type vp: torch.Tensor
+   :param vs: The S-wave velocity tensor. Defaults to None.
+   :type vs: torch.Tensor, optional
+   :param rho: The density tensor. Defaults to None.
+   :type rho: torch.Tensor, optional
+   :param model: The type of model ('acoustic' or 'elastic'). Defaults to 'acoustic'.
+   :type model: str, optional
+   :param meta: The metadata of the seismic data.
+   :param src_amp_y: The source amplitudes in the y-direction. Defaults to None.
+   :type src_amp_y: torch.Tensor, optional
+   :param src_loc_y: The source locations in the y-direction. Defaults to None.
+   :type src_loc_y: torch.Tensor, optional
+   :param rec_loc_y: The receiver locations in the y-direction. Defaults to None.
+   :type rec_loc_y: torch.Tensor, optional
+   :param src_amp_x: The source amplitudes in the x-direction. Defaults to None.
+   :type src_amp_x: torch.Tensor, optional
+   :param src_loc_x: The source locations in the x-direction. Defaults to None.
+   :type src_loc_x: torch.Tensor, optional
+   :param rec_loc_x: The receiver locations in the x-direction. Defaults to None.
+   :type rec_loc_x: torch.Tensor, optional
+   :param \*\*kw: Additional keyword arguments.
+
+
+   .. py:attribute:: vp
+
+
+   .. py:attribute:: vs
+
+
+   .. py:attribute:: rho
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: meta
+
+
+   .. py:attribute:: src_amp_y
+
+
+   .. py:attribute:: src_loc_y
+
+
+   .. py:attribute:: rec_loc_y
+
+
+   .. py:attribute:: src_amp_x
+
+
+   .. py:attribute:: src_loc_x
+
+
+   .. py:attribute:: rec_loc_x
+
+
+   .. py:attribute:: extra_forward
+
+
+   .. py:method:: __validate_init__()
+
+      Validates the initialization of the seismic propagation model.
+
+      :raises ValueError: If the model is not 'acoustic' or 'elastic'.
+      :raises ValueError: If the required parameters are not set.
+
+
+
+   .. py:method:: __get_optional_param__(name)
+
+      Returns the optional parameter if it is set, otherwise returns None.
+
+      :param name: The name of the optional parameter.
+      :type name: str
+
+      :returns: The optional parameter tensor or None.
+      :rtype: torch.Tensor or None
+
+
+
+   .. py:method:: __check_nan_inf__(tensor, name='')
+
+
+   .. py:method:: forward(s)
+
+      Performs forward propagation based on the model type.
+
+      :param dummy: A dummy input.
+
+      :returns: The output tensor.
+      :rtype: torch.Tensor
+
+
+
+.. py:class:: SeismicPropBatched(*, vp: Param, meta: mh.core.DotDict, vs: Param = None, rho: Param = None, src_amp_y: Param = None, src_loc_y: torch.Tensor = None, rec_loc_y: torch.Tensor = None, src_amp_x: Param = None, src_loc_x: torch.Tensor = None, rec_loc_x: torch.Tensor = None, **kw)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A class representing a seismic propagation model.
+
+   :param vp: The P-wave velocity tensor.
+   :type vp: torch.Tensor
+   :param vs: The S-wave velocity tensor. Defaults to None.
+   :type vs: torch.Tensor, optional
+   :param rho: The density tensor. Defaults to None.
+   :type rho: torch.Tensor, optional
+   :param model: The type of model ('acoustic' or 'elastic'). Defaults to 'acoustic'.
+   :type model: str, optional
+   :param meta: The metadata of the seismic data.
+   :param src_amp_y: The source amplitudes in the y-direction. Defaults to None.
+   :type src_amp_y: torch.Tensor, optional
+   :param src_loc_y: The source locations in the y-direction. Defaults to None.
+   :type src_loc_y: torch.Tensor, optional
+   :param rec_loc_y: The receiver locations in the y-direction. Defaults to None.
+   :type rec_loc_y: torch.Tensor, optional
+   :param src_amp_x: The source amplitudes in the x-direction. Defaults to None.
+   :type src_amp_x: torch.Tensor, optional
+   :param src_loc_x: The source locations in the x-direction. Defaults to None.
+   :type src_loc_x: torch.Tensor, optional
+   :param rec_loc_x: The receiver locations in the x-direction. Defaults to None.
+   :type rec_loc_x: torch.Tensor, optional
+   :param \*\*kw: Additional keyword arguments.
+
+
+   .. py:attribute:: vp
+
+
+   .. py:attribute:: vs
+
+
+   .. py:attribute:: rho
+
+
+   .. py:attribute:: model
+
+
+   .. py:attribute:: meta
+
+
+   .. py:attribute:: src_amp_y
+
+
+   .. py:attribute:: src_loc_y
+
+
+   .. py:attribute:: rec_loc_y
+
+
+   .. py:attribute:: src_amp_x
+
+
+   .. py:attribute:: src_loc_x
+
+
+   .. py:attribute:: rec_loc_x
+
+
+   .. py:attribute:: extra_forward
+
+
+   .. py:method:: __validate_init__()
+
+      Validates the initialization of the seismic propagation model.
+
+      :raises ValueError: If the model is not 'acoustic' or 'elastic'.
+      :raises ValueError: If the required parameters are not set.
+
+
+
+   .. py:method:: __get_optional_param__(name)
+
+      Returns the optional parameter if it is set, otherwise returns None.
+
+      :param name: The name of the optional parameter.
+      :type name: str
+
+      :returns: The optional parameter tensor or None.
+      :rtype: torch.Tensor or None
+
+
+
+   .. py:method:: __check_nan_inf__(tensor, name='')
+
+
+   .. py:method:: forward(s)
+
+      Performs forward propagation based on the model type.
+
+      :param dummy: A dummy input.
+
+      :returns: The output tensor.
+      :rtype: torch.Tensor
+
+
+

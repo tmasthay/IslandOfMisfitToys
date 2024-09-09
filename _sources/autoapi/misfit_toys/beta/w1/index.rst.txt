@@ -1,0 +1,40 @@
+misfit_toys.beta.w1
+===================
+
+.. py:module:: misfit_toys.beta.w1
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.beta.w1.working_w1
+   misfit_toys.beta.w1.riel_transform
+   misfit_toys.beta.w1.riel
+   misfit_toys.beta.w1.var_tik_frac
+   misfit_toys.beta.w1.linear_decrease
+   misfit_toys.beta.w1.constant
+   misfit_toys.beta.w1.punctuated_decrease
+   misfit_toys.beta.w1.punctuated_decrease_array
+
+
+Module Contents
+---------------
+
+.. py:function:: working_w1(obs_data, *, model_params, scale, weights, reg_min, t, max_calls)
+
+.. py:function:: riel_transform(*, scale, t, eps)
+
+.. py:function:: riel(obs_data, *, model_params, scale, weights, reg_min, t, max_calls, eps)
+
+.. py:function:: var_tik_frac(*, obs_data: torch.Tensor, alpha: Callable[[int], float], weights: Callable[[int], torch.Tensor], model_params: torch.nn.Module, t: torch.Tensor, renorm_scale: float, eps: Callable[[int], torch.Tensor])
+
+.. py:function:: linear_decrease(*, _min, _max, max_iters)
+
+.. py:function:: constant(*, value)
+
+.. py:function:: punctuated_decrease(*, _min, _max, period, max_iters)
+
+.. py:function:: punctuated_decrease_array(*, _min, _max, period, max_iters)
+

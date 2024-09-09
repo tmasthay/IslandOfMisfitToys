@@ -1,0 +1,56 @@
+misfit_toys.workflows.tik.steps
+===============================
+
+.. py:module:: misfit_toys.workflows.tik.steps
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   misfit_toys.workflows.tik.steps.taper_only
+   misfit_toys.workflows.tik.steps.taper_batch
+
+
+Module Contents
+---------------
+
+.. py:function:: taper_only(*, length=None, num_batches=None, scale=1.0)
+
+   Applies tapering to the output of a neural network model.
+
+   :param length: The length of the taper. If None, no tapering is applied.
+                  If a float between 0 and 1, it is interpreted as a fraction of the output length.
+                  If an integer greater than 1, it is interpreted as an absolute length.
+                  Defaults to None.
+   :type length: int, optional
+   :param num_batches: The number of batches. Not yet implemented.
+                       Defaults to None.
+   :type num_batches: int, optional
+   :param scale: The scaling factor for the loss. Defaults to 1.0.
+   :type scale: float, optional
+
+   :returns: A helper function that applies tapering to the output of a neural network model.
+   :rtype: helper (function)
+
+
+.. py:function:: taper_batch(*, length=None, batch_size=1, scale=1.0, verbose=False)
+
+   Applies tapering to the output of a neural network model.
+
+   :param length: The length of the taper. If None, no tapering is applied.
+                  If a float between 0 and 1, it is interpreted as a fraction of the output length.
+                  If an integer greater than 1, it is interpreted as an absolute length.
+                  Defaults to None.
+   :type length: int, optional
+   :param num_batches: The number of batches. Not yet implemented.
+                       Defaults to None.
+   :type num_batches: int, optional
+   :param scale: The scaling factor for the loss. Defaults to 1.0.
+   :type scale: float, optional
+
+   :returns: A helper function that applies tapering to the output of a neural network model.
+   :rtype: helper (function)
+
+

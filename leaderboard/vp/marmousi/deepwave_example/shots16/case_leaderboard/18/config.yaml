@@ -1,0 +1,174 @@
+case:
+  port: 12576
+  dupe: true
+  editor: null
+  name: Earth Mover's Distance
+  np: self.runtime.prop.module.meta.nt
+  data:
+    prefix: conda/data
+    proj_path: marmousi/deepwave_example/shots16
+    path: ${.prefix}/${.proj_path}
+    preprocess:
+      dep: ^^null|misfit_toys.fwi.seismic_data|null
+      minv: 1000
+      maxv: 2500
+      time_pad_frac: 0.2
+      path_builder_kw:
+        remap:
+          vp_init: vp
+        vp_init:
+          runtime_func: self.data.preprocess.dep.ParamConstrained.delay_init
+          kw:
+            minv: ${case.data.preprocess.minv}
+            maxv: ${case.data.preprocess.maxv}
+            requires_grad: true
+        src_amp_y:
+          runtime_func: self.data.preprocess.dep.Param.delay_init
+          kw:
+            requires_grad: false
+        obs_data: null
+        src_loc_y: null
+        rec_loc_y: null
+      required_fields:
+      - vp_init
+      - src_amp_y
+      - obs_data
+      - src_loc_y
+      - rec_loc_y
+      - meta
+      chunk_keys:
+        tensors:
+        - obs_data
+        - src_loc_y
+        - rec_loc_y
+        params:
+        - src_amp_y
+    postprocess:
+      __call__: ^^null|misfit_toys.beta.postprocess|vp_compare
+      kw:
+        proj_path: ${...proj_path}
+        name: ${case.name}
+        max_iters: ${case.train.max_iters}
+  plt:
+    vp:
+      sub:
+        shape:
+        - 2
+        - 2
+        kw:
+          figsize:
+          - 10
+          - 10
+        adjust:
+          hspace: 0.5
+          wspace: 0.5
+      iter:
+        none_dims:
+        - -2
+        - -1
+      save:
+        path: figs/vp.gif
+        movie_format: gif
+        duration: 250
+      order:
+      - vp
+      - vp_true
+      - rel_diff
+      plts:
+        vp:
+          main:
+            filt: 'eval(lambda x : x.T)'
+            opts:
+              cmap: seismic
+              aspect: auto
+            title: $v_p$
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+            colorbar: true
+        rel_diff:
+          main:
+            filt: transpose
+            opts:
+              cmap: seismic
+              aspect: auto
+            title: Relative Difference (%)
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+            colorbar: true
+        vp_true:
+          main:
+            filt: transpose
+            opts:
+              cmap: seismic
+              aspect: auto
+            title: $v_{true}$
+            type: imshow
+            xlabel: Rec Location (m)
+            ylabel: Depth (m)
+            colorbar: true
+    trace:
+      sub:
+        shape:
+        - 2
+        - 2
+        kw:
+          figsize:
+          - 10
+          - 10
+      iter:
+        none_dims:
+        - 0
+        - -1
+      save:
+        path: figs/random_traces.gif
+        duration: 250
+      xlabel: Time (s)
+      ylabel: Displacement (m)
+      title: Observed Data at Receiver Location
+      color_seq:
+      - red
+      - blue
+      linestyles:
+      - solid
+      - dashed
+      legend:
+        loc: upper right
+        framealpha: 0.5
+      suptitle: Observed Data at Random Receiver Locations
+  train:
+    retrain: true
+    max_iters: 100
+    loss:
+      runtime_func: ^^null|misfit_toys.beta.w1|working_w1
+      kw:
+        obs_data: self.runtime.data.obs_data
+        model_params: self.runtime.prop.module.vp
+        weights:
+        - 1.0
+        - 0.84
+        reg_min: 0.0
+        t: self.runtime.t
+        max_calls: ${...max_iters}
+        scale: 1.0
+    optimizer:
+      runtime_func: 'eval(lambda *args, **kw: [torch.optim.LBFGS, kw])'
+      args: []
+      kw:
+        lr: 1.0
+        max_iter: 20
+        max_eval: null
+        tolerance_grad: 1.0e-07
+        tolerance_change: 1.0e-09
+        history_size: 100
+        line_search_fn: null
+    stages:
+      runtime_func: ^^null|misfit_toys.workflows.stages|vanilla_stages
+      kw:
+        max_iters: ${case.train.max_iters}
+    step:
+      runtime_func: ^^null|misfit_toys.beta.steps|direct
+      kw:
+        scale: 1000000.0
+run: w1_regularization_sweep

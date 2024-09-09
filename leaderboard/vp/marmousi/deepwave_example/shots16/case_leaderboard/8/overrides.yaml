@@ -1,0 +1,2 @@
+- +run=test
+- case.train.max_iters=5

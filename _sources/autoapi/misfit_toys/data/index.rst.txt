@@ -1,0 +1,42 @@
+misfit_toys.data
+================
+
+.. py:module:: misfit_toys.data
+
+.. autoapi-nested-parse::
+
+   Data generation package that downloads and processes observed synthetic data from given model parameters.
+   That data can then be read in to benchmark FWI algorithms.
+
+   Usage:
+       Navigate to the data directory and run the download_data script with the desired folders::
+
+           cd misfit_toys/data
+           python download_data [folder1] [folder2] ...
+
+   This will download and process the data for use in benchmarking FWI algorithms.
+
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/custom/index
+   /autoapi/misfit_toys/data/das_curtin/index
+   /autoapi/misfit_toys/data/marmousi/index
+   /autoapi/misfit_toys/data/marmousi2/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/misfit_toys/data/dataset/index
+   /autoapi/misfit_toys/data/download_data/index
+
+

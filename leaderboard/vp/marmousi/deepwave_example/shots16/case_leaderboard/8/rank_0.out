@@ -1,0 +1,21 @@
+Preprocessing took 0.01 seconds.
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/vp_init.pt...torch.Size([600, 250])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/src_amp_y.pt...torch.Size([16, 1, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/obs_data.pt...torch.Size([16, 100, 300])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/src_loc_y.pt...torch.Size([16, 1, 2])
+   Loading /home/tyler/anaconda3/envs/dw/data/marmousi/deepwave_example/shots16/rec_loc_y.pt...torch.Size([16, 100, 2])
+Preprocess time rank 0: 1.06 seconds.
+iter=0, loss=5.78e-03, mse=5.78e-03, tik=9.36e-07, reg_strength=1.00e-06, training.loss: 5.78e+03, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 3.99e+01, rank: 0
+iter=1, loss=2.98e-03, mse=2.71e-03, tik=2.78e-04, reg_strength=8.00e-07, training.loss: 2.98e+03, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 2.73e+01, rank: 0
+iter=2, loss=2.06e-03, mse=1.84e-03, tik=2.14e-04, reg_strength=6.00e-07, training.loss: 2.06e+03, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 3.11e+01, rank: 0
+iter=3, loss=9.99e-04, mse=8.80e-04, tik=1.19e-04, reg_strength=4.00e-07, training.loss: 9.99e+02, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 3.68e+01, rank: 0
+iter=4, loss=4.55e-04, mse=4.17e-04, tik=3.84e-05, reg_strength=2.00e-07, training.loss: 4.55e+02, lr: 1.000e+00, obs_data.norm: 4.05e+01, out.norm: 3.89e+01, rank: 0
+Presaving loss on rank 0
+Presaving vp on rank 0
+Presaving out on rank 0
+Presaving loss on rank 0
+Presaving vp on rank 0
+Presaving out on rank 0
+yo
+destroyed
+Train time rank 0: 23.52 seconds.
