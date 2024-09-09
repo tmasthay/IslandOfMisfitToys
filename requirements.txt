@@ -1,22 +1,30 @@
-# python>=3.10.12
-black>=23.9.1
-deepwave>=0.0.19
-# holoviews>=1.17.1
-imageio>=2.31.1
-masthay-helpers>=0.2.94
-matplotlib>=3.7.2
-matplotlib-inline>=0.1.6
-numpy>=1.25.2
-obspy>=1.4.0
-pynvml>=11.5.0
-pytest>=8.0.1
-python-json-logger>=2.0.7
-requests>=2.31.0
-returns>=0.22.0
-rich>=13.6.0
-scipy>=1.11.1
-setuptools>=68.0.0
-torch>=2.0.1
-torchaudio>=2.0.2
+# TODO: Clean this up to a minimal build set with optional dependencies
+#     Right now, there are way more dependencies than are truly necessary.
+# python==3.10.12
+black==23.9.1
+deepwave==0.0.19
+# holoviews==1.17.1
+hypothesis==6.99.8
+imageio==2.31.1
+masthay-helpers>=0.2.107
+matplotlib==3.7.2
+matplotlib-inline==0.1.6
+numpy==1.25.2
+obspy==1.4.0
+pynvml==11.5.0
+pytest==8.0.1
+python-json-logger==2.0.7
+requests==2.31.0
+returns==0.22.0
+rich==13.6.0
+scipy==1.11.1
+setuptools==68.0.0
+torch==2.0.1
+torchaudio==2.0.2
+pytest-subtests==0.12.1
+torchvision==0.15.2
 # git+https://github.com/patrick-kidger/torchcubicspline.git
 # git+https://github.com/tmasthay/rich_tools.git
+ipywidgets==8.1.5
+dotmap>=1.3.30
+scikit-learn==1.3.0

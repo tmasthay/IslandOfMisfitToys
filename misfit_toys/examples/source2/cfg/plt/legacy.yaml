@@ -1,0 +1,11 @@
+obs_data:
+  path: obs_frames.pt
+
+src_amp:
+  path: src_amp_frames.pt
+
+true_obs_data:
+  path: true_obs_data.pt
+
+true_src_amp:
+  path: true_src_amp_y.pt

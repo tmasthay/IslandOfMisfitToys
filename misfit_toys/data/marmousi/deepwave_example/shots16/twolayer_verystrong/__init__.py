@@ -1,4 +1,6 @@
-__all__ = [
-    "factory"
-]
-from .factory import *
+"""
+TODO: make package-level docstring
+"""
+from . import factory
+
+__all__ = ['factory']

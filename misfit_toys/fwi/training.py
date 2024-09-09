@@ -29,34 +29,6 @@ class TrainingAbstract(ABC):
     """
     Abstract base class for training modules.
 
-    Attributes:
-        rank (int): The rank of the training module.
-        world_size (int): The total number of training modules.
-        prop (torch.nn.Module): The model to be trained.
-        obs_data (torch.Tensor): The input data for training.
-        loss_fn (torch.nn.Module): The loss function for training.
-        optimizer (list): The optimizer used for training.
-        report_spec (dict): The specification for reporting training progress.
-        scheduler (list): The scheduler used for adjusting learning rate during training.
-        verbose (int): The verbosity level for printing training progress.
-        override_post_train (bool): Flag indicating whether to override the default post-training logic.
-
-    Methods:
-        __post_init__(): Initialize the training module.
-        _step(): Perform a single step of training.
-        _build_training_stages(): Build the training stages for initialization.
-        train(): Train the model.
-        step(): Perform a single step of training.
-        reset_optimizer(): Reset the optimizer.
-        _pre_train(): Run logic before training.
-        _train(): Run the training process.
-        _post_train(): Run logic after training.
-        _update_records(): Update the training progress records.
-        _save_report(): Save the training progress report.
-        _reduce_report(): Reduce the training progress report.
-        _post_train_default(): Default post-training logic.
-        __recursive_train(): Recursively run the training process.
-        __post_train(): Perform post-training operations.
     """
 
     rank: int
@@ -134,7 +106,7 @@ class TrainingAbstract(ABC):
             s = (
                 f"rank: {self.rank}, "
                 f"iter: {len(self.report['loss'])}, "
-                f"loss: {self.loss}"
+                f"loss: {self.loss.item():.2e}"
             )
         out_norm = (
             self.out[-1].norm() if type(self.out) is tuple else self.out.norm()
@@ -264,7 +236,7 @@ class TrainingAbstract(ABC):
         # raise ValueError(f'My report = {self.report.path}')
         for k, v in self.report.items():
             if k in self.report_spec_flip['presave'].keys():
-                print(f"Presaving {k}", flush=True)
+                print(f"Presaving {k} on rank {self.rank}", flush=True)
                 # print(f"v={v}", flush=True)
                 try:
                     v = self.report_spec_flip['presave'][k](v)
@@ -316,6 +288,7 @@ class TrainingAbstract(ABC):
             self._reduce_report()
         torch.distributed.barrier()
         cleanup()
+        pass
 
     def __recursive_train(self, *, level_data, depth=0, max_depth=0):
         """
@@ -361,18 +334,6 @@ class TrainingAbstract(ABC):
 class Training(TrainingAbstract):
     """
     A class representing the training process.
-
-    Attributes:
-        rank (int): The rank of the training process.
-        world_size (int): The total number of training processes.
-        prop (torch.nn.Module): The model to be trained.
-        obs_data (torch.Tensor): The input data for training.
-        loss_fn (torch.nn.Module): The loss function used for training.
-        optimizer (list): The optimizer used for training.
-        report_spec (dict): The specification for reporting training progress.
-        scheduler (list, optional): The learning rate scheduler used for training. Defaults to None.
-        verbose (int, optional): The verbosity level. Defaults to 1.
-        override_post_train (bool, optional): Whether to override the post-training step. Defaults to False.
     """
 
     rank: int
@@ -385,6 +346,7 @@ class Training(TrainingAbstract):
     scheduler: list = None
     verbose: int = 1
     override_post_train: bool = False
+    ext: DotDict = None
 
     def __init__(
         self,
@@ -403,31 +365,23 @@ class Training(TrainingAbstract):
         _pre_train: Callable[[TrainingAbstract], None] = None,
         _post_train: Callable[[TrainingAbstract], None] = None,
         _build_training_stages: Callable[[TrainingAbstract], OrderedDict],
+        ext=None,
     ):
         """
         Initialize the Training object.
-
-        Args:
-            rank (int): The rank of the current process.
-            world_size (int): The total number of processes.
-            prop (torch.nn.Module): The model to be trained.
-            obs_data (torch.Tensor): The observed data.
-            loss_fn (torch.nn.Module): The loss function.
-            optimizer (list): The optimizer(s) to be used.
-            report_spec (dict): The specification for reporting training progress.
-            scheduler (list, optional): The scheduler(s) to be used. Defaults to None.
-            verbose (int, optional): The verbosity level. Defaults to 1.
-            override_post_train (bool, optional): Whether to override the post-training step. Defaults to False.
-            _step (Callable[[TrainingAbstract], None]): The step function for training.
-            _pre_train (Callable[[TrainingAbstract], None], optional): The pre-training step function. Defaults to None.
-            _post_train (Callable[[TrainingAbstract], None], optional): The post-training step function. Defaults to None.
-            _build_training_stages (Callable[[TrainingAbstract], OrderedDict]): The function to build training stages.
         """
 
         self._step_helper = _step
         self._build_training_stages_helper = _build_training_stages
         self._pre_train_helper = _pre_train if _pre_train else lambda x: None
         self._post_train_helper = _post_train if _post_train else lambda x: None
+        self.ext = ext or DotDict({})
+        if type(self.ext) == dict:
+            self.ext = DotDict(self.ext)
+        elif type(self.ext) != DotDict:
+            raise ValueError(
+                f"ext must be dict or DotDict, not {type(self.ext)}"
+            )
         super().__init__(
             rank=rank,
             world_size=world_size,
@@ -456,35 +410,17 @@ class Training(TrainingAbstract):
     def _build_training_stages(self) -> OrderedDict:
         """
         Wrapper to set abstract _build_training_stages to _build_training_stages_helper passed in __init__.
-
-        Returns:
-            An OrderedDict containing the training stages.
-
-        Note:
-            See `TrainingAbstract._build_training_stages` for role of this method.
         """
         return self._build_training_stages_helper()
 
     def _pre_train(self):
         """
         Wrapper to set abstract _pre_train to _pre_train_helper passed in __init__.
-
-        Returns:
-            None
-
-        Note:
-            See `TrainingAbstract._pre_train` for role of this method.
         """
         self._pre_train_helper(self)
 
     def _post_train(self):
         """
         Wrapper to set abstract _post_train to _post_train_helper passed in __init__.
-
-        Returns:
-            None
-
-        Note:
-            See `TrainingAbstract._post_train` for role of this method.
         """
         self._post_train_helper(self)

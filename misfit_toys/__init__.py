@@ -1,8 +1,15 @@
-__all__ = ["swiffer", "utils", "fwi", "beta", "workflows", "data", "examples"]
-from .beta import *
-from .data import *
-from .examples import *
-from .fwi import *
-from .swiffer import *
-from .utils import *
-from .workflows import *
+"""
+TODO: make package-level docstring
+"""
+from . import beta, data, examples, fwi, hydra, swiffer, utils, workflows
+
+__all__ = [
+    'data',
+    'workflows',
+    'beta',
+    'hydra',
+    'examples',
+    'fwi',
+    'utils',
+    'swiffer',
+]

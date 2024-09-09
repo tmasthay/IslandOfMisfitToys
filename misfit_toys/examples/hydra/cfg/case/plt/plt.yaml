@@ -11,14 +11,14 @@ vp:
   save:
     path: figs/vp.gif
     movie_format: gif
-    duration: 1000
+    duration: 250
   order: [vp, vp_true, rel_diff]
   plts:
     vp:
       main:
         filt: "eval(lambda x : x.T)"
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: $v_p$
         type: imshow
@@ -30,7 +30,7 @@ vp:
       main:
         filt: transpose
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: Relative Difference (%)
         type: imshow
@@ -42,7 +42,7 @@ vp:
       main:
         filt: transpose
         opts:
-          cmap: gray
+          cmap: seismic
           aspect: auto
         title: $v_{true}$
         type: imshow
@@ -52,20 +52,20 @@ vp:
 
 trace:
   sub:
-    shape: [2,2]
+    shape: [2, 2]
     kw:
       figsize: [10, 10]
   iter:
     none_dims: [0, -1]
   save:
     path: figs/random_traces.gif
-    duration: 1000
+    duration: 250
   xlabel: Time (s)
   ylabel: Displacement (m)
   title: Observed Data at Receiver Location
   color_seq: [red, blue]
   linestyles: [solid, dashed]
-  legend: 
+  legend:
     loc: upper right
     framealpha: 0.5
   suptitle: Observed Data at Random Receiver Locations

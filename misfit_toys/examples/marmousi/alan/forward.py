@@ -7,6 +7,10 @@ from deepwave import scalar
 
 
 def main():
+    """
+    Recreate exact workflow of Alan's deepwave Marmousi benchmark example.
+    """
+
     def get_file(name):
         return os.path.join(os.path.dirname(__file__), 'out/base', name)
 

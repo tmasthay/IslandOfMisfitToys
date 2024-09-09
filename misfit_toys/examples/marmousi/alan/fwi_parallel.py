@@ -1,3 +1,8 @@
+"""
+This module recreates the exact workflow of Alan's deepwave Marmousi benchmark example.
+This script is used as an end-to-end test to make sure that our package can reproduce the results of this benchmark example.
+"""
+
 import os
 import shutil
 
@@ -12,7 +17,7 @@ from scipy.signal import butter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchaudio.functional import biquad
 
-from misfit_toys.data import download_data
+from misfit_toys.data.download_data import download_data
 from misfit_toys.utils import get_gpu_memory, parse_path
 
 
@@ -319,10 +324,7 @@ def main():
     os.makedirs(out_path, exist_ok=True)
     if not all_exist(lcl_path):
         if not all_exist(data_path):
-            download_data(
-                os.path.dirname(data_path),
-                exclusions=['das_curtin', 'marmousi2', 'openfwi'],
-            )
+            download_data(os.path.dirname(data_path), inclusions=['marmousi'])
         for f in files:
             shutil.copy(f'{data_path}/{f}.pt', f'{lcl_path}/{f}.pt')
     run(torch.cuda.device_count())

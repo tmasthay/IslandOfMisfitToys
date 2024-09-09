@@ -1,1 +1,3 @@
-type: "eval(lambda *args, **kw: [torch.optim.Adam, kw])"
+__call__: "eval(lambda *args, **kw: [torch.optim.Adam, kw])"
+args: []
+kw: {}

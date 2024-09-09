@@ -1,4 +1,6 @@
-__all__ = ["metadata", "factory", "deepwave_example"]
-from .deepwave_example import *
-from .factory import *
-from .metadata import *
+"""
+TODO: make package-level docstring
+"""
+from . import deepwave_example, factory, metadata
+
+__all__ = ['deepwave_example', 'metadata', 'factory']

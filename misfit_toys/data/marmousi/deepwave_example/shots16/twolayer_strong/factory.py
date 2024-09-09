@@ -10,9 +10,10 @@ import torch
 
 # add_root_package_path(path=os.path.dirname(__file__), pkg="misfit_toys")
 from mh.core import DotDict
-from scipy.ndimage import gaussian_filter
 
 from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
+
+# from scipy.ndimage import gaussian_filter
 
 
 class Factory(DataFactory):

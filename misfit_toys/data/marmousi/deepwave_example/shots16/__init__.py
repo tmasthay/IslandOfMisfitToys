@@ -1,5 +1,6 @@
-__all__ = ["factory", "twolayer_verystrong", "twolayer_strong", "twolayer"]
-from .factory import *
-from .twolayer import *
-from .twolayer_strong import *
-from .twolayer_verystrong import *
+"""
+TODO: make package-level docstring
+"""
+from . import factory, twolayer, twolayer_strong, twolayer_verystrong
+
+__all__ = ['twolayer_strong', 'twolayer', 'twolayer_verystrong', 'factory']

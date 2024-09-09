@@ -1,0 +1,63 @@
+folder_name: leaderboard
+git:
+  user: tmasthay
+  repo_name: IslandOfMisfitToys
+  url: git@github.com:${.user}/${.repo_name}.git
+  branch: gh-pages
+  always_fresh: false
+paths:
+  src: ../../misfit_toys
+  final: ${..folder_name}
+  prev_leaders: IslandOfMisfitToys/${.final}
+  data_dump: case_${..folder_name}
+  meta: meta
+params:
+- vp
+- src_amp_y
+score: l2_diff
+leaderboard_size: 100
+extensions: [gif, jpg, png]
+rst:
+  dest: ../custom_pages
+  img:
+    order:
+      vp:
+      - vp
+      - random_traces
+
+  idx_gen:
+    data:
+      regex: .*/${....paths.data_dump}/(\d+)$
+      callback: make_data_page
+      kw:
+        img_order: ${....img.order}
+        final_path: ${.....paths.final}
+        img_first: false
+        maxdepth: 4
+        groups:
+          score:
+          - .*_compare\.yaml
+          hyperparameters:
+          - config\.yaml
+          - overrides\.yaml
+          version control:
+          - git_info\.txt
+          stdout:
+          - main.log
+          - rank_[0-9]+\.out
+          stderr:
+          - main.err
+          - rank_[0-9]+\.err
+
+    leaderboard_table:
+      regex: .*/${....paths.data_dump}$
+      callback: make_leaderboard_page
+      kw:
+        title: Leaderboard
+        headers: [Rank, Name, Score, Iterations, Runtime]
+        table_params:
+        - ":widths: 10 20 30 40 50"
+        - ":header-rows: 0"
+
+    default:
+      callback: make_default_page

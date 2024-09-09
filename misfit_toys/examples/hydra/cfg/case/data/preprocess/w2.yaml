@@ -1,0 +1,38 @@
+defaults:
+- _self_
+- addons: softplus
+
+dep: ^^null|misfit_toys.fwi.seismic_data|null
+
+minv: 1000
+maxv: 2500
+time_pad_frac: 0.2
+
+path_builder_kw:
+  remap:
+    vp_init: vp
+  vp_init:
+    __call__: self.data.preprocess.dep.ParamConstrained.delay_init
+    kw:
+      minv: ${case.data.preprocess.minv}
+      maxv: ${case.data.preprocess.maxv}
+      requires_grad: true
+  src_amp_y:
+    __call__: self.data.preprocess.dep.Param.delay_init
+    kw:
+      requires_grad: false
+  obs_data: null
+  src_loc_y: null
+  rec_loc_y: null
+
+required_fields:
+- vp_init
+- src_amp_y
+- obs_data
+- src_loc_y
+- rec_loc_y
+- meta
+
+chunk_keys:
+  tensors: [obs_data, src_loc_y, rec_loc_y]
+  params: [src_amp_y]

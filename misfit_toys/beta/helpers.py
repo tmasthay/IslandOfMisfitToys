@@ -1,3 +1,8 @@
+"""
+Helpers module for stitching development tests in a centralized location.
+This module should not appear in the main branch.
+"""
+
 import os
 import sys
 from dataclasses import dataclass

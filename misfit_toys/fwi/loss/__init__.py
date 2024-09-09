@@ -1,5 +1,6 @@
-__all__ = ["w2", "a", "tikhonov", "renorm"]
-from .a import *
-from .renorm import *
-from .tikhonov import *
-from .w2 import *
+"""
+TODO: make package-level docstring
+"""
+from . import renorm, tikhonov, w2
+
+__all__ = ['tikhonov', 'w2', 'renorm']

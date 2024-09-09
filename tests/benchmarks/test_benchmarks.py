@@ -2,6 +2,7 @@ import os
 
 import pynvml as nvml
 from mh.core import DotDict
+from pytest import mark
 
 import misfit_toys.examples.marmousi.validate as val
 
@@ -18,6 +19,8 @@ def check_gpu_memory():
     return u
 
 
+@mark.slow
+@mark.end_to_end
 def test_validate():
     free_gpu = check_gpu_memory()
     # set gpu need way higher than actual need to test failure case

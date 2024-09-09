@@ -1,14 +1,16 @@
 defaults:
-  - _self_
-  - case: tik
+- _self_
+- case: tik
 
-goats:
-  football:
-    qb:
-      - name: Tom Brady
-        team:
-          location: Boston
-          name: NE
-          mascot: Patriots
-      - name: Aaron Rodgers
-        team: GB
+case:
+  port: 12576
+  dupe: True
+  editor: code
+
+hydra:
+  run:
+    dir: outputs/HYDRA_TIME_${now:%Y-%m-%d}/HYDRA_TIME_${now:%H-%M-%S}/${case.data.proj_path}
+  sweep:
+    dir: multirun/HYDRA_TIME_${now:%Y-%m-%d}/HYDRA_TIME_${now:%H-%M-%S}/${case.data.proj_path}
+    subdir: ${hydra.job.num}
+  output_subdir: ""

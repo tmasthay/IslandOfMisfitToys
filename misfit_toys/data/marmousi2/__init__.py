@@ -1,5 +1,6 @@
-__all__ = ["metadata", "factory", "tiny", "medium"]
-from .factory import *
-from .medium import *
-from .metadata import *
-from .tiny import *
+"""
+TODO: make package-level docstring
+"""
+from . import factory, medium, metadata, tiny
+
+__all__ = ['medium', 'tiny', 'metadata', 'factory']

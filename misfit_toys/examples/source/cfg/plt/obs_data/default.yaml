@@ -1,0 +1,16 @@
+frame_callback:
+  __plot__: ^^|misfit_toys.types|FlatPlotter
+  kw:
+    callback: ^^cwd|helpers|plot_src_amp
+    iter:
+      none_dims: [2]
+      strides: [1, 1, 1]
+    imshow:
+      # kw:
+      #   aspect: auto
+      #   cmap: seismic
+      kw: {}
+      colorbar: true
+      legend: false
+    title: Observed Data at the Surface
+    path: obs_data_single_shot

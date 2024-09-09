@@ -1,18 +1,8 @@
 """
 Collection of miscellaneous helper functions to clean up code, like a Swiffer.
-
-Functions:
-    sco: Execute a shell command and return the output.
-    sco_bash: Execute a bash function and return the output.
-    human_time: Convert seconds to a human-readable time format.
-    see_fields: Get the values of specified fields in an object.
-    sub_dict: Create a new dictionary with only the specified keys.
-    istr: Indent and wrap a string.
-    iprint: Print an indented and wrapped string.
-    iraise: Raise an exception with an indented and wrapped error message.
-    ireraise: Re-raise an exception with an indented and wrapped error message.
 """
 
+import os
 import subprocess
 import sys
 import textwrap
@@ -48,7 +38,7 @@ def sco_bash(function_name, *args, split=False):
 
     Args:
         function_name (str): The name of the bash function to execute.
-        *args: The arguments to pass to the bash function.
+        args: The arguments to pass to the bash function.
         split (bool, optional): Whether to split the output by lines. Defaults to False.
 
     Returns:
@@ -172,7 +162,7 @@ def istr(*args, idt_level=0, idt_str="    ", cpl=80):
     Indent and wrap a string.
 
     Args:
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -196,7 +186,7 @@ def iprint(*args, idt_level=0, idt_str="    ", cpl=80, **kw):
     Print an indented and wrapped string.
 
     Args:
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -214,7 +204,7 @@ def iraise(error_type, *args, idt_level=0, idt_str="    ", cpl=80):
 
     Args:
         error_type (type): The type of the exception to raise.
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -231,7 +221,7 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
 
     Args:
         e (Exception): The exception to re-raise.
-        *args: The strings to be indented and wrapped.
+        args: The strings to be indented and wrapped.
         idt_level (int, optional): The indentation level. Defaults to 0.
         idt_str (str, optional): The indentation string. Defaults to "    ".
         cpl (int, optional): The maximum number of characters per line. Defaults to 80.
@@ -254,7 +244,15 @@ def ireraise(e, *args, idt_level=0, idt_str="    ", cpl=80, idt_further=True):
     raise exception_type(full)
 
 
-def dupe(base, verbose=True):
+def dupe(base, verbose=True, editor=None):
+    """
+    Duplicates the stdout and stderr streams to files.
+
+    Args:
+        base (str): The base name for the output and error files.
+        verbose (bool, optional): Whether to print the file names. Defaults to True.
+        editor (str, optional): The editor command to open the output file. Defaults to None.
+    """
     out_file = f'{base}.out'
     err_file = f'{base}.err'
 
@@ -265,3 +263,6 @@ def dupe(base, verbose=True):
         )
     sys.stdout = open(out_file, 'w')
     sys.stderr = open(err_file, 'w')
+
+    if editor is not None:
+        os.system(f'{editor} {out_file}')

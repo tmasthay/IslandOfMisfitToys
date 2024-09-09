@@ -1,0 +1,4 @@
+__call__: ^^null|misfit_toys.beta.optimizers|get_optimizer
+kw:
+  name: sgd
+  lr: 1.0

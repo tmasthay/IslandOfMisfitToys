@@ -31,11 +31,6 @@ class Param(torch.nn.Module):
         p (torch.nn.Parameter): The parameter tensor wrapped as a `torch.nn.Parameter`.
         custom (DotDict): Additional custom attributes for the parameter.
 
-    Methods:
-        forward(): Returns the parameter tensor.
-
-        delay_init(**kw): A class method that returns a lambda function for delayed initialization of the parameter.
-
     """
 
     def __init__(self, *, p, requires_grad=False, **kw):
@@ -64,9 +59,6 @@ class ParamConstrained(Param):
     Attributes:
         p (torch.nn.Parameter): The parameter tensor wrapped as a `torch.nn.Parameter`.
         custom (DotDict): Additional custom attributes for the parameter, including minv and maxv.
-
-    Methods:
-        forward(): Returns the constrained parameter tensor.
 
     """
 

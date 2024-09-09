@@ -1,3 +1,7 @@
+"""
+This is simply a dummy template script for hydra setup.
+"""
+
 from typing import Any
 
 import hydra

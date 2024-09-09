@@ -1,14 +1,3 @@
-dep:
-  mod: ^^cwd|helpers|null
-
-runtime_func: self.train.loss.dep.mod.W2Loss
+__call__: "eval(lambda val: val)"
 kw:
-  runtime_func: self.train.loss.dep.mod.hydra_build_two
-  kw:
-    meta: self.runtime.prop.module.meta
-    obs_data: self.obs_data
-    num_probs: self.np
-    down: 1
-    eps: 0.5
-    beta: 1.0e-03
-    track: true
+  val: self.data.preprocess.addons

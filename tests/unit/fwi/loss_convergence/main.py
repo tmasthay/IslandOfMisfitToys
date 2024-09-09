@@ -1,12 +1,18 @@
 import hydra
 import torch
-from mh.core import DotDict, convert_dictconfig, torch_stats, yamlfy
+from mh.core import (
+    DotDict,
+    convert_dictconfig,
+    set_print_options,
+    torch_stats,
+    yamlfy,
+)
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig
 
 from misfit_toys.utils import apply, apply_all, bool_slice, resolve
 
-# torch.set_printoptions(precision=3, sci_mode=False, callback=torch_stats('all'))
+set_print_options(precision=3, sci_mode=False, callback=torch_stats('all'))
 
 
 def preprocess_cfg(cfg: DictConfig) -> DotDict:

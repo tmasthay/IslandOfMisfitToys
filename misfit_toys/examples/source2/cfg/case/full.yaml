@@ -1,0 +1,5 @@
+# @package _global_
+
+src_per_shot: 1
+src_ny: 1
+src_nx: 1

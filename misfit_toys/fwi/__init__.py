@@ -1,5 +1,6 @@
-__all__ = ["seismic_data", "models", "training", "loss"]
-from .loss import *
-from .models import *
-from .seismic_data import *
-from .training import *
+"""
+TODO: make package-level docstring
+"""
+from . import loss, models, seismic_data, training
+
+__all__ = ['loss', 'training', 'models', 'seismic_data']

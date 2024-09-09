@@ -1,0 +1,9 @@
+__call__: ^^cwd|helpers|gen_src_loc
+kw:
+  n_shots: self.n_shots
+  src_per_shot: self.src_per_shot
+  ndims: 2
+  depth: self.src_depth
+  fst_src: self.fst_src
+  d_src: self.d_src
+  device: self.device

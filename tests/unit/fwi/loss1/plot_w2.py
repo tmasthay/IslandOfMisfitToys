@@ -92,11 +92,7 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
 
         set_plot(3)
         plt.plot(pc.p, Q[idx], **c.opts[0])
-        plt.plot(
-            pc.p,
-            pc.p * curr_scale + curr_shift,
-            **c.opts[1],
-        )
+        plt.plot(pc.p, pc.p * curr_scale + curr_shift, **c.opts[1])
         plt.ylim(min(Q.min(), Qdirect.min()), max(Q.max(), Qdirect.max()))
         plt.xlabel('p')
         plt.ylabel('Q')
@@ -113,11 +109,7 @@ def plot_eval(c, d, exp_output, exp_grad, *, pytest_cfg):
 
         set_plot(5)
         plt.plot(pc.p, Qd[idx], **c.opts[0])
-        plt.plot(
-            pc.p,
-            curr_scale * torch.ones_like(pc.p),
-            **c.opts[1],
-        )
+        plt.plot(pc.p, curr_scale * torch.ones_like(pc.p), **c.opts[1])
         plt.xlabel('p')
         plt.ylabel('Qd')
         plt.title('Quantile Derivative')

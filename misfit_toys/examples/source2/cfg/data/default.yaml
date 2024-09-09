@@ -1,0 +1,81 @@
+vp:
+  __call__: ^^cwd|helpers|build_vp
+  kw:
+    path: ${....path}/vp.pt
+    device: ${....device}
+    ny: ${ny}
+    nx: ${nx}
+rec_loc_y:
+  __call__: ^^cwd|helpers|take_first
+  kw:
+    path: ${....path}/rec_loc_y.pt
+    device: ${....device}
+    num_per_shot: ${rec_per_shot}
+src_loc_y:
+  __call__: ^^cwd|helpers|build_src_loc_y
+  kw:
+    ny: ${....ny}
+    nx: ${....nx}
+    n_shots: ${....n_shots}
+    src_per_shot: ${....src_per_shot}
+    rel_idx_src_loc_y:
+      upper_left: [0.5, 0.5]
+      lower_left: [0.5, 0.5]
+      lower_right: [0.5, 0.5]
+      upper_right: [0.5, 0.5]
+    nt: ${....nt}
+    dt: ${....dt}
+    device: ${....device}
+
+src_amp_y:
+  __call__: ^^cwd|helpers|take_first
+  kw:
+    path: ${....path}/src_amp_y.pt
+    device: ${....device}
+    num_per_shot: ${src_per_shot}
+
+src_amp_y_init:
+  self_key: src_amp_y_init
+  __call_src__: ^^cwd|helpers|shift_data
+  kw:
+    data: slf_${..self_key}.data.src_amp_y
+    shifts: [0.5]
+    dims: [-1]
+
+gbl_rec_loc:
+  __call__: ^^cwd|helpers|build_gbl_rec_loc
+  kw:
+    ny: ${....ny}
+    nx: ${....nx}
+    downsample_y: 1
+    downsample_x: 1
+    device: ${....device}
+
+gbl_obs_data:
+  self_key: gbl_obs_data
+  __call_gbl_obs__: ^^cwd|helpers|build_gbl_obs_data
+  kw:
+    v: slf_${..self_key}.data.vp
+    grid_spacing: ${....dy}
+    dt: ${....dt}
+    source_amplitudes: slf_${..self_key}.data.src_amp_y
+    source_locations: slf_${..self_key}.data.src_loc_y
+    receiver_locations: slf_${..self_key}.data.gbl_rec_loc
+    accuracy: 8
+    downsample_y: ${...gbl_rec_loc.kw.downsample_y}
+    downsample_x: ${...gbl_rec_loc.kw.downsample_x}
+    ny: ${....ny}
+    nx: ${....nx}
+
+obs_data:
+  self_key: obs_data
+  __call_obs__: ^^cwd|helpers|build_obs_data
+  kw:
+    v: slf_${..self_key}.data.vp
+    grid_spacing: ${....dy}
+    dt: ${....dt}
+    source_amplitudes: slf_${..self_key}.data.src_amp_y
+    source_locations: slf_${..self_key}.data.src_loc_y
+    receiver_locations: slf_${..self_key}.data.rec_loc_y
+    accuracy: 8
+    pml_freq: ${....freq}

@@ -144,10 +144,19 @@ class ParamConstrained(Param):
             maxv=maxv,
         )
         if torch.isnan(self.p).any():
-            msg = f'Failed to initialize ParamConstrained with minv={minv}, maxv={maxv}'
+            msg = (
+                f'Failed to initialize ParamConstrained with minv={minv},'
+                f' maxv={maxv}'
+            )
             passed_min, passed_max = p.min().item(), p.max().item()
-            msg += f'\nTrue max/min of passed data:\n    min={passed_min}, max={passed_max}'
-            msg += f'\nConstrained max/min passed into constructor:\n    min={minv}, max={maxv}'
+            msg += (
+                f'\nTrue max/min of passed data:\n    min={passed_min},'
+                f' max={passed_max}'
+            )
+            msg += (
+                '\nConstrained max/min passed into constructor:\n   '
+                f' min={minv}, max={maxv}'
+            )
             raise ValueError(msg)
 
     def forward(self):
@@ -323,16 +332,16 @@ class SeismicProp(torch.nn.Module):
     def __init__(
         self,
         *,
-        vp,
-        meta,
-        vs=None,
-        rho=None,
-        src_amp_y=None,
-        src_loc_y=None,
-        rec_loc_y=None,
-        src_amp_x=None,
-        src_loc_x=None,
-        rec_loc_x=None,
+        vp: Param,
+        meta: DotDict,
+        vs: Param = None,
+        rho: Param = None,
+        src_amp_y: Param = None,
+        src_loc_y: torch.Tensor = None,
+        rec_loc_y: torch.Tensor = None,
+        src_amp_x: Param = None,
+        src_loc_x: torch.Tensor = None,
+        rec_loc_x: torch.Tensor = None,
         **kw,
     ):
         super().__init__()
@@ -426,7 +435,8 @@ class SeismicProp(torch.nn.Module):
         if self.model.lower() == 'acoustic':
             if torch.isnan(self.vp.p).any():
                 raise ValueError(
-                    f'Invalid vp before composition due to nan: {tensor_summary(self.vp.p)}'
+                    'Invalid vp before composition due to nan:'
+                    f' {tensor_summary(self.vp.p)}'
                 )
             v = self.vp()
             if torch.isnan(v).any() or torch.isinf(v).any():
@@ -477,3 +487,261 @@ class SeismicProp(torch.nn.Module):
                 receiver_locations_x=rec_loc_x[s],
                 **self.extra_forward,
             )
+
+
+class SeismicPropBatched(torch.nn.Module):
+    """
+    A class representing a seismic propagation model.
+
+    Args:
+        vp (torch.Tensor): The P-wave velocity tensor.
+        vs (torch.Tensor, optional): The S-wave velocity tensor. Defaults to None.
+        rho (torch.Tensor, optional): The density tensor. Defaults to None.
+        model (str, optional): The type of model ('acoustic' or 'elastic'). Defaults to 'acoustic'.
+        meta: The metadata of the seismic data.
+        src_amp_y (torch.Tensor, optional): The source amplitudes in the y-direction. Defaults to None.
+        src_loc_y (torch.Tensor, optional): The source locations in the y-direction. Defaults to None.
+        rec_loc_y (torch.Tensor, optional): The receiver locations in the y-direction. Defaults to None.
+        src_amp_x (torch.Tensor, optional): The source amplitudes in the x-direction. Defaults to None.
+        src_loc_x (torch.Tensor, optional): The source locations in the x-direction. Defaults to None.
+        rec_loc_x (torch.Tensor, optional): The receiver locations in the x-direction. Defaults to None.
+        **kw: Additional keyword arguments.
+
+    """
+
+    def __init__(
+        self,
+        *,
+        vp: Param,
+        meta: DotDict,
+        vs: Param = None,
+        rho: Param = None,
+        src_amp_y: Param = None,
+        src_loc_y: torch.Tensor = None,
+        rec_loc_y: torch.Tensor = None,
+        src_amp_x: Param = None,
+        src_loc_x: torch.Tensor = None,
+        rec_loc_x: torch.Tensor = None,
+        **kw,
+    ):
+        super().__init__()
+        self.__check_nan_inf__(vp if vp is None else vp.p, 'vp')
+        self.__check_nan_inf__(vs if vs is None else vs.p, 'vs')
+        self.__check_nan_inf__(rho if rho is None else rho.p, 'rho')
+        self.vp = vp
+        self.vs = vs
+        self.rho = rho
+        self.model = 'acoustic' if vs is None else 'elastic'
+        self.meta = meta
+        self.src_amp_y = src_amp_y
+        self.src_loc_y = src_loc_y
+        self.rec_loc_y = rec_loc_y
+        self.src_amp_x = src_amp_x
+        self.src_loc_x = src_loc_x
+        self.rec_loc_x = rec_loc_x
+        self.extra_forward = kw
+        self.__validate_init__()
+
+    def __validate_init__(self):
+        """
+        Validates the initialization of the seismic propagation model.
+
+        Raises:
+            ValueError: If the model is not 'acoustic' or 'elastic'.
+            ValueError: If the required parameters are not set.
+
+        """
+        if self.model not in ['acoustic', 'elastic']:
+            raise ValueError(
+                f"model must be 'acoustic' or 'elastic', not {self.model}"
+            )
+        y_set = not any(
+            [
+                e is None
+                for e in [self.src_amp_y, self.rec_loc_y, self.src_loc_y]
+            ]
+        )
+        x_set = not any(
+            [
+                e is None
+                for e in [self.src_amp_x, self.rec_loc_x, self.src_loc_x]
+            ]
+        )
+        if not (y_set or x_set) or ((not y_set) and self.model == 'acoustic'):
+            raise ValueError(
+                'acoustic model requires y set, elastic y or x set'
+            )
+
+    def __get_optional_param__(self, name):
+        """
+        Returns the optional parameter if it is set, otherwise returns None.
+
+        Args:
+            name (str): The name of the optional parameter.
+
+        Returns:
+            torch.Tensor or None: The optional parameter tensor or None.
+
+        """
+        if getattr(self, name) is None:
+            return None
+        else:
+            return getattr(self, name)()
+
+    def __check_nan_inf__(self, tensor, name=''):
+        if tensor is None:
+            return
+        num_nans = torch.isnan(tensor).sum().item()
+        num_infs = torch.isinf(tensor).sum().item()
+        prop_nans = num_nans / tensor.numel()
+        prop_infs = num_infs / tensor.numel()
+        if num_nans > 0 or num_infs > 0:
+            msg = f'num_nans={num_nans}, prop_nans={prop_nans}'
+            msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+            raise ValueError(f'Tensor {name} invalid: {msg}')
+
+    def forward(self, s):
+        """
+        Performs forward propagation based on the model type.
+
+        Args:
+            dummy: A dummy input.
+
+        Returns:
+            torch.Tensor: The output tensor.
+
+        """
+        s = s if s is not None else slice(None)
+        if self.model.lower() == 'acoustic':
+            if torch.isnan(self.vp.p).any():
+                raise ValueError(
+                    'Invalid vp before composition due to nan:'
+                    f' {tensor_summary(self.vp.p)}'
+                )
+            v = self.vp()
+            if torch.isnan(v).any() or torch.isinf(v).any():
+                msg = f'Invalid vp due to nan or inf: {tensor_summary(v)}'
+                num_nans = torch.isnan(v).sum().item()
+                prop_nans = num_nans / v.numel()
+                num_infs = torch.isinf(v).sum().item()
+                prop_infs = num_infs / v.numel()
+                msg += f'\nnum_nans={num_nans}, prop_nans={prop_nans}'
+                msg += f'\nnum_infs={num_infs}, prop_infs={prop_infs}'
+                raise ValueError(msg)
+
+            try:
+                return scalar(
+                    self.vp(),
+                    self.meta.dx,
+                    self.meta.dt,
+                    source_amplitudes=self.src_amp_y()[s],
+                    source_locations=self.src_loc_y[s],
+                    receiver_locations=self.rec_loc_y[s],
+                    **self.extra_forward,
+                )
+            except Exception as e:
+                raise ValueError(
+                    f'Original error: {e}\n'
+                    f'\nsrc_loc_y.shape={self.src_loc_y.shape}',
+                    f'\nsrc_amp_y.shape={self.src_amp_y().shape}',
+                    f'\nrec_loc_y.shape={self.rec_loc_y.shape}',
+                    f'\ns={s}',
+                )
+        elif self.model.lower() == 'elastic':
+            lame_params = get_lame(self.vp(), self.vs(), self.rho())
+            src_amp_y = self.__get_optional_param__('src_amp_y')
+            src_loc_y = self.__get_optional_param__('src_loc_y')
+            rec_loc_y = self.__get_optional_param__('rec_loc_y')
+            src_amp_x = self.__get_optional_param__('src_amp_x')
+            src_loc_x = self.__get_optional_param__('src_loc_x')
+            rec_loc_x = self.__get_optional_param__('rec_loc_x')
+            return elastic(
+                *lame_params,
+                self.meta.dx,
+                self.meta.dt,
+                source_amplitudes_y=src_amp_y[s],
+                source_locations_y=src_loc_y[s],
+                receiver_locations_y=rec_loc_y[s],
+                source_amplitudes_x=src_amp_x[s],
+                source_locations_x=src_loc_x[s],
+                receiver_locations_x=rec_loc_x[s],
+                **self.extra_forward,
+            )
+
+
+class Model(torch.nn.Module):
+    def __init__(self, initial, min_vel, max_vel):
+        super().__init__()
+        self.min_vel = min_vel
+        self.max_vel = max_vel
+        self.model = torch.nn.Parameter(
+            torch.logit((initial - min_vel) / (max_vel - min_vel))
+        )
+
+    def forward(self):
+        return (
+            torch.sigmoid(self.model) * (self.max_vel - self.min_vel)
+            + self.min_vel
+        )
+
+
+class SeismicPropSimple(torch.nn.Module):
+    def __init__(
+        self, *, vp, dx, dt, src_amp_y, src_loc_y, rec_loc_y, forward_kw
+    ):
+        super().__init__()
+        self.vp = vp
+        self.dx = dx
+        self.dt = dt
+        self.src_amp_y = src_amp_y
+        self.src_loc_y = src_loc_y
+        self.rec_loc_y = rec_loc_y
+        self.forward_kw = forward_kw
+
+    def forward(self, slicer):
+        v = self.vp()
+        if slicer is None:
+            slicer = slice(None)
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=self.src_amp_y()[slicer],
+            source_locations=self.src_loc_y[slicer],
+            receiver_locations=self.rec_loc_y[slicer],
+            **self.forward_kw,
+        )
+
+
+class DebugProp(torch.nn.Module):
+    def __init__(
+        self,
+        *,
+        vp,
+        dx,
+        dt,
+        freq,
+        rec_loc_y,
+        src_loc_y,
+    ):
+        super().__init__()
+        self.vp = vp
+        self.dx = dx
+        self.dt = dt
+        self.freq = freq
+        self.rec_loc_y = rec_loc_y
+        self.src_loc_y = src_loc_y
+
+    def forward(self, s, src_amp_y, **kw):
+        s = s or slice(None)
+        v = self.vp()
+        return scalar(
+            v,
+            self.dx,
+            self.dt,
+            source_amplitudes=src_amp_y[s],
+            source_locations=self.src_loc_y[s],
+            receiver_locations=self.rec_loc_y[s],
+            pml_freq=self.freq,
+            **kw,
+        )
