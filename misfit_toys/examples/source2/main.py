@@ -91,6 +91,10 @@ def main(cfg):
 
         if c.save_tensors:
             torch.save(
+                c.data.vp.detach().cpu(),
+                hydra_out('vp.pt'),
+            )
+            torch.save(
                 c.results.src_amp_frames.detach().cpu(),
                 hydra_out('src_amp_frames.pt'),
             )
@@ -113,8 +117,12 @@ def main(cfg):
                 c.results.src_amp_frames
                 - c.data.src_amp_y.detach().cpu().unsqueeze(0)
             )
-            torch.save(diff_obs.detach().cpu().squeeze(), hydra_out('diff_obs_data.pt'))
-            torch.save(diff_src.detach().cpu().squeeze(), hydra_out('diff_src_amp.pt'))
+            torch.save(
+                diff_obs.detach().cpu().squeeze(), hydra_out('diff_obs_data.pt')
+            )
+            torch.save(
+                diff_src.detach().cpu().squeeze(), hydra_out('diff_src_amp.pt')
+            )
 
         file_path = os.path.dirname(os.path.realpath(__file__))
         os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')

@@ -25,9 +25,10 @@ def direct_load(*, path, device):
     return torch.load(path).to(device)
 
 
-def build_vp(*, path, device, ny=None, nx=None):
+def build_vp(*, path, device, ny=None, nx=None, average=False):
     vp = torch.load(path).to(device)
-    vp = vp.mean() * torch.ones_like(vp)
+    if average:
+        vp = vp.mean() * torch.ones_like(vp)
     ny = vp.shape[0] if ny is None else ny
     nx = vp.shape[1] if nx is None else nx
     return vp[:ny, :nx]
@@ -210,10 +211,13 @@ def vanilla_train(c: DotDict):
     )
 
 
-def dlinspace(*, start, step, num):
+def dlinspace(*, start, step, num, flip=False):
     a = start
     b = start + step * (num - 1)
-    return [a, b]
+    if flip:
+        return [b, a]
+    else:
+        return [a, b]
 
 
 def dict_values(**kw):

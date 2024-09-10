@@ -19,6 +19,37 @@ helpers:
       step: ${dt}
       num: ${nt}
 
+  space: &space
+    __call__: ^^cwd|helpers|dict_values
+    kw:
+      x_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dx}
+          num: ${nx}
+      y_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dy}
+          num: ${ny}
+
+  vp_opts: &vp_opts
+    column_names:
+      - Depth (m)
+      - Offset (m)
+    unsqueeze:
+      perform: True
+    cols: 2
+    two:
+      loop_info:
+        base_title: Velocity Model
+        bounds: self.plt.helpers.space
+    one:
+      loop_info:
+        base_title: Velocity Model
+
   obs_data_opts: &obs_data_opts
     column_names:
       - Iteration Number
@@ -39,6 +70,7 @@ helpers:
     one:
       loop_info:
         base_title: Observed Data
+
 
   src_amp_opts: &src_amp_opts
     column_names:
@@ -64,6 +96,13 @@ helpers:
         #   kw:
         #     a: self.plt.helpers.iterations
         #     b: self.plt.helpers.time
+
+# note that the use of the tags here is inefficient.
+#     Technically, the runtime env will evaluate these tags TWICE.
+#     However, these are incredibly cheap operations, so it's not a big deal.
+vp:
+  path: vp.pt
+  <<: *vp_opts
 
 obs_data:
   path: obs_frames.pt
