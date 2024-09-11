@@ -1,9 +1,9 @@
 defaults:
-  - _self_
   - case: default
   - data: ${case}
   - plt: default
   - train: ${case}
+  - _self_
 
 path: ${oc.env:CONDA_PREFIX}/data/marmousi/deepwave_example/shots16
 

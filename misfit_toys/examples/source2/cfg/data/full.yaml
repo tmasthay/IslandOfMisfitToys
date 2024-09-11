@@ -5,6 +5,8 @@ vp:
     device: ${device}
     ny: ${ny}
     nx: ${nx}
+    average: False
+
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:

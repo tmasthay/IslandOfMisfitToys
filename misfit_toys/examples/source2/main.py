@@ -54,6 +54,7 @@ def main(cfg):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})
 
     runtime_reduce_simple('data.vp', (c.ny, c.nx))
+    input(c.data.vp)
     runtime_reduce_simple('data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2))
     runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
     runtime_reduce_simple('data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt))

@@ -1,8 +1,12 @@
 vp:
-  __call__: ^^|torch|load
+  __call__: ^^cwd|helpers|build_vp
   kw:
-    f: ${path}/vp.pt
+    path: ${path}/vp.pt
     device: ${device}
+    ny: ${ny}
+    nx: ${nx}
+    average: True
+
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:
