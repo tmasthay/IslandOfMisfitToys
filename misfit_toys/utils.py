@@ -1106,24 +1106,29 @@ def apply(lcl, relax=True, call_key='__call__'):
                 "To apply lcl, we need runtime_func to be a key "
                 f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
             )
+        import copy
+
+        og_lcl = copy.deepcopy(lcl)
         args = lcl.get('args', [])
         kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
         for i, e in enumerate(args):
             if isinstance(e, DotDict) or isinstance(e, dict):
-                args[i] = apply(e, relax=True)
+                args[i] = apply(e, relax=True, call_key=call_key)
 
         for k, v in kwargs.items():
             if isinstance(v, DotDict) or isinstance(v, dict):
-                kwargs[k] = apply(v, relax=True)
+                kwargs[k] = apply(v, relax=True, call_key=call_key)
 
         # keys = set(kwargs.keys())
         # is_reducible = keys.issubset(
         #     set(['args', 'kwargs', 'kw', call_key])
         # )
         if call_key in kwargs.keys():
-            kwargs = apply(kwargs, relax=True)
+            kwargs = apply(kwargs, relax=True, call_key=call_key)
         lcl_callback = getattr(lcl, call_key)
         lcl = lcl_callback(*args, **kwargs)
+        if call_key == "__call_post__":
+            input(f'{og_lcl=} -> {lcl=}')
         return lcl
     except Exception as e:
         v = RuntimeError(

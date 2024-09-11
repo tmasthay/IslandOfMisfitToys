@@ -1,8 +1,10 @@
+import os
 from typing import List
 
 import deepwave as dw
 import torch
-from mh.core import DotDict, DotDictImmutable, enforce_types
+import yaml
+from mh.core import DotDict, DotDictImmutable, enforce_types, hydra_out
 
 
 def check_dim(data, *, dim, left=-torch.inf, right=torch.inf):
@@ -222,6 +224,53 @@ def dlinspace(*, start, step, num, flip=False):
 
 def dict_values(**kw):
     return list(kw.values())
+
+
+def define_latest_run():
+    with open('.latest', 'w') as f:
+        f.write(f'cd {hydra_out()}')
+
+    print('Run following for latest run directory\n        . .latest')
+
+
+def interactive_plot_dump(c):
+    def save_field(tensor, *, name, squeeze):
+        tensor = tensor.squeeze() if squeeze else tensor
+        tensor = tensor.detach().cpu()
+        torch.save(tensor, hydra_out(f'{name}.pt'))
+
+    def cfg_save(*, key, name, squeeze):
+        save_field(c[key], name=name, squeeze=squeeze)
+
+    vp = torch.flip(c.data.vp.T, [0])
+    save_field(vp, name='vp', squeeze=False)
+
+    cfg_save(key='results.src_amp_frames', name='src_amp_frames', squeeze=True)
+    cfg_save(key='data.src_amp_y', name='true_src_amp_y', squeeze=True)
+    cfg_save(key='results.obs_frames', name='obs_frames', squeeze=True)
+    cfg_save(key='data.obs_data', name='true_obs_data', squeeze=True)
+    cfg_save(key='data.src_loc_y', name='src_loc_y', squeeze=True)
+
+    diff_obs = c.results.obs_frames - c.data.obs_data.detach().cpu().unsqueeze(
+        0
+    )
+    diff_src = (
+        c.results.src_amp_frames - c.data.src_amp_y.detach().cpu().unsqueeze(0)
+    )
+    save_field(diff_obs, name='diff_obs', squeeze=True)
+    save_field(diff_src, name='diff_src', squeeze=True)
+
+    file_path = os.path.dirname(os.path.realpath(__file__))
+    os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')
+
+    os.makedirs(hydra_out('cfg'), exist_ok=True)
+    with open(hydra_out('cfg/plot_cfg.yaml'), 'w') as f:
+        d = c.post.dict()
+        D = {k: v for k, v in d.items() if k != '__rt_callback__'}
+        yaml.dump(D, f)
+
+    define_latest_run()
+    return c
 
 
 if __name__ == "__main__":

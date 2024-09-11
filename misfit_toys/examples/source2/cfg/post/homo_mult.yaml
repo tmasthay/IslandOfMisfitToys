@@ -45,7 +45,7 @@ helpers:
     two:
       loop_info:
         base_title: Velocity Model
-        bounds: self.plt.helpers.space
+        bounds: self.post.helpers.space
     one:
       loop_info:
         base_title: Velocity Model
@@ -64,9 +64,9 @@ helpers:
         bounds:
           __call__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.rec
-            c: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            b: self.post.helpers.rec
+            c: self.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
@@ -86,8 +86,8 @@ helpers:
         bounds:
           __call__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            c: self.post.helpers.time
 
     one:
       loop_info:
@@ -95,8 +95,8 @@ helpers:
         # bounds:
         #   __call__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.plt.helpers.iterations
-        #     b: self.plt.helpers.time
+        #     a: self.post.helpers.iterations
+        #     b: self.post.helpers.time
 
 # note that the use of the tags here is inefficient.
 #     Technically, the runtime env will evaluate these tags TWICE.

@@ -1,35 +1,35 @@
 helpers:
   rec:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: ${fst_src}
       step: ${d_rec}
       num: ${rec_per_shot}
 
   iterations:
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       a: 0
       b: self.train.num_captured_frames
 
   time:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: 0.0
       step: ${dt}
       num: ${nt}
 
   space: &space
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       y_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dy}
           num: ${ny}
       x_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dx}
@@ -40,12 +40,12 @@ helpers:
       - Offset (m)
       - Depth (m)
     unsqueeze:
-      perform: True
+      perform: true
     cols: 2
     two:
       loop_info:
         base_title: Velocity Model
-        bounds: self.plt.helpers.space
+        bounds: self.post.helpers.space
     one:
       loop_info:
         base_title: Velocity Model
@@ -56,17 +56,17 @@ helpers:
       - Offset (m)
       - Time (s)
     unsqueeze:
-      perform: True
+      perform: true
     cols: 3
     two:
       loop_info:
         base_title: Observed Data
         bounds:
-          __call__: ^^cwd|helpers|dict_values
+          __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.rec
-            c: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            b: self.post.helpers.rec
+            c: self.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
@@ -75,27 +75,28 @@ helpers:
   src_amp_opts: &src_amp_opts
     column_names:
       - Iteration Number
+      - Source Index
       - Time (s)
     unsqueeze:
-      perform: True
+      perform: true
     cols: 3
     two:
       loop_info:
         base_title: Source Amplitude
         bounds:
-          __call__: ^^cwd|helpers|dict_values
+          __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            c: self.post.helpers.time
 
     one:
       loop_info:
         base_title: Source Amplitude
         # bounds:
-        #   __call__: ^^cwd|helpers|dict_values
+        #   __call_post__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.plt.helpers.iterations
-        #     b: self.plt.helpers.time
+        #     a: self.post.helpers.iterations
+        #     b: self.post.helpers.time
 
 # note that the use of the tags here is inefficient.
 #     Technically, the runtime env will evaluate these tags TWICE.
@@ -138,3 +139,5 @@ diff_obs_data:
   <<: *obs_data_opts
   # unsqueeze:
   #   perform: False
+
+__rt_callback__: ^^|helpers|interactive_plot_dump

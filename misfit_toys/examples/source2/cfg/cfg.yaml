@@ -1,7 +1,7 @@
 defaults:
   - case: default
   - data: ${case}
-  - plt: default
+  - post: default
   - train: ${case}
   - _self_
 

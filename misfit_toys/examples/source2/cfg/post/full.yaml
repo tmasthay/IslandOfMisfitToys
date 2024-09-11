@@ -1,35 +1,35 @@
 helpers:
   rec:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: ${fst_src}
       step: ${d_rec}
       num: ${rec_per_shot}
 
   iterations:
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       a: 0
-      b: self.train.num_captured_frames
+      b: slf_post.train.num_captured_frames
 
   time:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: 0.0
       step: ${dt}
       num: ${nt}
 
   space: &space
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       y_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dy}
           num: ${ny}
       x_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dx}
@@ -45,7 +45,7 @@ helpers:
     two:
       loop_info:
         base_title: Velocity Model
-        bounds: self.plt.helpers.space
+        bounds: slf_post.post.helpers.space
     one:
       loop_info:
         base_title: Velocity Model
@@ -62,11 +62,10 @@ helpers:
       loop_info:
         base_title: Observed Data
         bounds:
-          __call__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.rec
-            c: self.plt.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: slf_post.post.helpers.rec
+            c: slf_post.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
@@ -83,19 +82,19 @@ helpers:
       loop_info:
         base_title: Source Amplitude
         bounds:
-          __call__: ^^cwd|helpers|dict_values
+          __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: slf_post.post.helpers.time
 
     one:
       loop_info:
         base_title: Source Amplitude
         # bounds:
-        #   __call__: ^^cwd|helpers|dict_values
+        #   __call_post__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.plt.helpers.iterations
-        #     b: self.plt.helpers.time
+        #     a: slf_post.post.helpers.iterations
+        #     b: slf_post.post.helpers.time
 
 # note that the use of the tags here is inefficient.
 #     Technically, the runtime env will evaluate these tags TWICE.

@@ -5,7 +5,7 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import yaml
-from mh.core import DotDict, hydra_out, set_print_options, torch_stats
+from mh.core import DotDict, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import OmegaConf
 
@@ -76,69 +76,17 @@ def main(cfg):
         (c.n_shots, c.src_per_shot, c.nt),
         'src_amp_y_init',
     )
-    # c = full_runtime_reduce(c, **c.plt.resolve, self_key='slf_plt')
-    # for k, v in c.plt.items():
-    #     if k not in ['final', 'resolve', 'skip'] + c.plt.get('skip', []):
-    #         plt.clf()
-    #         v(data=c[f'data.{k}'].detach().cpu())
+    c.data.vp.requires_grad = False
+    c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
+    c.data.curr_src_amp_y.requires_grad = True
+    c.train.opt = c.train.opt([c.data.curr_src_amp_y])
 
-    if c.get('do_training', True):
-        c.data.vp.requires_grad = False
-        c.data.curr_src_amp_y = c.data.src_amp_y_init.clone()
-        # c.data.curr_src_amp_y = torch.rand(*c.data.src_amp_y_init.shape).to(c.device)
-        c.data.curr_src_amp_y.requires_grad = True
-        c.train.opt = c.train.opt([c.data.curr_src_amp_y])
+    c.results = c.train.loop(c)
 
-        c.results = c.train.loop(c)
-
-        if c.save_tensors:
-            # torch.save(
-            #     c.data.vp.T.detach().cpu(),
-            #     hydra_out('vp.pt'),
-            # )
-            vp = torch.flip(c.data.vp.T, [0])
-            torch.save(vp.detach().cpu(), hydra_out('vp.pt'))
-            torch.save(
-                c.results.src_amp_frames.detach().cpu(),
-                hydra_out('src_amp_frames.pt'),
-            )
-            torch.save(
-                c.data.src_amp_y.squeeze().detach().cpu(),
-                hydra_out('true_src_amp_y.pt'),
-            )
-            torch.save(
-                c.results.obs_frames.detach().cpu(), hydra_out('obs_frames.pt')
-            )
-            torch.save(
-                c.data.obs_data.squeeze().detach().cpu(),
-                hydra_out('true_obs_data.pt'),
-            )
-            diff_obs = (
-                c.results.obs_frames
-                - c.data.obs_data.detach().cpu().unsqueeze(0)
-            )
-            diff_src = (
-                c.results.src_amp_frames
-                - c.data.src_amp_y.detach().cpu().unsqueeze(0)
-            )
-            torch.save(
-                diff_obs.detach().cpu().squeeze(), hydra_out('diff_obs_data.pt')
-            )
-            torch.save(
-                diff_src.detach().cpu().squeeze(), hydra_out('diff_src_amp.pt')
-            )
-
-        file_path = os.path.dirname(os.path.realpath(__file__))
-        os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')
-
-        with open('.latest', 'w') as f:
-            f.write(f'cd {hydra_out()}')
-
-        os.makedirs(hydra_out('cfg'), exist_ok=True)
-        with open(hydra_out('cfg/plot_cfg.yaml'), 'w') as f:
-            yaml.dump(c.plt.dict(), f)
-
-        print('Run following for latest run directory\n        . .latest')
+    input(c.post)
+    c = full_runtime_reduce(c, self_key='slf_post', call_key='__call_post__')
+    input(c.post)
+    c.post.__rt_callback__(c)
 
 
 if __name__ == "__main__":
