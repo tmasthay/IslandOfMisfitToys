@@ -90,10 +90,12 @@ def main(cfg):
         c.results = c.train.loop(c)
 
         if c.save_tensors:
-            torch.save(
-                c.data.vp.T.detach().cpu(),
-                hydra_out('vp.pt'),
-            )
+            # torch.save(
+            #     c.data.vp.T.detach().cpu(),
+            #     hydra_out('vp.pt'),
+            # )
+            vp = torch.flip(c.data.vp.T, [0])
+            torch.save(vp.detach().cpu(), hydra_out('vp.pt'))
             torch.save(
                 c.results.src_amp_frames.detach().cpu(),
                 hydra_out('src_amp_frames.pt'),
