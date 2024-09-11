@@ -1,10 +1,8 @@
 vp:
-  __call__: ^^cwd|helpers|build_vp
+  __call__: ^^|torch|load
   kw:
-    path: ${path}/vp.pt
+    f: ${path}/vp.pt
     device: ${device}
-    ny: ${ny}
-    nx: ${nx}
 rec_loc_y:
   __call__: ^^cwd|helpers|take_first
   kw:
