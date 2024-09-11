@@ -1,0 +1,6 @@
+__call__: ^^|misfit_toys.types|PickleUnaryFunction
+kw:
+  callback:
+    __call__: ^^|torch.nn|MSELoss
+    kw: {}
+  target: self.data.obs_data
