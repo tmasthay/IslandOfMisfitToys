@@ -91,7 +91,7 @@ def main(cfg):
 
         if c.save_tensors:
             torch.save(
-                c.data.vp.detach().cpu(),
+                c.data.vp.T.detach().cpu(),
                 hydra_out('vp.pt'),
             )
             torch.save(
