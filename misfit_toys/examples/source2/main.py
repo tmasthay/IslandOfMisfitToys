@@ -53,8 +53,9 @@ def main(cfg):
     def full_runtime_reduce(lcl_cfg, **kw):
         return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})
 
+    c = full_runtime_reduce(c, self_key='slf_pre', call_key='__call_pre__')
+
     runtime_reduce_simple('data.vp', (c.ny, c.nx))
-    input(c.data.vp)
     runtime_reduce_simple('data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2))
     runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
     runtime_reduce_simple('data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt))
