@@ -47,7 +47,7 @@ src_amp_y_init:
     n_shots: ${n_shots}
     num_per_shot: ${src_per_shot}
     nonzeros:
-      __call__: ^^|torch|linspace
+      __call_src__: ^^|torch|linspace
       kw:
         start: 0.5
         end: 0.8

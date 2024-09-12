@@ -1106,9 +1106,6 @@ def apply(lcl, relax=True, call_key='__call__'):
                 "To apply lcl, we need runtime_func to be a key "
                 f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
             )
-        import copy
-
-        og_lcl = copy.deepcopy(lcl)
         args = lcl.get('args', [])
         kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
         for i, e in enumerate(args):
@@ -1127,8 +1124,6 @@ def apply(lcl, relax=True, call_key='__call__'):
             kwargs = apply(kwargs, relax=True, call_key=call_key)
         lcl_callback = getattr(lcl, call_key)
         lcl = lcl_callback(*args, **kwargs)
-        if call_key == "__call_post__":
-            input(f'{og_lcl=} -> {lcl=}')
         return lcl
     except Exception as e:
         v = RuntimeError(

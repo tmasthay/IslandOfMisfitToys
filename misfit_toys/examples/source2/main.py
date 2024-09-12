@@ -42,7 +42,9 @@ def main(cfg):
 
     def runtime_reduce_simple(key, expected_shape=None):
         resolve_rules = c[key].get('resolve', c.resolve)
-        self_key = f'slf_{key.split(".")[-1]}'
+        field_name = key.split('.')[-1]
+        self_key = f'slf_{field_name}'
+        # call_key = '__call__'
         field_name = key.split('.')[-1]
         before_reduction = f'\n\nBefore reduction:\n{pretty_dict(c[key])}'
         c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
@@ -60,11 +62,11 @@ def main(cfg):
     runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
     runtime_reduce_simple('data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt))
     # runtime_reduce_simple('data.src_amp_y_init')
-    runtime_reduce_simple('data.gbl_rec_loc', None)
+    # runtime_reduce_simple('data.gbl_rec_loc', None)
 
-    c = full_runtime_reduce(
-        c, self_key='slf_gbl_obs_data', call_key="__call_gbl_obs__"
-    )
+    # c = full_runtime_reduce(
+    #     c, self_key='slf_gbl_obs_data', call_key="__call_gbl_obs__"
+    # )
     c = full_runtime_reduce(c, self_key='slf_obs_data', call_key="__call_obs__")
     check_shape(c.data.obs_data, (c.n_shots, c.rec_per_shot, c.nt), 'obs_data')
     c = full_runtime_reduce(
@@ -83,9 +85,7 @@ def main(cfg):
 
     c.results = c.train.loop(c)
 
-    input(c.post)
     c = full_runtime_reduce(c, self_key='slf_post', call_key='__call_post__')
-    input(c.post)
     c.post.__rt_callback__(c)
 
 
