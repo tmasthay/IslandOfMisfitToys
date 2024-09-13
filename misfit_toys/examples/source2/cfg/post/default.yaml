@@ -1,4 +1,7 @@
 helpers:
+  shot_bounds:
+    - 0
+    - ${n_shots}
   rec:
     __call_post__: ^^cwd|helpers|dlinspace
     kw:
@@ -10,7 +13,7 @@ helpers:
     __call_post__: ^^cwd|helpers|dict_values
     kw:
       a: 0
-      b: self.train.num_captured_frames
+      b: slf_post.train.num_captured_frames
 
   time:
     __call_post__: ^^cwd|helpers|dlinspace
@@ -40,12 +43,12 @@ helpers:
       - Offset (m)
       - Depth (m)
     unsqueeze:
-      perform: true
+      perform: True
     cols: 2
     two:
       loop_info:
         base_title: Velocity Model
-        bounds: self.post.helpers.space
+        bounds: slf_post.post.helpers.space
     one:
       loop_info:
         base_title: Velocity Model
@@ -53,10 +56,11 @@ helpers:
   obs_data_opts: &obs_data_opts
     column_names:
       - Iteration Number
+      - Shot Number
       - Offset (m)
       - Time (s)
     unsqueeze:
-      perform: true
+      perform: True
     cols: 3
     two:
       loop_info:
@@ -64,9 +68,10 @@ helpers:
         bounds:
           __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.post.helpers.iterations
-            b: self.post.helpers.rec
-            c: self.post.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.rec
+            d: slf_post.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
@@ -75,10 +80,10 @@ helpers:
   src_amp_opts: &src_amp_opts
     column_names:
       - Iteration Number
-      - Source Index
+      - Shot Number
       - Time (s)
     unsqueeze:
-      perform: true
+      perform: False
     cols: 3
     two:
       loop_info:
@@ -86,8 +91,9 @@ helpers:
         bounds:
           __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.post.helpers.iterations
-            c: self.post.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.time
 
     one:
       loop_info:
@@ -95,8 +101,8 @@ helpers:
         # bounds:
         #   __call_post__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.post.helpers.iterations
-        #     b: self.post.helpers.time
+        #     a: slf_post.post.helpers.iterations
+        #     b: slf_post.post.helpers.time
 
 # note that the use of the tags here is inefficient.
 #     Technically, the runtime env will evaluate these tags TWICE.
@@ -125,6 +131,7 @@ true_src_amp:
   path: true_src_amp_y.pt
   <<: *src_amp_opts
   column_names:
+    - Source Number
     - Time (s)
   cols: 1
 
