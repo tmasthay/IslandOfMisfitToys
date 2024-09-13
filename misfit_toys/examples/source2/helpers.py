@@ -165,14 +165,27 @@ def sparse_amps(
 
 
 def vanilla_train(c: DotDict):
+    squeeze_amp = c.train.get('squeeze_amp', False)
+    squeeze_obs = c.train.get('squeeze_obs', False)
+
+    def get_field(field, squeeze):
+        v = field.detach().cpu().clone()
+        return v.squeeze() if squeeze else v
+
+    def get_amp(x):
+        return get_field(x, squeeze_amp)
+
+    def get_obs(x):
+        return get_field(x, squeeze_obs)
+
     capture_freq = c.train.n_epochs // c.train.num_captured_frames
-    src_amp_frames = [c.data.curr_src_amp_y.squeeze().detach().cpu().clone()]
+    # src_amp_frames = [c.data.curr_src_amp_y.squeeze().detach().cpu().clone()]
+    src_amp_frames = []
     obs_frames = []
     for epoch in range(c.train.n_epochs):
+        # input(c.data.curr_src_amp_y.shape)
         if epoch % capture_freq == 0:
-            src_amp_frames.append(
-                c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
-            )
+            src_amp_frames.append(get_amp(c.data.curr_src_amp_y))
         c.train.opt.zero_grad()
 
         num_calls = 0
@@ -192,7 +205,7 @@ def vanilla_train(c: DotDict):
             )
             loss = 1e6 * c.train.loss(out[-1])
             if num_calls == 1 and epoch % capture_freq == 0:
-                obs_frames.append(out[-1].squeeze().detach().cpu().clone())
+                obs_frames.append(get_obs(out[-1]))
 
             loss.backward()
             return loss
@@ -203,9 +216,7 @@ def vanilla_train(c: DotDict):
             print('Threshold reached')
             break
 
-    src_amp_frames.append(
-        c.data.curr_src_amp_y.squeeze().detach().cpu().clone()
-    )
+    src_amp_frames.append(get_amp(c.data.curr_src_amp_y))
     src_amp_frames = torch.stack(src_amp_frames)
     obs_frames = torch.stack(obs_frames)
     return DotDictImmutable(
@@ -245,11 +256,11 @@ def interactive_plot_dump(c):
     vp = torch.flip(c.data.vp.T, [0])
     save_field(vp, name='vp', squeeze=False)
 
-    cfg_save(key='results.src_amp_frames', name='src_amp_frames', squeeze=True)
-    cfg_save(key='data.src_amp_y', name='true_src_amp_y', squeeze=True)
-    cfg_save(key='results.obs_frames', name='obs_frames', squeeze=True)
-    cfg_save(key='data.obs_data', name='true_obs_data', squeeze=True)
-    cfg_save(key='data.src_loc_y', name='src_loc_y', squeeze=True)
+    cfg_save(key='results.src_amp_frames', name='src_amp_frames', squeeze=False)
+    cfg_save(key='data.src_amp_y', name='true_src_amp_y', squeeze=False)
+    cfg_save(key='results.obs_frames', name='obs_frames', squeeze=False)
+    cfg_save(key='data.obs_data', name='true_obs_data', squeeze=False)
+    cfg_save(key='data.src_loc_y', name='src_loc_y', squeeze=False)
 
     diff_obs = c.results.obs_frames - c.data.obs_data.detach().cpu().unsqueeze(
         0
@@ -257,8 +268,8 @@ def interactive_plot_dump(c):
     diff_src = (
         c.results.src_amp_frames - c.data.src_amp_y.detach().cpu().unsqueeze(0)
     )
-    save_field(diff_obs, name='diff_obs', squeeze=True)
-    save_field(diff_src, name='diff_src', squeeze=True)
+    save_field(diff_obs, name='diff_obs_data', squeeze=False)
+    save_field(diff_src, name='diff_src_amp', squeeze=False)
 
     file_path = os.path.dirname(os.path.realpath(__file__))
     os.system(f'cp {file_path}/gen_plot.ipynb {hydra_out()}')
