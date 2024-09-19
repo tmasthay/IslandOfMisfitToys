@@ -2,9 +2,13 @@ import os
 from typing import List
 
 import deepwave as dw
+import matplotlib.pyplot as plt
 import torch
 import yaml
 from mh.core import DotDict, DotDictImmutable, enforce_types, hydra_out
+from mh.typlotlib import get_frames_bool, save_frames
+
+from misfit_toys.utils import bool_slice
 
 
 def check_dim(data, *, dim, left=-torch.inf, right=torch.inf):
@@ -304,7 +308,54 @@ def interactive_plot_dump(c):
     return c
 
 
-def data_only(c):
+def save_data(c):
+    save_fields(c)
+    define_latest_run()
+
+
+def easy_imshow(
+    data,
+    *,
+    transpose=False,
+    imshow=None,
+    colorbar=True,
+    xlabel='Offset (m)',
+    ylabel='Depth (m)',
+    title='',
+    extent=None,
+):
+    imshow = imshow or {}
+    if transpose:
+        data = data.T
+    if extent is not None:
+        imshow['extent'] = extent
+    plt.imshow(data.detach().cpu(), **imshow)
+    if colorbar:
+        plt.colorbar()
+    if xlabel:
+        plt.xlabel(xlabel)
+    if ylabel:
+        plt.ylabel(ylabel)
+    plt.title(title)
+
+
+def static_plots(c):
+    # fields expected are
+    #   1. vp (ny, nx)
+    #   2. obs_data (n_iters, n_shots, rec_per_shot, nt)
+    #   3. src_amp (n_iters, n_shots, src_per_shot, nt)
+    #   4. src_loc_y (n_shots, src_per_shot, 2)
+    #   5. true_obs_data (n_shots, rec_per_shot, nt)
+    #   6. true_src_amp_y (n_shots, src_per_shot, nt)
+    # From which we also construct
+    #   7. diff_obs_data (n_iters, n_shots, rec_per_shot, nt)
+    #   8. diff_src_amp (n_iters, n_shots, src_per_shot, nt)
+
+    os.makedirs(hydra_out('figs'), exist_ok=True)
+    extent = [0, c.ny * c.dy, c.nx * c.dx, 0]
+    easy_imshow(c.data.vp, **c.post.vp, extent=extent)
+    plt.savefig(hydra_out('figs/vp.jpg'))
+
     save_fields(c)
     define_latest_run()
 
