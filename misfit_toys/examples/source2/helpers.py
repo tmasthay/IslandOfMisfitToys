@@ -244,6 +244,24 @@ def define_latest_run():
     print('Run following for latest run directory\n        . .latest')
 
 
+def save_fields(c):
+    def save_field(tensor, *, name, squeeze):
+        tensor = tensor.squeeze() if squeeze else tensor
+        tensor = tensor.detach().cpu()
+        torch.save(tensor, hydra_out(f'{name}.pt'))
+
+    def cfg_save(*, key, name, squeeze):
+        save_field(c[key], name=name, squeeze=squeeze)
+
+    cfg_save(key='data.vp', name='vp', squeeze=False)
+    cfg_save(key='data.src_amp_y', name='true_src_amp_y', squeeze=False)
+    cfg_save(key='data.obs_data', name='true_obs_data', squeeze=False)
+    cfg_save(key='data.src_loc_y', name='src_loc_y', squeeze=False)
+
+    cfg_save(key='results.src_amp_frames', name='src_amp_frames', squeeze=False)
+    cfg_save(key='results.obs_frames', name='obs_frames', squeeze=False)
+
+
 def interactive_plot_dump(c):
     def save_field(tensor, *, name, squeeze):
         tensor = tensor.squeeze() if squeeze else tensor
@@ -253,6 +271,8 @@ def interactive_plot_dump(c):
     def cfg_save(*, key, name, squeeze):
         save_field(c[key], name=name, squeeze=squeeze)
 
+    # weird edge case for vp interactive plotting
+    # TODO: Fix this so that it is cleaner
     vp = torch.flip(c.data.vp.T, [0])
     save_field(vp, name='vp', squeeze=False)
 
@@ -282,6 +302,11 @@ def interactive_plot_dump(c):
 
     define_latest_run()
     return c
+
+
+def data_only(c):
+    save_fields(c)
+    define_latest_run()
 
 
 if __name__ == "__main__":

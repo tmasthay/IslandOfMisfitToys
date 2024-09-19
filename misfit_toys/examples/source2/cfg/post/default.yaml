@@ -83,7 +83,7 @@ helpers:
       - Shot Number
       - Time (s)
     unsqueeze:
-      perform: False
+      perform: True
     cols: 3
     two:
       loop_info:
