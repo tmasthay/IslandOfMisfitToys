@@ -80,8 +80,11 @@ class Param(torch.nn.Module):
 
         """
         self.p.data = torch.chunk(self.p.data, world_size)[rank]
+        
+    def get_grad(self):
+        return self.p.grad
 
-    def forward(self):
+    def forward(self) -> torch.Tensor:
         """
         Returns the parameter tensor.
 

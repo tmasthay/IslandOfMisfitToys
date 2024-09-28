@@ -62,3 +62,5 @@ class Plotter(KwEnforcer):
 class FlatPlotter(KwEnforcer):
     def __init__(self, *, callback: Callable[[dict], Any], **kwargs):
         super().__init__(callback=callback, required_keys=['data'], **kwargs)
+        
+

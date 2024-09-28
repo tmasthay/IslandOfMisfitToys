@@ -3,12 +3,13 @@ from typing import List
 
 import deepwave as dw
 import matplotlib.pyplot as plt
+from numpy import copy
 import torch
 import yaml
 from mh.core import DotDict, DotDictImmutable, enforce_types, hydra_out
 from mh.typlotlib import get_frames_bool, save_frames
 
-from misfit_toys.utils import bool_slice
+from misfit_toys.utils import bool_slice, clean_idx
 
 
 def check_dim(data, *, dim, left=-torch.inf, right=torch.inf):
@@ -168,6 +169,12 @@ def sparse_amps(
     return src_amp_y.to(device)
 
 
+def l1_reg(u, *, weight):
+    return weight * torch.norm(u, p=1)
+
+def tv_reg(u, *, weight):
+    return weight * torch.sum(torch.abs(u[..., :-1] - u[..., 1:]))
+
 def vanilla_train(c: DotDict):
     squeeze_amp = c.train.get('squeeze_amp', False)
     squeeze_obs = c.train.get('squeeze_obs', False)
@@ -183,11 +190,13 @@ def vanilla_train(c: DotDict):
         return get_field(x, squeeze_obs)
 
     capture_freq = c.train.n_epochs // c.train.num_captured_frames
+    if capture_freq == 0:
+        capture_freq = 1
     # src_amp_frames = [c.data.curr_src_amp_y.squeeze().detach().cpu().clone()]
     src_amp_frames = []
     obs_frames = []
+    loss_frames = []
     for epoch in range(c.train.n_epochs):
-        # input(c.data.curr_src_amp_y.shape)
         if epoch % capture_freq == 0:
             src_amp_frames.append(get_amp(c.data.curr_src_amp_y))
         c.train.opt.zero_grad()
@@ -207,9 +216,14 @@ def vanilla_train(c: DotDict):
                 receiver_locations=c.data.rec_loc_y,
                 pml_freq=c.freq,
             )
-            loss = 1e6 * c.train.loss(out[-1])
+            if 'regularizer' in c.train:
+                reg = c.train.regularizer(c.data.curr_src_amp_y)
+            else:
+                reg = 0.0
+            loss = 1e6 * c.train.loss(out[-1]) + reg
             if num_calls == 1 and epoch % capture_freq == 0:
                 obs_frames.append(get_obs(out[-1]))
+                loss_frames.append(loss.item())
 
             loss.backward()
             return loss
@@ -222,9 +236,16 @@ def vanilla_train(c: DotDict):
 
     src_amp_frames.append(get_amp(c.data.curr_src_amp_y))
     src_amp_frames = torch.stack(src_amp_frames)
+    src_amp_frames = src_amp_frames.reshape(
+        src_amp_frames.shape[0], c.n_shots, c.src_ny, c.src_nx, c.nt
+    )
     obs_frames = torch.stack(obs_frames)
     return DotDictImmutable(
-        {'src_amp_frames': src_amp_frames, 'obs_frames': obs_frames}
+        {
+            'src_amp_frames': src_amp_frames,
+            'obs_frames': obs_frames,
+            'loss_frames': loss_frames,
+        }
     )
 
 
@@ -323,13 +344,14 @@ def easy_imshow(
     ylabel='Depth (m)',
     title='',
     extent=None,
+    **kw,
 ):
     imshow = imshow or {}
     if transpose:
         data = data.T
     if extent is not None:
         imshow['extent'] = extent
-    plt.imshow(data.detach().cpu(), **imshow)
+    plt.imshow(data.detach().cpu(), **imshow, **kw)
     if colorbar:
         plt.colorbar()
     if xlabel:
@@ -355,6 +377,61 @@ def static_plots(c):
     extent = [0, c.ny * c.dy, c.nx * c.dx, 0]
     easy_imshow(c.data.vp, **c.post.vp, extent=extent)
     plt.savefig(hydra_out('figs/vp.jpg'))
+
+    src_frames = c.results.src_amp_frames
+    src_opts = c.post.src_amp_frames
+    true_src_opts = c.post.true_src_amp
+    diff_src_opts = c.post.diff_src_amp
+    true_src_amp = c.data.src_amp_y.reshape(c.n_shots, c.src_ny, c.src_nx, c.nt)
+    base_src_title = src_opts.get('title', 'Source Amplitude')
+
+    def plot_src_amp(*, data, idx, fig, axes):
+        # nonlocal src_frames, src_opts, true_src_opts, diff_src_opts, true_src_amp, base_src_title
+
+        plt.clf()
+        # extent = TODO
+        src_opts.inner.title = f'{base_src_title} {clean_idx(idx)}'
+
+        curr_src_amp = src_frames[idx]
+        curr_true = true_src_amp[idx[1:]]
+        diff = curr_src_amp.detach().cpu() - curr_true.detach().cpu()
+        diff = diff.squeeze()
+        if len(diff.shape) == 1:
+            diff = diff.unsqueeze(0)
+
+        plt.subplot(*src_opts.subplots.shape, src_opts.order[0])
+        bnds = {'vmin': -0.5, 'vmax': 1.0}
+        easy_imshow(data=curr_src_amp, **src_opts.inner, **bnds)
+
+        plt.subplot(*src_opts.subplots.shape, src_opts.order[1])
+        easy_imshow(data=curr_true, **true_src_opts.inner, **bnds)
+
+        plt.subplot(*src_opts.subplots.shape, src_opts.order[2])
+        easy_imshow(data=diff, **diff_src_opts.inner, **bnds)
+
+        plt.subplot(*src_opts.subplots.shape, src_opts.order[3])
+        delta_iter = c.train.n_epochs // len(data.results.src_amp_frames)
+        iterations = torch.linspace(
+            0, c.train.n_epochs, len(data.results.loss_frames)
+        )
+        plt.plot(iterations, c.results.loss_frames, 'b')
+        plt.title('Loss')
+        curr_y = c.results.loss_frames[
+            min(idx[0], len(data.results.loss_frames) - 1)
+        ]
+        plt.plot([delta_iter * idx[0]], [curr_y], 'ro')
+
+    # for idx in bool_slice(*src_frames.shape, **src_opts.iter):
+    fig, axes = plt.subplots(*src_opts.subplots.shape, **src_opts.subplots.kw)
+    frames = get_frames_bool(
+        data=c,
+        iter=bool_slice(*src_frames.shape, **src_opts.iter),
+        fig=fig,
+        axes=axes,
+        plotter=plot_src_amp,
+        framer=None,
+    )
+    save_frames(frames, **src_opts.save)
 
     save_fields(c)
     define_latest_run()

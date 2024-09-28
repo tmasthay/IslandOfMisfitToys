@@ -5,11 +5,11 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import yaml
-from mh.core import DotDict, set_print_options, torch_stats
+from mh.core import DotDict, set_print_options, torch_stats, hydra_out
 from mh.typlotlib import get_frames_bool, save_frames
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
-from misfit_toys.utils import exec_imports, runtime_reduce
+from misfit_toys.utils import exec_imports, runtime_reduce, git_dump_info
 
 set_print_options(callback=torch_stats('all'))
 
@@ -35,32 +35,49 @@ def pretty_dict(d, depth=0, indent_str='  ', s=''):
     return s
 
 
-@hydra.main(config_path="cfg", config_name="cfg", version_base=None)
-def main(cfg):
+def runtime_reduce_simple(c, key, expected_shape=None):
+    resolve_rules = c[key].get('resolve', c.resolve)
+    field_name = key.split('.')[-1]
+    self_key = f'slf_{field_name}'
+    # call_key = '__call__'
+    field_name = key.split('.')[-1]
+    before_reduction = f'\n\nBefore reduction:\n{pretty_dict(c[key])}'
+    c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
+    c[key] = c[key].to(c.device)
+    if expected_shape is not None:
+        check_shape(c[key], expected_shape, field_name, before_reduction)
+    return c
+
+
+def full_runtime_reduce(lcl_cfg, **kw):
+    return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})
+
+
+def preprocess_cfg(cfg: DictConfig) -> DotDict:
     c = DotDict(OmegaConf.to_container(cfg, resolve=True))
     c = exec_imports(c)
-
-    def runtime_reduce_simple(key, expected_shape=None):
-        resolve_rules = c[key].get('resolve', c.resolve)
-        field_name = key.split('.')[-1]
-        self_key = f'slf_{field_name}'
-        # call_key = '__call__'
-        field_name = key.split('.')[-1]
-        before_reduction = f'\n\nBefore reduction:\n{pretty_dict(c[key])}'
-        c[key] = runtime_reduce(c[key], **resolve_rules, self_key=self_key)
-        c[key] = c[key].to(c.device)
-        if expected_shape is not None:
-            check_shape(c[key], expected_shape, field_name, before_reduction)
-
-    def full_runtime_reduce(lcl_cfg, **kw):
-        return runtime_reduce(lcl_cfg, **{**lcl_cfg.resolve, **kw})
-
+    c.src_per_shot = c.src_ny * c.src_nx
     c = full_runtime_reduce(c, self_key='slf_pre', call_key='__call_pre__')
+    return c
 
-    runtime_reduce_simple('data.vp', (c.ny, c.nx))
-    runtime_reduce_simple('data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2))
-    runtime_reduce_simple('data.src_loc_y', (c.n_shots, c.src_per_shot, 2))
-    runtime_reduce_simple('data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt))
+
+@hydra.main(config_path="cfg", config_name="cfg", version_base=None)
+def main(cfg: DictConfig):
+    with open(hydra_out('git_info.txt'), 'w') as f:
+        f.write(git_dump_info())
+
+    c: DotDict = preprocess_cfg(cfg)
+
+    c = runtime_reduce_simple(c, 'data.vp', (c.ny, c.nx))
+    c = runtime_reduce_simple(
+        c, 'data.rec_loc_y', (c.n_shots, c.rec_per_shot, 2)
+    )
+    c = runtime_reduce_simple(
+        c, 'data.src_loc_y', (c.n_shots, c.src_per_shot, 2)
+    )
+    c = runtime_reduce_simple(
+        c, 'data.src_amp_y', (c.n_shots, c.src_per_shot, c.nt)
+    )
     # runtime_reduce_simple('data.src_amp_y_init')
     # runtime_reduce_simple('data.gbl_rec_loc', None)
 

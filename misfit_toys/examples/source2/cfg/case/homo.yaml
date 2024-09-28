@@ -6,8 +6,3 @@ defaults:
 
 src_ny: 2
 src_nx: 2
-src_per_shot:
-  __call_pre__: ^^|operator|mul
-  args:
-    - ${src_ny}
-    - ${src_nx}

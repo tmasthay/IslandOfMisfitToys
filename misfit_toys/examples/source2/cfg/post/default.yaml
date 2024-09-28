@@ -12,3 +12,36 @@ vp:
   xlabel: Offset (m)
   ylabel: Depth (m)
   colorbar: true
+
+src_amp_frames: &src_amp_frames
+  inner: &INNER
+    imshow:
+      <<: *IMSHOW
+    title: Source Amplitude
+    xlabel: Time (s)
+    ylabel: Depth Index (m)
+    colorbar: true
+  iter:
+    none_dims: [-2, -1]
+  subplots:
+    shape: [2, 2]
+    kw:
+      figsize: [10, 10]
+  save:
+    path: &PATH
+      __call_post__: ^^|mh.core|hydra_out
+      kw:
+        name: figs/src_amp
+
+  order: [1,2,3,4]
+
+true_src_amp:
+  inner:
+    <<: *INNER
+    title: True Source Amplitude
+
+diff_src_amp:
+  inner:
+    <<: *INNER
+    title: Difference Source Amplitude
+
