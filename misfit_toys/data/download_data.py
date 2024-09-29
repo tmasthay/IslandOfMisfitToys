@@ -6,6 +6,7 @@ from misfit_toys.data.dataset import DataFactory
 def download_data(storage, *, inclusions):
     all = {'das_curtin', 'marmousi', 'marmousi2'}
     exclusions = list(all - set(inclusions))
+    input(f'{exclusions=}')
     DataFactory.create_database(storage=storage, exclusions=exclusions)
 
     print(
@@ -19,6 +20,7 @@ def download_data(storage, *, inclusions):
 def main():
     storage = "conda/data"
     inclusions = set(sys.argv[1:])
+    print(f'{inclusions=}')
     # all = {'das_curtin', 'marmousi', 'marmousi2'}
     # exclusions = list(all - inclusions)
     download_data(storage, inclusions=inclusions)
