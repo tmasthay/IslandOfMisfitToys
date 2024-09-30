@@ -674,7 +674,7 @@ class DataFactory(ABC):
 
     def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, "..")
-        pt_files = sco(f'find {parent_out_path} -name "*.pt"')
+        pt_files = sco(f'find {parent_out_path} -maxdepth 1 -name "*.pt"')
         if len(pt_files) == 0:
             iraise(
                 FileNotFoundError,
