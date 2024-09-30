@@ -21,6 +21,9 @@ class Factory(DataFactory):
             "src_loc_y",
             "rec_loc_y",
             "src_amp_y",
+            "src_loc_x",
+            "src_amp_x",
+            "rec_loc_x",
         ):
             return
 
@@ -38,7 +41,7 @@ class Factory(DataFactory):
         self.slice_subset_tensors(*rec_slice, keys=["rec_loc_y", "rec_loc_x"])
 
         print("Building obs_data in marmousi2/tiny...", end="", flush=True)
-        self.tensors.obs_data = dw.elastic(
+        res = dw.elastic(
             *get_lame(
                 self.tensors.vp_true,
                 self.tensors.vs_true,
@@ -49,9 +52,13 @@ class Factory(DataFactory):
             source_amplitudes_y=self.tensors.src_amp_y,
             source_locations_y=self.tensors.src_loc_y,
             receiver_locations_y=self.tensors.rec_loc_y,
+            source_amplitudes_x=self.tensors.src_amp_x,
+            source_locations_x=self.tensors.src_loc_x,
+            receiver_locations_x=self.tensors.rec_loc_x,
             pml_freq=d.freq,
             accuracy=d.accuracy,
-        )[-2].to("cpu")
+        )
+        self.tensors.obs_data = torch.stack(res[-2:], dim=-1).to('cpu')
         print("SUCCESS", flush=True)
 
 

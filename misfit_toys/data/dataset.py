@@ -250,7 +250,7 @@ def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
     res[:, :, 0] = (torch.arange(rec_per_shot) * d_rec + fst_rec).repeat(
         n_shots, 1
     )
-    return res
+    return res.long()
 
 
 def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
@@ -737,6 +737,16 @@ class DataFactory(ABC):
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
                 valid_path = True
+
+                # This is a bad search criterion
+                # For example if "marmousi" and "marmousi2"
+                #    are valid options, then if "marmousi" is
+                #    in exclusions, "marmousi2" will not be
+                #    processed
+                # We have fixed this temporarily by just renaming
+                #    "marmousi2" to "marm2" so that neither
+                #    "marmousi" or "marm2" are substrings of
+                #    one another.
                 for e in exclusions:
                     if e in dir_path:
                         valid_path = False
@@ -754,9 +764,6 @@ class DataFactory(ABC):
         root_out_dir = parse_path(storage)
         os.makedirs(root_out_dir, exist_ok=True)
         root = os.path.dirname(__file__)
-        # input(
-        #     f"DATABASE CREATION: root = {root}\nroot_out_dir = {root_out_dir}\n"
-        # )
         DataFactory.manufacture_all(
             root=root, root_out_path=root_out_dir, exclusions=exclusions
         )

@@ -20,6 +20,9 @@ class Factory(DataFactory):
             "src_loc_y",
             "rec_loc_y",
             "src_amp_y",
+            "src_loc_x",
+            "src_amp_x",
+            "rec_loc_x",
         ):
             return
 
@@ -52,6 +55,10 @@ class Factory(DataFactory):
         self.tensors.src_amp_y = dw.wavelets.ricker(
             d.freq, d.nt, d.dt, d.peak_time
         ).repeat(d.n_shots, d.src_per_shot, 1)
+
+        self.tensors.src_loc_x = self.tensors.src_loc_y.clone()
+        self.tensors.src_amp_x = self.tensors.src_amp_y.clone()
+        self.tensors.rec_loc_x = self.tensors.rec_loc_y.clone() + 1
 
         return d
 

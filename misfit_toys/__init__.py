@@ -1,15 +1,16 @@
 """
 TODO: make package-level docstring
 """
-from . import beta, data, examples, fwi, hydra, swiffer, utils, workflows
+from . import beta, data, examples, fwi, hydra, swiffer, types, utils, workflows
 
 __all__ = [
-    'data',
-    'workflows',
+    'fwi',
     'beta',
+    'workflows',
+    'data',
     'hydra',
     'examples',
-    'fwi',
-    'utils',
     'swiffer',
+    'utils',
+    'types',
 ]
