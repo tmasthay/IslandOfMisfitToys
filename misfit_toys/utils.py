@@ -1283,3 +1283,18 @@ def preprocess_cfg(
     if eat_key is not None:
         d = d[eat_key]
     return d if compose is None else compose(d)
+
+def select_best_gpu():
+    if not torch.cuda.is_available():
+        return "cpu"
+
+    best_gpu = "cuda:0"
+    max_free_vram = 0
+
+    for i in range(torch.cuda.device_count()):
+        free_vram = torch.cuda.memory_reserved(i) - torch.cuda.memory_allocated(i)
+        if free_vram > max_free_vram:
+            max_free_vram = free_vram
+            best_gpu = f"cuda:{i}"
+
+    return best_gpu 

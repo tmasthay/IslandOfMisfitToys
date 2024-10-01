@@ -19,7 +19,7 @@ from misfit_toys.utils import bool_slice, clean_idx
 from mh.typlotlib import save_frames, get_frames_bool
 
 from ..swiffer import iprint, iraise, ireraise, istr, sco
-from ..utils import auto_path, downsample_any, get_pydict, parse_path
+from ..utils import auto_path, downsample_any, get_pydict, parse_path, select_best_gpu
 
 
 def fetch_warn():
@@ -765,10 +765,16 @@ class DataFactory(ABC):
 
             plt.clf()
             subplot_no = 1
-            if src_loc_y is not None:
-                plt.subplot(1, num_coords, subplot_no)
+            def setup_axes():
                 plt.xlim(0, self.metadata['ny'])
                 plt.ylim(0, self.metadata['nx'])
+                plt.gca().invert_yaxis()
+                plt.xlabel('Offset (m)')
+                plt.ylabel('Depth (m)')
+                
+            if src_loc_y is not None:
+                plt.subplot(1, num_coords, subplot_no)
+                setup_axes()
                 plt.scatter(src_loc_y[:, 0], src_loc_y[:, 1], **src_opts)
                 plt.scatter(rec_loc_y[:, 0], rec_loc_y[:, 1], **rec_opts)
                 plt.title('Acquisition Y Component')
@@ -776,8 +782,7 @@ class DataFactory(ABC):
 
             if src_loc_x is not None:
                 plt.subplot(1, num_coords, subplot_no)
-                plt.xlim(0, self.metadata['ny'])
-                plt.ylim(0, self.metadata['nx'])
+                setup_axes()
                 plt.scatter(src_loc_x[:, 0], src_loc_x[:, 1], **src_opts)
                 plt.scatter(rec_loc_x[:, 0], rec_loc_x[:, 1], **rec_opts)
                 plt.title('Acquisition X Component')
@@ -793,6 +798,47 @@ class DataFactory(ABC):
             data=acq, iter=iter, fig=fig, axes=axes, plotter=plotter
         )
         save_frames(frames, path=f'{self.out_path}/acq_geo')
+        
+        src_amps = subdict(['src_amp_y', 'src_amp_x'])
+        active_coords_amps = set([k[-1] for k in src_amps.keys()])
+        num_coords_amps = len(active_coords_amps)
+        
+        fig, axes = plt.subplots(1, num_coords_amps, figsize=(12, 6))
+        
+        def plotter_amps(*, data, idx, fig, axes):
+            def get_field(name):
+                if name not in data.keys():
+                    return None
+                return data[name][idx].cpu()
+
+            src_amp_y = get_field('src_amp_y')
+            src_amp_x = get_field('src_amp_x')
+            
+            dt = self.metadata['dt']
+            nt = self.metadata['nt']
+            T = nt * dt
+            t = torch.linspace(0, T, nt)
+            
+            plt.clf()
+            subplot_no = 1
+            if src_amp_y is not None:
+                plt.subplot(1, num_coords_amps, subplot_no)
+                plt.plot(t, src_amp_y.cpu())
+                plt.title('Source Amplitude Y Component')
+                subplot_no += 1
+            if src_amp_x is not None:
+                plt.subplot(1, num_coords_amps, subplot_no)
+                plt.plot(t, src_amp_x.cpu())
+                plt.title('Source Amplitude X Component')
+                subplot_no += 1
+
+        n_shots = self.metadata['n_shots']
+        src_per_shot = self.metadata['src_per_shot']
+        iter_amps = bool_slice(n_shots, src_per_shot, 2, none_dims=[-1])
+        frames_amps = get_frames_bool(
+            data=src_amps, iter=iter_amps, fig=fig, axes=axes, plotter=plotter_amps
+        )
+        save_frames(frames_amps, path=f'{self.out_path}/src_amps')
 
     @staticmethod
     def get_derived_meta(*, meta):

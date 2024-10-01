@@ -9,6 +9,7 @@ from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from mh.core import DotDict
 
 from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
+from misfit_toys.utils import select_best_gpu
 
 
 def dsamp(tensor, *factors):
