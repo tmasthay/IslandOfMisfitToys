@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from importlib import import_module
 from subprocess import check_output as co
 from warnings import warn
+import warnings
 
 import deepwave as dw
 from matplotlib import pyplot as plt
@@ -570,7 +571,10 @@ class DataFactory(ABC):
         self._manufacture_data(**kw)
         self.place_tensors(device="cpu")
         if self.make_plots:
-            self.plot_tensors()
+            try:
+                self.plot_tensors()
+            except Exception as e:
+                warnings.warn(f"Failed to plot tensors\n    {e}")
         self.save_all_tensors()
         self.broadcast_meta()
         self.clear_all_tensors()
