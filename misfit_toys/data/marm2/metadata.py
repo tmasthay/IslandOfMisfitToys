@@ -33,7 +33,7 @@ def metadata():
         "src_depth": 2,
         "rec_per_shot": 384,
         "d_rec": 32,
-        "fst_rec": 0,
+        "fst_rec": 1,
         "rec_depth": 10,
         "d_intra_shot": 0,
         "freq": 25,

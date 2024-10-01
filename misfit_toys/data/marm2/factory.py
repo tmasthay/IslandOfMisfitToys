@@ -59,7 +59,7 @@ class Factory(DataFactory):
 
         self.tensors.src_loc_x = self.tensors.src_loc_y.clone()
         self.tensors.src_amp_x = self.tensors.src_amp_y.clone()
-        self.tensors.rec_loc_x = self.tensors.rec_loc_y.clone() + 1
+        self.tensors.rec_loc_x = self.tensors.rec_loc_y.clone() 
 
         return d
 
