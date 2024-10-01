@@ -10,10 +10,13 @@ from subprocess import check_output as co
 from warnings import warn
 
 import deepwave as dw
+from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from mh.core import DotDict
 from obspy.io.segy.segy import _read_segy
+from misfit_toys.utils import bool_slice, clean_idx
+from mh.typlotlib import save_frames, get_frames_bool
 
 from ..swiffer import iprint, iraise, ireraise, istr, sco
 from ..utils import auto_path, downsample_any, get_pydict, parse_path
@@ -491,7 +494,14 @@ def fetch_meta(*, obj):
 
 class DataFactory(ABC):
     def __init__(
-        self, *, device=None, src_path, root_out_path, root_path, **kw
+        self,
+        *,
+        device=None,
+        src_path,
+        root_out_path,
+        root_path,
+        make_plots=True,
+        **kw,
     ):
         if device is None:
             num_gpus = torch.cuda.device_count()
@@ -543,6 +553,7 @@ class DataFactory(ABC):
                 "prior to generating a DataFactory object",
             )
         self.metadata = get_pydict(self.out_path)
+        self.make_plots = make_plots
         self.__extend_init__(**kw)
 
     def __extend_init__(self, **kw):
@@ -558,6 +569,8 @@ class DataFactory(ABC):
     def manufacture_data(self, **kw):
         self._manufacture_data(**kw)
         self.place_tensors(device="cpu")
+        if self.make_plots:
+            self.plot_tensors()
         self.save_all_tensors()
         self.broadcast_meta()
         self.clear_all_tensors()
@@ -713,6 +726,73 @@ class DataFactory(ABC):
         else:
             iprint(f"{self.append_path} data not found...manufacturing tensors")
             return False
+
+    def plot_tensors(self):
+        def subdict(keys):
+            return DotDict({k: v for k, v in self.tensors.items() if k in keys})
+
+        # input(self.tensors.keys())
+        plain_imshow = subdict(
+            ['vp', 'vs', 'rho', 'vp_true', 'vs_true', 'rho_true']
+        )
+        for k, v in plain_imshow.items():
+            plt.clf()
+            plt.imshow(v.cpu().T, cmap='seismic', aspect='auto')
+            plt.colorbar()
+            plt.title(k)
+            plt.savefig(f"{self.out_path}/{k}.jpg")
+
+        acq = subdict(['src_loc_y', 'rec_loc_y', 'src_loc_x', 'rec_loc_x'])
+
+        active_coords = set([k[-1] for k in acq.keys()])
+        num_coords = len(active_coords)
+
+        fig, axes = plt.subplots(1, num_coords, figsize=(12, 6))
+
+        def plotter(*, data, idx, fig, axes):
+            def get_field(name):
+                if name not in data.keys():
+                    return None
+                return data[name][idx].cpu()
+
+            src_loc_y = get_field('src_loc_y')
+            rec_loc_y = get_field('rec_loc_y')
+            src_loc_x = get_field('src_loc_x')
+            rec_loc_x = get_field('rec_loc_x')
+
+            src_opts = dict(marker='o', color='red', label='Source', s=50)
+            rec_opts = dict(marker='x', color='blue', label='Receiver', s=5)
+
+            plt.clf()
+            subplot_no = 1
+            if src_loc_y is not None:
+                plt.subplot(1, num_coords, subplot_no)
+                plt.xlim(0, self.metadata['ny'])
+                plt.ylim(0, self.metadata['nx'])
+                plt.scatter(src_loc_y[:, 0], src_loc_y[:, 1], **src_opts)
+                plt.scatter(rec_loc_y[:, 0], rec_loc_y[:, 1], **rec_opts)
+                plt.title('Acquisition Y Component')
+                subplot_no += 1
+
+            if src_loc_x is not None:
+                plt.subplot(1, num_coords, subplot_no)
+                plt.xlim(0, self.metadata['ny'])
+                plt.ylim(0, self.metadata['nx'])
+                plt.scatter(src_loc_x[:, 0], src_loc_x[:, 1], **src_opts)
+                plt.scatter(rec_loc_x[:, 0], rec_loc_x[:, 1], **rec_opts)
+                plt.title('Acquisition X Component')
+                subplot_no += 1
+
+        iter = bool_slice(
+            self.metadata['n_shots'],
+            self.metadata['src_per_shot'],
+            2,
+            none_dims=[1, 2],
+        )
+        frames = get_frames_bool(
+            data=acq, iter=iter, fig=fig, axes=axes, plotter=plotter
+        )
+        save_frames(frames, path=f'{self.out_path}/acq_geo')
 
     @staticmethod
     def get_derived_meta(*, meta):

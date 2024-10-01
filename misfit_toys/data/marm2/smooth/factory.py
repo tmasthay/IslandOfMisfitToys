@@ -19,7 +19,6 @@ def dsamp(tensor, *factors):
     slices = tuple(slice(None, None, factor) for factor in factors)
     return tensor[slices]
 
-
 class Factory(DataFactory):
     def _manufacture_data(self):
         if self.installed(
@@ -83,14 +82,34 @@ class Factory(DataFactory):
         self.tensors.src_amp_x = dsamp(
             self.tensors.src_amp_x, d.down_shots, d.down_sps, 1
         )
+        
+        def contract_indices(x):
+            x[..., 0] = x[..., 0] // d.down_y
+            x[..., 1] = x[..., 1] // d.down_x
+            return x
 
-        delta = 100
-        self.tensors.rec_loc_y = self.tensors.rec_loc_y[:, delta:-delta, :]
-        self.tensors.rec_loc_x = self.tensors.rec_loc_x[:, delta:-delta, :]
-        self.tensors.src_loc_y = self.tensors.src_loc_y[:, delta:-delta, :]
-        self.tensors.src_loc_x = self.tensors.src_loc_x[:, delta:-delta, :]
-        self.tensors.src_amp_y = self.tensors.src_amp_y[:, delta:-delta, :]
-        self.tensors.src_amp_x = self.tensors.src_amp_x[:, delta:-delta, :]
+        self.tensors.src_loc_y = contract_indices(self.tensors.src_loc_y)
+        self.tensors.src_loc_x = contract_indices(self.tensors.src_loc_x)
+        
+        self.tensors.rec_loc_y = contract_indices(self.tensors.rec_loc_y)
+        self.tensors.rec_loc_x = contract_indices(self.tensors.rec_loc_x)
+        
+        delta = d.get('delta', 10)
+        def trim_edges(x):
+            N = x.shape[1]
+            beta = min(delta, N // 2)
+            if N <= 2:
+                return x
+            return x[:, beta:-beta, :]
+        self.tensors.rec_loc_y = trim_edges(self.tensors.rec_loc_y)
+        self.tensors.rec_loc_x = trim_edges(self.tensors.rec_loc_x)
+        self.tensors.src_loc_y = trim_edges(self.tensors.src_loc_y)
+        self.tensors.src_loc_x = trim_edges(self.tensors.src_loc_x)
+        self.tensors.src_amp_y = trim_edges(self.tensors.src_amp_y)
+        self.tensors.src_amp_x = trim_edges(self.tensors.src_amp_x)
+        
+        # for k, v in self.tensors.items():
+        #     input(f'{k=}, {v.shape=}')
 
         d.dy = d.dy * d.down_y
         d.dx = d.dx * d.down_x
