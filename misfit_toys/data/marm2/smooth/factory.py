@@ -84,16 +84,22 @@ class Factory(DataFactory):
             self.tensors.src_amp_x, d.down_shots, d.down_sps, 1
         )
         
-        def contract_indices(x):
+        def contract_indices(x, *, clamp_y=None, clamp_x=None):
             x[..., 0] = x[..., 0] // d.down_y
             x[..., 1] = x[..., 1] // d.down_x
+            
+            if clamp_y is not None:
+                x[..., 0] = torch.clamp(x[..., 0], min=clamp_y)
+            if clamp_x is not None:
+                x[..., 1] = torch.clamp(x[..., 1], min=clamp_x)
             return x
 
-        self.tensors.src_loc_y = contract_indices(self.tensors.src_loc_y)
-        self.tensors.src_loc_x = contract_indices(self.tensors.src_loc_x)
+        self.tensors.src_loc_y = contract_indices(self.tensors.src_loc_y, clamp_y=1, clamp_x=1)
+        self.tensors.src_loc_x = contract_indices(self.tensors.src_loc_x, clamp_y=1, clamp_x=1)
         
         self.tensors.rec_loc_y = contract_indices(self.tensors.rec_loc_y)
         self.tensors.rec_loc_x = contract_indices(self.tensors.rec_loc_x)
+        self.tensors.rec_loc_x = torch.clamp(self.tensors.rec_loc_x, min=1)
         
         delta = d.get('delta', 10)
         def trim_edges(x):

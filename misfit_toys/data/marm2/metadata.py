@@ -63,8 +63,8 @@ def metadata():
                 "delta": 10
             },
             "super_smooth": {
-                "down_y": 8,
-                "down_x": 8,
+                "down_y": 16,
+                "down_x": 16,
                 "down_t": 1,
                 "down_shots": 2,
                 "down_rps": 1,

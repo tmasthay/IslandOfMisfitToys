@@ -85,13 +85,18 @@ class Factory(DataFactory):
             self.tensors.src_amp_x, d.down_shots, d.down_sps, 1
         )
         
-        def contract_indices(x):
+        def contract_indices(x, *, clamp_y=None, clamp_x=None):
             x[..., 0] = x[..., 0] // d.down_y
             x[..., 1] = x[..., 1] // d.down_x
+            
+            if clamp_y is not None:
+                x[..., 0] = torch.clamp(x[..., 0], min=clamp_y)
+            if clamp_x is not None:
+                x[..., 1] = torch.clamp(x[..., 1], min=clamp_x)
             return x
 
-        self.tensors.src_loc_y = contract_indices(self.tensors.src_loc_y)
-        self.tensors.src_loc_x = contract_indices(self.tensors.src_loc_x)
+        self.tensors.src_loc_y = contract_indices(self.tensors.src_loc_y, clamp_y=1, clamp_x=1)
+        self.tensors.src_loc_x = contract_indices(self.tensors.src_loc_x, clamp_y=1, clamp_x=1)
         
         self.tensors.rec_loc_y = contract_indices(self.tensors.rec_loc_y)
         self.tensors.rec_loc_x = contract_indices(self.tensors.rec_loc_x)
@@ -110,6 +115,7 @@ class Factory(DataFactory):
         self.tensors.src_amp_y = trim_edges(self.tensors.src_amp_y)
         self.tensors.src_amp_x = trim_edges(self.tensors.src_amp_x)
         
+        # input(f'{self.tensors.rec_loc_x.min()=}')
         # for k, v in self.tensors.items():
         #     input(f'{k=}, {v.shape=}')
 
@@ -117,7 +123,7 @@ class Factory(DataFactory):
         d.dx = d.dx * d.down_x
         d.dt = d.dt * d.down_t
 
-        print("Building obs_data in marmousi2/smooth...", end="", flush=True)
+        print("Building obs_data in marmousi2/super_smooth...", end="", flush=True)
         res = dw.elastic(
             *get_lame(
                 self.tensors.vp_true,

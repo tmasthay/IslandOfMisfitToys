@@ -1,0 +1,29 @@
+a: 0
+b: 1
+N: 100
+
+eps: 1e-8
+alpha: 0.5
+power: 2.5
+
+f: 
+  name: power
+  beta: 10.0
+  scale: 1.0
+
+plt:
+  analytic:
+    label: Analytic Derivative
+    linestyle: '-'
+    color: r
+    marker: null
+    markersize: 1
+    alpha: 1.0
+  numerical:
+    label: Numerical Derivative
+    linestyle: '--'
+    color: b
+    marker: x
+    markersize: 1
+    alpha: 0.5
+  

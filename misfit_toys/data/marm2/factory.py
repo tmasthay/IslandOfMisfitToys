@@ -59,7 +59,9 @@ class Factory(DataFactory):
 
         self.tensors.src_loc_x = self.tensors.src_loc_y.clone()
         self.tensors.src_amp_x = self.tensors.src_amp_y.clone()
-        self.tensors.rec_loc_x = self.tensors.rec_loc_y.clone() 
+        self.tensors.rec_loc_x = torch.clamp(
+            self.tensors.rec_loc_y.clone(), min=1
+        )
 
         return d
 
