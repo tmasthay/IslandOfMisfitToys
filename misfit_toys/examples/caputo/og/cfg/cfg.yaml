@@ -3,8 +3,12 @@ b: 1
 N: 100
 
 eps: 1e-8
-alpha: 0.5
+# alpha: 0.5
 power: 2.5
+alpha:
+  start: 0.01
+  end: 0.99
+  steps: 100
 
 f: 
   name: power
@@ -12,6 +16,14 @@ f:
   scale: 1.0
 
 plt:
+  func: 
+    label: Function
+    linestyle: '-'
+    color: k
+    marker: null
+    markersize: 1
+    alpha: 1.0
+
   analytic:
     label: Analytic Derivative
     linestyle: '-'
@@ -26,4 +38,12 @@ plt:
     marker: x
     markersize: 1
     alpha: 0.5
+  
+  classical:
+    label: Classical Derivative
+    linestyle: '-.'
+    color: g
+    marker: null
+    markersize: 1
+    alpha: 1.0
   

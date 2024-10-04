@@ -22,20 +22,21 @@ class Power(DiffFunction):
     beta: float
     scale: float = 1.0
 
-    def __post_init__(self):
-        self.beta = torch.tensor(self.beta)
-        self.scale = torch.tensor(self.scale)
+    # def __post_init__(self):
+    #     self.beta = torch.tensor(self.beta)
+    #     self.scale = torch.tensor(self.scale)
         
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         return self.scale * x**self.beta
 
-    def deriv(self, x: torch.Tensor, *, alpha: float) -> torch.Tensor:
+    def deriv(self, x: torch.Tensor, *, alpha: torch.Tensor) -> torch.Tensor:
+        diff = self.beta - alpha[:, None]
         prefactor = (
             self.scale
-            * gamma(self.beta + 1.0)
-            / gamma(self.beta - alpha + 1.0)
+            * gamma(torch.tensor(self.beta + 1.0))
+            / gamma(diff + 1.0)
         )
-        return prefactor * x ** (self.beta - alpha)
+        return prefactor * x ** diff
 
 
 def get_callback(s: str, **kw):
