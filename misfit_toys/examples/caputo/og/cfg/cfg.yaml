@@ -1,3 +1,7 @@
+defaults:
+- _self_
+- case: power
+
 a: 0
 b: 1
 N: 100
@@ -6,14 +10,9 @@ eps: 1e-8
 # alpha: 0.5
 power: 2.5
 alpha:
-  start: 0.01
-  end: 0.99
+  start: 0.0
+  end: 1.0
   steps: 100
-
-f: 
-  name: power
-  beta: 10.0
-  scale: 1.0
 
 plt:
   func: 
@@ -46,4 +45,13 @@ plt:
     marker: null
     markersize: 1
     alpha: 1.0
+
+  legend:
+    loc: center
+    bbox_to_anchor: [0.5, -0.1]
+    ncol: 2
+
+  save: 
+    duration: 100
+
   

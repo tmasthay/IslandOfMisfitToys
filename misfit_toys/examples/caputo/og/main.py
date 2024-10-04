@@ -40,7 +40,7 @@ def gen_matrix(N: int, *, alpha: torch.Tensor) -> torch.Tensor:
     
     for i, e in enumerate(alpha):
         if e == 1.0:
-            A[i, :, :] = torch.eye(N)
+            A[i, :, :] = 2 * torch.eye(N)
 
     return A
 
@@ -101,16 +101,16 @@ def main(cfg: DictConfig):
 
     def plotter(*, data, idx, fig, axes):
         plt.clf()
-        plt.plot(x, analytic_deriv[idx], **c.plt.analytic)
-        plt.plot(x, num_deriv[idx], **c.plt.numerical)
-        plt.plot(x, func_evaled, **c.plt.func)
-        plt.plot(x, classical_deriv, **c.plt.classical)
-        plt.title(f'Derivative alpha={alpha[idx[0]].item():.2f} Error={rel_err[idx[0]]:.2e}')
-        plt.legend()
+        plt.plot(x[1:], func_evaled[1:], **c.plt.func)
+        plt.plot(x[1:], classical_deriv[1:], **c.plt.classical)
+        plt.plot(x[1:], analytic_deriv[idx][1:], **c.plt.analytic)
+        plt.plot(x[1:], num_deriv[idx][1:], **c.plt.numerical)
+        plt.title(f'Derivative alpha={alpha[idx[0]].item():.2f} Error={rel_err[idx[0]]:.2e}\n{func}')
+        plt.legend(**c.plt.legend)
         
     iter = bool_slice(*num_deriv.shape, none_dims=[-1])
     frames = get_frames_bool(data=None, iter=iter, plotter=plotter)
-    save_frames(frames, path=hydra_out('res'))
+    save_frames(frames, path=hydra_out('res'), **c.plt.get('save', {}))
 
     os.system(f'code {hydra_out("res.gif")}')
 

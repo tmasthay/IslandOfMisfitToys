@@ -1,0 +1,11 @@
+# @package _global_
+
+f: 
+  name: sine
+  omega: 5.0
+  scale: 1.0
+  phase: 0.0
+
+a: 0.0
+b: 6.283185307179586
+N: 100

@@ -13,9 +13,22 @@ class DiffFunction(ABC):
         pass
 
     def deriv(self, x: torch.Tensor, *, alpha: float) -> torch.Tensor:
-        raise NotImplementedError(
-            "Need to supply the derivative if you want to use it"
-        )
+        raise NotImplementedError("deriv must be overridden by subclass")
+    
+@dataclass(kw_only=True)
+class NonAnalyticFunction(DiffFunction):
+    @abstractmethod
+    def _class_deriv(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+    
+    def deriv(self, x: torch.Tensor, *, alpha: float) -> torch.Tensor:
+        res = torch.nan * torch.ones(alpha.shape[0], x.shape[0])
+        for i, e in enumerate(alpha):
+            if e == 0.0:
+                res[i] = self.__call__(x)
+            elif e == 1.0:
+                res[i] = self._class_deriv(x)
+        return res
 
 @dataclass(kw_only=True)
 class Power(DiffFunction):
@@ -37,8 +50,33 @@ class Power(DiffFunction):
             / gamma(diff + 1.0)
         )
         return prefactor * x ** diff
+    
+@dataclass(kw_only=True)
+class Sine(NonAnalyticFunction):
+    omega: float = 1.0
+    scale: float = 1.0
+    phase: float = 0.0
+    
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        return self.scale * torch.sin(self.omega * x + self.phase)
+    
+    def _class_deriv(self, x: torch.Tensor) -> torch.Tensor:
+        return self.scale * self.omega * torch.cos(self.omega * x + self.phase)
+    
+        return res
 
+@dataclass(kw_only=True)
+class SineConfident(DiffFunction):
+    omega: float = 1.0
+    scale: float = 1.0
+    phase: float = 0.0
+    
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        return self.scale * torch.sin(self.omega * x + self.phase)
 
+    def deriv(self, x: torch.Tensor, *, alpha: torch.Tensor) -> torch.Tensor:
+        return self.omega ** alpha[:, None] * torch.sin(self.omega * x[None, :] + self.phase + torch.pi * alpha[:, None] / 2)
+    
 def get_callback(s: str, **kw):
-    d = {'power': Power}
+    d = {'power': Power, 'sine': Sine, 'sine_confident': SineConfident}
     return d[s](**kw)
