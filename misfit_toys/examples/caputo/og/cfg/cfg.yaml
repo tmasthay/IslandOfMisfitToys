@@ -1,6 +1,6 @@
 defaults:
-- _self_
-- case: power
+  - _self_
+  - case: power
 
 a: 0
 b: 1
@@ -15,7 +15,7 @@ alpha:
   steps: 100
 
 plt:
-  func: 
+  func:
     label: Function
     linestyle: '-'
     color: k
@@ -37,7 +37,7 @@ plt:
     marker: x
     markersize: 1
     alpha: 0.5
-  
+
   classical:
     label: Classical Derivative
     linestyle: '-.'
@@ -51,7 +51,7 @@ plt:
     bbox_to_anchor: [0.5, -0.1]
     ncol: 2
 
-  save: 
-    duration: 100
+  ylim: null
 
-  
+  save:
+    duration: 100

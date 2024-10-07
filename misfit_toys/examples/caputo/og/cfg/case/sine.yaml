@@ -1,7 +1,7 @@
 # @package _global_
 
-f: 
-  name: sine
+f:
+  name: sine_confident
   omega: 5.0
   scale: 1.0
   phase: 0.0
