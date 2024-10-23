@@ -392,7 +392,9 @@ class SeismicProp(torch.nn.Module):
         )
         if not (y_set or x_set) or ((not y_set) and self.model == 'acoustic'):
             raise ValueError(
-                'acoustic model requires y set, elastic y or x set'
+                'acoustic model requires y set, elastic y or x set\n'
+                f'Got {self.model=}, {y_set=}, {x_set=}, {type(self.src_amp_y)=}\n'
+                f'{type(self.rec_loc_y)=}, {type(self.src_loc_y)=}'
             )
 
     def __get_optional_param__(self, name):

@@ -3,7 +3,7 @@ import os
 import hydra
 import torch
 from dotmap import DotMap
-from functions import gamma, get_callback
+from misfit_toys.examples.caputo.og.functions import gamma, get_callback
 from matplotlib import pyplot as plt
 from mh.core import DotDict, exec_imports, hydra_out
 from mh.typlotlib import get_frames_bool, save_frames

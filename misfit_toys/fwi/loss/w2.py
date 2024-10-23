@@ -3,6 +3,7 @@ from itertools import product
 from time import time
 from typing import Callable
 
+from matplotlib import pyplot as plt
 import numpy as np
 import torch
 import torch.autograd as autograd
@@ -226,7 +227,7 @@ def true_quantile(
         )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            print(idx)
+            # print(idx)
             results[idx] = true_quantile(
                 pdf[idx],
                 x,
@@ -523,7 +524,10 @@ class W2Loss(torch.nn.Module):
         self.q = spline_func(
             self.p[::down], self.q_raw[..., ::down].unsqueeze(-1)
         )
-        self.qd = gen_deriv(q=self.q, p=self.p)
+        if gen_deriv is None:
+            self.qd = lambda a,b: None
+        else:
+            self.qd = gen_deriv(q=self.q, p=self.p)
 
     def forward(self, traces):
         """
@@ -542,3 +546,70 @@ class W2Loss(torch.nn.Module):
         diff = self.t - transport
         loss = torch.trapz(diff**2 * pdf, self.t, dim=-1)
         return loss
+    
+class W2LossScalar(W2Loss):
+    """
+    W2LossScalar calculates the W2 Wasserstein loss between the given traces and the observed data.
+
+    Args:
+        t (torch.Tensor): The time values.
+        p (torch.Tensor): The probability values.
+        obs_data (torch.Tensor): The observed data.
+        renorm (callable): A function to renormalize the data.
+        gen_deriv (callable): A function to generate derivatives.
+        down (int, optional): The downsampling factor. Defaults to 1.
+
+    Attributes:
+        obs_data (torch.Tensor): The renormalized observed data.
+        renorm (callable): The renormalization function.
+        q_raw (torch.Tensor): The true quantile values.
+        p (torch.Tensor): The probability values.
+        t (torch.Tensor): The time values.
+        q (callable): The spline function.
+        qd (callable): The derivative function.
+
+    """
+
+    def __init__(self, *, t, p, obs_data, renorm, down=1):
+        super().__init__(t=t, p=p, obs_data=obs_data, renorm=renorm, gen_deriv=None, down=down)
+    
+    def forward(self, traces):
+        """
+        Calculates the W2 Wasserstein loss between the given traces and the observed data.
+
+        Args:
+            traces (torch.Tensor): The input traces.
+        """
+        return super().forward(traces).sum()
+    
+if __name__ == "__main__":
+    t = torch.linspace(-10,10,1000)
+    p = torch.linspace(0,1,10000)
+    
+    N = 25
+    mu = torch.linspace(1, 2, N)
+    sig = torch.linspace(0.1, 1.0, N)
+    
+    u = (t[None, None, :] - mu[:, None, None])**2 / (2 * sig[None, :, None]**2)
+    
+    formal_pdf = torch.exp(-u)
+    
+    def simple_renorm(y):
+        z = torch.abs(y)
+        return z / torch.trapz(z, dx=t[1]-t[0], dim=-1)[..., None]
+    
+    loser = W2Loss(t=t, p=p, obs_data=formal_pdf, renorm=simple_renorm, down=1, gen_deriv=None)
+    
+    mid_mu = mu[len(mu) // 2]
+    mid_sig = sig[len(sig) // 2]
+    ref_pdf = formal_pdf[len(mu) // 2, len(sig) // 2, :]
+    
+    loss = loser(ref_pdf)
+    
+    analytic_solution = (mu[:, None] - mid_mu)**2 + (sig[None, :]-mid_sig)**2
+    diff = torch.abs(loss - analytic_solution)
+    
+    plt.imshow(diff, cmap='seismic', aspect='auto')
+    plt.colorbar()
+    plt.savefig('mine.jpg')
+
