@@ -1364,3 +1364,14 @@ def select_best_gpu():
             best_gpu = f"cuda:{i}"
 
     return best_gpu
+
+def tslice(u, *, dims=None, idxs=None):
+    if dims is None:
+        return u
+    
+    dims = [e if e > 0 else len(u.shape) + e for e in dims]
+    idxs = idxs or [-1 for _ in range(len(dims))]
+    assert len(idxs) == len(dims)
+    final_idx = [slice(None) if i not in dims else idxs[dims.index(i)] for i in range(len(u.shape))]
+    return u[tuple(final_idx)]
+    

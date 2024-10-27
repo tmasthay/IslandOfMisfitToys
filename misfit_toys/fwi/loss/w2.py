@@ -15,7 +15,15 @@ from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice, tensor_summary
 
-
+class SimpleRenorm(torch.nn.Module):
+    def __init__(self, *, dx):
+        super().__init__()
+        self.dx = dx
+    
+    def forward(self, y):
+        z = torch.abs(y)
+        return z / torch.trapz(z, dx=self.dx, dim=-1)[..., None]
+    
 def unbatch_splines(coeffs):
     """
     Unbatches a set of spline coefficients.
@@ -134,6 +142,8 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
     if dx is not None:
         u = torch.cumulative_trapezoid(y, dx=dx, dim=dim)
     else:
+        # v = f'{y.shape=}, {x.shape=}'
+        # raise RuntimeError(v)
         u = torch.cumulative_trapezoid(y, x, dim=dim)
     if preserve_dims:
         if dim < 0:
@@ -547,40 +557,19 @@ class W2Loss(torch.nn.Module):
         loss = torch.trapz(diff**2 * pdf, self.t, dim=-1)
         return loss
     
-class W2LossScalar(W2Loss):
+class W2LossArg(W2Loss):
     """
-    W2LossScalar calculates the W2 Wasserstein loss between the given traces and the observed data.
-
-    Args:
-        t (torch.Tensor): The time values.
-        p (torch.Tensor): The probability values.
-        obs_data (torch.Tensor): The observed data.
-        renorm (callable): A function to renormalize the data.
-        gen_deriv (callable): A function to generate derivatives.
-        down (int, optional): The downsampling factor. Defaults to 1.
-
-    Attributes:
-        obs_data (torch.Tensor): The renormalized observed data.
-        renorm (callable): The renormalization function.
-        q_raw (torch.Tensor): The true quantile values.
-        p (torch.Tensor): The probability values.
-        t (torch.Tensor): The time values.
-        q (callable): The spline function.
-        qd (callable): The derivative function.
+    W2LossScalar moves obs_data into a positional argument for interface.
 
     """
 
-    def __init__(self, *, t, p, obs_data, renorm, down=1):
+    def __init__(self, obs_data, *, dt, nt, nprob, renorm=None, down=1):
+        # raise ValueError(f'{obs_data.shape=}')
+        p = torch.linspace(0, 1, nprob).to(obs_data.device)
+        t = torch.linspace(0, nt*dt, nt).to(obs_data.device)
+        if renorm is None:
+            renorm = SimpleRenorm(dx=dt)
         super().__init__(t=t, p=p, obs_data=obs_data, renorm=renorm, gen_deriv=None, down=down)
-    
-    def forward(self, traces):
-        """
-        Calculates the W2 Wasserstein loss between the given traces and the observed data.
-
-        Args:
-            traces (torch.Tensor): The input traces.
-        """
-        return super().forward(traces).sum()
     
 if __name__ == "__main__":
     t = torch.linspace(-10,10,1000)
