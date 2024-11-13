@@ -11,6 +11,21 @@ from subprocess import CalledProcessError
 from subprocess import check_output as co
 
 
+def is_like_dict(v):
+    return hasattr(v, 'items') and hasattr(v, 'keys') and hasattr(v, 'values')
+
+
+def pretty_dict(d, depth=0, indent_str='  ', s=''):
+    for k, v in d.items():
+        if is_like_dict(v):
+            s += f'{indent_str*depth}{k}:\n' + pretty_dict(
+                v, depth + 1, indent_str
+            )
+        else:
+            s += f'{indent_str*depth}{k}: {v}\n'
+    return s
+
+
 def sco(s, split=True):
     """
     Execute a shell command and return the output.

@@ -59,6 +59,13 @@ def cent_grid(
     # NOTE: both max(1,...) are needed here...there's a cleaner way but this works for now!
     ey = cy + max(1, delta_y)
     ex = cx + max(1, delta_x)
+    
+    if ey - sy != ny * dy:
+        ey += dy
+    if ex - sx != nx * dx:
+        ex += dx
+    assert ey - sy == ny * dy, f"{ey=}, {sy=}, {ny=}, {dy=}, {ey-sy=}, {ny*dy=}"
+    assert ex - sx == nx * dx, f"{ex=}, {sx=}, {nx=}, {dx=}, {ex-sx=}, {nx*dx=}"
 
     # if ny != 1:
     #     ey += dy

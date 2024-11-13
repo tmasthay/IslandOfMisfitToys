@@ -19,13 +19,44 @@ helpers:
       step: ${dt}
       num: ${nt}
 
+  space: &space
+    __call__: ^^cwd|helpers|dict_values
+    kw:
+      y_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dy}
+          num: ${ny}
+      x_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dx}
+          num: ${nx}
+
+  vp_opts: &vp_opts
+    column_names:
+      - Offset (m)
+      - Depth (m)
+    unsqueeze:
+      perform: true
+    cols: 2
+    two:
+      loop_info:
+        base_title: Velocity Model
+        bounds: self.post.helpers.space
+    one:
+      loop_info:
+        base_title: Velocity Model
+
   obs_data_opts: &obs_data_opts
     column_names:
       - Iteration Number
       - Offset (m)
       - Time (s)
     unsqueeze:
-      perform: True
+      perform: true
     cols: 3
     two:
       loop_info:
@@ -33,19 +64,21 @@ helpers:
         bounds:
           __call__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.rec
-            c: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            b: self.post.helpers.rec
+            c: self.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
 
+
   src_amp_opts: &src_amp_opts
     column_names:
       - Iteration Number
+      - Source Index
       - Time (s)
     unsqueeze:
-      perform: True
+      perform: true
     cols: 3
     two:
       loop_info:
@@ -53,8 +86,8 @@ helpers:
         bounds:
           __call__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.time
+            a: self.post.helpers.iterations
+            c: self.post.helpers.time
 
     one:
       loop_info:
@@ -62,8 +95,15 @@ helpers:
         # bounds:
         #   __call__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.plt.helpers.iterations
-        #     b: self.plt.helpers.time
+        #     a: self.post.helpers.iterations
+        #     b: self.post.helpers.time
+
+# note that the use of the tags here is inefficient.
+#     Technically, the runtime env will evaluate these tags TWICE.
+#     However, these are incredibly cheap operations, so it's not a big deal.
+vp:
+  path: vp.pt
+  <<: *vp_opts
 
 obs_data:
   path: obs_frames.pt
