@@ -172,7 +172,9 @@ class ParamConstrained(Param):
         """
         minv = self.custom.minv
         maxv = self.custom.maxv
-        return torch.sigmoid(self.p) * (maxv - minv) + minv
+        u = torch.sigmoid(self.p) * (maxv - minv) + minv
+        assert not torch.isnan(u).any(), f'{minv=}, {maxv=}, {self.p=}'
+        return u
 
 
 class SeismicPropLegacy(torch.nn.Module):
