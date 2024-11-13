@@ -17,7 +17,7 @@ src_loc_y:
     ny: ${....ny}
     nx: ${....nx}
     n_shots: ${....n_shots}
-    src_per_shot: ${....src_per_shot}
+    src_per_shot: slf_pre.src_per_shot
     rel_idx_src_loc_y:
       upper_left: [0.5, 0.5]
       lower_left: [0.5, 0.5]
@@ -32,7 +32,7 @@ src_amp_y:
   kw:
     path: ${....path}/src_amp_y.pt
     device: ${....device}
-    num_per_shot: ${src_per_shot}
+    num_per_shot: slf_pre.src_per_shot
 
 src_amp_y_init:
   self_key: src_amp_y_init

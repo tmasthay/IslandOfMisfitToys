@@ -20,6 +20,17 @@ class PickleUnaryFunction:
 
     def __call__(self, x: Any):
         return self.callback(x, **self.kwargs)
+    
+class PicklePositional:
+    def __init__(self, *, callback: Callable[[Any], Any], update_kw:Callable[[Any], dict]=None, **kwargs):
+        self.kwargs = kwargs
+        self.callback = callback
+        self.update_kw = update_kw    
+    
+    def __call__(self, *args: Any):
+        if self.update_kw is not None:
+            self.kwargs = self.update_kw(*args, **self.kwargs)
+        return self.callback(*args, **self.kwargs)
 
 
 class SingleArgPlusKwEnforcer:
@@ -62,3 +73,5 @@ class Plotter(KwEnforcer):
 class FlatPlotter(KwEnforcer):
     def __init__(self, *, callback: Callable[[dict], Any], **kwargs):
         super().__init__(callback=callback, required_keys=['data'], **kwargs)
+        
+
