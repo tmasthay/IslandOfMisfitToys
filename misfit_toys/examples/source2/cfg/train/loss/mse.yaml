@@ -1,0 +1,6 @@
+__call__: ^^|misfit_toys.types|PickleUnaryFunction
+kw:
+  callback: ^^cwd|loss|trunc_mse
+  cut_front: 0.0
+  cut_back: 0.0
+  target: self.data.obs_data

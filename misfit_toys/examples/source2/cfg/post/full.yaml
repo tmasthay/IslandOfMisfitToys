@@ -1,0 +1,150 @@
+helpers:
+  shot_bounds:
+    - 0
+    - ${n_shots}
+  rec:
+    __call_post__: ^^cwd|helpers|dlinspace
+    kw:
+      start: ${fst_src}
+      step: ${d_rec}
+      num: ${rec_per_shot}
+
+  iterations:
+    __call_post__: ^^cwd|helpers|dict_values
+    kw:
+      a: 0
+      b: slf_post.train.num_captured_frames
+
+  time:
+    __call_post__: ^^cwd|helpers|dlinspace
+    kw:
+      start: 0.0
+      step: ${dt}
+      num: ${nt}
+
+  space: &space
+    __call_post__: ^^cwd|helpers|dict_values
+    kw:
+      y_domain:
+        __call_post__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dy}
+          num: ${ny}
+      x_domain:
+        __call_post__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dx}
+          num: ${nx}
+
+  vp_opts: &vp_opts
+    column_names:
+      - Offset (m)
+      - Depth (m)
+    unsqueeze:
+      perform: True
+    cols: 2
+    two:
+      loop_info:
+        base_title: Velocity Model
+        bounds: slf_post.post.helpers.space
+    one:
+      loop_info:
+        base_title: Velocity Model
+
+  obs_data_opts: &obs_data_opts
+    column_names:
+      - Iteration Number
+      - Shot Number
+      - Offset (m)
+      - Time (s)
+    unsqueeze:
+      perform: True
+    cols: 3
+    two:
+      loop_info:
+        base_title: Observed Data
+        bounds:
+          __call_post__: ^^cwd|helpers|dict_values
+          kw:
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.rec
+            d: slf_post.post.helpers.time
+    one:
+      loop_info:
+        base_title: Observed Data
+
+
+  src_amp_opts: &src_amp_opts
+    column_names:
+      - Iteration Number
+      - Shot Number
+      - Time (s)
+    unsqueeze:
+      perform: False
+    cols: 3
+    two:
+      loop_info:
+        base_title: Source Amplitude
+        bounds:
+          __call_post__: ^^cwd|helpers|dict_values
+          kw:
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.time
+
+    one:
+      loop_info:
+        base_title: Source Amplitude
+        # bounds:
+        #   __call_post__: ^^cwd|helpers|dict_values
+        #   kw:
+        #     a: slf_post.post.helpers.iterations
+        #     b: slf_post.post.helpers.time
+
+# note that the use of the tags here is inefficient.
+#     Technically, the runtime env will evaluate these tags TWICE.
+#     However, these are incredibly cheap operations, so it's not a big deal.
+vp:
+  path: vp.pt
+  <<: *vp_opts
+
+obs_data:
+  path: obs_frames.pt
+  <<: *obs_data_opts
+
+src_amp:
+  path: src_amp_frames.pt
+  <<: *src_amp_opts
+
+true_obs_data:
+  path: true_obs_data.pt
+  <<: *obs_data_opts
+  column_names:
+    - Offset (m)
+    - Time (s)
+  cols: 2
+
+true_src_amp:
+  path: true_src_amp_y.pt
+  <<: *src_amp_opts
+  column_names:
+    - Source Number
+    - Time (s)
+  cols: 1
+
+diff_src_amp:
+  path: diff_src_amp.pt
+  <<: *src_amp_opts
+  # unsqueeze:
+  #   perform: False
+
+diff_obs_data:
+  path: diff_obs_data.pt
+  <<: *obs_data_opts
+  # unsqueeze:
+  #   perform: False
+
+__rt_callback__: ^^|helpers|interactive_plot_dump
