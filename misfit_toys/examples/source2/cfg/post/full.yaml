@@ -1,35 +1,38 @@
 helpers:
+  shot_bounds:
+    - 0
+    - ${n_shots}
   rec:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: ${fst_src}
       step: ${d_rec}
       num: ${rec_per_shot}
 
   iterations:
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       a: 0
-      b: self.train.num_captured_frames
+      b: slf_post.train.num_captured_frames
 
   time:
-    __call__: ^^cwd|helpers|dlinspace
+    __call_post__: ^^cwd|helpers|dlinspace
     kw:
       start: 0.0
       step: ${dt}
       num: ${nt}
 
   space: &space
-    __call__: ^^cwd|helpers|dict_values
+    __call_post__: ^^cwd|helpers|dict_values
     kw:
       y_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dy}
           num: ${ny}
       x_domain:
-        __call__: ^^cwd|helpers|dlinspace
+        __call_post__: ^^cwd|helpers|dlinspace
         kw:
           start: 0.0
           step: ${dx}
@@ -45,7 +48,7 @@ helpers:
     two:
       loop_info:
         base_title: Velocity Model
-        bounds: self.plt.helpers.space
+        bounds: slf_post.post.helpers.space
     one:
       loop_info:
         base_title: Velocity Model
@@ -53,6 +56,7 @@ helpers:
   obs_data_opts: &obs_data_opts
     column_names:
       - Iteration Number
+      - Shot Number
       - Offset (m)
       - Time (s)
     unsqueeze:
@@ -62,11 +66,12 @@ helpers:
       loop_info:
         base_title: Observed Data
         bounds:
-          __call__: ^^cwd|helpers|dict_values
+          __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.rec
-            c: self.plt.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.rec
+            d: slf_post.post.helpers.time
     one:
       loop_info:
         base_title: Observed Data
@@ -75,27 +80,29 @@ helpers:
   src_amp_opts: &src_amp_opts
     column_names:
       - Iteration Number
+      - Shot Number
       - Time (s)
     unsqueeze:
-      perform: True
+      perform: False
     cols: 3
     two:
       loop_info:
         base_title: Source Amplitude
         bounds:
-          __call__: ^^cwd|helpers|dict_values
+          __call_post__: ^^cwd|helpers|dict_values
           kw:
-            a: self.plt.helpers.iterations
-            b: self.plt.helpers.time
+            a: slf_post.post.helpers.iterations
+            b: [0.0, 1.0]
+            c: slf_post.post.helpers.time
 
     one:
       loop_info:
         base_title: Source Amplitude
         # bounds:
-        #   __call__: ^^cwd|helpers|dict_values
+        #   __call_post__: ^^cwd|helpers|dict_values
         #   kw:
-        #     a: self.plt.helpers.iterations
-        #     b: self.plt.helpers.time
+        #     a: slf_post.post.helpers.iterations
+        #     b: slf_post.post.helpers.time
 
 # note that the use of the tags here is inefficient.
 #     Technically, the runtime env will evaluate these tags TWICE.
@@ -124,6 +131,7 @@ true_src_amp:
   path: true_src_amp_y.pt
   <<: *src_amp_opts
   column_names:
+    - Source Number
     - Time (s)
   cols: 1
 
@@ -138,3 +146,5 @@ diff_obs_data:
   <<: *obs_data_opts
   # unsqueeze:
   #   perform: False
+
+__rt_callback__: ^^|helpers|interactive_plot_dump

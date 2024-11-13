@@ -8,15 +8,19 @@ from abc import ABC, abstractmethod
 from importlib import import_module
 from subprocess import check_output as co
 from warnings import warn
+import warnings
 
 import deepwave as dw
+from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from mh.core import DotDict
 from obspy.io.segy.segy import _read_segy
+from misfit_toys.utils import bool_slice, clean_idx
+from mh.typlotlib import save_frames, get_frames_bool
 
 from ..swiffer import iprint, iraise, ireraise, istr, sco
-from ..utils import auto_path, downsample_any, get_pydict, parse_path
+from ..utils import auto_path, downsample_any, get_pydict, parse_path, select_best_gpu
 
 
 def fetch_warn():
@@ -250,7 +254,7 @@ def fixed_rec(*, n_shots, rec_per_shot, fst_rec, d_rec, rec_depth):
     res[:, :, 0] = (torch.arange(rec_per_shot) * d_rec + fst_rec).repeat(
         n_shots, 1
     )
-    return res
+    return res.long()
 
 
 def fetch_and_convert_data(*, subset="all", path=os.getcwd(), check=False):
@@ -491,7 +495,14 @@ def fetch_meta(*, obj):
 
 class DataFactory(ABC):
     def __init__(
-        self, *, device=None, src_path, root_out_path, root_path, **kw
+        self,
+        *,
+        device=None,
+        src_path,
+        root_out_path,
+        root_path,
+        make_plots=True,
+        **kw,
     ):
         if device is None:
             num_gpus = torch.cuda.device_count()
@@ -543,6 +554,7 @@ class DataFactory(ABC):
                 "prior to generating a DataFactory object",
             )
         self.metadata = get_pydict(self.out_path)
+        self.make_plots = make_plots
         self.__extend_init__(**kw)
 
     def __extend_init__(self, **kw):
@@ -558,6 +570,11 @@ class DataFactory(ABC):
     def manufacture_data(self, **kw):
         self._manufacture_data(**kw)
         self.place_tensors(device="cpu")
+        if self.make_plots:
+            try:
+                self.plot_tensors()
+            except Exception as e:
+                warnings.warn(f"Failed to plot tensors\n    {e}")
         self.save_all_tensors()
         self.broadcast_meta()
         self.clear_all_tensors()
@@ -674,7 +691,7 @@ class DataFactory(ABC):
 
     def get_parent_tensors(self, place=True):
         parent_out_path = os.path.join(self.out_path, "..")
-        pt_files = sco(f'find {parent_out_path} -name "*.pt"')
+        pt_files = sco(f'find {parent_out_path} -maxdepth 1 -name "*.pt"')
         if len(pt_files) == 0:
             iraise(
                 FileNotFoundError,
@@ -714,6 +731,119 @@ class DataFactory(ABC):
             iprint(f"{self.append_path} data not found...manufacturing tensors")
             return False
 
+    def plot_tensors(self):
+        def subdict(keys):
+            return DotDict({k: v for k, v in self.tensors.items() if k in keys})
+
+        # input(self.tensors.keys())
+        plain_imshow = subdict(
+            ['vp', 'vs', 'rho', 'vp_true', 'vs_true', 'rho_true']
+        )
+        for k, v in plain_imshow.items():
+            plt.clf()
+            plt.imshow(v.cpu().T, cmap='seismic', aspect='auto')
+            plt.colorbar()
+            plt.title(k)
+            plt.savefig(f"{self.out_path}/{k}.jpg")
+
+        acq = subdict(['src_loc_y', 'rec_loc_y', 'src_loc_x', 'rec_loc_x'])
+
+        active_coords = set([k[-1] for k in acq.keys()])
+        num_coords = len(active_coords)
+
+        fig, axes = plt.subplots(1, num_coords, figsize=(12, 6))
+
+        def plotter(*, data, idx, fig, axes):
+            def get_field(name):
+                if name not in data.keys():
+                    return None
+                return data[name][idx].cpu()
+
+            src_loc_y = get_field('src_loc_y')
+            rec_loc_y = get_field('rec_loc_y')
+            src_loc_x = get_field('src_loc_x')
+            rec_loc_x = get_field('rec_loc_x')
+
+            src_opts = dict(marker='o', color='red', label='Source', s=50)
+            rec_opts = dict(marker='x', color='blue', label='Receiver', s=5)
+
+            plt.clf()
+            subplot_no = 1
+            def setup_axes():
+                plt.xlim(0, self.metadata['ny'])
+                plt.ylim(0, self.metadata['nx'])
+                plt.gca().invert_yaxis()
+                plt.xlabel('Offset (m)')
+                plt.ylabel('Depth (m)')
+                
+            if src_loc_y is not None:
+                plt.subplot(1, num_coords, subplot_no)
+                setup_axes()
+                plt.scatter(src_loc_y[:, 0], src_loc_y[:, 1], **src_opts)
+                plt.scatter(rec_loc_y[:, 0], rec_loc_y[:, 1], **rec_opts)
+                plt.title('Acquisition Y Component')
+                subplot_no += 1
+
+            if src_loc_x is not None:
+                plt.subplot(1, num_coords, subplot_no)
+                setup_axes()
+                plt.scatter(src_loc_x[:, 0], src_loc_x[:, 1], **src_opts)
+                plt.scatter(rec_loc_x[:, 0], rec_loc_x[:, 1], **rec_opts)
+                plt.title('Acquisition X Component')
+                subplot_no += 1
+
+        iter = bool_slice(
+            self.metadata['n_shots'],
+            self.metadata['src_per_shot'],
+            2,
+            none_dims=[1, 2],
+        )
+        frames = get_frames_bool(
+            data=acq, iter=iter, fig=fig, axes=axes, plotter=plotter
+        )
+        save_frames(frames, path=f'{self.out_path}/acq_geo')
+        
+        src_amps = subdict(['src_amp_y', 'src_amp_x'])
+        active_coords_amps = set([k[-1] for k in src_amps.keys()])
+        num_coords_amps = len(active_coords_amps)
+        
+        fig, axes = plt.subplots(1, num_coords_amps, figsize=(12, 6))
+        
+        def plotter_amps(*, data, idx, fig, axes):
+            def get_field(name):
+                if name not in data.keys():
+                    return None
+                return data[name][idx].cpu()
+
+            src_amp_y = get_field('src_amp_y')
+            src_amp_x = get_field('src_amp_x')
+            
+            dt = self.metadata['dt']
+            nt = self.metadata['nt']
+            T = nt * dt
+            t = torch.linspace(0, T, nt)
+            
+            plt.clf()
+            subplot_no = 1
+            if src_amp_y is not None:
+                plt.subplot(1, num_coords_amps, subplot_no)
+                plt.plot(t, src_amp_y.cpu())
+                plt.title('Source Amplitude Y Component')
+                subplot_no += 1
+            if src_amp_x is not None:
+                plt.subplot(1, num_coords_amps, subplot_no)
+                plt.plot(t, src_amp_x.cpu())
+                plt.title('Source Amplitude X Component')
+                subplot_no += 1
+
+        n_shots = self.metadata['n_shots']
+        src_per_shot = self.metadata['src_per_shot']
+        iter_amps = bool_slice(n_shots, src_per_shot, 2, none_dims=[-1])
+        frames_amps = get_frames_bool(
+            data=src_amps, iter=iter_amps, fig=fig, axes=axes, plotter=plotter_amps
+        )
+        save_frames(frames_amps, path=f'{self.out_path}/src_amps')
+
     @staticmethod
     def get_derived_meta(*, meta):
         if "derived" not in meta:
@@ -737,6 +867,16 @@ class DataFactory(ABC):
         for dir_path, dir_names, file_names in os.walk(root):
             if dir_path != root:
                 valid_path = True
+
+                # This is a bad search criterion
+                # For example if "marmousi" and "marmousi2"
+                #    are valid options, then if "marmousi" is
+                #    in exclusions, "marmousi2" will not be
+                #    processed
+                # We have fixed this temporarily by just renaming
+                #    "marmousi2" to "marm2" so that neither
+                #    "marmousi" or "marm2" are substrings of
+                #    one another.
                 for e in exclusions:
                     if e in dir_path:
                         valid_path = False
@@ -754,9 +894,6 @@ class DataFactory(ABC):
         root_out_dir = parse_path(storage)
         os.makedirs(root_out_dir, exist_ok=True)
         root = os.path.dirname(__file__)
-        # input(
-        #     f"DATABASE CREATION: root = {root}\nroot_out_dir = {root_out_dir}\n"
-        # )
         DataFactory.manufacture_all(
             root=root, root_out_path=root_out_dir, exclusions=exclusions
         )

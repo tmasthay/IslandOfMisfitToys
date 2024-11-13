@@ -1080,7 +1080,13 @@ def apply_builder(lcl, gbl):
     return obj
 
 
-def apply(lcl, relax=True, call_key='__call__'):
+def apply(
+    lcl: dict,
+    relax: bool = True,
+    call_key: str = '__call__',
+    allow_implicit: bool = False,
+    protected_keys: list = None,
+):
     """
     Applies the given local variables (`lcl`) to a runtime function.
 
@@ -1098,6 +1104,7 @@ def apply(lcl, relax=True, call_key='__call__'):
         RuntimeError: If an error occurs during the application process.
 
     """
+    protected_keys = protected_keys or ['__tmp__']
     try:
         if call_key not in lcl.keys() and relax:
             return lcl
@@ -1106,22 +1113,48 @@ def apply(lcl, relax=True, call_key='__call__'):
                 "To apply lcl, we need runtime_func to be a key "
                 f"in lcl, but it is not. lcl.keys() = {lcl.keys()}"
             )
+        all_keys = set(lcl.keys())
         args = lcl.get('args', [])
+        if 'kwargs' in all_keys and 'kw' in all_keys:
+            raise ValueError(
+                f'Ambigous kwargs, both kwargs and kw are present, {lcl=}'
+            )
         kwargs = lcl.get('kwargs', {}) or lcl.get('kw', {})
+        implicit_kwargs = all_keys.difference(
+            set(['args', 'kwargs', 'kw', call_key, *protected_keys])
+        )
+        if allow_implicit:
+            if len(implicit_kwargs & set(kwargs.keys())) > 0:
+                raise ValueError(
+                    'Implicit kwargs overlap with explicit kwargs\n   '
+                    f' {lcl=}\n    {implicit_kwargs=}\n    {kwargs=}'
+                )
+            kwargs.update({k: lcl[k] for k in implicit_kwargs})
+
         for i, e in enumerate(args):
             if isinstance(e, DotDict) or isinstance(e, dict):
-                args[i] = apply(e, relax=True)
+                args[i] = apply(
+                    e,
+                    relax=True,
+                    call_key=call_key,
+                    allow_implicit=allow_implicit,
+                )
 
         for k, v in kwargs.items():
             if isinstance(v, DotDict) or isinstance(v, dict):
-                kwargs[k] = apply(v, relax=True)
+                kwargs[k] = apply(
+                    v,
+                    relax=True,
+                    call_key=call_key,
+                    allow_implicit=allow_implicit,
+                )
 
         # keys = set(kwargs.keys())
         # is_reducible = keys.issubset(
         #     set(['args', 'kwargs', 'kw', call_key])
         # )
         if call_key in kwargs.keys():
-            kwargs = apply(kwargs, relax=True)
+            kwargs = apply(kwargs, relax=True, call_key=call_key)
         lcl_callback = getattr(lcl, call_key)
         lcl = lcl_callback(*args, **kwargs)
         return lcl
@@ -1135,7 +1168,15 @@ def apply(lcl, relax=True, call_key='__call__'):
         raise v from e
 
 
-def apply_all(lcl, relax=True, exc=None, call_key='__call__'):
+def apply_all(
+    lcl,
+    *, 
+    relax=True,
+    exc=None,
+    call_key='__call__',
+    allow_implicit=False,
+    protected_keys=None,
+):
     """
     Recursively applies the `apply` function to all values in a dictionary or DotDict.
 
@@ -1149,12 +1190,25 @@ def apply_all(lcl, relax=True, exc=None, call_key='__call__'):
     """
     if isinstance(lcl, DotDict) or isinstance(lcl, dict):
         if call_key in lcl.keys():
-            return apply(lcl, relax=relax, call_key=call_key)
+            return apply(
+                lcl,
+                relax=relax,
+                call_key=call_key,
+                allow_implicit=allow_implicit,
+                protected_keys=protected_keys,
+            )
 
     valid_items = [(k, v) for k, v in lcl.items() if k not in (exc or [])]
     for k, v in valid_items:
         if isinstance(v, DotDict) or isinstance(v, dict):
-            lcl[k] = apply_all(v, relax=relax, exc=exc, call_key=call_key)
+            lcl[k] = apply_all(
+                v,
+                relax=relax,
+                exc=exc,
+                call_key=call_key,
+                allow_implicit=allow_implicit,
+                protected_keys=protected_keys,
+            )
     return lcl
 
 
@@ -1164,10 +1218,19 @@ def runtime_reduce(
     relax: bool = False,
     call_key: str = '__call__',
     self_key: str = 'self',
+    allow_implicit: bool = False,
+    protected_keys: list = None,
     exc: list = None,
 ):
-    config = config.self_ref_resolve(self_key=self_key)
-    config = apply_all(config, relax=relax, call_key=call_key, exc=exc)
+    config = config.self_ref_resolve(self_key=self_key, relax=relax)
+    config = apply_all(
+        config,
+        relax=relax,
+        call_key=call_key,
+        exc=exc,
+        allow_implicit=allow_implicit,
+        protected_keys=protected_keys,
+    )
     return config
 
 
@@ -1283,3 +1346,32 @@ def preprocess_cfg(
     if eat_key is not None:
         d = d[eat_key]
     return d if compose is None else compose(d)
+
+
+def select_best_gpu():
+    if not torch.cuda.is_available():
+        return "cpu"
+
+    best_gpu = "cuda:0"
+    max_free_vram = 0
+
+    for i in range(torch.cuda.device_count()):
+        free_vram = torch.cuda.memory_reserved(i) - torch.cuda.memory_allocated(
+            i
+        )
+        if free_vram > max_free_vram:
+            max_free_vram = free_vram
+            best_gpu = f"cuda:{i}"
+
+    return best_gpu
+
+def tslice(u, *, dims=None, idxs=None):
+    if dims is None:
+        return u
+    
+    dims = [e if e > 0 else len(u.shape) + e for e in dims]
+    idxs = idxs or [-1 for _ in range(len(dims))]
+    assert len(idxs) == len(dims)
+    final_idx = [slice(None) if i not in dims else idxs[dims.index(i)] for i in range(len(u.shape))]
+    return u[tuple(final_idx)]
+    

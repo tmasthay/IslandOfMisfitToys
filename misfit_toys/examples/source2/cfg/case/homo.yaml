@@ -4,5 +4,5 @@ defaults:
   - default
   - _self_
 
-src_ny: 1
-src_nx: 1
+src_ny: 2
+src_nx: 2

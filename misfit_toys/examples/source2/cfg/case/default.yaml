@@ -1,0 +1,26 @@
+ny: 600
+nx: 250
+nt: 300
+dy: 4.0
+dx: 4.0
+dt: 0.004
+n_shots: 1
+d_src: 20
+fst_src: 10
+src_depth: 2
+rec_per_shot: 100
+d_rec: 6
+fst_rec: 0
+rec_depth: 2
+d_intra_shot: 0
+freq: 25
+peak_time: 0.06
+accuracy: 8
+
+device: cuda:1
+
+train:
+  n_epochs: 100
+  num_captured_frames: 10
+  threshold: 1e-5
+  optimizer: adam

@@ -1,0 +1,141 @@
+helpers:
+  rec:
+    __call__: ^^cwd|helpers|dlinspace
+    kw:
+      start: ${fst_src}
+      step: ${d_rec}
+      num: ${rec_per_shot}
+
+  iterations:
+    __call__: ^^cwd|helpers|dict_values
+    kw:
+      a: 0
+      b: self.train.num_captured_frames
+
+  time:
+    __call__: ^^cwd|helpers|dlinspace
+    kw:
+      start: 0.0
+      step: ${dt}
+      num: ${nt}
+
+  space: &space
+    __call__: ^^cwd|helpers|dict_values
+    kw:
+      y_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dy}
+          num: ${ny}
+      x_domain:
+        __call__: ^^cwd|helpers|dlinspace
+        kw:
+          start: 0.0
+          step: ${dx}
+          num: ${nx}
+
+  vp_opts: &vp_opts
+    column_names:
+      - Offset (m)
+      - Depth (m)
+    unsqueeze:
+      perform: true
+    cols: 2
+    two:
+      loop_info:
+        base_title: Velocity Model
+        bounds: self.post.helpers.space
+    one:
+      loop_info:
+        base_title: Velocity Model
+
+  obs_data_opts: &obs_data_opts
+    column_names:
+      - Iteration Number
+      - Offset (m)
+      - Time (s)
+    unsqueeze:
+      perform: true
+    cols: 3
+    two:
+      loop_info:
+        base_title: Observed Data
+        bounds:
+          __call__: ^^cwd|helpers|dict_values
+          kw:
+            a: self.post.helpers.iterations
+            b: self.post.helpers.rec
+            c: self.post.helpers.time
+    one:
+      loop_info:
+        base_title: Observed Data
+
+
+  src_amp_opts: &src_amp_opts
+    column_names:
+      - Iteration Number
+      - Source Index
+      - Time (s)
+    unsqueeze:
+      perform: true
+    cols: 3
+    two:
+      loop_info:
+        base_title: Source Amplitude
+        bounds:
+          __call__: ^^cwd|helpers|dict_values
+          kw:
+            a: self.post.helpers.iterations
+            c: self.post.helpers.time
+
+    one:
+      loop_info:
+        base_title: Source Amplitude
+        # bounds:
+        #   __call__: ^^cwd|helpers|dict_values
+        #   kw:
+        #     a: self.post.helpers.iterations
+        #     b: self.post.helpers.time
+
+# note that the use of the tags here is inefficient.
+#     Technically, the runtime env will evaluate these tags TWICE.
+#     However, these are incredibly cheap operations, so it's not a big deal.
+vp:
+  path: vp.pt
+  <<: *vp_opts
+
+obs_data:
+  path: obs_frames.pt
+  <<: *obs_data_opts
+
+src_amp:
+  path: src_amp_frames.pt
+  <<: *src_amp_opts
+
+true_obs_data:
+  path: true_obs_data.pt
+  <<: *obs_data_opts
+  column_names:
+    - Offset (m)
+    - Time (s)
+  cols: 2
+
+true_src_amp:
+  path: true_src_amp_y.pt
+  <<: *src_amp_opts
+  column_names:
+    - Time (s)
+  cols: 1
+
+diff_src_amp:
+  path: diff_src_amp.pt
+  <<: *src_amp_opts
+  # unsqueeze:
+  #   perform: False
+
+diff_obs_data:
+  path: diff_obs_data.pt
+  <<: *obs_data_opts
+  # unsqueeze:
+  #   perform: False

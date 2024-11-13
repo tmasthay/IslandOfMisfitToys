@@ -30,7 +30,7 @@ src_amp_y:
     path: ${path}/src_amp_y.pt
     device: ${device}
     n_shots: ${n_shots}
-    num_per_shot: ${src_per_shot}
+    num_per_shot: slf_pre.src_per_shot
     nonzeros:
       __call__: ^^|torch|linspace
       kw:
@@ -39,20 +39,30 @@ src_amp_y:
         steps: 2
         device: ${device}
 
+# src_amp_y_init:
+#   __call_src__: ^^cwd|helpers|sparse_amps
+#   kw:
+#     path: ${path}/src_amp_y.pt
+#     device: ${device}
+#     n_shots: ${n_shots}
+#     num_per_shot: slf_pre.src_per_shot
+#     nonzeros:
+#       __call_src__: ^^|torch|linspace
+#       kw:
+#         start: 0.5
+#         end: 0.8
+#         steps: 2
+#         device: ${device}
 src_amp_y_init:
-  __call_src__: ^^cwd|helpers|sparse_amps
+  __call_src__: ^^|torch|ones
   kw:
-    path: ${path}/src_amp_y.pt
-    device: ${device}
-    n_shots: ${n_shots}
-    num_per_shot: ${src_per_shot}
-    nonzeros:
-      __call__: ^^|torch|linspace
+    size: 
+      __call_src__: ^^cwd|helpers|dict_values
       kw:
-        start: 0.5
-        end: 0.8
-        steps: 2
-        device: ${device}
+        a: ${n_shots}
+        b: slf_pre.src_per_shot
+        c: ${nt}
+    device: ${device}
 
 gbl_rec_loc:
   __call__: ^^cwd|helpers|build_gbl_rec_loc
@@ -91,3 +101,10 @@ obs_data:
     receiver_locations: slf_${..self_key}.data.rec_loc_y
     accuracy: 8
     pml_freq: ${freq}
+
+
+regularizer: 
+  __call_pre__: ^^|misfit_toys.types|PickleUnaryFunction
+  kw:
+    callback: ^^cwd|helpers|tv_reg
+    weight: 1.0
