@@ -114,7 +114,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     setup(rank, world_size, port=c.port)
 
     if c.get('dupe', False):
-        dupe(f'{c.rank_out}_{rank}', editor=c.get('editor', None))
+        dupe(hydra_out('stream'), editor=c.get('editor', None))
 
     start_pre = time()
     c = resolve(c, relax=True)
@@ -178,7 +178,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     # )
     c = resolve(c, relax=True)
 
-    c.runtime.prop = apply(c.train.prop)
+    c.runtime.prop = apply(c.train.prop).to(rank)
     c.runtime.prop = DDP(c.runtime.prop, device_ids=[rank])
 
     c = resolve(c, relax=False)

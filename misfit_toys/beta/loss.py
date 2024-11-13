@@ -17,6 +17,8 @@ from torchcubicspline import natural_cubic_spline_coeffs as ncs
 
 from misfit_toys.beta.prob import cdf, disc_quantile, get_quantile_lambda, pdf
 from misfit_toys.utils import all_detached_cpu
+import torch.nn.functional as F
+from misfit_toys.examples.caputo.og.main import caputo
 
 
 def linear_combo(*, losses, weights=None):
@@ -896,3 +898,54 @@ class BatchedSlicerLoss(torch.nn.Module):
 
     def forward(self, x):
         return sum(s(x) for s in self.slicers)
+
+
+class CaputoLoss(torch.nn.Module):
+    def __init__(
+        self,
+        *,
+        data: torch.Tensor,
+        alpha_callback: Callable[[], float],
+        deriv_callback: Callable[[torch.Tensor], torch.Tensor],
+        dx: float,
+        weights_callback: torch.Tensor
+    ):
+        super().__init__()
+
+        self.data = data
+        self.alpha_callback = alpha_callback
+        self.weights_callback = weights_callback
+        self.num_calls = 0
+        self.alpha = None
+        self.weights = None
+        self.data_deriv = deriv_callback(data, dx=dx)
+        self.deriv_callback = deriv_callback
+        self.dx = dx
+
+    def forward(self, g):
+        self.num_calls += 1
+        self.alpha = self.alpha_callback(self.num_calls, self.alpha)
+        self.weights = self.weights_callback(self.num_calls, self.weights)
+        l2_loss = F.mse_loss(g, self.data)
+
+        g_deriv = self.deriv_callback(g, dx=self.dx)
+
+        caputo_term = caputo(self.data_deriv - g_deriv, alpha=self.alpha, dx=self.dx)
+        
+        final_loss = self.weights[0] * l2_loss + self.weights[1] * caputo_term
+        return final_loss
+
+
+def lin_scheduler(num_calls, prev_param, *, initial_param, final_param, max_calls):
+    if num_calls == 0:
+        return initial_param
+    t = num_calls / max_calls
+    return t * final_param + (1 - t) * initial_param
+
+def simple_deriv(data, *, dx):
+    u = torch.diff(data, dim=-1) / dx
+    # return F.pad(u, (1, 0), value=u[0].item())
+    if u.ndim == 1:
+        return F.pad(u, (1, 0), value=u[0].item())
+    else:
+        return F.pad(u, (1, 0), mode='replicate')

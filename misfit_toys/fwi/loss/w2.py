@@ -3,6 +3,7 @@ from itertools import product
 from time import time
 from typing import Callable
 
+from matplotlib import pyplot as plt
 import numpy as np
 import torch
 import torch.autograd as autograd
@@ -14,7 +15,15 @@ from torchcubicspline import NaturalCubicSpline, natural_cubic_spline_coeffs
 
 from misfit_toys.utils import bool_slice, tensor_summary
 
-
+class SimpleRenorm(torch.nn.Module):
+    def __init__(self, *, dx):
+        super().__init__()
+        self.dx = dx
+    
+    def forward(self, y):
+        z = torch.abs(y)
+        return z / torch.trapz(z, dx=self.dx, dim=-1)[..., None]
+    
 def unbatch_splines(coeffs):
     """
     Unbatches a set of spline coefficients.
@@ -133,6 +142,8 @@ def cum_trap(y, x=None, *, dx=None, dim=-1, preserve_dims=True):
     if dx is not None:
         u = torch.cumulative_trapezoid(y, dx=dx, dim=dim)
     else:
+        # v = f'{y.shape=}, {x.shape=}'
+        # raise RuntimeError(v)
         u = torch.cumulative_trapezoid(y, x, dim=dim)
     if preserve_dims:
         if dim < 0:
@@ -226,7 +237,7 @@ def true_quantile(
         )
         # Loop through the dimensions
         for idx in product(*map(range, result_shape)):
-            print(idx)
+            # print(idx)
             results[idx] = true_quantile(
                 pdf[idx],
                 x,
@@ -523,7 +534,10 @@ class W2Loss(torch.nn.Module):
         self.q = spline_func(
             self.p[::down], self.q_raw[..., ::down].unsqueeze(-1)
         )
-        self.qd = gen_deriv(q=self.q, p=self.p)
+        if gen_deriv is None:
+            self.qd = lambda a,b: None
+        else:
+            self.qd = gen_deriv(q=self.q, p=self.p)
 
     def forward(self, traces):
         """
@@ -542,3 +556,49 @@ class W2Loss(torch.nn.Module):
         diff = self.t - transport
         loss = torch.trapz(diff**2 * pdf, self.t, dim=-1)
         return loss
+    
+class W2LossArg(W2Loss):
+    """
+    W2LossScalar moves obs_data into a positional argument for interface.
+
+    """
+
+    def __init__(self, obs_data, *, dt, nt, nprob, renorm=None, down=1):
+        # raise ValueError(f'{obs_data.shape=}')
+        p = torch.linspace(0, 1, nprob).to(obs_data.device)
+        t = torch.linspace(0, nt*dt, nt).to(obs_data.device)
+        if renorm is None:
+            renorm = SimpleRenorm(dx=dt)
+        super().__init__(t=t, p=p, obs_data=obs_data, renorm=renorm, gen_deriv=None, down=down)
+    
+if __name__ == "__main__":
+    t = torch.linspace(-10,10,1000)
+    p = torch.linspace(0,1,10000)
+    
+    N = 25
+    mu = torch.linspace(1, 2, N)
+    sig = torch.linspace(0.1, 1.0, N)
+    
+    u = (t[None, None, :] - mu[:, None, None])**2 / (2 * sig[None, :, None]**2)
+    
+    formal_pdf = torch.exp(-u)
+    
+    def simple_renorm(y):
+        z = torch.abs(y)
+        return z / torch.trapz(z, dx=t[1]-t[0], dim=-1)[..., None]
+    
+    loser = W2Loss(t=t, p=p, obs_data=formal_pdf, renorm=simple_renorm, down=1, gen_deriv=None)
+    
+    mid_mu = mu[len(mu) // 2]
+    mid_sig = sig[len(sig) // 2]
+    ref_pdf = formal_pdf[len(mu) // 2, len(sig) // 2, :]
+    
+    loss = loser(ref_pdf)
+    
+    analytic_solution = (mu[:, None] - mid_mu)**2 + (sig[None, :]-mid_sig)**2
+    diff = torch.abs(loss - analytic_solution)
+    
+    plt.imshow(diff, cmap='seismic', aspect='auto')
+    plt.colorbar()
+    plt.savefig('mine.jpg')
+

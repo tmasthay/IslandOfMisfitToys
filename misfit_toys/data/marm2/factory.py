@@ -9,6 +9,7 @@ from deepwave.common import vpvsrho_to_lambmubuoyancy as get_lame
 from mh.core import DotDict
 
 from misfit_toys.data.dataset import DataFactory, fixed_rec, towed_src
+from misfit_toys.utils import select_best_gpu
 
 
 class Factory(DataFactory):
@@ -20,6 +21,9 @@ class Factory(DataFactory):
             "src_loc_y",
             "rec_loc_y",
             "src_amp_y",
+            "src_loc_x",
+            "src_amp_x",
+            "rec_loc_x",
         ):
             return
 
@@ -53,12 +57,18 @@ class Factory(DataFactory):
             d.freq, d.nt, d.dt, d.peak_time
         ).repeat(d.n_shots, d.src_per_shot, 1)
 
+        self.tensors.src_loc_x = self.tensors.src_loc_y.clone()
+        self.tensors.src_amp_x = self.tensors.src_amp_y.clone()
+        self.tensors.rec_loc_x = torch.clamp(
+            self.tensors.rec_loc_y.clone(), min=1
+        )
+
         return d
 
 
 def main():
     f = Factory.cli_construct(
-        device="cuda:0", src_path=os.path.dirname(__file__)
+        device=select_best_gpu(), src_path=os.path.dirname(__file__)
     )
     f.manufacture_data()
 
