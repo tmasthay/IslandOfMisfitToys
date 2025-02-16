@@ -33,7 +33,7 @@ src_amp_frames: &src_amp_frames
       kw:
         name: figs/src_amp
 
-  order: [1,2,3,4]
+  order: [1, 2, 3, 4]
 
 true_src_amp:
   inner:
@@ -44,4 +44,3 @@ diff_src_amp:
   inner:
     <<: *INNER
     title: Difference Source Amplitude
-

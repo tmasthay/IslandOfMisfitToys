@@ -1,3 +1,5 @@
+# @VS@ python _file
+
 import os
 
 import deepwave as dw
@@ -5,11 +7,11 @@ import hydra
 import matplotlib.pyplot as plt
 import torch
 import yaml
-from mh.core import DotDict, set_print_options, torch_stats, hydra_out
+from mh.core import DotDict, hydra_out, set_print_options, torch_stats
 from mh.typlotlib import get_frames_bool, save_frames
 from omegaconf import DictConfig, OmegaConf
 
-from misfit_toys.utils import exec_imports, runtime_reduce, git_dump_info
+from misfit_toys.utils import exec_imports, git_dump_info, runtime_reduce
 
 set_print_options(callback=torch_stats('all'))
 
@@ -61,7 +63,7 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     return c
 
 
-@hydra.main(config_path="cfg", config_name="cfg", version_base=None)
+@hydra.main(config_path="all/main", config_name="default", version_base=None)
 def main(cfg: DictConfig):
     with open(hydra_out('git_info.txt'), 'w') as f:
         f.write(git_dump_info())

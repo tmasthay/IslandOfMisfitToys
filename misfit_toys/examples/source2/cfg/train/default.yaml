@@ -1,6 +1,0 @@
-defaults:
-- _self_
-- opt: adam
-- loss: mse
-
-lr: 0.1

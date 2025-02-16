@@ -1,7 +1,8 @@
-# @package _global_
-
 defaults:
   - default
+  - data: homo
+  - post: homo
+  - train: homo
   - _self_
 
 src_ny: 2

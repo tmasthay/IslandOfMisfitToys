@@ -1,0 +1,9 @@
+defaults:
+  - default
+  - data: homo_mult
+  - post: homo_mult
+  - train: homo_mult
+  - _self_
+
+src_ny: 2
+src_nx: 2

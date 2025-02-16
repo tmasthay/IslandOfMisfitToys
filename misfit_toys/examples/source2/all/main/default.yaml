@@ -1,3 +1,10 @@
+defaults:
+  - default
+  - data: default
+  - post: default
+  - train: default
+  - _self_
+
 ny: 600
 nx: 250
 nt: 300

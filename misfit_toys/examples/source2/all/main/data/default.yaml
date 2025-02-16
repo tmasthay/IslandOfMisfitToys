@@ -2,7 +2,7 @@ vp:
   __call__: ^^cwd|helpers|build_vp
   kw:
     path: ${....path}/vp.pt
-    device: ${....device}
+    device: ${device}
     ny: ${ny}
     nx: ${nx}
 rec_loc_y:

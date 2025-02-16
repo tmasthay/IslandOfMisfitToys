@@ -56,7 +56,7 @@ src_amp_y:
 src_amp_y_init:
   __call_src__: ^^|torch|ones
   kw:
-    size: 
+    size:
       __call_src__: ^^cwd|helpers|dict_values
       kw:
         a: ${n_shots}
@@ -103,7 +103,7 @@ obs_data:
     pml_freq: ${freq}
 
 
-regularizer: 
+regularizer:
   __call_pre__: ^^|misfit_toys.types|PickleUnaryFunction
   kw:
     callback: ^^cwd|helpers|tv_reg

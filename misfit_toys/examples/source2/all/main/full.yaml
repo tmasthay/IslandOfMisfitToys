@@ -1,8 +1,8 @@
-# @package _global_
-
 defaults:
   - default
+  - data: full
+  - post: full
+  - train: full
   - _self_
-
 src_ny: 1
 src_nx: 1
