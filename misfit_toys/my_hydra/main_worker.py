@@ -11,12 +11,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
 import yaml
-from mh.core import (  # hydra_out,
-    DotDict,
-    convert_dictconfig,
-    set_print_options,
-    torch_stats,
-)
+from mh.core import DotDict, convert_dictconfig, set_print_options, torch_stats
 from mh.core_legacy import subdict
 from mh.typlotlib import apply_subplot, get_frames_bool, save_frames
 from omegaconf import DictConfig
@@ -52,22 +47,6 @@ def set_options():
 
 
 set_options()
-
-global base_hydra
-
-def hydra_out(name: str = '') -> str:
-    global base_hydra
-    if base_hydra is None:
-        base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-    return f'{base_hydra}/{name}'
-
-
-# def hydra_out(name: str = '') -> str:
-#     out = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-#     s = os.path.join(out, name)
-#     base_folder = os.path.dirname(s)
-#     os.makedirs(base_folder, exist_ok=True)
-#     return s
 
 
 def sco(cmd, verbose=False):
@@ -131,7 +110,7 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     setup(rank, world_size, port=c.port)
 
     if c.get('dupe', False):
-        dupe(hydra_out('stream'), editor=c.get('editor', None))
+        dupe(pj(c.hydra_out, 'stream'), editor=c.get('editor', None))
 
     start_pre = time()
     c = resolve(c, relax=True)
@@ -292,6 +271,8 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
             " tracking of output files."
         )
     c = convert_dictconfig(cfg.case)
+    c.hydra_out = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    os.makedirs(c.hydra_out, exist_ok=True)
     dump_resolved_config = convert_dictconfig(
         cfg, self_ref_resolve=False, mutable=False
     )
@@ -299,13 +280,13 @@ def preprocess_cfg(cfg: DictConfig) -> DotDict:
     resolved_config_str = resolved_config_str.replace(
         '!!python/object:mh.core.DotDict', ''
     )
-    with open(hydra_out('resolved_config.yaml'), 'w') as f:
+    with open(pj(c.hydra_out, 'resolved_config.yaml'), 'w') as f:
         f.write(resolved_config_str)
     del dump_resolved_config
     for k, v in c.plt.items():
-        c[f'plt.{k}.save.path'] = hydra_out(v.save.path)
+        c[f'plt.{k}.save.path'] = pj(c.hydra_out, v.save.path)
     c.data.path = c.data.path.replace('conda', os.environ['CONDA_PREFIX'])
-    c.rank_out = hydra_out(c.get('rank_out', 'rank'))
+    c.rank_out = pj(c.hydra_out, c.get('rank_out', 'rank'))
 
     # later on if you want to delay this execution, that is an easy refactor
     #     just add a key that says to do so or not.
@@ -433,12 +414,10 @@ def main(cfg: DictConfig) -> None:
         None
     """
 
-    global base_hydra
-    base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-    with open(hydra_out('git_info.txt'), 'w') as f:
-        f.write(git_dump_info())
-
     c = preprocess_cfg(cfg)
+
+    with open(pj(c.hydra_out, 'git_info.txt'), 'w') as f:
+        f.write(git_dump_info())
 
     out_dir = os.path.join(os.path.dirname(__file__), 'out')
     os.makedirs(out_dir, exist_ok=True)
@@ -471,7 +450,12 @@ def main(cfg: DictConfig) -> None:
 
     pp_kw = c.data.postprocess.get('kw', {})
     c.data.postprocess.__call__(
-        data, path=hydra_out(), train_time=train_time, **pp_kw
+        data,
+        path=pj(
+            c.hydra_out,
+        ),
+        train_time=train_time,
+        **pp_kw,
     )
 
     c.plt = resolve(c.plt, relax=False)
@@ -511,13 +495,13 @@ def main(cfg: DictConfig) -> None:
         print(f"Plot {k} stored in {v.save.path}")
 
     print('To see all output run the following in terminal:\n')
-    print(f'    cd {hydra_out("")}')
+    print(f'    cd {pj(c.hydra_out, "")}')
 
     print('Equivalently, you can run the following command:\n')
     print('    . .latest_run')
 
     with open(os.path.join(os.getcwd(), '.latest_run'), 'w') as f:
-        f.write(f'cd {hydra_out("")}')
+        f.write(f'cd {pj(c.hydra_out, "")}')
         # set permissions to execute
         os.chmod(os.path.join(os.getcwd(), '.latest_run'), 0o755)
 
