@@ -1,0 +1,10 @@
+__call__: ^^|misfit_toys.fwi.seismic_data|SeismicProp
+kw:
+  vp: self.runtime.data.vp
+  rec_loc_y: self.runtime.data.rec_loc_y
+  src_loc_y: self.runtime.data.src_loc_y
+  src_amp_y: self.runtime.data.src_amp_y
+  max_vel: ${case.data.preprocess.maxv}
+  pml_freq: self.runtime.data.meta.freq
+  time_pad_frac: ${case.data.preprocess.time_pad_frac}
+  meta: self.runtime.data.meta

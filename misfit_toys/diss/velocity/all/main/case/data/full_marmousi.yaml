@@ -1,0 +1,3 @@
+prefix: conda/data
+proj_path: marmousi
+path: ${.prefix}/${.proj_path}

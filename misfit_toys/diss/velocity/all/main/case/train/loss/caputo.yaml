@@ -1,0 +1,23 @@
+__call__: ^^|misfit_toys.beta.loss|CaputoLoss
+kw:
+  data: self.runtime.data.obs_data
+  alpha_callback:
+    __call__: ^^|misfit_toys.types|PicklePositional
+    kw:
+      callback: ^^|misfit_toys.beta.loss|lin_scheduler
+      kw:
+        initial_param: 1.0
+        final_param: 0.0
+        max_calls: ${case.train.max_iters}
+  weights_callback:
+    __call__: ^^|misfit_toys.types|PicklePositional
+    kw:
+      callback: ^^|misfit_toys.beta.loss|lin_scheduler
+      kw:
+        initial_param:
+          __call__: ^^|torch|Tensor
+          args: [1.0, 1.0]
+        final_param: ${.initial_param}
+        max_calls: ${case.train.max_iters}
+  dx: self.runtime.data.meta.dt
+  deriv_callback: ^^|misfit_toys.beta.loss|simple_deriv

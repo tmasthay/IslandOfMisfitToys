@@ -1,0 +1,3 @@
+prefix: conda/data
+proj_path: marmousi/deepwave_example/shots16
+path: ${.prefix}/${.proj_path}

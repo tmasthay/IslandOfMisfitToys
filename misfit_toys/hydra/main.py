@@ -1,4 +1,6 @@
 """
+@VS@ cd _dir && python -W ignore main.py +run=test
+
 This script is the main workhorse of the Island of Misfit Toys.
 It performs a complete full-waveform inversion workflow on any given dataset.
 Arbitrary functions and keyword arguments can be passed into this script through Hydra's configuration hierarchy and command-line arguments.

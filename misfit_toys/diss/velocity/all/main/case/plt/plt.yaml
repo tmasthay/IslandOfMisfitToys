@@ -1,0 +1,71 @@
+vp:
+  sub:
+    shape: [2, 2]
+    kw:
+      figsize: [10, 10]
+    adjust:
+      hspace: 0.5
+      wspace: 0.5
+  iter:
+    none_dims: [-2, -1]
+  save:
+    path: figs/vp.gif
+    movie_format: gif
+    duration: 250
+  order: [vp, vp_true, rel_diff]
+  plts:
+    vp:
+      main:
+        filt: "eval(lambda x : x.T)"
+        opts:
+          cmap: seismic
+          aspect: auto
+        title: $v_p$
+        type: imshow
+        xlabel: Rec Location (m)
+        ylabel: Depth (m)
+        colorbar: true
+
+    rel_diff:
+      main:
+        filt: transpose
+        opts:
+          cmap: seismic
+          aspect: auto
+        title: Relative Difference (%)
+        type: imshow
+        xlabel: Rec Location (m)
+        ylabel: Depth (m)
+        colorbar: true
+
+    vp_true:
+      main:
+        filt: transpose
+        opts:
+          cmap: seismic
+          aspect: auto
+        title: $v_{true}$
+        type: imshow
+        xlabel: Rec Location (m)
+        ylabel: Depth (m)
+        colorbar: true
+
+trace:
+  sub:
+    shape: [2, 2]
+    kw:
+      figsize: [10, 10]
+  iter:
+    none_dims: [0, -1]
+  save:
+    path: figs/random_traces.gif
+    duration: 250
+  xlabel: Time (s)
+  ylabel: Displacement (m)
+  title: Observed Data at Receiver Location
+  color_seq: [red, blue]
+  linestyles: [solid, dashed]
+  legend:
+    loc: upper right
+    framealpha: 0.5
+  suptitle: Observed Data at Random Receiver Locations

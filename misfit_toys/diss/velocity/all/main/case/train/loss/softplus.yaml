@@ -1,0 +1,3 @@
+__call__: "eval(lambda val: val)"
+kw:
+  val: self.data.preprocess.addons

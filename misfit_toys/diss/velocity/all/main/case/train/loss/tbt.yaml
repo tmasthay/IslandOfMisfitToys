@@ -1,0 +1,6 @@
+__call__: ^^null|misfit_toys.beta.loss|BatchedSlicerLoss
+kw:
+  data: self.runtime.data.obs_data
+  rec_loc: self.runtime.data.rec_loc_y
+  t: self.runtime.t
+  embeddings: ^^null|misfit_toys.beta.loss|tbt_embed

@@ -1,0 +1,10 @@
+dep:
+  mod: ^^misfit_toys.fwi.loss.tikhonov
+__call__: self.train.loss.dep.mod.TikhonovLoss
+kw:
+  __call__: self.train.loss.dep.mod.lin_reg_drop
+  kw:
+    weights: self.runtime.prop.module.vp
+    max_iters: ${case.train.max_iters}
+    scale: 1.0e-06
+    _min: 1.0e-07

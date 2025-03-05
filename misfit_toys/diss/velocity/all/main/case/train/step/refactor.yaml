@@ -1,0 +1,9 @@
+__call__: ^^null|misfit_toys.workflows.tik.steps|taper_only
+kw:
+  length: 100
+  num_batches: null
+  scale: 1.0e+06
+  src_amp_y: self.runtime.data.src_amp_y
+
+
+nonexist: checking_the_yaml_format_hook

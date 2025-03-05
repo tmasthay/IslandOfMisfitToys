@@ -1,0 +1,3 @@
+__call__: ^^null|misfit_toys.workflows.stages|vanilla_stages
+kw:
+  max_iters: ${case.train.max_iters}

@@ -1,4 +1,4 @@
-# @VS@ cd _dir && python -W ignore main.py +run=test
+# @VS@ cd _dir && python -W ignore _file +run=test
 
 import os
 from os.path import exists as exists
@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 import torch
 import torch.multiprocessing as mp
 import yaml
-from mh.core import (  # hydra_out,
+from mh.core import (
     DotDict,
     convert_dictconfig,
+    hydra_out,
     set_print_options,
     torch_stats,
 )
@@ -52,14 +53,6 @@ def set_options():
 
 
 set_options()
-
-base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-os.makedirs(base_hydra, exist_ok=True)
-
-
-def hydra_out(name: str = '') -> str:
-    return f'{base_hydra}/{name}'
-
 
 # def hydra_out(name: str = '') -> str:
 #     out = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
@@ -421,6 +414,7 @@ def trace_plotter(*, data, idx, fig, axes, c):
     return {'c': c}
 
 
+@hydra.main(config_path="all/main", config_name="default", version_base=None)
 def main(cfg: DictConfig) -> None:
     """
     Main function for processing data and generating plots.

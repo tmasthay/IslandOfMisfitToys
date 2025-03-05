@@ -1,0 +1,5 @@
+__call__: ^^null|misfit_toys.workflows.w2.steps|taper_only
+kw:
+  length: null
+  num_batches: null
+  scale: 1.0e+06
