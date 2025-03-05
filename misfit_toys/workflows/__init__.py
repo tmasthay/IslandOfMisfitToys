@@ -1,6 +1,6 @@
 """
 Custom staged-training workflows
 """
-from . import stages, tik
-
+from . import tik
+from . import stages
 __all__ = ['tik', 'stages']

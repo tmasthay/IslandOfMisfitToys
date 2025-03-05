@@ -10,6 +10,9 @@ Usage:
 
 This will download and process the data for use in benchmarking FWI algorithms.
 """
-from . import das_curtin, dataset, download_data, marm2, marmousi
-
+from . import marmousi
+from . import marm2
+from . import das_curtin
+from . import dataset
+from . import download_data
 __all__ = ['marmousi', 'marm2', 'das_curtin', 'dataset', 'download_data']

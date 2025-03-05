@@ -53,11 +53,12 @@ def set_options():
 
 set_options()
 
-base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-os.makedirs(base_hydra, exist_ok=True)
-
+global base_hydra
 
 def hydra_out(name: str = '') -> str:
+    global base_hydra
+    if base_hydra is None:
+        base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     return f'{base_hydra}/{name}'
 
 
@@ -432,7 +433,8 @@ def main(cfg: DictConfig) -> None:
         None
     """
 
-    input(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
+    global base_hydra
+    base_hydra = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     with open(hydra_out('git_info.txt'), 'w') as f:
         f.write(git_dump_info())
 

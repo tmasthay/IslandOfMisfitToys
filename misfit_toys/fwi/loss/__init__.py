@@ -1,6 +1,7 @@
 """
 TODO: make package-level docstring
 """
-from . import renorm, tikhonov, w2
-
+from . import w2
+from . import tikhonov
+from . import renorm
 __all__ = ['w2', 'tikhonov', 'renorm']

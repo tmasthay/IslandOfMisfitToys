@@ -14,7 +14,7 @@ import yaml
 from mh.core import (
     DotDict,
     convert_dictconfig,
-    hydra_out,
+    # hydra_out,
     set_print_options,
     torch_stats,
 )
@@ -53,7 +53,13 @@ def set_options():
 
 
 set_options()
-
+global base_folder
+base_folder = os.getcwd()
+def hydra_out(name=''):
+    global base_folder
+    os.makedirs(base_folder, exist_ok=True)
+    return pj(base_folder, name)
+    
 # def hydra_out(name: str = '') -> str:
 #     out = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 #     s = os.path.join(out, name)
@@ -122,6 +128,8 @@ def run_rank(rank: int, world_size: int, c: DotDict) -> None:
     print(f"Running DDP on rank {rank} / {world_size}.")
     setup(rank, world_size, port=c.port)
 
+
+    
     if c.get('dupe', False):
         dupe(hydra_out('stream'), editor=c.get('editor', None))
 
@@ -425,8 +433,8 @@ def main(cfg: DictConfig) -> None:
     Returns:
         None
     """
-
-    input(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
+    global base_folder
+    base_folder = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     with open(hydra_out('git_info.txt'), 'w') as f:
         f.write(git_dump_info())
 

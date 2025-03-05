@@ -1,6 +1,6 @@
 """
 TODO: make package-level docstring
 """
-from . import functions, main
-
+from . import main
+from . import functions
 __all__ = ['main', 'functions']
