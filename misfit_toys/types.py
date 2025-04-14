@@ -21,7 +21,7 @@ class PickleUnaryFunction:
     def __call__(self, x: Any):
         return self.callback(x, **self.kwargs)
     
-class PicklePositional:
+class PicklePositionalFunction:
     def __init__(self, *, callback: Callable[[Any], Any], update_kw:Callable[[Any], dict]=None, **kwargs):
         self.kwargs = kwargs
         self.callback = callback
