@@ -49,11 +49,11 @@ class SingleArgPlusKwEnforcer:
 
 class KwEnforcer:
     def __init__(
-        self, *, callback: Callable[[dict], Any], required_keys, **kwargs
+        self, *, callback: Callable[[dict], Any], required_keys=None, **kwargs
     ):
         self.kwargs = kwargs
         self.callback = callback
-        self.required_keys = required_keys
+        self.required_keys = required_keys or []
 
     def __call__(self, **kwargs):
         for key in self.required_keys:

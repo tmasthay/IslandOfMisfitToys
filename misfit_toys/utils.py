@@ -1374,4 +1374,7 @@ def tslice(u, *, dims=None, idxs=None):
     assert len(idxs) == len(dims)
     final_idx = [slice(None) if i not in dims else idxs[dims.index(i)] for i in range(len(u.shape))]
     return u[tuple(final_idx)]
+
+def gen_to_tensor(*, gen, dtype=torch.float32, device='cpu'):
+    return torch.tensor(list(gen), dtype=dtype, device=device)
     
